@@ -1,0 +1,24 @@
+Runtime: v24.19.0
+
+=== app.test.cjs ===
+PASS: four viewport sizes fit game + toolbar, fullscreen/fallback, install prompt/Safari guidance, gesture lock with dialog scroll, manifest assets
+
+=== audio.test.cjs ===
+PASS: blocked start, no stale scheduling, gesture retry, interruption, retry button, mute preference, closed context, optional echo failure, BGM/effects
+
+=== bazooka.test.cjs ===
+PASS: random living launcher, speech/HUD, pause, AoE radius, cadence, no citizen/life consumption, empty crowd/recovery, last kill, expiry, selection portraits
+
+=== enemy-animation.test.cjs ===
+PASS: personalities, bounded poses, unchanged physics, direction, visual hit stop, neighbor flinch, single kill, body parts/gravity, boss clear/pause/explosion, budgets/reset, boss rhythms/low HP, light FX
+
+=== game.test.cjs ===
+PASS: kill combo tiers, expiry, pause, nonlethal hits, rebound continuity, five-kill single recovery, cooldown, repeat defense, restart
+PASS: car body/wheels/moving car, citizen rescue/consumption/gaps, multiball and shield precedence, one gameover, bubble layout, optional haptics, forgiving difficulty curve, capped short shake, full-screen drag, touch cancellation, button exclusions, stage/score results, high-DPI rendering, heroes, immediate clear, ceremony pause, eight enemy unlocks, four bosses, no overlap, speed scaling, crowd throws, color HP, serve, reflection, multiball lifecycle, power damage, spreading fire, slow, shield, timer pause, pickups, random drops, boss dimensions/speed/death, stage advance, game over, draw, audio sequencing, UI
+PASS: audio effects generated
+
+=== progression.test.cjs ===
+PASS: visible-line regression, breach/miss causes and delay, once-only resistance 20–50, no overlap/HP mutation, final-heart rescue, gentle curve/bosses, heart recovery, 50 clear unlock, endless continuation
+PASS: endless unlock persists across reload
+
+Test files: 6, failed: 0

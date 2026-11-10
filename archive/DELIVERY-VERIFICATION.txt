@@ -1,0 +1,6 @@
+2026-10-11
+Source commit: 080b4105490138bd057971c819e1391587add283
+All dist/ and tests/ files match the source snapshot byte-for-byte.
+6 test files passed in the handoff folder and in a fresh ZIP extraction.
+ZIP CRC integrity and SHA-256 manifest verified.
+Game source unchanged during packaging. No real-device QA performed during packaging.

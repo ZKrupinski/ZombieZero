@@ -1,0 +1,10 @@
+{
+  "title": "Zombie Balls",
+  "snapshot_date": "2026-10-11",
+  "source_commit": "080b4105490138bd057971c819e1391587add283",
+  "public_url": "https://zombie-rally.blondcarp2.chatgpt.site",
+  "saved_version_number": 19,
+  "service_worker_cache": "zombie-balls-shell-v20",
+  "deployment_id": "appgdep_6acacd8bc4908191b90ae8b865e47988",
+  "scope": "Current working source and resources; no Git history or hosting credentials"
+}

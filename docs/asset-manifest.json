@@ -1,0 +1,52 @@
+[
+  {
+    "path": "dist/app.js",
+    "bytes": 4779,
+    "sha256": "3246e56d4407f31942693a49bb7a7421bbe36cc10047c7f4cbd9ef1fb3b78d13"
+  },
+  {
+    "path": "dist/game.js",
+    "bytes": 63083,
+    "sha256": "feed8296ea2047ba78e965644a1f697c927fcfec56da5384a4a0bc9efa2c70df"
+  },
+  {
+    "path": "dist/icons/icon-192.png",
+    "bytes": 3546,
+    "sha256": "00c1bfdcf4d86fbcaabccf4316b3e853e190e5555c1b10062317e09c22486059"
+  },
+  {
+    "path": "dist/icons/icon-512.png",
+    "bytes": 10120,
+    "sha256": "e85f8ec923da8134fd7a628dc696d8a62fc24b823f9c9ce66bc81a488972276d"
+  },
+  {
+    "path": "dist/index.html",
+    "bytes": 6500,
+    "sha256": "a6ff35d3cd1d815ac86f0cc9c82430bd357d9f5f4fdd15b12793ca94f03ca580"
+  },
+  {
+    "path": "dist/manifest.webmanifest",
+    "bytes": 476,
+    "sha256": "e9bb1ca854d32ec0475c1f072c29bd061d67fb018922dd8fc80a83b641bfe64a"
+  },
+  {
+    "path": "dist/style.css",
+    "bytes": 20097,
+    "sha256": "a2702d1c75626cf6fdd13bd3d35db14f4eb1647d0bcc7e37c6ffb7f46cddd693"
+  },
+  {
+    "path": "dist/sw.js",
+    "bytes": 1258,
+    "sha256": "6ae48d7b7481d842c6b7813408bfbe2a35a1d1b4587a5ec55595d05eba65f3c9"
+  },
+  {
+    "path": "dist/zombie-balls-bi.png",
+    "bytes": 69130,
+    "sha256": "60301bca505f7bb5aef9eca229b78ebdbbfd77d8decee3acc3b2a6a3e43b5f21"
+  },
+  {
+    "path": "assets-source/branding/zombie-balls-bi-master.png",
+    "bytes": 1402017,
+    "sha256": "1777bd0e0f92f322cf424b6c10c1c4d8e27d7d0460367ad02f272c5066e2e489"
+  }
+]
