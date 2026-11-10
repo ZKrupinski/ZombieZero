@@ -54,3 +54,10 @@ README의 Python 서버는 개발용 localhost 실행입니다. 모바일에서 
 ## 다음 개발자가 지켜야 할 조건
 
 현재 캐릭터와 외형을 유지하고, 시각적 흔들림으로 적의 실제 충돌 영역을 움직이지 마세요. 화이트 사각 외곽선이 재발하지 않도록 불필요한 디버그 strokeRect를 적 렌더링에 넣지 마세요. 게임오버 원인은 실제 DEFENSE_Y 값과 표시 선을 일치시켜야 합니다. 점수/시민 소모/구제는 각 사건당 한 번만 처리해야 합니다.
+
+## ZOMBIE ZERO FX pass (2026-11-10)
+`dist/fx-renderer.js` loads before game.js. The luminous helper draws existing FX normally and captures only their light into a transparent 450×710 source. Hit/skill rings, particles, shield, bazooka muzzle/exhaust/trails and blasts use this pass. Characters, background, ball bodies, item icons and labels do not enter it. FX LIGHT skips capture and postprocessing.
+
+Default settings: ADD 0.6, Bloom 1.0, radii 12 and 24 logical pixels. WebGL uses separable Gaussian passes at half resolution (225×355); buffers are reused and compositing is additive. Black/transparent pixels cannot darken the scene. WebGL unavailability or context loss uses Canvas blur; context restoration reinitializes the shader. Canvas fallback has a single 12px halo. Cache bumped to shell-v2.
+
+Validation: node tools/test.cjs; browser fixture verified the fallback glow and scene separation. The QA browser reports WebGL unavailable, so real GPU visual/performance validation and physical mobile validation remain outstanding.
