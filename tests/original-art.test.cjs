@@ -35,7 +35,7 @@ while(offset+12<=png.length){
 assert(ended&&transparency,'transparent PNG is complete');
 assert.equal(offset,png.length,'no trailing PNG garbage');
 assert(html.includes('assets/ip/green-zombie.js')&&html.indexOf('assets/ip/green-zombie.js')<html.indexOf('src="game.js"'),'sprite loader precedes game');
-assert(sw.includes('assets/ip/green-zombie.js')&&sw.includes('shell-v3-original-art'),'asset cached in updated service worker');
+assert(sw.includes('assets/ip/green-zombie.js')&&sw.includes('shell-v4-original-cast'),'asset cached in updated service worker');
 assert(game.includes('originalGreen.complete&&originalGreen.naturalWidth>0'),'load failure falls back to procedural');
 assert(game.includes('g.drawImage(originalGreen,-3,-8,39,52)'),'bitmap rendering integrated');
 assert(game.includes('if(!z.boss&&(z.form??0)===0'),'limited to walker without touching boss');
