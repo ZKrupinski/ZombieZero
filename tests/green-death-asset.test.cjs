@@ -27,5 +27,5 @@ assert(loader.includes('row:0,count:8,frameMs:65')&&loader.includes('row:1,count
 assert(game.includes('window.ZZGreenDeath.draw(g,d.z,d.critical,d.t)'),'real game draws bitmap death, not just preview');
 assert(game.includes('!d.spriteMode)scatterEnemy'),'avoid double breakup after bitmap');
 assert(game.includes('greenSprite.draw(g,{x:0,y:0,w:33,h:44},false,0)'),'living green zombie matches death art');
-assert(game.includes('spriteMode?(critical?.580:.520)'),'accurate normal/critical visual duration');
+assert(game.includes('greenSprite?(critical?.580:.520)'),'accurate normal/critical visual duration');
 console.log('PASS: actual RGBA alpha PNG, both animation strips, in-game render, visual QA controls, caching and fallback');
