@@ -8,7 +8,7 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},w
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync('dist/game.js','utf8')+`
 function check(v,m){if(!v)throw Error(m)}
-start();serve();wave=1;rack();
+{ start();serve();wave=1;rack();
 const target=foes[0],oldX=target.x,oldY=target.y,oldW=target.w,oldH=target.h;
 target.form=0;target.hp=2;target.max=2;
 const oldScore=score;
@@ -34,4 +34,5 @@ damage(burning,3,true);check(enemyDeaths.length===1&&!enemyDeaths[0].critical,'b
 start();serve();wave=3;rack();let boss=foes.find(z=>z.boss);boss.hp=1;
 damage(boss,5,false);check(enemyDeaths.length===1&&!enemyDeaths[0].critical,'boss still uses boss-specific death');
 console.log('PASS: green critical lid reveal, brain, 6 themed fragments, single kill, unchanged collider and ordinary/burn/boss fallbacks');
+}
 `,sandbox);
