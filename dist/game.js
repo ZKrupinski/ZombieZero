@@ -456,6 +456,37 @@ $('bgm').onclick=()=>{musicEnabled=!musicEnabled;unlockAudio();$('bgm').textCont
 $('fx').onclick=()=>{fxEnabled=!fxEnabled;$('fx').textContent=fxEnabled?'FX FULL':'FX LIGHT';$('fx').setAttribute('aria-pressed',String(fxEnabled));if(!fxEnabled){fx=[];cameraKick=0}};
 $('share').onclick=async()=>{const url=new URL('./',location.href).href;try{if(navigator.share){await navigator.share({title:'ZOMBIE ZERO',text:'테니스공으로 좀비를 물리쳐 보세요!',url});return}await navigator.clipboard.writeText(url);$('share').textContent='링크 복사 완료!'}catch(e){if(e.name==='AbortError')return;$('share-url').hidden=false;$('share-url').value=url;$('share-url').select()}};
 // Keep the pixel-art shapes but render geometry and text at native display density.
-function resizeCanvas(){const bounds=c.getBoundingClientRect(),dpr=clamp(window.devicePixelRatio||1,1,3),width=Math.max(1,Math.round((bounds.width||W)*dpr)),height=Math.max(1,Math.round((bounds.height||(bounds.width||W)*H/W)*dpr));if(c.width!==width||c.height!==height){c.width=width;c.height=height}g.setTransform(width/W,0,0,height/H,0,0);g.imageSmoothingEnabled=true;draw()}
+// Mobile portrait world expands vertically instead of scaling 450×710 shapes
+// into a distorted rectangle. Actual world collisions use the same coordinate
+// system as the drawing surface, so the whole extra space is playable.
+function resizeCanvas(){
+ const bounds=c.getBoundingClientRect(),widthCss=bounds.width||W,heightCss=bounds.height||710;
+ const fullscreenPortrait=document.documentElement.classList.contains('portrait-play');
+ const targetH=fullscreenPortrait?clamp(Math.round(W*heightCss/widthCss),710,1350):710;
+ if(targetH!==H){
+  const oldH=H,delta=targetH-oldH;
+  H=targetH;VIEW_DELTA=H-710;PY=H-106;DEFENSE_Y=H-145;
+  // Keep live positions stable relative to the expanded screen.
+  for(const citizen of citizens)citizen.y+=delta;
+  for(const ball of balls){
+   if(ball.held){ball.y=PY-17;continue}
+   const progress=clamp((ball.y-16)/(oldH-16),0,1);
+   ball.y+=delta*progress;
+   if(ball.trail)for(const p of ball.trail)p.y+=delta*clamp((p.y-16)/(oldH-16),0,1);
+  }
+  for(const item of items)item.y+=delta*clamp((item.y-16)/(oldH-16),0,1);
+  // Enemies keep their actual distances from the top entry point; the larger
+  // runway to DEFENSE_Y is intentional when a taller phone is available.
+  if(fxRenderer)fxRenderer=null;
+ }
+ const dpr=clamp(window.devicePixelRatio||1,1,3);
+ const width=Math.max(1,Math.round(widthCss*dpr));
+ const height=Math.max(1,Math.round(heightCss*dpr));
+ if(c.width!==width||c.height!==height){c.width=width;c.height=height}
+ g.setTransform(width/W,0,0,height/H,0,0);
+ g.imageSmoothingEnabled=true;
+ draw();
+}
+window.ZZGameLayout={getHeight:()=>H,getDefenseY:()=>DEFENSE_Y,getPaddleY:()=>PY,getViewDelta:()=>VIEW_DELTA};
 resizeCanvas();window.addEventListener('resize',resizeCanvas);if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeCanvas).observe(c);
 
