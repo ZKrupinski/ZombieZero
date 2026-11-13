@@ -17,7 +17,7 @@ for(const k of keys){
  while(pos+12<=png.length){const len=png.readUInt32BE(pos),end=pos+12+len;assert(end<=png.length,k+' chunk bounds');
  const type=png.toString('ascii',pos+4,pos+8);
  assert.equal(crc32(png.subarray(pos+4,pos+8+len)),png.readUInt32BE(pos+8+len),k+' '+type+' CRC');
- if(type==='tRNS'||(type==='IHDR'&&[4,6].includes(png[pos+25])))alpha=true;
+ if(type==='tRNS'||(type==='IHDR'&&[4,6].includes(png[pos+17])))alpha=true;
  pos=end;if(type==='IEND'){done=true;break}}
  assert(done&&alpha&&pos===png.length,k+' PNG transparency and completeness');
  assert(html.includes('assets/ip/v2/object-zombies.js'),'game loader injected');
