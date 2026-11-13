@@ -57,8 +57,7 @@ function setup(){
       boss:key==='big_zombie'||key==='trash_can',seed:0,moveDir:vx,
       recoil:mode==='hurt'?.21-(seconds%.22):0};
     frame=mode==='hurt'?24+Math.floor((seconds%(.22))/.11):
-      isGreen?pack.getFrame(actor,seconds):(
-        (mode==='left'?8:mode==='right'?16:0)+Math.floor(seconds*9)%8);
+      pack.getFrame(actor,seconds);
     rect=isGreen?pack.sourceRect(frame):pack.sourceRect(actor,frame);
    }
    const [sx,sy,sw,sh]=rect;
