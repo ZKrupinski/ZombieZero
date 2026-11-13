@@ -2,6 +2,9 @@
 Status: v0.1 · 2026-11-13 · Reference / production contract (NOT implemented art).
 Scope: Existing ZombieZero web arcade first; expandable franchise identity second.
 
+## 0. Official 2026 brand bible (higher priority)
+The later user-supplied **ZOMBIE_ZERO_Brand 2026.pdf** (9 pages) supplies the official premise, 10 named object zombies, three survivors, ZIPPOP/NOVALIGHT/Artist Andante credits, and a game/keyring/ZOMBIE PIZZA/F&B collaboration roadmap. See `docs/08-brand-2026-alignment.md`. Where earlier speculative notes conflict, the PDF wins.
+
 ## 1. Source-of-truth hierarchy
 1. User-supplied original reference: `zombie1.png` (single green zombie), `Zombie-_Panic_Appicon.png` (open lid/exposed pink brain), `ZZ_Cha_full.png` (ensemble lineup), `1-1.png` (ZOMBIE ZERO COLLECTION), `ZZ_BI.png` (full-colour logo), `zzㅋㅋ.png` / `Untitled-5.png` (historic lettering).
 2. Supporting concepts: `KakaoTalk_20180405_111004013.jpg`, `2328.jpg`, `14679.jpg`, `29542440_1742091785850536_4969229517921792063_n.jpg`, `860868_483782228348171_490026625_o.jpg`, `09_Cooka_shot01.png`, `zombie.png`.
