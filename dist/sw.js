@@ -1,5 +1,5 @@
 'use strict';
-const CACHE='zombie-zero-shell-v9-portrait-tight';
+const CACHE='zombie-zero-shell-v10-nine-lane-crowd';
 const FILES=['./','./index.html','./style.css','./game.js','./fx-renderer.js','./assets/ip/green-zombie.js','./assets/ip/cast-data-1.js','./assets/ip/cast-data-2.js','./assets/ip/cast-data-3.js','./assets/ip/cast-loader.js','./assets/ip/green-death-loader.js','./assets/ip/green-death.png','./assets/ip/v2/sprite-geometry.js','./assets/ip/v2/object-zombies.js','./assets/ip/v2/green-walk.js','./assets/ip/v2/green_zombie.png','./assets/ip/v2/cast-demo.js','./assets/ip/v2/red_barrel.png','./assets/ip/v2/black_barrel.png','./assets/ip/v2/red_brain_cube.png','./assets/ip/v2/cardboard_box.png','./assets/ip/v2/wooden_crate.png','./assets/ip/v2/black_brain_cube.png','./assets/ip/v2/yellow_brain_cube.png','./assets/ip/v2/big_zombie.png','./assets/ip/v2/trash_can.png','./app.js','./zombie-balls-bi.png','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('zombie-zero-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
