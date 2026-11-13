@@ -29,20 +29,26 @@ const getFrame=(z,seconds)=>{
  const group=frames[direction],offset=z.seed||0;
  return group[0]+(Math.floor((seconds*9+offset*2.15)%group[1])%group[1]);
 };
-function frameRect(frame){return [(frame%8)*128,Math.floor(frame/8)*128,128,128]}
+function groupFor(frame){return frame<8?'down':frame<16?'left':frame<24?'right':frame<26?'hurt':frame<28?'normal':'critical'}
+function sourceRect(z,frame){
+ const id=keyFor(z),geom=window.ZZSpriteGeometry?.[id];
+ const group=groupFor(frame);
+ // The walk bounds are fixed across direction changes so no sideways jitter.
+ const b=geom?.[group]||[0,0,128,128];
+ return [(frame%8)*128+b[0],Math.floor(frame/8)*128+b[1],b[2],b[3]];
+}
 function drawFrame(ctx,img,z,frame,opacity=1){
- const src=frameRect(frame),id=keyFor(z);
- // Calibrated visible height: normal ~52px, big boss ~98px, bin boss ~92px.
- // Pixel-perfect WORLD anchor: source feet pivot is (64,120) in every 128px cell.
- // Draw a square source into a square destination: never stretch a cube.
- const desiredHeight=z.boss?(id==='big_zombie'?98:92):52;
- const uniformScale=desiredHeight/(artHeight[id]||104);
- const side=128*uniformScale;
- const x=z.x+z.w/2-64*uniformScale;
- const y=z.y+z.h-120*uniformScale;
+ const id=keyFor(z);
+ const rect=sourceRect(z,frame),walk=window.ZZSpriteGeometry?.[id]?.walkUnion||[0,0,128,128];
+ // One scale on BOTH axes. Small characters are deliberately wide enough to
+ // read at game scale, while the 55px lanes are never grossly occluded.
+ const desiredHeight=z.boss?(id==='big_zombie'?104:98):Math.min(58,53*walk[3]/walk[2]);
+ const scale=desiredHeight/walk[3];
+ const x=z.x+z.w/2-(rect[2]*scale)/2;
+ const y=z.y+z.h+2-rect[3]*scale;
  ctx.save();ctx.globalAlpha*=opacity;
  if(z.flash>0)ctx.filter='brightness(1.5)';
- ctx.drawImage(img,...src,x,y,side,side);
+ ctx.drawImage(img,...rect,x,y,rect[2]*scale,rect[3]*scale);
  ctx.restore();
 }
 function draw(ctx,z,seconds){const entry=images[keyFor(z)];if(!entry?.ready)return false;drawFrame(ctx,entry.image,z,getFrame(z,seconds));return true}
@@ -54,5 +60,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const entry=images[keyFor(z)
  if(blend>0)drawFrame(ctx,entry.image,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame};
 })();
