@@ -186,6 +186,23 @@ function zombie(z,death=null){const f=z.boss?[3,4,7,1][z.bossForm??0]:(z.form??0
 // Local pivots keep the sprite centered on its unchanged collision rectangle.
 g.translate(16.5,25);g.rotate(a.lean);g.translate(a.dx*a.hit*1.5,a.dy*a.hit*1.5+a.bob);let sx=1+a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1,sy=1-a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1;
 if(death){const t=death.t/death.split;const squash=t<.45?Math.sin(t/.45*Math.PI/2):1-(t-.45)/.55;sx*=1+squash*(z.boss?.2:.14);sy*=1-squash*.18;if(z.boss&&t>.55){sx*=1+(t-.55)*.28;sy*=1+(t-.55)*.28}g.rotate(-t*.1)}g.scale(sx,sy);g.translate(-16.5,-25);
+// Original art pilot: render the canonical green cube zombie from its transparent
+// PNG bitmap. Keep existing pose transforms / collision coordinates unchanged.
+// Other types and missing/failed bitmap loads fall back to procedural art.
+const originalGreen=window.ZZOriginalArt&&window.ZZOriginalArt.greenZombie;
+if(!z.boss&&(z.form??0)===0&&originalGreen&&originalGreen.complete&&originalGreen.naturalWidth>0){
+ g.save();
+ if(z.flash>0)g.filter='brightness(1.7)';
+ g.drawImage(originalGreen,-3,-8,39,52);
+ g.restore();
+ // Tier is conveyed outside the mascot palette; recolouring the body would
+ // destroy the character identity specified by the original ZOMBIE ZERO art.
+ g.fillStyle='#131a22b8';g.fillRect(6,44,31,4);
+ for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(9+i*5,45,3,2)}
+ if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
+ g.restore();
+ return;
+}
 rect(3,38+a.legL,10,6,'#273748');rect(22,38+a.legR,10,6,'#273748');enemyTorso(f,p);
 enemyArm(f,p,skin,0,a.left+(death?Math.sin(death.t*60)*.3:0),a.shoulder);enemyArm(f,p,skin,1,a.right-(death?Math.sin(death.t*49)*.3:0),-a.shoulder*.7);
 g.save();g.translate(16.5,23);g.rotate(a.head);g.translate(-16.5,-23-a.hit*1.3);enemyHead(z,f,p,skin,a);g.restore();
