@@ -19,6 +19,9 @@
 | `09_Cooka_shot01.png` | blocky human chef character | 502×336 PNG | character reference |
 | `ZombiePanic_1080.mp4` | 30.08 s vertical arcade gameplay, 1080×1920 | H.264/AAC MP4 | gameplay/motion reference only |
 
+## Implementation pilot (review branch 2026-11-13)
+A transparent **96×128 PNG derivative** of `zombie1.png` is embedded as a data URI in `dist/assets/ip/green-zombie.js` and rendered by `dist/game.js` for normal form 0 when loaded. The original 327×422 PNG itself is still only attached to the conversation (not committed); the derivative is a first in-game still bitmap with subtle runtime movement, not a full sprite animation sheet.
+
 ## Record requirements for import
 For each imported raster/video, store untouched master under a clearly labelled `assets-source/original-reference/` folder *after rights check*, with a `SHA256` inventory; derive transparent sprite layers under `dist/assets/ip/` only when cleaned and approved.
 
