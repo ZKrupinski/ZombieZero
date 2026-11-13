@@ -28,6 +28,24 @@ $('bgm').onclick();music();check(musicBus.gain.value===0,'BGM off');$('bgm').onc
 // All hero stat choices must affect real gameplay, including touch movement.
 for(let i=0;i<3;i++){mode='menu';$('hero-'+i).onclick();check(selectedHero===i,'hero selection');start();check(lives===HEROES[i].lives,'hero life count');serve();let x0=car;target=400;update(.1);check(Math.abs(car-x0-HEROES[i].speed*.1)<.01,'hero movement speed');activate('fire');check(active.fire===14*hero().duration,'hero duration bonus');clearSkills();let targetZ={x:100,y:100,w:33,h:44,hp:8,max:8,kind:4};foes=[targetZ];hit(targetZ);check(targetZ.hp===8-hero().damage,'hero damage')}
 selectedHero=0;start();serve();let lastEnemy=foes[0];foes=[lastEnemy];items=[{x:20,y:70,k:'dual',phase:0}];damage(lastEnemy,100);check(mode==='clearing'&&items.length===0&&balls.length===0,'last hit clears immediately');let bonusScore=score;beginClear();check(score===bonusScore,'single clear reward');update(.1);pause();let clearT=clearTime;update(1);check(clearTime===clearT,'ceremony pause');pause();for(let i=0;i<90;i++)update(.033);check(wave===2&&mode==='playing','ceremony resumes and advances');
+// Nine close-packed lanes visually cover the road from left to right.
+{
+ check(ENEMY_COLUMNS===9&&ENEMY_PITCH===44,'nine packed lanes at 44px pitch');
+ for(const [w,total] of [[1,27],[2,27],[3,22],[4,36],[6,31]]){
+  wave=w;rack();
+  check(foes.length===total,'stage '+w+' crowded without runaway enemy counts');
+  let normals=foes.filter(z=>!z.boss);
+  let first=normals.filter(z=>z.row===0);
+  check(first.length===(w%3===0?6:9),'row 0 fills nine lanes except boss clearance');
+  check(Math.min(...normals.map(z=>z.x))===ENEMY_LEFT_X,'left side populated');
+  check(Math.max(...normals.map(z=>z.x))===ENEMY_LEFT_X+8*ENEMY_PITCH,'right side populated');
+  check(normals.every(z=>z.x>=20&&z.x+z.w<=430),'collision bounds remain inside road');
+  const positions=normals.map(z=>({z,y:z.y}));
+  for(let i=0;i<10;i++)march(.033);
+  check(positions.every(v=>v.z.y>v.y),'same-row neighbors do not block forward march');
+  if(w===3||w===6)check(foes.filter(z=>z.boss).length===1,'single centered boss');
+ }
+}
 for(const w of [1,2,4,5,7,8,10,12,18]){wave=w;rack();let available=ZOMBIE_FORMS.filter(f=>f.unlock<=w).length;check(foes.filter(z=>!z.boss).every(z=>z.form<available),'stage unlock pool');check(foes.some(z=>!z.boss&&z.form===available-1),'newest enemy present');let normals=foes.filter(z=>!z.boss);for(let i=0;i<600;i++)march(.025);for(let a of foes)for(let b of foes){if(a===b)continue;check(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y),'no enemy overlap stage '+w)}}
 wave=1;let speed1=enemySpeed({kind:0});wave=8;check(enemySpeed({kind:0})>speed1*1.5&&enemySpeed({kind:0})<speed1*2,'gentle early-stage speed scaling');check(enemySpeed({kind:0})>enemySpeed({kind:4}),'grade speed differs');
 start();serve();crowdTimer=0;update(.02);check(junk.length===1&&citizens.length===18,'crowd throws');let thrown=junk[0];let victim=thrown.target;victim.y=thrown.ty-victim.h/2;let hpBefore=victim.hp;updateCrowd(1.5);check(victim.hp===hpBefore-.25,'crowd weak damage');
