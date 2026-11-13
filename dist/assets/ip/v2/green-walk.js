@@ -24,7 +24,8 @@
      if(!pack.ready)return false;
      const frame=pack.getFrame(z,t),rect=pack.sourceRect(frame);
      const walk=window.ZZSpriteGeometry?.green_zombie?.walkUnion||[0,0,128,128];
-     const scale=58/walk[3];
+     // 66px tall mascot: its face and cube almost touch adjacent 46px lanes.
+     const scale=66/walk[3];
      const x=z.x+z.w/2-(rect[2]*scale)/2;
      const y=z.y+z.h+2-rect[3]*scale;
      ctx.save();
