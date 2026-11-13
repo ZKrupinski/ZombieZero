@@ -49,9 +49,13 @@ Keep these labels in the brand-canon database; existing gameplay enemy roles ("�
 The deck states "**원천 IP ⓒ NOVALIGHT · Artist Andante**" (pp.3–4). This is an attribution within the supplied deck, *not* an independent chain-of-title verification.
 Before product collaborations, paid distribution or merchandising, verify that the developer has the required copyright and trademark usage scope, including historical game assets, all art and logos. Internal integration is a production milestone, not an ownership determination.
 
-## Current implementation, updated 2026-11-13
-- **P1 on review branch:** green zombie image derived from uploaded `zombie1.png` is embedded as a compact transparent PNG data URI in `dist/assets/ip/green-zombie.js`.
-- The existing `dist/game.js` only replaces regular `form===0` rendering when image load succeeds; remaining characters retain current Canvas art.
-- It is a **single still-frame pilot with runtime bob/lean/hit animation**, NOT an 8-frame walking atlas or a fully restored franchise cast.
-- Source `zombie1.png` remains in conversation materials and is **not committed** to this Git branch; the 96×128 pixel runtime derivative is embedded in JS.
-- The change remains in a review PR, not in the live Pages build until approved/merged/deployed.
+## Current implementation, updated 2026-11-13 (second integration pass)
+- The original ZOMBIE ZERO COLLECTION `1-1.png` has been cut into **13 separate transparent character PNGs** for QA. The PNGs and rig-motion proofs are provided in a separate conversation ZIP; not all high-resolution extracted assets are committed to GitHub.
+- The game branch now embeds a **256×256 transparent PNG atlas** (4×4 cells, 64px each) across `dist/assets/ip/cast-data-[1-3].js`, assembled by `cast-loader.js`.
+- `dist/game.js` maps regular forms 0–7 to the original **8 normal object-zombie models**, boss forms to **빅 좀비 / 쓰레기통 좀비**, and hero selection / in-car portraits to **3 original survivor images**. HP tier markers are separate from unique character colour.
+- The in-game Help dialog includes a **13-character bitmap collection grid**; object deaths scatter cropped pieces from their matching original art instead of procedural humanoid shards.
+- The preexisting `green-zombie.js` source remains as a fallback, and the original procedural character renderer still handles failed/unavailable image loads.
+- A **green-zombie 8-frame walk, 4-frame hit, 6-frame death rig-motion proof** has been exported in the downloadable QA pack. These are **shape warps of the source still**, not redrawn animation with independently articulated limbs; the game itself still uses existing bob/lean/hit/death transforms. This proof-of-concept animation is **not yet wired to the game's atlas animation loop**.
+- Source `zombie1.png` and `1-1.png` remain user-provided attachments, not full-resolution master assets committed to this branch. Commercial usage rights require separate verification.
+- GitHub Action regression checks cover the PNG data (including CRC/transparency), cast mappings, script load order and existing game mechanics. Physical phone and GPU visual QA remain outstanding.
+- The changes remain in a **draft PR** and are **not live on GitHub Pages** until approved/merged/deployed.
