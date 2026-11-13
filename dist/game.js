@@ -461,7 +461,7 @@ $('share').onclick=async()=>{const url=new URL('./',location.href).href;try{if(n
 // system as the drawing surface, so the whole extra space is playable.
 function resizeCanvas(){
  const bounds=c.getBoundingClientRect(),widthCss=bounds.width||W,heightCss=bounds.height||710;
- const fullscreenPortrait=document.documentElement.classList.contains('portrait-play');
+ const fullscreenPortrait=Boolean(document.documentElement?.classList?.contains?.('portrait-play'));
  const targetH=fullscreenPortrait?clamp(Math.round(W*heightCss/widthCss),710,1350):710;
  if(targetH!==H){
   const oldH=H,delta=targetH-oldH;
