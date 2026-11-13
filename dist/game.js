@@ -124,7 +124,9 @@ function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!suppor
 function drop(z){if(z.max<2&&!z.boss)return;if(z.boss||Math.random()<.45){let ks=Object.keys(SKILLS).filter(k=>k!=='bazooka'),chance=supportChance(),roll=Math.random(),k=roll<chance?'bazooka':ks[Math.min(ks.length-1,Math.floor((roll-chance)/(1-chance)*ks.length))];items.push({x:z.x+z.w/2,y:z.y+z.h/2,k,phase:Math.random()*6});if(k==='bazooka')lastSupportAt=clock}}
 function damage(z,n=1,burning=false,impact=null){if(!foes.includes(z))return;z.hp-=n;z.flash=.12;enemyReaction(z,n,impact);effect(z.x+z.w/2,z.y+z.h/2,burning?'#ffac48':TYPES[z.kind].color,z.hp<=0?(z.boss?150:55):24,z.hp<=0?(z.boss?'BOSS BREAK!':'+'+(100*z.max)):('-'+n));score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;burst(z.x+z.w/2,z.y+z.h/2,burning?'#ff985f':TYPES[z.kind].color,z.boss?20:8);if(!burning&&n>=2&&z.hp<=0&&!z.boss){sfx('powerhit');cameraKick=fxEnabled?Math.max(cameraKick,2.6):0;haptic(10)}if(!burning&&z.hp>0){if(z.boss){cameraKick=fxEnabled?Math.max(cameraKick,3.3):0;sfx('bosshit');haptic(14)}else if(n>=2){cameraKick=fxEnabled?Math.max(cameraKick,2.4):0;sfx('powerhit');haptic(10)}}if(z.hp<=0){
  const criticalGreen=!burning&&!z.boss&&(z.form??0)===0&&n>=2;
- enemyDeath(z,criticalGreen);
+ // A strong lethal strike triggers the authored finisher for the other object types.
+ const criticalObject=!burning&&window.ZZObjectSprite?.available(z)===true&&n>=(z.boss?8:2);
+ enemyDeath(z,criticalGreen||criticalObject);
  if(criticalGreen){burst(z.x+z.w/2,z.y+8,'#ff8ab4',7)}
  recordKill();foes.splice(foes.indexOf(z),1);drop(z);sfx(z.boss?'boss':'kill');if(z.boss){toast('BOSS DOWN · +1500');haptic([18,25,28])}}else if(!burning&&!z.boss&&n<2)sfx('hit');hud();if(foes.length===0)beginClear()}
 function ignite(z){if(!foes.includes(z))return;z.burn=Math.max(z.burn,3);}
@@ -169,8 +171,10 @@ return {lean:clamp(Math.sin(q)*(person===0?.068:.037)*amp+twitch+neighbor*.035*(
 function enemyReaction(z,n,impact){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.22;z.hitHold=z.boss?.065:.04;z.hitAt=clock;if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
 function enemyDeath(z,critical=false){
  enemyAnim(z);
- const spriteMode=!z.boss&&(z.form??0)===0&&window.ZZGreenDeath?.ready===true;
- const split=spriteMode?(critical?.580:.520):(critical?.580:(z.boss?.32:.12));
+ const objectSprite=window.ZZObjectSprite?.available(z)===true;
+ const greenSprite=!z.boss&&(z.form??0)===0&&window.ZZGreenDeath?.ready===true;
+ const spriteMode=objectSprite||greenSprite;
+ const split=objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  enemyDeaths.push({z:{...z,flash:.1},critical,spriteMode,t:0,split,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
 function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
 function updateEnemyVisuals(dt){bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
@@ -217,7 +221,9 @@ function drawCriticalGreenDeath(d){
  g.restore();
 }
 function drawEnemyDeaths(){for(const d of enemyDeaths){
- if(d.spriteMode&&window.ZZGreenDeath?.ready===true){
+ if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true){
+   window.ZZObjectSprite.drawDeath(g,d.z,d.critical,d.t,d.split);
+ }else if(d.spriteMode&&window.ZZGreenDeath?.ready===true){
    window.ZZGreenDeath.draw(g,d.z,d.critical,d.t);
  }else if(d.critical)drawCriticalGreenDeath(d);
  else zombie(d.z,d)
@@ -249,7 +255,25 @@ if(f===5){rect(3,-5,28,8,'#e49fa7');for(let i=0;i<4;i++)rect(5+i*6,-3,2,5,'#ac61
 if(f===6){rect(-2,-4,37,7,'#e8ba5b');rect(-2,0,4,29,'#cf9740');rect(32,0,4,29,'#cf9740');rect(10,20,17,11,'#3b4a55');rect(8,22,5,6,'#b5c9b9');rect(25,22,5,6,'#b5c9b9');rect(13,23+Math.min(1,a.jaw/4),11,2,'#869b8c')}
 if(f===7){rect(2,-5,29,8,'#ecaa78');for(let i=0;i<4;i++)rect(5+i*6,-3,2,5,'#a35b70')}
 }
-function zombie(z,death=null){const f=z.boss?[3,4,7,1][z.bossForm??0]:(z.form??0),sc=z.boss?2:1,p=TYPES[z.kind],skin=z.flash>0?'#fff':p.color,a=enemyPose(z);g.save();g.translate(z.x,z.y);g.scale(sc,sc);/* no baked character ground shadow; gameplay floor handles depth */
+function zombie(z,death=null){
+const originalObject=window.ZZObjectSprite;
+if(!death&&originalObject?.draw(g,z,clock)){
+ // The original colours are character identity, not HP tint.
+ if(!z.boss){
+  g.fillStyle='#131a22bb';g.fillRect(z.x+3,z.y+z.h+2,31,4);
+  for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(z.x+6+i*5,z.y+z.h+3,3,2)}
+ }else{
+  rect(z.x-14,z.y-32,100,8,'#211e27');
+  rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');
+  g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';
+  g.fillText(BOSS_FORMS[z.bossForm??0]+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38);
+ }
+ if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
+  for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
+  g.restore()}
+ return;
+}
+const f=z.boss?[3,4,7,1][z.bossForm??0]:(z.form??0),sc=z.boss?2:1,p=TYPES[z.kind],skin=z.flash>0?'#fff':p.color,a=enemyPose(z);g.save();g.translate(z.x,z.y);g.scale(sc,sc);/* no baked character ground shadow; gameplay floor handles depth */
 // Local pivots keep the sprite centered on its unchanged collision rectangle.
 g.translate(16.5,25);g.rotate(a.lean);g.translate(a.dx*a.hit*1.5,a.dy*a.hit*1.5+a.bob);let sx=1+a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1,sy=1-a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1;
 if(death){const t=death.t/death.split;const squash=t<.45?Math.sin(t/.45*Math.PI/2):1-(t-.45)/.55;sx*=1+squash*(z.boss?.2:.14);sy*=1-squash*.18;if(z.boss&&t>.55){sx*=1+(t-.55)*.28;sy*=1+(t-.55)*.28}/* no sideways flop: front/back projected collapse */}g.scale(sx,sy);g.translate(-16.5,-25);
