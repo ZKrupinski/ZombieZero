@@ -193,3 +193,71 @@ html.portrait-play,html.portrait-play body{
  .portrait-play #options-toggle,.portrait-play #pause{flex-basis:40px;width:40px!important;height:40px!important}
  .portrait-play .hud strong{font-size:18px!important}
 }
+
+
+/* Game-only fullscreen shell. All tool controls live in the options dialog.
+   This supersedes the earlier 1.3:1 breakpoint that left wide foldables
+   with a narrow game board and button bars below the canvas. */
+.portrait-play .options-dialog{z-index:10}
+.portrait-play .app-bar,
+.portrait-play .control,
+.portrait-play .arcade-tools,
+.portrait-play .encounter,
+.portrait-play .desktop-note,
+.portrait-play aside{display:none!important}
+.portrait-play main{width:100%!important}
+.portrait-play .machine{width:100%!important;max-width:none!important}
+.portrait-play .stage{width:100%!important;max-width:none!important}
+
+/* Preserve art/physics aspect on true landscape windows instead of squeezing
+   450x710 into a short wide rectangle. No page chrome remains below gameplay. */
+html.landscape-game,html.landscape-game body{
+ width:100%;height:var(--app-height,100dvh);overflow:hidden;
+ overscroll-behavior:none
+}
+.landscape-game main{
+ position:relative!important;display:flex!important;align-items:center!important;
+ justify-content:center!important;max-width:none!important;min-height:0!important;
+ width:100vw!important;height:var(--app-height,100dvh)!important;
+ margin:0!important;padding:0!important;overflow:hidden!important
+}
+.landscape-game aside,.landscape-game .desktop-note,
+.landscape-game .control,.landscape-game .arcade-tools,
+.landscape-game .encounter,.landscape-game .app-bar{display:none!important}
+.landscape-game .machine{
+ position:relative!important;display:block!important;flex:0 0 auto;
+ width:min(100vw,calc(var(--app-height,100dvh)*450/710))!important;
+ height:var(--app-height,100dvh)!important;max-height:none!important;
+ margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;overflow:hidden!important
+}
+.landscape-game .stage{
+ position:absolute!important;inset:0!important;max-height:none!important;
+ width:100%!important;height:100%!important;aspect-ratio:auto!important
+}
+.landscape-game .stage #game{width:100%!important;height:100%!important}
+.landscape-game .hud{
+ position:absolute!important;top:0;left:0;right:0;z-index:5;
+ min-height:55px!important;height:auto!important;margin:0!important;
+ padding:5px 10px!important;gap:7px!important;
+ background:linear-gradient(180deg,#07131ceb,transparent)!important;
+ pointer-events:none
+}
+.landscape-game .hud button{pointer-events:auto}
+.landscape-game #options-toggle,.landscape-game #pause{
+ display:inline-flex!important;align-items:center;justify-content:center;
+ flex:0 0 42px;width:42px!important;height:42px!important;
+ border:1px solid #789b91!important;background:#10262acb!important;
+ color:#effbe4!important;border-radius:8px;font-size:20px
+}
+.landscape-game footer{
+ position:absolute!important;bottom:0;left:0;right:0;z-index:3;
+ height:36px!important;background:linear-gradient(0deg,#061423de,transparent);
+ pointer-events:none
+}
+.landscape-game .skill-tray{
+ position:absolute!important;bottom:36px;left:0;right:0;z-index:3;
+ height:36px!important;background:none!important;pointer-events:none
+}
+.landscape-game .empty-skills{display:none!important}
+.landscape-game .overlay{inset:0;padding:48px 12px 36px!important;overflow:auto}
