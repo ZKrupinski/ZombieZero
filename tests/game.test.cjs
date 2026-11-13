@@ -30,7 +30,7 @@ for(let i=0;i<3;i++){mode='menu';$('hero-'+i).onclick();check(selectedHero===i,'
 selectedHero=0;start();serve();let lastEnemy=foes[0];foes=[lastEnemy];items=[{x:20,y:70,k:'dual',phase:0}];damage(lastEnemy,100);check(mode==='clearing'&&items.length===0&&balls.length===0,'last hit clears immediately');let bonusScore=score;beginClear();check(score===bonusScore,'single clear reward');update(.1);pause();let clearT=clearTime;update(1);check(clearTime===clearT,'ceremony pause');pause();for(let i=0;i<90;i++)update(.033);check(wave===2&&mode==='playing','ceremony resumes and advances');
 // Nine close-packed lanes visually cover the road from left to right.
 {
- check(ENEMY_COLUMNS===9&&ENEMY_PITCH===44,'nine packed lanes at 44px pitch');
+ check(ENEMY_COLUMNS===9&&ENEMY_PITCH===46.375&&ENEMY_LEFT_X===23,'nine edge-packed lanes at 46.375px pitch');
  for(const [w,total] of [[1,27],[2,27],[3,22],[4,36],[6,31]]){
   wave=w;rack();
   check(foes.length===total,'stage '+w+' crowded without runaway enemy counts');
