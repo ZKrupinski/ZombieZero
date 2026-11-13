@@ -91,7 +91,7 @@ try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
 function endlessUI(){const el=$('endless');el.hidden=!endlessUnlocked||!['menu','over'].includes(mode);el.textContent='∞ 무한 모드 시작';el.onclick=()=>start('endless')}
 function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=1.4;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
- for(const z of sorted){const old=z.y;let y=Math.max(36,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.min(old,y);z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
+ for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(36,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.min(old,y);z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
  // Crowded late-stage boss formations may hit the upper packing boundary and
  // leave a front enemy too close after the first push. Translate the entire
  // already-spaced formation to guarantee a visible 125px recovery window,
@@ -110,21 +110,97 @@ function drawOutcome(){if(resistFlash>0){const t=1-resistFlash/1.4;g.save();g.gl
  rect(38,264,374,142,'#251827ed');g.fillStyle='#ffad9f';g.font='bold 25px Arial, sans-serif';g.textAlign='center';g.fillText(f.type==='breach'?'방어선 돌파!':'마지막 공을 놓쳤습니다!',225,299);g.font='bold 14px Arial, sans-serif';g.fillStyle='#fff0d4';g.fillText(f.type==='breach'?'하트가 남아 있어도':'남은 하트가 0이 되어',225,329);g.fillText(f.type==='breach'?'방어선이 뚫리면 패배합니다.':'게임이 종료됩니다.',225,350);g.fillText((runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)+' · SCORE '+score.toLocaleString('ko-KR'),225,382);g.restore()}
 function hud(){$('score').textContent=score.toLocaleString('ko-KR');$('wave').textContent=runMode==='endless'?'∞ '+(wave-50):String(wave).padStart(2,'0');$('progress').textContent=runMode==='endless'?'ENDLESS · '+(wave-51)+' 웨이브 생존':(wave-1)+'/50 스테이지 클리어';$('lives').textContent='♥ '.repeat(lives)+'♡ '.repeat(Math.max(0,hero().lives-lives));$('status').textContent=balls[0]?.held?'TAP TO SERVE':'BALLS '+balls.length;skillUI()}
 function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity=0,1400)}
-function rack(){foes=[];stageDelay=0;const rows=Math.min(4,Math.max(2,Math.min(Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))))),bossStage=wave%3===0,available=ZOMBIE_FORMS.map((v,i)=>({v,i})).filter(x=>x.v.unlock<=wave),latest=available[available.length-1].i;for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;let maxKind=Math.min(4,1+Math.floor(wave/2)),kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-wave*.12))*(maxKind+1)),hp=TYPES[kind].hp,form=col===0&&r===0?latest:available[Math.floor(Math.random()*available.length)].i;foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,row:r,col,w:33,h:44,hp,max:hp,kind,form,flash:0,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0})}if(bossStage){let hp=Math.round(24+Math.min(wave,10)*4+Math.max(0,wave-10)*1.2),bossForm=(wave/3-1)%BOSS_FORMS.length;foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm])}$('encounter').textContent=(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)+' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:ZOMBIE_FORMS[latest].name)+' / 진군 속도 '+marchBase().toFixed(1);}
+// A separate density meter controls rare actual diagonal breakouts, not UI.
+let waveInitialRegulars=0,breakoutNextCheck=0;
+function rack(){foes=[];stageDelay=0;const rows=Math.min(4,Math.max(2,Math.min(Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))))),bossStage=wave%3===0,available=ZOMBIE_FORMS.map((v,i)=>({v,i})).filter(x=>x.v.unlock<=wave),latest=available[available.length-1].i;for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;let maxKind=Math.min(4,1+Math.floor(wave/2)),kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-wave*.12))*(maxKind+1)),hp=TYPES[kind].hp,form=col===0&&r===0?latest:available[Math.floor(Math.random()*available.length)].i;foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,row:r,col,w:33,h:44,hp,max:hp,kind,form,flash:0,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0})}if(bossStage){let hp=Math.round(24+Math.min(wave,10)*4+Math.max(0,wave-10)*1.2),bossForm=(wave/3-1)%BOSS_FORMS.length;foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm])}$('encounter').textContent=(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)+' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:ZOMBIE_FORMS[latest].name)+' / 진군 속도 '+marchBase().toFixed(1);waveInitialRegulars=foes.filter(z=>!z.boss).length;breakoutNextCheck=clock+2.2;}
 function marchBase(){const stage=Math.min(50,wave),n=Math.min(9,Math.max(0,stage-1)),late=Math.max(0,stage-10);return 2.7+.22*n+.006*n*n+.07*late+.0008*late*late+(runMode==='endless'?Math.min(9,Math.max(0,wave-50)*.035):0)}
 function enemySpeed(z){return marchBase()*(z.boss?.62:[1.1,1.04,.97,.89,.82][z.kind])*(has('slow')?.4:1)}
-function march(dt){const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];for(const z of sorted){
- // Gentle horizontal lane drift makes the authored left/right diagonal walks
- // correspond to actual movement. Bound +/-4px so nine adjacent hitboxes never overlap.
- // Does not alter enemy vertical speed, form HP, spacing or boss routes.
- if(!z.boss&&wave>=2){
-  if(z.laneX===undefined)z.laneX=z.x;
-  const radius=(z.form??0)===0?3:Math.min(4,2+((z.form??0)%3)*2);
-  const nx=clamp(z.laneX+Math.sin(clock*1.4+(z.seed||0))*radius,8,W-z.w-8);
-  z.moveDir=(nx-z.x)/Math.max(.001,dt);
-  z.x=nx;
- }else z.moveDir=0;
- let next=z.y+enemySpeed(z)*dt;for(const front of done){if(Number.isInteger(z.row)&&z.row===front.row)continue; if(z.x-8<front.x+front.w+8&&z.x+z.w+8>front.x-8)next=Math.min(next,front.y-z.h-(front.boss?25:10))}z.y=Math.max(z.y,next);done.push(z)}}
+// Default = frontal descent. ONLY a real fast diagonal move may select
+// the left/right motion sheets. No perpetual wiggle or fake diagonal animation.
+const BREAKOUT_DENSITY=.60,BREAKOUT_MIN_KILLS=6,BREAKOUT_MAX_ACTIVE=2;
+function tryStartBreakouts(){
+ if(clock<breakoutNextCheck)return;
+ breakoutNextCheck=clock+2.3+Math.random()*1.1;
+ const living=foes.filter(z=>!z.boss);
+ if(waveInitialRegulars<9||
+    waveInitialRegulars-living.length<BREAKOUT_MIN_KILLS||
+    living.length>waveInitialRegulars*BREAKOUT_DENSITY)return;
+ if(living.some(z=>Number.isFinite(z.breakoutTime)))return;
+ // One eligibility lottery at each interval; never use chance per frame.
+ if(Math.random()>.55)return;
+ const occupied=new Set(living.filter(z=>Number.isInteger(z.row)&&Number.isInteger(z.col))
+   .map(z=>z.row+':'+z.col));
+ const choices=[];
+ for(const z of living){
+  if(!Number.isInteger(z.row)||!Number.isInteger(z.col)||
+     z.row===0||z.y+z.h>DEFENSE_Y-110||
+     (z.breakoutCooldownUntil||0)>clock||(z.hitHold||0)>0||
+     (z.recoil||0)>.015)continue;
+  for(const direction of [-1,1]){
+   const targetCol=z.col+direction;
+   if(targetCol<0||targetCol>=ENEMY_COLUMNS||
+      occupied.has(z.row+':'+targetCol))continue;
+   const dest=ENEMY_LEFT_X+ENEMY_PITCH*targetCol;
+   if(dest<20||dest+z.w>W-20)continue;
+   // Empty lane must also be physically free; never dash through a boss.
+   if(foes.some(other=>other!==z&&(
+      (other.boss&&Math.abs(other.x+other.w/2-(dest+z.w/2))<52&&
+        Math.abs(other.y+other.h/2-(z.y+z.h/2+20))<75)||
+      (other.row===z.row&&Math.abs(other.x-dest)<z.w+7)
+   )))continue;
+   choices.push({z,targetCol,dest});
+  }
+ }
+ if(!choices.length)return;
+ const start=({z,targetCol,dest})=>{
+  const duration=.42+Math.random()*.14;
+  z.breakoutTime=0;z.breakoutDuration=duration;
+  z.breakoutVX=(dest-z.x)/duration;
+  z.breakoutVY=(28+Math.random()*10)/duration;
+  z.breakoutTargetX=dest;z.breakoutTargetCol=targetCol;
+  z.breakoutCooldownUntil=clock+duration+4;
+ };
+ const first=choices[Math.floor(Math.random()*choices.length)];
+ start(first);
+ // Two are possible only in the sparse end of a wave, from separate rows.
+ if(living.length<=waveInitialRegulars*.35&&Math.random()<.18){
+  const second=choices.filter(c=>c.z!==first.z&&c.z.row!==first.z.row&&
+    !(c.z.row===first.z.row&&c.targetCol===first.targetCol));
+  if(second.length&&BREAKOUT_MAX_ACTIVE>1)
+   start(second[Math.floor(Math.random()*second.length)]);
+ }
+}
+function march(dt){
+ tryStartBreakouts();
+ const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
+ for(const z of sorted){
+  let extraY=0;
+  if(!z.boss&&Number.isFinite(z.breakoutTime)){
+   const timeStep=Math.max(0,Math.min(dt*(has('slow')?.4:1),
+     z.breakoutDuration-z.breakoutTime));
+   const previousX=z.x;
+   z.x=clamp(z.x+z.breakoutVX*timeStep,20,W-20-z.w);
+   extraY=z.breakoutVY*timeStep;
+   z.breakoutTime+=timeStep;
+   // The diagonal frame is gated by real horizontal movement, not a pose RNG.
+   z.moveDir=Math.sign(z.x-previousX);
+   if(z.breakoutTime>=z.breakoutDuration-1e-6){
+    z.x=z.breakoutTargetX;z.col=z.breakoutTargetCol;
+    delete z.breakoutTime;
+    delete z.breakoutDuration;
+    z.breakoutCooldownUntil=clock+4;
+   }
+  }else z.moveDir=0;
+  let next=z.y+enemySpeed(z)*dt+extraY;
+  for(const front of done){
+   if(Number.isInteger(z.row)&&z.row===front.row)continue;
+   if(z.x-8<front.x+front.w+8&&z.x+z.w+8>front.x-8)
+    next=Math.min(next,front.y-z.h-(front.boss?25:10));
+  }
+  z.y=Math.max(z.y,next);
+  done.push(z);
+ }
+}
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
 function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+ZOMBIE_FORMS.filter(v=>v.unlock<=wave).at(-1).name)}
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
@@ -286,10 +362,7 @@ function zombie(z,death=null){
 const originalObject=window.ZZObjectSprite;
 if(!death&&originalObject?.draw(g,z,clock)){
  // The original colours are character identity, not HP tint.
- if(!z.boss){
-  g.fillStyle='#131a22bb';g.fillRect(z.x+3,z.y+z.h+2,31,4);
-  for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(z.x+6+i*5,z.y+z.h+3,3,2)}
- }else{
+ if(z.boss){
   rect(z.x-14,z.y-32,100,8,'#211e27');
   rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');
   g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';
@@ -304,8 +377,6 @@ if(!death&&originalObject?.draw(g,z,clock)){
 // diagonal footsteps, without changing the enemy collision rectangle.
 const mascot=window.ZZGreenWalk;
 if(!death&&!z.boss&&(z.form??0)===0&&mascot?.draw(g,z,clock)){
- g.fillStyle='#131a22bb';g.fillRect(z.x+3,z.y+z.h+2,31,4);
- for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(z.x+6+i*5,z.y+z.h+3,3,2)}
  if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
   for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
   g.restore()}
@@ -329,11 +400,6 @@ if(atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
  if(z.flash>0)g.filter='brightness(1.7)';
  g.drawImage(atlas,(artIndex%4)*64,Math.floor(artIndex/4)*64,64,64,-4,-8,41,52);
  g.restore();
- if(!z.boss){
-  // Identity colour never changes with hit-points; tiny markers encode tier.
-  g.fillStyle='#131a22bb';g.fillRect(6,44,31,4);
-  for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(9+i*5,45,3,2)}
- }
  if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
  g.restore();
  if(z.boss&&!death){rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38)}
@@ -348,8 +414,6 @@ if(!death&&!z.boss&&(z.form??0)===0&&greenSprite?.ready===true){
  if(z.flash>0)g.filter='brightness(1.55)';
  greenSprite.draw(g,{x:0,y:0,w:33,h:44},false,0);
  g.restore();
- g.fillStyle='#131a22ba';g.fillRect(6,44,31,4);
- for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(9+i*5,45,3,2)}
  if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
  g.restore();return;
 }
