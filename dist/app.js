@@ -7,7 +7,7 @@ function inform(title,message){if(mode==='playing'||mode==='clearing')pause();bu
 const options=button('options-dialog'),optionsActions=button('options-actions');
 const originalLocations=new Map();
 for(const id of ['sound','bgm','fx','fullscreen','install','share','help']){
- const item=button(id);if(item)originalLocations.set(item,{parent:item.parentNode,next:item.nextSibling});
+ const item=button(id);if(item?.parentNode)originalLocations.set(item,{parent:item.parentNode,next:item.nextSibling});
 }
 function moveSettings(intoOptions){
  for(const [element,original] of originalLocations){
@@ -52,7 +52,7 @@ button('options-toggle').onclick=()=>{
  options.showModal();
 };
 button('options-close').onclick=()=>options.close();
-options.addEventListener('close',()=>{
+options.addEventListener?.('close',()=>{
  if(resumeAfterOptions&&mode==='paused'&&!button('help-dialog').open&&!button('app-dialog').open)pause();
  resumeAfterOptions=false;
 });
