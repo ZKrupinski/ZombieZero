@@ -41,3 +41,14 @@ Date: 2026-11-13. User direction supersedes prior "paste the isometric collectib
 - Existing rig-motion proof strips (8f walk, 4f hit, 6f death) are illustrative warped stills. They are not a substitute for appropriate front-elevated 3D animation.
 - Alpha and pivot tests should include **zero baked shadows**, character eyes oriented correctly, no white/black box background.
 - Validate fallback separately: when the gameplay atlas does not exist, characters must remain visible and damage/physics identical.
+
+## Critical green zombie death (2026-11-13 implementation prototype)
+Reference: user's original drawing with four low-poly characters, including the green mascot shown both with a closed dark top lid and a hinged-open lid exposing pink brain, plus the earlier close-up of that brain. The original rendering is not pasted into the front/top arcade directly.
+
+- Trigger: **strong final hit**, i.e., non-burning, non-boss damage **>=2** that kills green mascot `form===0`. Normal kill, burning and boss deaths remain unchanged.
+- Animation: rapid hit reaction → rectangular black lid hinges back → bright pink brain emerges from green head cavity → pink flash/rays → green cube buckles and six themed fragments (lid/brain/green shell/clothes) scatter.
+- Rendering: **existing front/elevated-top 450×710 playfield**, no grey underfoot plane/shadow. Drawn in Canvas as an interim procedural prototype until approved frontal/elevated sprite art is available.
+- Timing: **0.58s** from lethal hit to six themed fragments (60 FPS target 35 frames) while collider removal, score, bonuses and drop are immediate. Sequence is cosmetic, does not change physics or stage completion.
+- FX are bounded; one sound/haptic of existing powerhit and kill are preserved. No additional timer or unbounded queue introduced.
+- For other object zombie classes (barrels, trash can, boxes) add differentiated finishers only after matching camera-correct motion assets are approved.
+- Review conditions: must resemble original green cube, hair lid remains a single rigid attached part until opening; brain is pink and visible before break; eyes still read at gameplay scale. For high-quality final shipping, replace procedural art with a transparent bitmap atlas rendered from the authentic model.
