@@ -7,14 +7,14 @@ function setup(){
  const atlas=window.ZZObjectSprite;
  if(!trigger||!atlas)return;
  const dialog=document.createElement('dialog');dialog.id='object-cast-demo-dialog';dialog.className='object-cast-demo';
- dialog.innerHTML='<button type="button" class="dialog-close" id="object-cast-demo-close">닫기 ✕</button><h2>ZOMBIE ZERO 원작 좀비 9종</h2><p>실제 게임이 로드하는 128px 투명 PNG 아틀라스의 이동·피격·사망 애니메이션입니다.</p><div class="object-cast-controls" role="group" aria-label="애니메이션 선택"></div><div class="object-cast-grid" role="list"></div>';
+ dialog.innerHTML='<button type="button" class="dialog-close" id="object-cast-demo-close">닫기 ✕</button><h2>ZOMBIE ZERO 원작 좀비 10종</h2><p>실제 게임이 로드하는 128px 투명 PNG 아틀라스의 이동·피격·사망 애니메이션입니다.</p><div class="object-cast-controls" role="group" aria-label="애니메이션 선택"></div><div class="object-cast-grid" role="list"></div>';
  document.body.appendChild(dialog);
  const grid=dialog.querySelector('.object-cast-grid'),controls=dialog.querySelector('.object-cast-controls');
- const keys=Object.keys(atlas.names),canvases=[];
+ const keys=['green_zombie',...Object.keys(atlas.names)],canvases=[];
  for(const key of keys){
   const card=document.createElement('article');card.className='object-cast-card';card.setAttribute('role','listitem');
-  const c=document.createElement('canvas');c.width=148;c.height=168;c.setAttribute('aria-label',atlas.names[key]+' 애니메이션');
-  const label=document.createElement('strong');label.textContent=atlas.names[key];
+  const c=document.createElement('canvas');c.width=148;c.height=168;c.setAttribute('aria-label',(key==='green_zombie'?'그린 좀비':atlas.names[key])+' 애니메이션');
+  const label=document.createElement('strong');label.textContent=key==='green_zombie'?'그린 좀비':atlas.names[key];
   card.append(c,label);grid.append(card);canvases.push({key,c});
  }
  const modes=[['down','정면 하강'],['left','좌하 이동'],['right','우하 이동'],['hurt','피격'],['normal','일반 사망'],['critical','크리티컬 사망']];
@@ -38,10 +38,12 @@ function setup(){
    ctx.save();ctx.translate(0,boss?9:3);ctx.scale(boss?1.27:2.35,boss?1.27:2.35);
    if(mode==='normal'||mode==='critical'){
     const dur=mode==='normal'?.52:.58;
-    atlas.drawDeath(ctx,z,mode==='critical',seconds%dur,dur);
+    if(key==='green_zombie')window.ZZGreenDeath?.draw(ctx,z,mode==='critical',seconds%dur);
+    else atlas.drawDeath(ctx,z,mode==='critical',seconds%dur,dur);
    }else{
     if(mode==='hurt')z.recoil=.22-(seconds%.22);
-    atlas.draw(ctx,z,seconds);
+    if(key==='green_zombie')window.ZZGreenWalk?.draw(ctx,z,seconds);
+    else atlas.draw(ctx,z,seconds);
    }
    ctx.restore();
   }

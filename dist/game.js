@@ -113,9 +113,9 @@ function march(dt){const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];for(const
  // Gentle horizontal lane drift makes the authored left/right diagonal walks
  // correspond to actual movement. Bound +/-6px; collision positions move too.
  // Does not alter enemy vertical speed, form HP, spacing or boss routes.
- if(!z.boss&&(z.form??0)>0&&wave>=3){
+ if(!z.boss&&wave>=2){
   if(z.laneX===undefined)z.laneX=z.x;
-  const radius=2+((z.form??0)%3)*2;
+  const radius=(z.form??0)===0?3:2+((z.form??0)%3)*2;
   const nx=clamp(z.laneX+Math.sin(clock*1.4+(z.seed||0))*radius,8,W-z.w-8);
   z.moveDir=(nx-z.x)/Math.max(.001,dt);
   z.x=nx;
@@ -191,8 +191,11 @@ return {lean:clamp(Math.sin(q)*(person===0?.068:.037)*amp+twitch+neighbor*.035*(
 function enemyReaction(z,n,impact){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.22;z.hitHold=z.boss?.065:.04;z.hitAt=clock;if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
 function enemyDeath(z,critical=false){
  enemyAnim(z);
- const objectSprite=window.ZZObjectSprite?.available(z)===true;
- const greenSprite=!z.boss&&(z.form??0)===0&&window.ZZGreenDeath?.ready===true;
+ // The green mascot uses its approved 8+10-frame death atlas, rather than
+ // the generic 2-key critical/death poses shared by the other 9 object types.
+ const isGreen=!z.boss&&(z.form??0)===0;
+ const objectSprite=!isGreen&&window.ZZObjectSprite?.available(z)===true;
+ const greenSprite=isGreen&&window.ZZGreenDeath?.ready===true;
  const spriteMode=objectSprite||greenSprite;
  const split=objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  enemyDeaths.push({z:{...z,flash:.1},critical,spriteMode,t:0,split,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
@@ -288,6 +291,17 @@ if(!death&&originalObject?.draw(g,z,clock)){
   g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';
   g.fillText(BOSS_FORMS[z.bossForm??0]+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38);
  }
+ if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
+  for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
+  g.restore()}
+ return;
+}
+// Distinct mascot atlas: preserve the original cube geometry and 8-frame
+// diagonal footsteps, without changing the enemy collision rectangle.
+const mascot=window.ZZGreenWalk;
+if(!death&&!z.boss&&(z.form??0)===0&&mascot?.draw(g,z,clock)){
+ g.fillStyle='#131a22bb';g.fillRect(z.x+3,z.y+z.h+2,31,4);
+ for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(z.x+6+i*5,z.y+z.h+3,3,2)}
  if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
   for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
   g.restore()}

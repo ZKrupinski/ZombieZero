@@ -4,24 +4,24 @@
 
 ## 실행 · 미리보기
 - 공개 플레이: https://zkrupinski.github.io/ZombieZero/
-- 게임 안에서 원작 좀비 애니메이션 9종 미리보기: https://zkrupinski.github.io/ZombieZero/?demo=cast
+- 게임 안에서 원작 좀비 애니메이션 10종 미리보기: https://zkrupinski.github.io/ZombieZero/?demo=cast
 - 기존 그린 좀비 사망 모션 검수: https://zkrupinski.github.io/ZombieZero/?demo=death
 - 로컬: `python3 -m http.server 8000 --directory dist` → http://localhost:8000
 - 자동 테스트: `node tools/test.cjs`
 
 ## 원작 아트 복원 현황 (2026-11-13)
-- 사물 좀비 10종: 기존 그린 좀비 1종 + 신규 **원작풍 9종 투명 PNG 아틀라스**, 실제 게임 렌더러에 연결.
+- 사물 좀비 10종: **그린 좀비도 128px 원본 정면·좌하·우하 8프레임**, 나머지 9종도 128px 투명 PNG 아틀라스로 실제 게임 렌더러에 연결.
 - 신규 9종은 각 128×128 프레임 30장(총 **270프레임**). 기본 하강/좌하/우하 각 8프레임, 피격 2, 일반 사망 2, 크리티컬 사망 2.
 - 8개 일반 적 외형과 2개 보스 외형(빅 좀비 / 쓰레기통 좀비)에 매핑. 고유색을 체력 색으로 덮지 않고 등급은 작은 별도 표시 사용.
-- 대각선 이동은 일부 일반 좀비가 실제 게임에서 ±6px 이하로 가볍게 횡이동할 때 해당 방향으로 프레임을 재생. 충돌 위치도 동일하게 변경.
+- 기본 그린 좀비를 포함한 일반 적들이 작은 폭(대략 ±3~6px)의 실제 횡이동과 함께 좌하/우하 8프레임을 재생. 충돌 및 체력 계산은 기존 시스템 유지.
 - 강한 공격으로 죽을 때 캐릭터별 크리티컬 키프레임을 사용. 그린 좀비는 기존 8프레임 일반 사망 / 10프레임 작은 뇌 '뿅' 크리티컬 사망을 유지.
 - 프레임 주변 색상 노이즈 및 발밑 그림자 제거, 브라우저 이미지 로드 실패 시 Canvas 폴백 유지.
 - 생존자 3인과 기존 아이소메트릭 원본은 도감 레퍼런스용으로 보존. 3인의 실제 플레이 신규 애니메이션은 향후 별도 작업입니다.
 
 ## 주요 파일
 - `dist/game.js` 게임 로직/적 렌더링.
-- `dist/assets/ip/v2/*.png` 9종 원작풍 이동·피격·사망 시트.
-- `dist/assets/ip/v2/object-zombies.js` 로더와 프레임 재생.
+- `dist/assets/ip/v2/*.png` 10종 원작풍 이동·피격·사망 시트(프레임당 128×128).
+- `dist/assets/ip/v2/object-zombies.js`, `green-walk.js` 실제 이동·피격 로더와 방향별 프레임 재생.
 - `dist/assets/ip/v2/cast-demo.js` 게임 내 캐릭터 검수 화면.
 - `dist/assets/ip/green-death.png`, `green-death-loader.js` 승인된 그린 좀비 사망 연출.
 - `dist/sw.js` 오프라인 PWA 캐시.
