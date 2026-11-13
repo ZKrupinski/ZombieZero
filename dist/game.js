@@ -122,7 +122,11 @@ function supportAvailable(){return citizens.some(p=>p.alive)&&clock-lastSupportA
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
 function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3)return;items.push({x:car,y:485,k:'bazooka',phase:0});lastSupportAt=clock;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
 function drop(z){if(z.max<2&&!z.boss)return;if(z.boss||Math.random()<.45){let ks=Object.keys(SKILLS).filter(k=>k!=='bazooka'),chance=supportChance(),roll=Math.random(),k=roll<chance?'bazooka':ks[Math.min(ks.length-1,Math.floor((roll-chance)/(1-chance)*ks.length))];items.push({x:z.x+z.w/2,y:z.y+z.h/2,k,phase:Math.random()*6});if(k==='bazooka')lastSupportAt=clock}}
-function damage(z,n=1,burning=false,impact=null){if(!foes.includes(z))return;z.hp-=n;z.flash=.12;enemyReaction(z,n,impact);effect(z.x+z.w/2,z.y+z.h/2,burning?'#ffac48':TYPES[z.kind].color,z.hp<=0?(z.boss?150:55):24,z.hp<=0?(z.boss?'BOSS BREAK!':'+'+(100*z.max)):('-'+n));score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;burst(z.x+z.w/2,z.y+z.h/2,burning?'#ff985f':TYPES[z.kind].color,z.boss?20:8);if(!burning&&n>=2&&z.hp<=0&&!z.boss){sfx('powerhit');cameraKick=fxEnabled?Math.max(cameraKick,2.6):0;haptic(10)}if(!burning&&z.hp>0){if(z.boss){cameraKick=fxEnabled?Math.max(cameraKick,3.3):0;sfx('bosshit');haptic(14)}else if(n>=2){cameraKick=fxEnabled?Math.max(cameraKick,2.4):0;sfx('powerhit');haptic(10)}}if(z.hp<=0){enemyDeath(z);recordKill();foes.splice(foes.indexOf(z),1);drop(z);sfx(z.boss?'boss':'kill');if(z.boss){toast('BOSS DOWN · +1500');haptic([18,25,28])}}else if(!burning&&!z.boss&&n<2)sfx('hit');hud();if(foes.length===0)beginClear()}
+function damage(z,n=1,burning=false,impact=null){if(!foes.includes(z))return;z.hp-=n;z.flash=.12;enemyReaction(z,n,impact);effect(z.x+z.w/2,z.y+z.h/2,burning?'#ffac48':TYPES[z.kind].color,z.hp<=0?(z.boss?150:55):24,z.hp<=0?(z.boss?'BOSS BREAK!':'+'+(100*z.max)):('-'+n));score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;burst(z.x+z.w/2,z.y+z.h/2,burning?'#ff985f':TYPES[z.kind].color,z.boss?20:8);if(!burning&&n>=2&&z.hp<=0&&!z.boss){sfx('powerhit');cameraKick=fxEnabled?Math.max(cameraKick,2.6):0;haptic(10)}if(!burning&&z.hp>0){if(z.boss){cameraKick=fxEnabled?Math.max(cameraKick,3.3):0;sfx('bosshit');haptic(14)}else if(n>=2){cameraKick=fxEnabled?Math.max(cameraKick,2.4):0;sfx('powerhit');haptic(10)}}if(z.hp<=0){
+ const criticalGreen=!burning&&!z.boss&&(z.form??0)===0&&n>=2;
+ enemyDeath(z,criticalGreen);
+ if(criticalGreen){burst(z.x+z.w/2,z.y+8,'#ff4f9b',16)}
+ recordKill();foes.splice(foes.indexOf(z),1);drop(z);sfx(z.boss?'boss':'kill');if(z.boss){toast('BOSS DOWN · +1500');haptic([18,25,28])}}else if(!burning&&!z.boss&&n<2)sfx('hit');hud();if(foes.length===0)beginClear()}
 function ignite(z){if(!foes.includes(z))return;z.burn=Math.max(z.burn,3);}
 function hit(z,impact=null){combo++;damage(z,hero().damage*(has('power')?2:1),false,impact);if(has('fire')){ignite(z);for(const other of foes)if(Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82)ignite(other);sfx('fire')}}
 function update(dt){if(mode==='over'&&failureScene){failureScene.t+=dt;clock+=dt;cameraKick*=Math.exp(-dt*10);if(failureScene.t>=1.8){failureScene=null;$('overlay').hidden=false}return}if(mode!=='playing'&&mode!=='clearing')return;clock+=dt;resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;fx=fx.filter(f=>(f.t+=dt)<f.life);swing=Math.max(0,swing-dt);particles=particles.filter(p=>p.t>0);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
@@ -163,14 +167,56 @@ function enemyPose(z){const a=enemyAnim(z),t=z.hitHold>0?z.hitAt:clock,b=z.boss,
 const hit=clamp((z.recoil||0)/.22,0,1),dx=z.impactX||0,dy=z.impactY||-1,neighbor=(z.flinch||0)/.3;
 return {lean:clamp(Math.sin(q)*(person===0?.068:.037)*amp+twitch+neighbor*.035*(z.flinchSide||1)+hit*dx*.06,-.13,.13),bob:Math.sin(q*1.8)*.8*amp,head:clamp(Math.sin(q-.65)*.045*amp+(person===4?.04:0)*a.side+twitch*(person===2?1.3:.8)-hit*.09, -.16,.16),left:Math.sin(q*.91)*.24*amp+(person===1?.28:person===3?-.28:0)+hit*.35,right:Math.sin(q*1.13+1.8)*.24*amp+(person===3?-.3:0)-hit*.3,shoulder:Math.sin(q*2.31)*.7+roar*1.5,jaw:clamp((person===1?2:person===5?2.5:.4)+Math.max(0,Math.sin(q*.64))*1.7+(gate>.4&&u<.5?Math.sin(u*42)*.7:0)+roar*4,0,7),lidL:person===4?4:((gate<.65&&u<.23)?7*Math.sin(u/.23*Math.PI):1),lidR:person===1?3:((gate>.65&&u>.3&&u<.53)?8*Math.sin((u-.3)/.23*Math.PI):0),eye:gate>.45&&u>1.3&&u<1.7?a.side*2:0,legL:Math.sin(q+1.1)*1.3,legR:Math.sin(q*.94+3)*1.1,hit,dx,dy,roar};}
 function enemyReaction(z,n,impact){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.22;z.hitHold=z.boss?.065:.04;z.hitAt=clock;if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
-function enemyDeath(z){enemyAnim(z);enemyDeaths.push({z:{...z,flash:.1},t:0,split:z.boss?.32:.12,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
-function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
+function enemyDeath(z,critical=false){enemyAnim(z);enemyDeaths.push({z:{...z,flash:.1},critical,t:0,split:critical?.58:(z.boss?.32:.12),done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
+function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
 function updateEnemyVisuals(dt){bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;scatterEnemy(d)}}enemyDeaths=enemyDeaths.filter(d=>!d.done);for(const p of enemyPieces){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=420*dt;p.angle+=p.spin*dt}enemyPieces=enemyPieces.filter(p=>p.t<p.life)}
-function drawEnemyDeaths(){for(const d of enemyDeaths)zombie(d.z,d);for(const p of enemyPieces){g.save();g.globalAlpha=Math.min(1,(p.life-p.t)/.3);g.translate(p.x,p.y);g.rotate(p.angle);g.scale(p.sc,p.sc);const f=p.z.boss?[3,4,7,1][p.z.bossForm||0]:p.z.form||0,col=TYPES[p.z.kind],pose={jaw:2,lidL:3,lidR:0,eye:0};// When original sprites are active, scatter actual sampled character pieces
+// Original ZOMBIE ZERO mascot critical death: hinged black head lid reveals
+// a bright pink brain. Fixed front/elevated-top gameplay camera; NO floor shadow.
+// This only changes the cosmetic death queue (never HP, scoring or colliders).
+function drawCriticalGreenDeath(d){
+ const z=d.z,t=clamp(d.t/d.split,0,1),open=clamp((t-.06)/.29,0,1);
+ const rise=clamp((t-.3)/.3,0,1),fall=clamp((t-.76)/.24,0,1);
+ g.save();g.translate(z.x+z.w/2,z.y+23);
+ g.translate(0,fall*11);g.scale(1+fall*.18,1-fall*.72);
+ g.translate(-17,-23);
+ // Feet and clothes, held under the face: recognizable as the green mascot.
+ rect(5,30,23,10,'#d84851');rect(7,37,7,6,'#25272b');rect(23,37,7,6,'#25272b');
+ rect(-4,27,9,7,'#66ce5c');rect(31,27,9,7,'#66ce5c');
+ rect(0,0,34,30,'#58c65b');rect(0,1,34,5,'#7fed77');
+ // Top cavity must be visible in the game's slight top-down camera.
+ if(open>0){rect(3,1,28,Math.max(1,Math.round(9*open)),'#23873f');rect(6,2,22,Math.max(1,Math.round(6*open)),'#17452b')}
+ // Two oversized original eyes; two pink pupils + strong separate eyebrows.
+ g.fillStyle='#fffaf5';g.beginPath();g.ellipse(9,18,7,9,0,0,Math.PI*2);g.ellipse(25,18,7,9,0,0,Math.PI*2);g.fill();
+ rect(9,17,3,5,'#ee5a78');rect(24,17,3,5,'#ee5a78');
+ rect(3,9,12,3,'#312b29');rect(20,9,11,3,'#312b29');
+ rect(14,24,7,5,'#e95476');rect(3,27,4,6,'#fff1e7');rect(28,27,4,6,'#fff1e7');
+ // Pink brain rises from under the hinged lid. No background shadow plate.
+ if(rise>0){
+  g.save();g.translate(17,2-11*rise);
+  g.fillStyle='#fa5b91';g.beginPath();
+  g.arc(-6,3,5.5,0,Math.PI*2);g.arc(0,0,6.5,0,Math.PI*2);g.arc(6,3,5.5,0,Math.PI*2);g.fill();
+  g.strokeStyle='#c93168';g.lineWidth=1.3;g.beginPath();g.moveTo(-6,4);g.lineTo(-2,1);g.lineTo(1,5);g.lineTo(4,1);g.stroke();
+  g.restore();
+ }
+ // Rigid rectangular black skull cap rotates away from the cavity.
+ g.save();g.translate(17,-1);g.rotate(-open*.62);
+ rect(-17,-6-7*open,34,9,'#302c29');rect(-15,-6-7*open,30,2,'#403b36');
+ g.restore();
+ if(t>.49){const glow=Math.max(0,1-Math.abs(t-.68)/.3);
+  g.globalAlpha=glow*.85;g.strokeStyle='#ff4d9c';g.lineWidth=2;
+  for(let i=0;i<6;i++){const a=i*Math.PI/3;g.beginPath();g.moveTo(17+Math.cos(a)*20,2+Math.sin(a)*13);g.lineTo(17+Math.cos(a)*28,2+Math.sin(a)*19);g.stroke()}
+ }
+ g.restore();
+}
+function drawEnemyDeaths(){for(const d of enemyDeaths){if(d.critical)drawCriticalGreenDeath(d);else zombie(d.z,d)}for(const p of enemyPieces){g.save();g.globalAlpha=Math.min(1,(p.life-p.t)/.3);g.translate(p.x,p.y);g.rotate(p.angle);g.scale(p.sc,p.sc);const f=p.z.boss?[3,4,7,1][p.z.bossForm||0]:p.z.form||0,col=TYPES[p.z.kind],pose={jaw:2,lidL:3,lidR:0,eye:0};// When original sprites are active, scatter actual sampled character pieces
 // instead of switching to the older generic procedural humanoid fragments.
 const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null;
 const artIndex=cast?(p.z.boss?cast.bossIndex[p.z.bossForm??0]:cast.enemyIndex[p.z.form??0]):undefined;
-if(p.part<6&&atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
+if(p.criticalGreen){
+ if(p.part===0){rect(-13,-5,26,8,'#302c29');rect(-11,-5,22,2,'#47413b')}
+ else if(p.part===1){g.fillStyle='#f65d92';g.beginPath();g.arc(-3,1,5,0,Math.PI*2);g.arc(3,-1,6,0,Math.PI*2);g.fill();g.strokeStyle='#c22c68';g.lineWidth=1;g.beginPath();g.moveTo(-2,0);g.lineTo(2,2);g.stroke()}
+ else if(p.part<6){rect(-5,-5,10,10,p.part===5?'#d84851':'#61cf61');rect(-5,-5,10,3,'#91ef7a')}
+}else if(p.part<6&&atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
  const cuts=[[5,5,54,33],[16,35,32,20],[0,30,25,25],[39,30,25,25],[12,49,24,15],[37,49,24,15]];
  const cut=cuts[p.part],ax=artIndex%4*64+cut[0],ay=Math.floor(artIndex/4)*64+cut[1];
  g.drawImage(atlas,ax,ay,cut[2],cut[3],-cut[2]/2,-cut[3]/2,cut[2],cut[3]);
