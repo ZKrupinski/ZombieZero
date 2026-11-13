@@ -12,16 +12,29 @@ const names={red_barrel:'드럼통 좀비 · 레드',black_barrel:'드럼통 좀
 const artHeight={red_barrel:100.5,black_barrel:100,red_brain_cube:103,
  cardboard_box:92,wooden_crate:102,black_brain_cube:101,
  yellow_brain_cube:103,big_zombie:105,trash_can:102.5};
-const images={};
+const images={},highResBosses=new Set(['big_zombie','trash_can']);
 for(const key of Object.keys(names)){
- const image=new Image();images[key]={image,ready:false,failed:false};
+ const image=new Image(),entry=images[key]={image,ready:false,failed:false,hd:null};
  image.decoding='async';
- image.onload=()=>{images[key].ready=image.naturalWidth===1024&&image.naturalHeight===512;images[key].failed=!images[key].ready};
- image.onerror=()=>{images[key].failed=true};
+ image.onload=()=>{entry.ready=image.naturalWidth===1024&&image.naturalHeight===512;entry.failed=!entry.ready};
+ image.onerror=()=>{entry.failed=true};
  image.src=root+key+'.png';
+ // Dedicated high-density source frames. The original 128px animation
+ // remains available until the 2048×1024 HD boss atlas finishes loading.
+ if(highResBosses.has(key)){
+  const hiImage=new Image(),hd=entry.hd={image:hiImage,ready:false,failed:false};
+  hiImage.decoding='async';
+  hiImage.onload=()=>{hd.ready=hiImage.naturalWidth===2048&&hiImage.naturalHeight===1024;hd.failed=!hd.ready};
+  hiImage.onerror=()=>{hd.failed=true};
+  hiImage.src=root+key+'_hd.png';
+ }
 }
 const keyFor=z=>z.boss?bosses[z.bossForm??0]:normal[z.form??0];
-const available=z=>!!images[keyFor(z)]?.ready;
+const available=z=>{const entry=images[keyFor(z)];return !!(entry?.ready||z.boss&&entry?.hd?.ready)};
+const activeImage=z=>{
+ const entry=images[keyFor(z)];
+ return z.boss&&entry?.hd?.ready?entry.hd.image:entry?.ready?entry.image:null;
+};
 const frames={down:[0,8],left:[8,8],right:[16,8],hurt:[24,2],normal:[26,2],critical:[28,2]};
 // All walking clips run around 6.4 fps (previously 9 fps). A stable
 // per-zombie seed offsets the loop by up to eight frames and gently varies
@@ -39,16 +52,24 @@ const getFrame=(z,seconds)=>{
  return group[0]+Math.floor((Math.max(0,seconds)*timing.fps+timing.phase)%group[1]);
 };
 function groupFor(frame){return frame<8?'down':frame<16?'left':frame<24?'right':frame<26?'hurt':frame<28?'normal':'critical'}
-function sourceRect(z,frame){
- const id=keyFor(z),geom=window.ZZSpriteGeometry?.[id];
+function imageGeometry(z,img){
+ const id=keyFor(z),hd=z.boss&&img?.naturalWidth===2048&&img?.naturalHeight===1024;
+ return {
+  cell:hd?256:128,
+  geom:hd?window.ZZBossSpriteGeometry?.[id]:window.ZZSpriteGeometry?.[id]
+ };
+}
+function sourceRect(z,frame,img=null){
+ const {cell,geom}=imageGeometry(z,img);
  const group=groupFor(frame);
- // The walk bounds are fixed across direction changes so no sideways jitter.
- const b=geom?.[group]||[0,0,128,128];
- return [(frame%8)*128+b[0],Math.floor(frame/8)*128+b[1],b[2],b[3]];
+ // Per-action alpha bounds and the uniform walk bounds are held steady
+ // across animation frames so each high-res boss retains its foot pivot.
+ const b=geom?.[group]||[0,0,cell,cell];
+ return [(frame%8)*cell+b[0],Math.floor(frame/8)*cell+b[1],b[2],b[3]];
 }
 function drawFrame(ctx,img,z,frame,opacity=1){
- const id=keyFor(z);
- const rect=sourceRect(z,frame),walk=window.ZZSpriteGeometry?.[id]?.walkUnion||[0,0,128,128];
+ const {cell,geom}=imageGeometry(z,img),id=keyFor(z);
+ const rect=sourceRect(z,frame,img),walk=geom?.walkUnion||[0,0,cell,cell];
  // One scale on BOTH axes. Small characters are deliberately wide enough to
  // read at game scale, while the 55px lanes are never grossly occluded.
  // Pack the 9-column horde edge-to-edge while limiting wider boxes to 56px.
@@ -62,14 +83,14 @@ function drawFrame(ctx,img,z,frame,opacity=1){
  ctx.drawImage(img,...rect,x,y,rect[2]*scale,rect[3]*scale);
  ctx.restore();
 }
-function draw(ctx,z,seconds){const entry=images[keyFor(z)];if(!entry?.ready)return false;drawFrame(ctx,entry.image,z,getFrame(z,seconds));return true}
-function drawDeath(ctx,z,critical,elapsed,duration){const entry=images[keyFor(z)];if(!entry?.ready)return false;
+function draw(ctx,z,seconds){const img=activeImage(z);if(!img)return false;drawFrame(ctx,img,z,getFrame(z,seconds));return true}
+function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(!img)return false;
  const t=Math.min(1,Math.max(0,elapsed/Math.max(.001,duration)));
  const first=critical?28:26,second=first+1;
  const blend=Math.min(1,Math.max(0,(t-.35)/.35));
- if(blend<1)drawFrame(ctx,entry.image,{...z,flash:0},first,1-blend);
- if(blend>0)drawFrame(ctx,entry.image,{...z,flash:0},second,blend);
+ if(blend<1)drawFrame(ctx,img,{...z,flash:0},first,1-blend);
+ if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry};
 })();
