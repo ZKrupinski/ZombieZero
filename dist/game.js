@@ -296,6 +296,17 @@ if(!death&&originalObject?.draw(g,z,clock)){
   g.restore()}
  return;
 }
+// Distinct mascot atlas: preserve the original cube geometry and 8-frame
+// diagonal footsteps, without changing the enemy collision rectangle.
+const mascot=window.ZZGreenWalk;
+if(!death&&!z.boss&&(z.form??0)===0&&mascot?.draw(g,z,clock)){
+ g.fillStyle='#131a22bb';g.fillRect(z.x+3,z.y+z.h+2,31,4);
+ for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(z.x+6+i*5,z.y+z.h+3,3,2)}
+ if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
+  for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
+  g.restore()}
+ return;
+}
 const f=z.boss?[3,4,7,1][z.bossForm??0]:(z.form??0),sc=z.boss?2:1,p=TYPES[z.kind],skin=z.flash>0?'#fff':p.color,a=enemyPose(z);g.save();g.translate(z.x,z.y);g.scale(sc,sc);/* no baked character ground shadow; gameplay floor handles depth */
 // Local pivots keep the sprite centered on its unchanged collision rectangle.
 g.translate(16.5,25);g.rotate(a.lean);g.translate(a.dx*a.hit*1.5,a.dy*a.hit*1.5+a.bob);let sx=1+a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1,sy=1-a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1;
