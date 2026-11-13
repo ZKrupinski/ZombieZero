@@ -29,7 +29,10 @@ assert(sw.includes('./assets/ip/v2/green_zombie.png')&&sw.includes('./assets/ip/
 assert(sw.includes('shell-v13-sparse-breakout'),'cache version');
 assert(game.includes('mascot?.draw(g,z,clock)'),'runtime connected');
 assert(game.includes('const isGreen=!z.boss&&(z.form??0)===0'),'green uses dedicated final death 8/10 frames');
-assert(game.includes('if(!z.boss&&wave>=2)'),'green diagonal movement actually exists');
+assert(game.includes('function tryStartBreakouts()'),'green diagonal movement now requires sparse-wave gap AI');
+assert(game.includes('z.moveDir=Math.sign(z.x-previousX)'),'left/right animation follows actual lateral velocity');
+assert(game.includes('}else z.moveDir=0;'),'default walk is frontal');
+assert(!game.includes('Math.sin(clock*1.4+(z.seed||0))*radius'),'former random walk removed');
 let draws=[];
 class ImageMock {
  constructor(){this.naturalWidth=1024;this.naturalHeight=512}
