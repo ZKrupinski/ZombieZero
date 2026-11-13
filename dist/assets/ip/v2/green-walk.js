@@ -14,18 +14,22 @@
      const [start,count]=vx<-.3?pack.groups.left:vx>.3?pack.groups.right:pack.groups.down;
      return start+Math.floor((Math.max(0,t)*1000/110+(z.seed||0)*2.15)%count);
    },
+   sourceRect(frame){
+     const geom=window.ZZSpriteGeometry?.green_zombie||{};
+     const group=frame<8?'down':frame<16?'left':frame<24?'right':'hurt';
+     const b=geom[group]||[0,0,128,128];
+     return [(frame%8)*128+b[0],Math.floor(frame/8)*128+b[1],b[2],b[3]];
+   },
    draw(ctx,z,t){
      if(!pack.ready)return false;
-     const frame=pack.getFrame(z,t);
-     // The source is 128×128, with 116px median visible character height.
-     // Keep a SINGLE uniform scale: never squeeze the cubic head into 41×58.
-     const uniformScale=52/116;
-     const side=128*uniformScale;
-     const x=z.x+z.w/2-64*uniformScale;
-     const y=z.y+z.h-120*uniformScale;
+     const frame=pack.getFrame(z,t),rect=pack.sourceRect(frame);
+     const walk=window.ZZSpriteGeometry?.green_zombie?.walkUnion||[0,0,128,128];
+     const scale=58/walk[3];
+     const x=z.x+z.w/2-(rect[2]*scale)/2;
+     const y=z.y+z.h+2-rect[3]*scale;
      ctx.save();
      if(z.flash>0)ctx.filter='brightness(1.55)';
-     ctx.drawImage(image,(frame%8)*128,Math.floor(frame/8)*128,128,128,x,y,side,side);
+     ctx.drawImage(image,...rect,x,y,rect[2]*scale,rect[3]*scale);
      ctx.restore();
      return true;
    }

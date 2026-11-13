@@ -32,20 +32,40 @@ function setup(){
   for(const {key,c} of canvases){
    const ctx=c.getContext('2d');if(!ctx)continue;
    ctx.clearRect(0,0,c.width,c.height);
-   const boss=key==='big_zombie'||key==='trash_can';
-   const form=atlas.normal.indexOf(key),bossForm=atlas.bosses.indexOf(key);
-   const z={x:9,y:5,w:boss?66:33,h:boss?88:44,boss,bossForm,form,flash:0,recoil:0,seed:0,moveDir:mode==='left'?-1:mode==='right'?1:0};
-   ctx.save();ctx.translate(0,boss?9:3);ctx.scale(boss?1.27:2.35,boss?1.27:2.35);
+   const isGreen=key==='green_zombie';
+   const pack=isGreen?window.ZZGreenWalk:atlas;
+   const entry=isGreen?pack:pack.images[key];
+   const img=isGreen?pack?.image:entry?.image;
+   if(!(isGreen?pack?.ready:entry?.ready)||!img)continue;
+   let frame=0,rect,source=img;
    if(mode==='normal'||mode==='critical'){
-    const dur=mode==='normal'?.52:.58;
-    if(key==='green_zombie')window.ZZGreenDeath?.draw(ctx,z,mode==='critical',seconds%dur);
-    else atlas.drawDeath(ctx,z,mode==='critical',seconds%dur,dur);
+    if(isGreen){
+     const death=window.ZZGreenDeath;
+     if(!death?.ready)continue;
+     const clip=death[mode],elapsed=(seconds%clip.duration)*1000;
+     frame=Math.min(clip.count-1,Math.floor(elapsed/clip.frameMs));
+     rect=[frame*48,clip.row*48,48,48];source=death.image;
+    }else{
+     const first=mode==='normal'?26:28;
+     frame=first+Math.floor((seconds%(.52))/(.52/2));
+     rect=pack.sourceRect({boss:key==='big_zombie'||key==='trash_can',
+       bossForm:pack.bosses.indexOf(key),form:pack.normal.indexOf(key)},frame);
+    }
    }else{
-    if(mode==='hurt')z.recoil=.22-(seconds%.22);
-    if(key==='green_zombie')window.ZZGreenWalk?.draw(ctx,z,seconds);
-    else atlas.draw(ctx,z,seconds);
+    const vx=mode==='left'?-1:mode==='right'?1:0;
+    const actor={form:pack.normal?.indexOf(key)??0,bossForm:pack.bosses?.indexOf(key)??0,
+      boss:key==='big_zombie'||key==='trash_can',seed:0,moveDir:vx,
+      recoil:mode==='hurt'?.21-(seconds%.22):0};
+    frame=mode==='hurt'?24+Math.floor((seconds%(.22))/.11):
+      isGreen?pack.getFrame(actor,seconds):(
+        (mode==='left'?8:mode==='right'?16:0)+Math.floor(seconds*9)%8);
+    rect=isGreen?pack.sourceRect(frame):pack.sourceRect(actor,frame);
    }
-   ctx.restore();
+   const [sx,sy,sw,sh]=rect;
+   const scale=Math.min((c.width-12)/sw,(c.height-12)/sh);
+   const w=sw*scale,h=sh*scale,x=(c.width-w)/2,y=(c.height-h)/2;
+   ctx.imageSmoothingEnabled=true;
+   ctx.drawImage(source,sx,sy,sw,sh,x,y,w,h);
   }
   raf=requestAnimationFrame(render);
  }
