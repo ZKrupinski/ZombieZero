@@ -125,7 +125,7 @@ function drop(z){if(z.max<2&&!z.boss)return;if(z.boss||Math.random()<.45){let ks
 function damage(z,n=1,burning=false,impact=null){if(!foes.includes(z))return;z.hp-=n;z.flash=.12;enemyReaction(z,n,impact);effect(z.x+z.w/2,z.y+z.h/2,burning?'#ffac48':TYPES[z.kind].color,z.hp<=0?(z.boss?150:55):24,z.hp<=0?(z.boss?'BOSS BREAK!':'+'+(100*z.max)):('-'+n));score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;burst(z.x+z.w/2,z.y+z.h/2,burning?'#ff985f':TYPES[z.kind].color,z.boss?20:8);if(!burning&&n>=2&&z.hp<=0&&!z.boss){sfx('powerhit');cameraKick=fxEnabled?Math.max(cameraKick,2.6):0;haptic(10)}if(!burning&&z.hp>0){if(z.boss){cameraKick=fxEnabled?Math.max(cameraKick,3.3):0;sfx('bosshit');haptic(14)}else if(n>=2){cameraKick=fxEnabled?Math.max(cameraKick,2.4):0;sfx('powerhit');haptic(10)}}if(z.hp<=0){
  const criticalGreen=!burning&&!z.boss&&(z.form??0)===0&&n>=2;
  enemyDeath(z,criticalGreen);
- if(criticalGreen){burst(z.x+z.w/2,z.y+8,'#ff4f9b',16)}
+ if(criticalGreen){burst(z.x+z.w/2,z.y+8,'#ff8ab4',7)}
  recordKill();foes.splice(foes.indexOf(z),1);drop(z);sfx(z.boss?'boss':'kill');if(z.boss){toast('BOSS DOWN · +1500');haptic([18,25,28])}}else if(!burning&&!z.boss&&n<2)sfx('hit');hud();if(foes.length===0)beginClear()}
 function ignite(z){if(!foes.includes(z))return;z.burn=Math.max(z.burn,3);}
 function hit(z,impact=null){combo++;damage(z,hero().damage*(has('power')?2:1),false,impact);if(has('fire')){ignite(z);for(const other of foes)if(Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82)ignite(other);sfx('fire')}}
@@ -175,9 +175,9 @@ function updateEnemyVisuals(dt){bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<
 // This only changes the cosmetic death queue (never HP, scoring or colliders).
 function drawCriticalGreenDeath(d){
  const z=d.z,t=clamp(d.t/d.split,0,1),open=clamp((t-.06)/.29,0,1);
- const rise=clamp((t-.3)/.3,0,1),fall=clamp((t-.76)/.24,0,1);
+ const rise=clamp((t-.27)/.3,0,1),fall=clamp((t-.42)/.46,0,1);
  g.save();g.translate(z.x+z.w/2,z.y+23);
- g.translate(0,fall*11);g.scale(1+fall*.18,1-fall*.72);
+ g.translate(0,fall*11);g.scale(1+fall*.12,1-fall*.52);
  g.translate(-17,-23);
  // Feet and clothes, held under the face: recognizable as the green mascot.
  rect(5,30,23,10,'#d84851');rect(7,37,7,6,'#25272b');rect(23,37,7,6,'#25272b');
@@ -192,10 +192,10 @@ function drawCriticalGreenDeath(d){
  rect(14,24,7,5,'#e95476');rect(3,27,4,6,'#fff1e7');rect(28,27,4,6,'#fff1e7');
  // Pink brain rises from under the hinged lid. No background shadow plate.
  if(rise>0){
-  g.save();g.translate(17,2-11*rise);
+  g.save();g.translate(17,2-6*rise);
   g.fillStyle='#fa5b91';g.beginPath();
-  g.arc(-6,3,5.5,0,Math.PI*2);g.arc(0,0,6.5,0,Math.PI*2);g.arc(6,3,5.5,0,Math.PI*2);g.fill();
-  g.strokeStyle='#c93168';g.lineWidth=1.3;g.beginPath();g.moveTo(-6,4);g.lineTo(-2,1);g.lineTo(1,5);g.lineTo(4,1);g.stroke();
+  g.arc(-3.3,2,3,0,Math.PI*2);g.arc(0,0,3.8,0,Math.PI*2);g.arc(3.3,2,3,0,Math.PI*2);g.fill();
+  g.strokeStyle='#c93168';g.lineWidth=1.3;g.beginPath();g.moveTo(-3,3);g.lineTo(-1,1);g.lineTo(1,3);g.lineTo(3,1);g.stroke();
   g.restore();
  }
  // Rigid rectangular black skull cap rotates away from the cavity.
@@ -204,7 +204,7 @@ function drawCriticalGreenDeath(d){
  g.restore();
  if(t>.49){const glow=Math.max(0,1-Math.abs(t-.68)/.3);
   g.globalAlpha=glow*.85;g.strokeStyle='#ff4d9c';g.lineWidth=2;
-  for(let i=0;i<6;i++){const a=i*Math.PI/3;g.beginPath();g.moveTo(17+Math.cos(a)*20,2+Math.sin(a)*13);g.lineTo(17+Math.cos(a)*28,2+Math.sin(a)*19);g.stroke()}
+  for(let i=0;i<4;i++){const a=i*Math.PI/2;g.beginPath();g.moveTo(17+Math.cos(a)*15,2+Math.sin(a)*11);g.lineTo(17+Math.cos(a)*20,2+Math.sin(a)*14);g.stroke()}
  }
  g.restore();
 }
@@ -214,7 +214,7 @@ const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.g
 const artIndex=cast?(p.z.boss?cast.bossIndex[p.z.bossForm??0]:cast.enemyIndex[p.z.form??0]):undefined;
 if(p.criticalGreen){
  if(p.part===0){rect(-13,-5,26,8,'#302c29');rect(-11,-5,22,2,'#47413b')}
- else if(p.part===1){g.fillStyle='#f65d92';g.beginPath();g.arc(-3,1,5,0,Math.PI*2);g.arc(3,-1,6,0,Math.PI*2);g.fill();g.strokeStyle='#c22c68';g.lineWidth=1;g.beginPath();g.moveTo(-2,0);g.lineTo(2,2);g.stroke()}
+ else if(p.part===1){g.fillStyle='#f65d92';g.beginPath();g.arc(-2,1,3.4,0,Math.PI*2);g.arc(2,-1,3.9,0,Math.PI*2);g.fill();g.strokeStyle='#c22c68';g.lineWidth=1;g.beginPath();g.moveTo(-2,0);g.lineTo(2,2);g.stroke()}
  else if(p.part<6){rect(-5,-5,10,10,p.part===5?'#d84851':'#61cf61');rect(-5,-5,10,3,'#91ef7a')}
 }else if(p.part<6&&atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
  const cuts=[[5,5,54,33],[16,35,32,20],[0,30,25,25],[39,30,25,25],[12,49,24,15],[37,49,24,15]];
@@ -239,7 +239,7 @@ if(f===7){rect(2,-5,29,8,'#ecaa78');for(let i=0;i<4;i++)rect(5+i*6,-3,2,5,'#a35b
 function zombie(z,death=null){const f=z.boss?[3,4,7,1][z.bossForm??0]:(z.form??0),sc=z.boss?2:1,p=TYPES[z.kind],skin=z.flash>0?'#fff':p.color,a=enemyPose(z);g.save();g.translate(z.x,z.y);g.scale(sc,sc);/* no baked character ground shadow; gameplay floor handles depth */
 // Local pivots keep the sprite centered on its unchanged collision rectangle.
 g.translate(16.5,25);g.rotate(a.lean);g.translate(a.dx*a.hit*1.5,a.dy*a.hit*1.5+a.bob);let sx=1+a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1,sy=1-a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1;
-if(death){const t=death.t/death.split;const squash=t<.45?Math.sin(t/.45*Math.PI/2):1-(t-.45)/.55;sx*=1+squash*(z.boss?.2:.14);sy*=1-squash*.18;if(z.boss&&t>.55){sx*=1+(t-.55)*.28;sy*=1+(t-.55)*.28}g.rotate(-t*.1)}g.scale(sx,sy);g.translate(-16.5,-25);
+if(death){const t=death.t/death.split;const squash=t<.45?Math.sin(t/.45*Math.PI/2):1-(t-.45)/.55;sx*=1+squash*(z.boss?.2:.14);sy*=1-squash*.18;if(z.boss&&t>.55){sx*=1+(t-.55)*.28;sy*=1+(t-.55)*.28}/* no sideways flop: front/back projected collapse */}g.scale(sx,sy);g.translate(-16.5,-25);
 // Original art pilot: render the canonical green cube zombie from its transparent
 // PNG bitmap. Keep existing pose transforms / collision coordinates unchanged.
 // Other types and missing/failed bitmap loads fall back to procedural art.
