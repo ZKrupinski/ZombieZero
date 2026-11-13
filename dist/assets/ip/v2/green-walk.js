@@ -17,11 +17,15 @@
    draw(ctx,z,t){
      if(!pack.ready)return false;
      const frame=pack.getFrame(z,t);
-     const width=z.w+8,height=z.h+14;
-     const x=z.x+(z.w-width)/2,y=z.y+z.h-height+3;
+     // The source is 128×128, with 116px median visible character height.
+     // Keep a SINGLE uniform scale: never squeeze the cubic head into 41×58.
+     const uniformScale=52/116;
+     const side=128*uniformScale;
+     const x=z.x+z.w/2-64*uniformScale;
+     const y=z.y+z.h-120*uniformScale;
      ctx.save();
      if(z.flash>0)ctx.filter='brightness(1.55)';
-     ctx.drawImage(image,(frame%8)*128,Math.floor(frame/8)*128,128,128,x,y,width,height);
+     ctx.drawImage(image,(frame%8)*128,Math.floor(frame/8)*128,128,128,x,y,side,side);
      ctx.restore();
      return true;
    }
