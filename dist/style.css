@@ -47,3 +47,13 @@ canvas{image-rendering:auto}.stage:after{display:none}.hud{height:66px;gap:14px;
 .overlay #endless{background:#94e8dc;color:#142b39;margin:3px 0;padding:10px 12px;font-size:13px;min-height:38px}.overlay #endless[hidden]{display:none}.overlay[data-title="true"]:has(#endless:not([hidden])) .overlay-logo{max-height:max(0px,calc(100% - 335px))}#message{overflow-wrap:anywhere}
 
 .zero-title{display:block;text-align:center;font-family:Impact,sans-serif;font-size:clamp(36px,8vw,72px);font-weight:900;line-height:.9;letter-spacing:.04em;color:#e9f2cb;text-shadow:3px 3px #bf3445;margin:12px auto 20px}
+
+
+/* Original ZOMBIE ZERO 10+3 collection - bitmap tiles, no vector replacement. */
+.canon-collection{margin:14px 0;border:1px solid #475263;border-radius:12px;padding:10px;background:#151d2b;color:#e8f5dc}
+.canon-collection summary{cursor:pointer;font-weight:800;font-size:14px;padding:4px 2px}
+.canon-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(102px,1fr));gap:9px;padding:12px 2px 4px}
+.canon-card{display:flex;flex-direction:column;align-items:center;min-width:0;min-height:100px;border-radius:9px;padding:10px 4px;background:#253143}
+.canon-art{display:block;width:64px;height:64px;flex:none;background-image:var(--object-atlas);background-size:256px 256px;background-repeat:no-repeat;image-rendering:auto}
+.canon-card strong{font:700 11px/1.35 sans-serif;text-align:center;word-break:keep-all;overflow-wrap:anywhere;color:#f5f0dc}
+@media (max-width:460px){.canon-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.canon-card{padding:8px 2px}.canon-card strong{font-size:10px}}
