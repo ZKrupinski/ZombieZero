@@ -48,13 +48,13 @@ function check(cond,msg){if(!cond)throw Error(msg)}
    check(group.every(z=>z.y===70+row*ENEMY_ROW_PITCH),'58px vertical packing');
   }
   if(!boss){
-   const first=normals.find(z=>z.spawnRow===0&&z.col===0);
-   const last=normals.find(z=>z.spawnRow===0&&z.col===8);
+   const first=normals.find(z=>z.row===0&&z.col===0);
+   const last=normals.find(z=>z.row===0&&z.col===8);
    check(first.x===23&&last.x===394,'near-touching stage row from left to right');
   }else{
    const bossActor=foes.find(z=>z.boss);
    check(bossActor.x===192&&bossActor.y===74,'boss stays centered');
-   check(normals.filter(z=>z.spawnRow<2).every(z=>!([3,4,5].includes(z.col))),
+   check(normals.filter(z=>z.row<2).every(z=>!([3,4,5].includes(z.col))),
     'boss opening reserves three central lanes');
   }
   const previous=foes.map(z=>[z,z.y,z.hp]);
