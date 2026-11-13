@@ -47,6 +47,21 @@ vm.runInContext(`
 portrait=false;dimensions.width=450;dimensions.height=710;sandbox.resizeCanvas();
 assert.equal(layout.getHeight(),710,'rotation returns to original game coordinate space');
 assert.equal(layout.getPaddleY(),604,'base paddle geometry restored');
+// Unfolded near-square phone: still fills the device horizontally and never
+// stretches square cube heads to a fictitious 710px world height.
+portrait=true;dimensions.width=660;dimensions.height=720;sandbox.resizeCanvas();
+assert.equal(layout.getHeight(),Math.round(450*720/660),'near-square viewport has exact world ratio');
+assert.equal(elements.game.width,1320);
+assert.equal(elements.game.height,1440);
+vm.runInContext(`
+{
+ start();serve();
+ check(foes.every(z=>z.y+z.h<DEFENSE_Y),'no crowded row starts beyond the defense line');
+ const b=balls[0];b.x=car;b.y=PY-9;b.vy=350;b.vx=0;
+ update(.02);check(b.vy<0,'foldable viewport racket collision still works');
+}
+`,sandbox);
+portrait=false;dimensions.width=450;dimensions.height=710;sandbox.resizeCanvas();
 const html=fs.readFileSync('dist/index.html','utf8');
 const css=fs.readFileSync('dist/style.css','utf8');
 const app=fs.readFileSync('dist/app.js','utf8');

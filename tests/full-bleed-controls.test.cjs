@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('dist/index.html','utf8');
+const css=fs.readFileSync('dist/style.css','utf8');
+const app=fs.readFileSync('dist/app.js','utf8');
+const game=fs.readFileSync('dist/game.js','utf8');
+const controlIds=['sound','bgm','fx','fullscreen','install','share','help','share-url'];
+for(const id of controlIds){
+ assert(html.includes('id="'+id+'"'),'actual '+id+' control remains available');
+ assert(app.includes("'"+id+"'"),id+' is handled in options');
+}
+assert(app.includes("optionsActions.appendChild(item)"),'all tool buttons move into options');
+assert(app.includes("const portrait=height>=width"),'unfolded square phone is full bleed');
+assert(!app.includes("height>=width*1.3"),'old foldable exclusion removed');
+assert(app.includes("root.classList.toggle('landscape-game',!portrait)"),'landscape layout has no bottom chrome');
+assert(css.includes('.portrait-play .app-bar'),'old bottom navigation hidden in portrait');
+assert(css.includes('.landscape-game .app-bar'),'old bottom navigation hidden in landscape');
+assert(css.includes('.portrait-play .stage')&&css.includes('width:100%!important'),'portrait stage uses whole width');
+assert(css.includes('.portrait-play .machine')&&css.includes('max-width:none!important'),'stage is not capped to original narrow cabinet');
+assert(css.includes('.landscape-game .control'),'bottom drag prompt removed');
+assert(css.includes('.portrait-play .control'),'bottom drag prompt removed in portrait');
+assert(css.includes('.landscape-game .arcade-tools'),'bottom audio/FX row removed');
+assert(css.includes('.portrait-play .arcade-tools'),'bottom audio/FX row removed in portrait');
+assert(css.includes('.landscape-game .encounter'),'bottom stage banner removed');
+assert(css.includes('.portrait-play .encounter'),'bottom stage banner removed in portrait');
+assert(css.includes('.landscape-game .hud'),'landscape options and pause float on game');
+assert(game.includes('clamp(Math.round(W*heightCss/widthCss),450,1600)'),'game uses true viewport ratio for square folded phones');
+assert(game.includes('Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1'),'shorter near-square world avoids spawning zombies behind defense');
+console.log('PASS: full-width square/portrait canvas, zero bottom UI strips, actual options and responsive world geometry');
