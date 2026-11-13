@@ -113,9 +113,9 @@ function march(dt){const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];for(const
  // Gentle horizontal lane drift makes the authored left/right diagonal walks
  // correspond to actual movement. Bound +/-6px; collision positions move too.
  // Does not alter enemy vertical speed, form HP, spacing or boss routes.
- if(!z.boss&&(z.form??0)>0&&wave>=3){
+ if(!z.boss&&wave>=2){
   if(z.laneX===undefined)z.laneX=z.x;
-  const radius=2+((z.form??0)%3)*2;
+  const radius=(z.form??0)===0?3:2+((z.form??0)%3)*2;
   const nx=clamp(z.laneX+Math.sin(clock*1.4+(z.seed||0))*radius,8,W-z.w-8);
   z.moveDir=(nx-z.x)/Math.max(.001,dt);
   z.x=nx;
@@ -191,8 +191,11 @@ return {lean:clamp(Math.sin(q)*(person===0?.068:.037)*amp+twitch+neighbor*.035*(
 function enemyReaction(z,n,impact){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.22;z.hitHold=z.boss?.065:.04;z.hitAt=clock;if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
 function enemyDeath(z,critical=false){
  enemyAnim(z);
- const objectSprite=window.ZZObjectSprite?.available(z)===true;
- const greenSprite=!z.boss&&(z.form??0)===0&&window.ZZGreenDeath?.ready===true;
+ // The green mascot uses its approved 8+10-frame death atlas, rather than
+ // the generic 2-key critical/death poses shared by the other 9 object types.
+ const isGreen=!z.boss&&(z.form??0)===0;
+ const objectSprite=!isGreen&&window.ZZObjectSprite?.available(z)===true;
+ const greenSprite=isGreen&&window.ZZGreenDeath?.ready===true;
  const spriteMode=objectSprite||greenSprite;
  const split=objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  enemyDeaths.push({z:{...z,flash:.1},critical,spriteMode,t:0,split,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
