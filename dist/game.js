@@ -87,7 +87,7 @@ try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
 function endlessUI(){const el=$('endless');el.hidden=!endlessUnlocked||!['menu','over'].includes(mode);el.textContent='∞ 무한 모드 시작';el.onclick=()=>start('endless')}
 function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=1.4;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
- for(const z of sorted){const old=z.y;let y=Math.max(36,z.y-180);for(const above of placed){if(z.spawnRow!==undefined&&z.spawnRow===above.spawnRow)continue;if(z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?28:19))}z.y=Math.min(old,y);z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
+ for(const z of sorted){const old=z.y;let y=Math.max(36,z.y-180);for(const above of placed){if(z.spawnRow!==undefined&&z.spawnRow===above.spawnRow)continue;if(z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10))}z.y=Math.min(old,y);z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
  // Crowded late-stage boss formations may hit the upper packing boundary and
  // leave a front enemy too close after the first push. Translate the entire
  // already-spaced formation to guarantee a visible 125px recovery window,
@@ -158,7 +158,7 @@ function march(dt){const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];for(const
   z.moveDir=(nx-z.x)/Math.max(.001,dt);
   z.x=nx;
  }else z.moveDir=0;
- let next=z.y+enemySpeed(z)*dt;for(const front of done){if(z.spawnRow!==undefined&&z.spawnRow===front.spawnRow)continue;if(z.x-8<front.x+front.w+8&&z.x+z.w+8>front.x-8)next=Math.min(next,front.y-z.h-(front.boss?28:19))}z.y=Math.max(z.y,next);done.push(z)}}
+ let next=z.y+enemySpeed(z)*dt;for(const front of done){if(z.spawnRow!==undefined&&z.spawnRow===front.spawnRow)continue;if(z.x-8<front.x+front.w+8&&z.x+z.w+8>front.x-8)next=Math.min(next,front.y-z.h-(front.boss?25:10))}z.y=Math.max(z.y,next);done.push(z)}}
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
 function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+ZOMBIE_FORMS.filter(v=>v.unlock<=wave).at(-1).name)}
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
