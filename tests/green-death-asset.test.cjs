@@ -23,7 +23,7 @@ assert(html.includes('green-death-loader.js')&&html.indexOf('green-death-loader.
 assert(html.includes('death-demo-dialog')&&html.includes('death-demo-canvas'),'in-game review control is wired');
 assert(sw.includes('green-death.png')&&sw.includes('green-death-loader.js'),'PNG is PWA precached');
 assert(loader.includes("image.src='assets/ip/green-death.png'"),'loads actual PNG');
-assert(loader.includes('normalFrameMs:65')&&loader.includes('criticalFrameMs:58'),'frame timings are preserved');
+assert(loader.includes('row:0,count:8,frameMs:65')&&loader.includes('row:1,count:10,frameMs:58'),'frame timings are preserved');
 assert(game.includes('window.ZZGreenDeath.draw(g,d.z,d.critical,d.t)'),'real game draws bitmap death, not just preview');
 assert(game.includes('!d.spriteMode)scatterEnemy'),'avoid double breakup after bitmap');
 assert(game.includes('greenSprite.draw(g,{x:0,y:0,w:33,h:44},false,0)'),'living green zombie matches death art');
