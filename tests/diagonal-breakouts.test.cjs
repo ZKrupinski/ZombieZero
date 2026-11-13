@@ -81,6 +81,11 @@ function check(v,m){if(!v)throw Error(m)}
  check(foes.every(z=>z.x>=20&&z.x+z.w<=W-20),'stay inside road');
 
  // The previous random oscillation is removed from the normal marcher.
+ check(!src.includes('g.fillRect(z.x+3,z.y+z.h+2,31,4)'), 'remove colored foot strips from original objects');
+ check(!src.includes('g.fillRect(z.x+6+i*5,z.y+z.h+3,3,2)'), 'remove original object tier dots');
+ check(!src.includes('g.fillRect(6,44,31,4)'), 'remove fallback sprite foot meters');
+ check(!src.includes('g.fillRect(9+i*5,45,3,2)'), 'remove fallback tier dots');
+ check(src.includes("rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8"), 'meaningful boss overhead HP remains');
  check(!src.includes('Math.sin(clock*1.4+(z.seed||0))*radius'),
    'no perpetual sinusoidal diagonal posing');
  console.log('PASS: full density front-only, sparse trigger, actual fast diagonal, vacancy targeting, timed return, cooldown, fairness and two-roguemax');
