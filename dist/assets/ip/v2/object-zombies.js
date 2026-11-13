@@ -23,11 +23,20 @@ for(const key of Object.keys(names)){
 const keyFor=z=>z.boss?bosses[z.bossForm??0]:normal[z.form??0];
 const available=z=>!!images[keyFor(z)]?.ready;
 const frames={down:[0,8],left:[8,8],right:[16,8],hurt:[24,2],normal:[26,2],critical:[28,2]};
+// All walking clips run around 6.4 fps (previously 9 fps). A stable
+// per-zombie seed offsets the loop by up to eight frames and gently varies
+// its speed by +/-8%; identical species no longer step in exact lockstep.
+// Hit and finisher timing deliberately remain unchanged.
+const walkTiming=z=>{
+ const seed=Number.isFinite(z.seed)?Math.max(0,z.seed):0;
+ return {fps:6.4*(.92+.16*((seed*.61803398875)%1)),
+         phase:((seed*.41421356237)%1)*8};
+};
 const getFrame=(z,seconds)=>{
  if((z.recoil||0)>.02){const elapsed=Math.max(0,.22-(z.recoil||0));return 24+Math.min(1,Math.floor(elapsed/.11))}
  const direction=z.moveDir<-.3?'left':z.moveDir>.3?'right':'down';
- const group=frames[direction],offset=z.seed||0;
- return group[0]+(Math.floor((seconds*9+offset*2.15)%group[1])%group[1]);
+ const group=frames[direction],timing=walkTiming(z);
+ return group[0]+Math.floor((Math.max(0,seconds)*timing.fps+timing.phase)%group[1]);
 };
 function groupFor(frame){return frame<8?'down':frame<16?'left':frame<24?'right':frame<26?'hurt':frame<28?'normal':'critical'}
 function sourceRect(z,frame){
@@ -62,5 +71,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const entry=images[keyFor(z)
  if(blend>0)drawFrame(ctx,entry.image,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming};
 })();
