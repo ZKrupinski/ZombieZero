@@ -15,7 +15,7 @@ The supplied references are in the conversation, not yet Git-tracked in this PR;
 
 ## 2. Canon visual rules
 - Proportions: toy-like, cubic oversized head; very small torso/feet; short arms, expressive hands, large eyes and heavy individual eyebrows.
-- Camera: 3/4 isometric-like view on character renders; top + front + one side read clearly. Do not flatten into front-facing 8-bit pixel icons.
+- IP original renders and collection art: 3/4 isometric-like view is approved as a reference. **The current 450×710 arcade instead requires a front-dominant, slightly elevated 3/4 top view** (not full isometric). See `docs/09-camera-and-shadow-free-sprite-contract.md`.
 - Construction: low-poly planes with crisp flat-material boundaries; gentle 3D contact shading, *no thick black cartoon outline* on gameplay characters.
 - Signature zombie: spring/lime green cube, flat near-black cap/hair that can hinge open to reveal pink brain, white oversized asymmetrical eyes with warm pink pupils, two front teeth, tiny pink nose, brow expression, short outstretched arms.
 - Color language: recognizably separate **character identity** from **HP/rarity/skin tier**. Do not blindly tint the whole head by `TYPES[kind]`: the canonical green zombie must stay green.
