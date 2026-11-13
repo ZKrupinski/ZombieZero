@@ -52,7 +52,7 @@ const hi=boot();
 for(let n=0;n<2;n++){
  const name=names[n],z={boss:true,bossForm:n,form:3,x:150,y:60,w:66,h:88,seed:1.2,flash:0,recoil:0,moveDir:0};
  assert(hi.pack.available(z),name+' available');
- assert.equal(hi.pack.activeImage(z).src,base+name+'_hd.png',name+' chooses HD');
+ assert.equal(hi.pack.activeImage(z).src,'assets/ip/v2/'+name+'_hd.png',name+' chooses HD');
  for(const [frame,group,critical] of [[0,'down',false],[12,'left',false],[22,'right',false],[24,'hurt',false],[26,'normal',false],[28,'critical',true]]){
   hi.calls.length=0;
   z.moveDir=frame>=16&&frame<=23?1:frame>=8&&frame<=15?-1:0;
