@@ -35,8 +35,10 @@ function setup(){
    const isGreen=key==='green_zombie';
    const pack=isGreen?window.ZZGreenWalk:atlas;
    const entry=isGreen?pack:pack.images[key];
-   const img=isGreen?pack?.image:entry?.image;
-   if(!(isGreen?pack?.ready:entry?.ready)||!img)continue;
+   const actor={form:pack.normal?.indexOf(key)??0,bossForm:pack.bosses?.indexOf(key)??0,
+     boss:key==='big_zombie'||key==='trash_can',seed:0,moveDir:0,recoil:0};
+   const img=isGreen?pack?.image:pack.activeImage(actor);
+   if(!(isGreen?pack?.ready:pack.available(actor))||!img)continue;
    let frame=0,rect,source=img;
    if(mode==='normal'||mode==='critical'){
     if(isGreen){
@@ -48,17 +50,15 @@ function setup(){
     }else{
      const first=mode==='normal'?26:28;
      frame=first+Math.floor((seconds%(.52))/(.52/2));
-     rect=pack.sourceRect({boss:key==='big_zombie'||key==='trash_can',
-       bossForm:pack.bosses.indexOf(key),form:pack.normal.indexOf(key)},frame);
+     rect=pack.sourceRect(actor,frame,img);
     }
    }else{
     const vx=mode==='left'?-1:mode==='right'?1:0;
-    const actor={form:pack.normal?.indexOf(key)??0,bossForm:pack.bosses?.indexOf(key)??0,
-      boss:key==='big_zombie'||key==='trash_can',seed:0,moveDir:vx,
-      recoil:mode==='hurt'?.21-(seconds%.22):0};
+    actor.moveDir=vx;
+    actor.recoil=mode==='hurt'?.21-(seconds%.22):0;
     frame=mode==='hurt'?24+Math.floor((seconds%(.22))/.11):
       pack.getFrame(actor,seconds);
-    rect=isGreen?pack.sourceRect(frame):pack.sourceRect(actor,frame);
+    rect=isGreen?pack.sourceRect(frame):pack.sourceRect(actor,frame,img);
    }
    const [sx,sy,sw,sh]=rect;
    const scale=Math.min((c.width-12)/sw,(c.height-12)/sh);
