@@ -167,9 +167,17 @@ function enemyPose(z){const a=enemyAnim(z),t=z.hitHold>0?z.hitAt:clock,b=z.boss,
 const hit=clamp((z.recoil||0)/.22,0,1),dx=z.impactX||0,dy=z.impactY||-1,neighbor=(z.flinch||0)/.3;
 return {lean:clamp(Math.sin(q)*(person===0?.068:.037)*amp+twitch+neighbor*.035*(z.flinchSide||1)+hit*dx*.06,-.13,.13),bob:Math.sin(q*1.8)*.8*amp,head:clamp(Math.sin(q-.65)*.045*amp+(person===4?.04:0)*a.side+twitch*(person===2?1.3:.8)-hit*.09, -.16,.16),left:Math.sin(q*.91)*.24*amp+(person===1?.28:person===3?-.28:0)+hit*.35,right:Math.sin(q*1.13+1.8)*.24*amp+(person===3?-.3:0)-hit*.3,shoulder:Math.sin(q*2.31)*.7+roar*1.5,jaw:clamp((person===1?2:person===5?2.5:.4)+Math.max(0,Math.sin(q*.64))*1.7+(gate>.4&&u<.5?Math.sin(u*42)*.7:0)+roar*4,0,7),lidL:person===4?4:((gate<.65&&u<.23)?7*Math.sin(u/.23*Math.PI):1),lidR:person===1?3:((gate>.65&&u>.3&&u<.53)?8*Math.sin((u-.3)/.23*Math.PI):0),eye:gate>.45&&u>1.3&&u<1.7?a.side*2:0,legL:Math.sin(q+1.1)*1.3,legR:Math.sin(q*.94+3)*1.1,hit,dx,dy,roar};}
 function enemyReaction(z,n,impact){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.22;z.hitHold=z.boss?.065:.04;z.hitAt=clock;if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
-function enemyDeath(z,critical=false){enemyAnim(z);enemyDeaths.push({z:{...z,flash:.1},critical,t:0,split:critical?.58:(z.boss?.32:.12),done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
+function enemyDeath(z,critical=false){
+ enemyAnim(z);
+ const spriteMode=!z.boss&&(z.form??0)===0&&window.ZZGreenDeath?.ready===true;
+ const split=spriteMode?(critical?.580:.520):(critical?.580:(z.boss?.32:.12));
+ enemyDeaths.push({z:{...z,flash:.1},critical,spriteMode,t:0,split,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
 function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
-function updateEnemyVisuals(dt){bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;scatterEnemy(d)}}enemyDeaths=enemyDeaths.filter(d=>!d.done);for(const p of enemyPieces){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=420*dt;p.angle+=p.spin*dt}enemyPieces=enemyPieces.filter(p=>p.t<p.life)}
+function updateEnemyVisuals(dt){bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
+ // Final bitmap already depicts lying down / cute brain debris; do not duplicate
+ // the old procedural blast or turn a normal backward fall into a side explosion.
+ if(!d.spriteMode)scatterEnemy(d)
+}}enemyDeaths=enemyDeaths.filter(d=>!d.done);for(const p of enemyPieces){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=420*dt;p.angle+=p.spin*dt}enemyPieces=enemyPieces.filter(p=>p.t<p.life)}
 // Original ZOMBIE ZERO mascot critical death: hinged black head lid reveals
 // a bright pink brain. Fixed front/elevated-top gameplay camera; NO floor shadow.
 // This only changes the cosmetic death queue (never HP, scoring or colliders).
@@ -208,7 +216,12 @@ function drawCriticalGreenDeath(d){
  }
  g.restore();
 }
-function drawEnemyDeaths(){for(const d of enemyDeaths){if(d.critical)drawCriticalGreenDeath(d);else zombie(d.z,d)}for(const p of enemyPieces){g.save();g.globalAlpha=Math.min(1,(p.life-p.t)/.3);g.translate(p.x,p.y);g.rotate(p.angle);g.scale(p.sc,p.sc);const f=p.z.boss?[3,4,7,1][p.z.bossForm||0]:p.z.form||0,col=TYPES[p.z.kind],pose={jaw:2,lidL:3,lidR:0,eye:0};// When original sprites are active, scatter actual sampled character pieces
+function drawEnemyDeaths(){for(const d of enemyDeaths){
+ if(d.spriteMode&&window.ZZGreenDeath?.ready===true){
+   window.ZZGreenDeath.draw(g,d.z,d.critical,d.t);
+ }else if(d.critical)drawCriticalGreenDeath(d);
+ else zombie(d.z,d)
+}for(const p of enemyPieces){g.save();g.globalAlpha=Math.min(1,(p.life-p.t)/.3);g.translate(p.x,p.y);g.rotate(p.angle);g.scale(p.sc,p.sc);const f=p.z.boss?[3,4,7,1][p.z.bossForm||0]:p.z.form||0,col=TYPES[p.z.kind],pose={jaw:2,lidL:3,lidR:0,eye:0};// When original sprites are active, scatter actual sampled character pieces
 // instead of switching to the older generic procedural humanoid fragments.
 const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null;
 const artIndex=cast?(p.z.boss?cast.bossIndex[p.z.bossForm??0]:cast.enemyIndex[p.z.form??0]):undefined;
@@ -263,6 +276,20 @@ if(atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
  g.restore();
  if(z.boss&&!death){rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38)}
  return;
+}
+// Actual top/front-oriented sprite pilot: same approved artwork as normal and
+// critical death, so the green enemy does not change drawing style on death.
+// No ground shadow, no isometric artwork; physics/HP colliders remain unchanged.
+const greenSprite=window.ZZGreenDeath;
+if(!death&&!z.boss&&(z.form??0)===0&&greenSprite?.ready===true){
+ g.save();
+ if(z.flash>0)g.filter='brightness(1.55)';
+ greenSprite.draw(g,{x:0,y:0,w:33,h:44},false,0);
+ g.restore();
+ g.fillStyle='#131a22ba';g.fillRect(6,44,31,4);
+ for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(9+i*5,45,3,2)}
+ if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
+ g.restore();return;
 }
 // Legacy isometric green-zombie bitmap intentionally disabled in current gameplay.
 // A front-oriented, slightly elevated sprite atlas is required before enabling art.
