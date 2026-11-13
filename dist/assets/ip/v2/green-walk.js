@@ -12,7 +12,11 @@
      if((z.recoil||0)>.015)return 24+Math.min(1,Math.floor(Math.max(0,.22-z.recoil)/.11));
      const vx=z.moveDir||0;
      const [start,count]=vx<-.3?pack.groups.left:vx>.3?pack.groups.right:pack.groups.down;
-     return start+Math.floor((Math.max(0,t)*1000/110+(z.seed||0)*2.15)%count);
+     // Match all object zombies: slower steps, individual phase and +/-8% pace.
+     const seed=Number.isFinite(z.seed)?Math.max(0,z.seed):0;
+     const fps=6.4*(.92+.16*((seed*.61803398875)%1));
+     const phase=((seed*.41421356237)%1)*8;
+     return start+Math.floor((Math.max(0,t)*fps+phase)%count);
    },
    sourceRect(frame){
      const geom=window.ZZSpriteGeometry?.green_zombie||{};
