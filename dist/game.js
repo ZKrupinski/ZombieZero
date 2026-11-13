@@ -13,14 +13,14 @@ const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
 const HEROES=[
-{id:'ace',name:'에이스',role:'안정형',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:500,paddle:68,damage:1,lives:3,duration:1,desc:'넓은 라켓 · 목숨 3',stats:'이동 500 · 공격 1 · 라켓 136'},
-{id:'ruby',name:'루비',role:'기동형',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:660,paddle:51,damage:1,lives:3,duration:1.25,desc:'이동 +32% · 스킬 시간 +25%',stats:'이동 660 · 공격 1 · 라켓 102'},
-{id:'liam',name:'리암',role:'공격형',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:390,paddle:55,damage:2,lives:2,duration:1,desc:'공격력 2배 · 목숨 2',stats:'이동 390 · 공격 2 · 라켓 110'}];
+{id:'ace',name:'생존자 소년',role:'안정형',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:500,paddle:68,damage:1,lives:3,duration:1,desc:'넓은 라켓 · 목숨 3',stats:'이동 500 · 공격 1 · 라켓 136'},
+{id:'ruby',name:'금발 소녀',role:'기동형',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:660,paddle:51,damage:1,lives:3,duration:1.25,desc:'이동 +32% · 스킬 시간 +25%',stats:'이동 660 · 공격 1 · 라켓 102'},
+{id:'liam',name:'빨간 안경 소녀',role:'공격형',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:390,paddle:55,damage:2,lives:2,duration:1,desc:'공격력 2배 · 목숨 2',stats:'이동 390 · 공격 2 · 라켓 110'}];
 let touchUsed=false,lastBuzz=0,bubbles=[],bubbleTimer=.25;
 let selectedHero=0,clearTime=0,clearBurst=0,resumeMode='playing',crowdTimer=3.5,junk=[],cheerTime=0;
 const hero=()=>HEROES[selectedHero];
-const ZOMBIE_FORMS=[{name:'워커',unlock:1},{name:'스크리머',unlock:2},{name:'펑크',unlock:4},{name:'봉합체',unlock:5},{name:'늑대 감염체',unlock:7},{name:'실험체',unlock:8},{name:'방호복',unlock:10},{name:'메카 감염체',unlock:12}];
-const BOSS_FORMS=['봉합 거인','울프 킹','브레인 메카','아머드 스크리머'];
+const ZOMBIE_FORMS=[{name:'그린 좀비',unlock:1},{name:'드럼통 좀비 · 레드',unlock:2},{name:'드럼통 좀비 · 블랙',unlock:4},{name:'브레인 큐브 · 레드',unlock:5},{name:'일회용 포장 박스 좀비',unlock:7},{name:'나무 상자 좀비',unlock:8},{name:'브레인 큐브 · 블랙',unlock:10},{name:'브레인 큐브 · 옐로',unlock:12}];
+const BOSS_FORMS=['빅 좀비','쓰레기통 좀비','빅 좀비','쓰레기통 좀비'];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const has=k=>(active[k]||0)>0;
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
@@ -189,6 +189,26 @@ if(death){const t=death.t/death.split;const squash=t<.45?Math.sin(t/.45*Math.PI/
 // Original art pilot: render the canonical green cube zombie from its transparent
 // PNG bitmap. Keep existing pose transforms / collision coordinates unchanged.
 // Other types and missing/failed bitmap loads fall back to procedural art.
+// Canonical cast atlas: all 10 object zombies use their original identity
+// irrespective of numeric HP tier. The old procedural version remains a fallback.
+const cast=window.ZZObjectCast;
+const atlas=cast&&cast.atlas;
+const artIndex=cast?(z.boss?cast.bossIndex[z.bossForm??0]:cast.enemyIndex[z.form??0]):undefined;
+if(atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
+ g.save();
+ if(z.flash>0)g.filter='brightness(1.7)';
+ g.drawImage(atlas,(artIndex%4)*64,Math.floor(artIndex/4)*64,64,64,-4,-8,41,52);
+ g.restore();
+ if(!z.boss){
+  // Identity colour never changes with hit-points; tiny markers encode tier.
+  g.fillStyle='#131a22bb';g.fillRect(6,44,31,4);
+  for(let i=0;i<z.kind+1;i++){g.fillStyle=TYPES[z.kind].color;g.fillRect(9+i*5,45,3,2)}
+ }
+ if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
+ g.restore();
+ if(z.boss&&!death){rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38)}
+ return;
+}
 const originalGreen=window.ZZOriginalArt&&window.ZZOriginalArt.greenZombie;
 if(!z.boss&&(z.form??0)===0&&originalGreen&&originalGreen.complete&&originalGreen.naturalWidth>0){
  g.save();
@@ -212,9 +232,20 @@ function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.stro
 function draw(){if(!fxRenderer&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();for(const z of foes)zombie(z);drawEnemyDeaths();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,675,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);rect(-19,-19,38,38,'#142b29');g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
 drawKillCombo();for(const b of balls){const r=has('power')?16:8,col=has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
-function heroSprite(x,y,scale=1,win=false){let h=hero();g.save();g.translate(x,y);g.scale(scale,scale);rect(-14,-3,29,22,h.color);rect(-10,4,4,10,'#fcf2cb');rect(5,4,4,10,'#fcf2cb');rect(-19,-27,37,29,h.skin);rect(-20,-31,38,9,h.hair);if(h.id==='ace'){rect(-22,-34,39,10,'#2b7181');rect(-23,-26,47,5,'#214757')}if(h.id==='ruby'){rect(-29,-24,10,13,h.hair);rect(18,-24,10,13,h.hair);rect(-25,-25,6,3,'#d3ef95');rect(20,-25,6,3,'#d3ef95');rect(-20,-29,6,13,h.hair)}if(h.id==='liam'){poly([[-17,-28],[-18,-38],[-9,-32],[-5,-41],[3,-33],[13,-38],[17,-28]],h.hair);rect(-20,-25,39,4,'#fcf0b5')}
+function heroSprite(x,y,scale=1,win=false){let h=hero();
+ const cast=window.ZZObjectCast,atlas=cast&&cast.atlas,ix=cast&&cast.heroIndex[selectedHero];
+ if(atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(ix)){
+  g.save();g.translate(x,y);g.scale(scale,scale);
+  if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
+  g.drawImage(atlas,(ix%4)*64,Math.floor(ix/4)*64,64,64,-28,-44,56,65);
+  g.restore();return;
+ }
+ g.save();g.translate(x,y);g.scale(scale,scale);rect(-14,-3,29,22,h.color);rect(-10,4,4,10,'#fcf2cb');rect(5,4,4,10,'#fcf2cb');rect(-19,-27,37,29,h.skin);rect(-20,-31,38,9,h.hair);if(h.id==='ace'){rect(-22,-34,39,10,'#2b7181');rect(-23,-26,47,5,'#214757')}if(h.id==='ruby'){rect(-29,-24,10,13,h.hair);rect(18,-24,10,13,h.hair);rect(-25,-25,6,3,'#d3ef95');rect(20,-25,6,3,'#d3ef95');rect(-20,-29,6,13,h.hair)}if(h.id==='liam'){poly([[-17,-28],[-18,-38],[-9,-32],[-5,-41],[3,-33],[13,-38],[17,-28]],h.hair);rect(-20,-25,39,4,'#fcf0b5')}
 if(win){rect(-12,-15,9,2,'#533a39');rect(-10,-17,5,2,'#533a39');rect(4,-15,9,2,'#533a39');rect(6,-17,5,2,'#533a39');rect(-8,-7,18,6,'#7d4546');rect(-6,-7,14,3,'#fff5d3');let waveY=-24+Math.sin(clearTime*14)*5;rect(-27,-2,9,7,h.skin);rect(-29,waveY,7,25-waveY,h.color);rect(-30,waveY-5,9,9,h.skin);rect(18,-6,11,7,h.skin);rect(24,-23,6,22,h.skin)}else{rect(-12,-18,9,10,'#fff4dc');rect(4,-18,9,10,'#fff4dc');rect(-7,-15,3,6,'#34404b');rect(5,-15,3,6,'#34404b');rect(-3,-3,8,2,'#945b4d')}g.restore()}
-function portrait(h){let hair=h.id==='ruby'?'<path fill="'+h.hair+'" d="M4 19h10v18H4zm46 0h10v18H50z"/>':h.id==='liam'?'<path fill="'+h.hair+'" d="M15 17V4l10 7 6-10 7 10 11-6v13Z"/>':'<path fill="#276477" d="M13 7h36v12H10v5h46v-5h-7"/>';return '<svg class="hero-portrait '+h.id+'" viewBox="-8 -10 80 80" shape-rendering="crispEdges" aria-hidden="true"><g class="portrait-body"><path fill="'+h.color+'" d="M13 44h38v20H13z"/><path fill="'+h.skin+'" d="M14 16h36v31H14z"/><path fill="'+h.hair+'" d="M14 10h36v11H14z"/>'+hair+'<path fill="#fff5db" d="M20 27h9v10h-9zm17 0h9v10h-9z"/><path class="portrait-eyes" fill="#233344" d="M25 29h4v6h-4zm12 0h4v6h-4z"/><path fill="#944f45" d="M27 41h12v3H27z"/><g class="portrait-left-arm"><path fill="'+h.color+'" d="M7 44h9v14H7z"/><path fill="'+h.skin+'" d="M5 54h11v9H5z"/></g><g class="portrait-right-arm"><path fill="'+h.color+'" d="M48 44h9v14h-9z"/><path fill="'+h.skin+'" d="M48 54h11v9H48z"/></g><g class="portrait-wink"><path fill="'+h.skin+'" d="M35 26h13v12H35z"/><path fill="#233344" d="M37 31h9v3h-9z"/></g><path class="portrait-heart" fill="#ff88af" d="M53 15h5v-3h5v3h4v7l-7 7-7-7z"/></g></svg>'}
+function portrait(h){
+ const cast=window.ZZObjectCast,atlas=cast&&cast.atlas;
+ if(atlas&&cast){const ix=cast.heroIndex[HEROES.indexOf(h)];if(Number.isInteger(ix))return '<span role="img" aria-label="'+h.name+'" class="hero-portrait" style="display:block;width:64px;height:64px;margin:0 auto;background-image:url('+atlas.src+');background-size:256px 256px;background-repeat:no-repeat;background-position:-'+(ix%4*64)+'px -'+(Math.floor(ix/4)*64)+'px"></span>'}
+ let hair=h.id==='ruby'?'<path fill="'+h.hair+'" d="M4 19h10v18H4zm46 0h10v18H50z"/>':h.id==='liam'?'<path fill="'+h.hair+'" d="M15 17V4l10 7 6-10 7 10 11-6v13Z"/>':'<path fill="#276477" d="M13 7h36v12H10v5h46v-5h-7"/>';return '<svg class="hero-portrait '+h.id+'" viewBox="-8 -10 80 80" shape-rendering="crispEdges" aria-hidden="true"><g class="portrait-body"><path fill="'+h.color+'" d="M13 44h38v20H13z"/><path fill="'+h.skin+'" d="M14 16h36v31H14z"/><path fill="'+h.hair+'" d="M14 10h36v11H14z"/>'+hair+'<path fill="#fff5db" d="M20 27h9v10h-9zm17 0h9v10h-9z"/><path class="portrait-eyes" fill="#233344" d="M25 29h4v6h-4zm12 0h4v6h-4z"/><path fill="#944f45" d="M27 41h12v3H27z"/><g class="portrait-left-arm"><path fill="'+h.color+'" d="M7 44h9v14H7z"/><path fill="'+h.skin+'" d="M5 54h11v9H5z"/></g><g class="portrait-right-arm"><path fill="'+h.color+'" d="M48 44h9v14h-9z"/><path fill="'+h.skin+'" d="M48 54h11v9H48z"/></g><g class="portrait-wink"><path fill="'+h.skin+'" d="M35 26h13v12H35z"/><path fill="#233344" d="M37 31h9v3h-9z"/></g><path class="portrait-heart" fill="#ff88af" d="M53 15h5v-3h5v3h4v7l-7 7-7-7z"/></g></svg>'}
 function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;$('start').innerHTML=hero().name+'로 시작 <span>↗</span>'}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
