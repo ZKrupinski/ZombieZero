@@ -100,7 +100,18 @@ function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeo
 function rack(){foes=[];stageDelay=0;const rows=Math.min(5,3+Math.floor(wave/2)),bossStage=wave%3===0,available=ZOMBIE_FORMS.map((v,i)=>({v,i})).filter(x=>x.v.unlock<=wave),latest=available[available.length-1].i;for(let r=0;r<rows;r++)for(let col=0;col<7;col++){if(bossStage&&r<2&&col>=2&&col<=4)continue;let maxKind=Math.min(4,1+Math.floor(wave/2)),kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-wave*.12))*(maxKind+1)),hp=TYPES[kind].hp,form=col===0&&r===0?latest:available[Math.floor(Math.random()*available.length)].i;foes.push({x:40+col*55,y:64+r*65,w:33,h:44,hp,max:hp,kind,form,flash:0,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0})}if(bossStage){let hp=Math.round(24+Math.min(wave,10)*4+Math.max(0,wave-10)*1.2),bossForm=(wave/3-1)%BOSS_FORMS.length;foes.push({x:192,y:68,w:66,h:88,hp,max:hp,kind:4,form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm])}$('encounter').textContent=(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)+' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:ZOMBIE_FORMS[latest].name)+' / 진군 속도 '+marchBase().toFixed(1);}
 function marchBase(){const stage=Math.min(50,wave),n=Math.min(9,Math.max(0,stage-1)),late=Math.max(0,stage-10);return 2.7+.22*n+.006*n*n+.07*late+.0008*late*late+(runMode==='endless'?Math.min(9,Math.max(0,wave-50)*.035):0)}
 function enemySpeed(z){return marchBase()*(z.boss?.62:[1.1,1.04,.97,.89,.82][z.kind])*(has('slow')?.4:1)}
-function march(dt){const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];for(const z of sorted){let next=z.y+enemySpeed(z)*dt;for(const front of done){if(z.x-8<front.x+front.w+8&&z.x+z.w+8>front.x-8)next=Math.min(next,front.y-z.h-(front.boss?28:19))}z.y=Math.max(z.y,next);done.push(z)}}
+function march(dt){const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];for(const z of sorted){
+ // Gentle horizontal lane drift makes the authored left/right diagonal walks
+ // correspond to actual movement. Bound +/-6px; collision positions move too.
+ // Does not alter enemy vertical speed, form HP, spacing or boss routes.
+ if(!z.boss&&(z.form??0)>0&&wave>=3){
+  if(z.laneX===undefined)z.laneX=z.x;
+  const radius=2+((z.form??0)%3)*2;
+  const nx=clamp(z.laneX+Math.sin(clock*1.4+(z.seed||0))*radius,8,W-z.w-8);
+  z.moveDir=(nx-z.x)/Math.max(.001,dt);
+  z.x=nx;
+ }else z.moveDir=0;
+ let next=z.y+enemySpeed(z)*dt;for(const front of done){if(z.x-8<front.x+front.w+8&&z.x+z.w+8>front.x-8)next=Math.min(next,front.y-z.h-(front.boss?28:19))}z.y=Math.max(z.y,next);done.push(z)}}
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
 function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+ZOMBIE_FORMS.filter(v=>v.unlock<=wave).at(-1).name)}
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
