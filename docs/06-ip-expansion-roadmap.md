@@ -1,6 +1,9 @@
 # ZOMBIE ZERO · IP Expansion Plan (initial)
 Version: 2026-11-13. Strategic proposal; no new products are claimed shipped.
 
+## Official brand-deck alignment
+The 2026 deck establishes **10 named object zombies plus 3 survivors**, the discarded-object environmental narrative, and **mobile game + keyring + ZOMBIE PIZZA** as product initiatives, with F&B/retail/campaign licensing proposals. See `docs/08-brand-2026-alignment.md`. The expansions below are strategic options, not replacements for or confirmations of those initiatives.
+
 ## Positioning
 **Franchise name:** ZOMBIE ZERO
 **Core appeal:** comically expressive square-headed undead and human survivors, colourful industrial monsters, a recognisable hinged-head / pink-brain icon, and energetic arcade encounters.
