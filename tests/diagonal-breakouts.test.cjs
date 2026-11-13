@@ -18,7 +18,7 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console};
 vm.createContext(sandbox);
 const src=fs.readFileSync('dist/game.js','utf8');
-vm.runInContext(src+`
+sandbox.src=src;vm.runInContext(src+`
 function check(v,m){if(!v)throw Error(m)}
 {
  // Deterministic eligibility/choice. A normal wave has no diagonal anim.
@@ -85,4 +85,4 @@ function check(v,m){if(!v)throw Error(m)}
    'no perpetual sinusoidal diagonal posing');
  console.log('PASS: full density front-only, sparse trigger, actual fast diagonal, vacancy targeting, timed return, cooldown, fairness and two-roguemax');
 }
-`,{...sandbox,src});
+`,sandbox);
