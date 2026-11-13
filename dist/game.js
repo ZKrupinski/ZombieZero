@@ -114,7 +114,9 @@ const HORDE_COLUMNS=9,HORDE_FIRST_X=23,HORDE_LAST_X=W-23-33,HORDE_ROW_STEP=58;
 const hordeColumnX=col=>HORDE_FIRST_X+col*(HORDE_LAST_X-HORDE_FIRST_X)/(HORDE_COLUMNS-1);
 function rack(){
  foes=[];stageDelay=0;
- const rows=Math.min(5,3+Math.floor(wave/2)),bossStage=wave%3===0,
+ // Keep late-stage enemy counts near the original (9×4≈7×5) rather than
+ // raising endgame difficulty by 29% just to fill the road visually.
+ const rows=Math.min(4,3+Math.floor(wave/4)),bossStage=wave%3===0,
  available=ZOMBIE_FORMS.map((v,i)=>({v,i})).filter(x=>x.v.unlock<=wave),
  latest=available[available.length-1].i;
  for(let r=0;r<rows;r++)for(let col=0;col<HORDE_COLUMNS;col++){
