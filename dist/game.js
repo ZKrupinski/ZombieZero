@@ -88,6 +88,15 @@ function endlessUI(){const el=$('endless');el.hidden=!endlessUnlocked||!['menu',
 function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=1.4;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
  for(const z of sorted){const old=z.y;let y=Math.max(36,z.y-180);for(const above of placed)if(z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?28:19));z.y=Math.min(old,y);z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
+ // Crowded late-stage boss formations may hit the upper packing boundary and
+ // leave a front enemy too close after the first push. Translate the entire
+ // already-spaced formation to guarantee a visible 125px recovery window,
+ // preserving collision order and every zombie's HP.
+ if(foes.length){
+  const furthest=Math.max(...foes.map(z=>z.y+z.h));
+  const extra=Math.max(0,furthest-(DEFENSE_Y-125));
+  if(extra>0)for(const z of foes)z.y-=extra;
+ }
  effect(225,DEFENSE_Y,'#b3fff0',140,'LAST STAND!');sfx('bosskill');haptic([20,30,20]);toast('최후의 저항! · 좀비 전원 밀쳐내기 · 이번 판 1회');return true}
 function finishCampaign(){endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 무한 모드가 해금되었습니다.','일반 모드 다시 시작','VICTORY');endlessUI();sfx('wave')}
 function drawDanger(){if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
