@@ -5,38 +5,24 @@ let installPrompt=null;
 const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
 function inform(title,message){if(mode==='playing'||mode==='clearing')pause();button('app-title').textContent=title;button('app-message').textContent=message;button('app-dialog').showModal()}
 const options=button('options-dialog'),optionsActions=button('options-actions');
-const originalLocations=new Map();
-for(const id of ['sound','bgm','fx','fullscreen','install','share','help']){
- const item=button(id);if(item?.parentNode)originalLocations.set(item,{parent:item.parentNode,next:item.nextSibling});
-}
-function moveSettings(intoOptions){
- for(const [element,original] of originalLocations){
-  if(intoOptions)optionsActions.appendChild(element);
-  else if(original.next&&original.next.parentNode===original.parent)original.parent.insertBefore(element,original.next);
-  else original.parent.appendChild(element);
- }
+// No bottom app bar or independent sound/FX row during play.
+// Retain their real controls (and keyboard handlers) inside the options dialog.
+for(const id of ['sound','bgm','fx','fullscreen','install','share','help','share-url']){
+ const item=button(id);
+ if(item)optionsActions.appendChild(item);
 }
 function fit(){
- const compact=window.innerWidth<=760||window.matchMedia('(pointer: coarse)').matches||!!document.fullscreenElement||standalone();
- const height=window.visualViewport?.height||window.innerHeight,width=window.visualViewport?.width||window.innerWidth;
- const portrait=compact&&height>=width*1.3;
- root.classList.toggle('compact-app',compact);
+ const width=Math.max(1,window.visualViewport?.width||window.innerWidth);
+ const height=Math.max(1,window.visualViewport?.height||window.innerHeight);
+ // The former 1.3 height/width threshold excluded many square foldables.
+ // Any tall-or-square screen now fills the entire available width AND height.
+ const portrait=height>=width;
+ root.classList.toggle('compact-app',true);
  root.classList.toggle('portrait-play',portrait);
+ root.classList.toggle('landscape-game',!portrait);
  root.style.setProperty('--app-height',height+'px');
- moveSettings(portrait);
- if(portrait){
-  root.style.setProperty('--board-width',width+'px');
-  root.style.setProperty('--board-height',height+'px');
-  resizeCanvas();
-  return;
- }
- if(!compact){resizeCanvas();return}
- const style=getComputedStyle(main),padding=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);
- const chrome=[...machine.children].filter(e=>e!==stage).reduce((sum,e)=>sum+e.getBoundingClientRect().height,0);
- const room=Math.max(100,height-padding-bar.getBoundingClientRect().height-chrome-4);
- const boardWidth=Math.min(450,width-12,room*450/710);
- root.style.setProperty('--board-width',boardWidth+'px');
- root.style.setProperty('--board-height',boardWidth*710/450+'px');
+ root.style.setProperty('--board-width',width+'px');
+ root.style.setProperty('--board-height',height+'px');
  resizeCanvas();
 }
 function updateLabels(){button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':'⛶ 전체화면';button('install').textContent=standalone()?'✓ 설치 실행 중':'↓ 앱 설치'}
