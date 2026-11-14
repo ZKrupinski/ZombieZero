@@ -42,7 +42,7 @@ foes=[foe(100),foe(146),foe(193)];items=[];mode='playing';
 const a=foes[0],b=foes[1],thirdZombie=foes[2],old=a.x;
 damage(a,1,false,{x:300,y:0});
 check(a.x>old+30&&b.x>146&&thirdZombie.x>193,'actual 3-zombie force chain still resolves safely');
-check(near(knockVisualPosition(a).x,old),'first rendered frame starts at old position, not final position');
+check(near(knockVisualPosition(a).x,old),'first rendered frame starts at old position, not final position '+JSON.stringify({old,x:a.x,from:a.knockFromX,time:a.knockTime,visual:knockVisualPosition(a).x}));
 updateEnemyVisuals(.08);
 const middle=knockVisualPosition(a).x;
 check(middle>old+2&&middle<a.x-0.1,'after five frames zombie has actually moved, but not teleported');
