@@ -5,7 +5,7 @@
  'use strict';
  const image=new Image(); image.decoding='async';
  const pack={
-   image,ready:false,cell:48,
+   image,ready:false,cell:48,variants:[image],
    normal:{row:0,count:8,frameMs:65,duration:.520},
    critical:{row:1,count:10,frameMs:58,duration:.580},
    draw(ctx,z,isCritical,t,scale=1){
@@ -15,12 +15,15 @@
      // The art pivot is approximately the middle of the feet. At render scale
      // 1, the visible width is ~34px and height ~48px on the 450x710 board.
      const x=z.x+z.w/2-32*scale,y=z.y+z.h-60*scale;
-     ctx.drawImage(image,f*48,clip.row*48,48,48,x,y,64*scale,64*scale);
+     const palette=window.ZZGreenPalette;
+     const selected=palette?.paletteFor(z)??0;
+     const bitmap=pack.variants[selected]||image;
+     ctx.drawImage(bitmap,f*48,clip.row*48,48,48,x,y,64*scale,64*scale);
      return true;
    }
  };
  window.ZZGreenDeath=pack;
- image.onload=()=>{pack.ready=image.naturalWidth===480&&image.naturalHeight===96};
+ image.onload=()=>{pack.ready=image.naturalWidth===480&&image.naturalHeight===96;if(pack.ready)pack.variants=window.ZZGreenPalette?.variants(image)||[image]};
  image.onerror=()=>{pack.ready=false};
  image.src='assets/ip/green-death.png';
 
