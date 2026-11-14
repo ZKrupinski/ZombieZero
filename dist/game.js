@@ -514,14 +514,15 @@ function applyKnockback(z,impact,n=1){
    // Repeated hits restart from the current rendered position, not a
    // previous distant collider destination.
    const before=knockVisualPosition(actor);
+   const beforeX=before.x,beforeY=before.y; // snapshot values before actor mutates
    actor.x=pos.x;actor.y=pos.y;
-   actor.knockFromX=before.x;actor.knockFromY=before.y;
+   actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockTime=KNOCK_TRAIL_LIFE;actor.knockChain=actor!==z;
    if(actor!==z){
     actor.flinch=Math.max(actor.flinch||0,.32);
     actor.recoil=Math.max(actor.recoil||0,.2);
-    hitFlashes.push({x:before.x+actor.w/2,y:before.y+actor.h/2,t:0,life:.16,critical:false});
-    burst(before.x+actor.w/2,before.y+actor.h/2,'#d2ffdc',4);
+    hitFlashes.push({x:beforeX+actor.w/2,y:beforeY+actor.h/2,t:0,life:.16,critical:false});
+    burst(beforeX+actor.w/2,beforeY+actor.h/2,'#d2ffdc',4);
    }
    // Active diagonal animation must not snap the pushed zombie back
    // onto its old target column or teleport through an ally.
