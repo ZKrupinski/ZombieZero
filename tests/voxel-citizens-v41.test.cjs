@@ -53,8 +53,8 @@ const crowd=images.filter(a=>a[0]===window.ZZCitizenCast.cheer);
 check(crowd.length===18,'all citizens use transparent PNG animation frames');
 check(crowd[0][1]===0&&crowd[1][1]===128&&crowd[7][1]===896,
  'column index maps to the correct distinct citizen');
-check(crowd.every(a=>a[3]===128&&a[4]===128&&a[7]===35&&a[8]===46),
- 'source cells independent and the game renders 35x46 citizens');
+check(crowd.every(a=>a[3]===128&&a[4]===128&&a[7]===23&&a[8]===34),
+ 'source cells independent and each citizen fits its 23.4px spacing and 34px collider');
 images.length=0;cheerTime=1.1;clock=.3;drawCrowd();
 const cheering=images.filter(a=>a[0]===window.ZZCitizenCast.cheer);
 check(cheering.length===18&&cheering.some(a=>a[2]>0),
