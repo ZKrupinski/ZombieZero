@@ -57,23 +57,22 @@ check(Math.abs(items[0].x-items[1].x)>=LOOT_SPACING||
 // Contact chain: a hit on one zombie pushes the next two in order, leaving
 // collision boxes completely separate.
 mode='playing';items=[];hitFlashes=[];clock=3;
-let a=foe(100,140,9),b=foe(146,140,9),c=foe(193,140,9),d=foe(350,220,9);
-foes=[a,b,c,d];
-const oldA=a.x,oldB=b.x,oldC=c.x;
+let a=foe(100,140,9),b=foe(146,140,9),third=foe(193,140,9),d=foe(350,220,9);
+foes=[a,b,third,d];
+const oldA=a.x,oldB=b.x,oldC=third.x;
 damage(a,1,false,{x:320,y:0});
 check(a.x>=oldA+24,'the struck zombie visibly slides more than before');
-check(b.x>oldB&&c.x>oldC,'collision transfer ripples through two bystanders');
-check(a.knockTime>0&&b.knockTime>0&&c.knockTime>0,
+check(b.x>oldB&&third.x>oldC,'collision transfer ripples through two bystanders');
+check(a.knockTime>0&&b.knockTime>0&&third.knockTime>0,
  'each displaced zombie gets a temporary motion echo');
-check(b.flinch>0&&c.flinch>0,'pushed bystanders react despite taking no damage');
-check(b.hp===9&&c.hp===9,'collision propagation is force only, not extra damage');
+check(b.flinch>0&&third.flinch>0,'pushed bystanders react despite taking no damage');
+check(b.hp===9&&third.hp===9,'collision propagation is force only, not extra damage');
 check(!zombieBoxesOverlap(a,{x:a.x,y:a.y},b,{x:b.x,y:b.y},0),
  'contact chain cannot overlap neighbor');
-check(!zombieBoxesOverlap(b,{x:b.x,y:b.y},c,{x:c.x,y:c.y},0),
+check(!zombieBoxesOverlap(b,{x:b.x,y:b.y},third,{x:third.x,y:third.y},0),
  'contact chain cannot overlap next neighbor');
-const clone=[a,b,c,d].map(z=>({x:z.x,y:z.y}));
 updateEnemyVisuals(.23);
-check([a,b,c].every(z=>!z.knockTime),'afterimage ends within .20 seconds');
+check([a,b,third].every(z=>!z.knockTime),'afterimage ends within .20 seconds');
 // Bounding-box limits block a shove against the roadway wall.
 a=foe(20,130);foes=[a];
 check(!applyKnockback(a,{x:-300,y:0},1),'wall safely blocks outward knockback');
@@ -84,7 +83,7 @@ a=foe(100,140);foes=[a,boss];
 check(!applyKnockback(a,{x:300,y:0},1),'nearby boss blocks chain or shortens it');
 check(a.x+a.w<=boss.x,'no collision through boss');
 // Timed marching should not re-overlap bodies after a successful chain.
-a=foe(100,140);b=foe(146,140);c=foe(193,140);foes=[a,b,c];
+a=foe(100,140);b=foe(146,140);third=foe(193,140);foes=[a,b,third];
 damage(a,1,false,{x:360,y:0});
 for(let t=0;t<70;t++){clock+=.016;march(.016)}
 for(let i=0;i<foes.length;i++)for(let j=i+1;j<foes.length;j++)
