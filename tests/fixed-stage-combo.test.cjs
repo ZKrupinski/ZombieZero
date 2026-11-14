@@ -47,7 +47,7 @@ assert(css.includes('aspect-ratio:450/710!important'),'game frame cannot be dist
 assert(app.includes('const scale=Math.min(width/450,height/710)'),
  'on-screen frame is contained by a single uniform scale');
 assert(source.includes('const targetH=710;'),'playable height never depends on device aspect');
-assert(source.includes('const minBarY=killCombo>=2&&comboDisplayTime>0?122:90'),'boss health label is displaced minimally only while the small combo is visible');
+assert(!source.includes('bossHpOffset('),'boss health bar UI no longer renders at any combo stage');
 assert(css.includes('width:calc(183px * var(--ui-scale,1))!important'),'voxel banner is reduced to 183px logical width');
 assert(css.includes('height:calc(57px * var(--ui-scale,1))!important'),'voxel banner height is reduced to 57px logical units');
 assert(css.includes('#17283b44,#10182e28'),'overlay panel is translucent rather than a dark opaque rectangle');
