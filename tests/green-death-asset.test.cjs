@@ -19,7 +19,7 @@ while(p+12<=png.length){
 }
 assert(done&&alpha&&p===png.length,'valid shadow-free transparent PNG');
 const html=read('dist/index.html'),sw=read('dist/sw.js'),loader=read('dist/assets/ip/green-death-loader.js'),game=read('dist/game.js');
-assert(html.includes('green-death-loader.js')&&html.indexOf('green-death-loader.js')<html.indexOf('src="game.js?v=28-hero-live"'),'sprite loader precedes game');
+assert(html.includes('green-death-loader.js')&&html.indexOf('green-death-loader.js')<html.indexOf('src="game.js?v=29-hero-70"'),'sprite loader precedes game');
 assert(html.includes('death-demo-dialog')&&html.includes('death-demo-canvas'),'in-game review control is wired');
 assert(sw.includes('green-death.png')&&sw.includes('green-death-loader.js'),'PNG is PWA precached');
 assert(loader.includes("image.src='assets/ip/green-death.png'"),'loads actual PNG');
