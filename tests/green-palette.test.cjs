@@ -54,6 +54,7 @@ class ImageMock{
 }
 const vmEnv={window:env.window,Image:ImageMock,console,
  document:{createElement:()=>new Canvas(),readyState:'loading',addEventListener:()=>{},getElementById:()=>null}};
+env.document=vmEnv.document; // Shared palette module runs in the same browser document realm.
 vm.createContext(vmEnv);
 vm.runInContext(walkSrc,vmEnv);
 vm.runInContext(deathSrc,vmEnv);
