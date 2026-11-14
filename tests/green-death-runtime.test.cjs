@@ -23,9 +23,9 @@ function check(cond,message){if(!cond)throw Error(message)}
  updateEnemyVisuals(.23);check(!enemyDeaths.length&&!enemyPieces.length,'normal PNG complete, no duplicate shattered body');
  start();serve();wave=1;rack();
  let critical=foes.find(z=>!z.boss);
- critical.form=0;critical.hp=2;critical.max=2;
- damage(critical,2,false);
- check(enemyDeaths.length===1&&enemyDeaths[0].critical&&enemyDeaths[0].spriteMode,'strong lethal attack triggers bitmap critical');
+ critical.form=0;critical.hp=3;critical.max=3;
+ damage(critical,1,false,null,true);
+ check(enemyDeaths.length===1&&enemyDeaths[0].critical&&enemyDeaths[0].spriteMode,'full-health one-strike critical triggers bitmap sequence');
  check(enemyDeaths[0].split===.580,'critical 10-frame duration');
  drawEnemyDeaths();
  updateEnemyVisuals(.59);

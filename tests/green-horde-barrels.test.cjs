@@ -76,7 +76,7 @@ check(barrelBlasts.length===1&&fx.length>0&&particles.length>0,'vivid explosion 
 check(barrelBlasts[0].life>0&&barrelBlasts[0].t===0,'blast animation starts at death');
 const blast=barrelBlasts[0];
 updateEnemyVisuals(.25);check(blast.t>.2,'live explosion animated');
-updateEnemyVisuals(.3);check(!barrelBlasts.includes(blast),'explosion visuals are temporary');
+updateEnemyVisuals(.4);check(!barrelBlasts.includes(blast),'explosion visuals are temporary');
 balls=[newBall(225,430,0,-320,false)];
 near.y=140;near.burnTick=0;clock=breakoutNextCheck-1;
 update(.78);check(near.hp<5,'existing flame DOT continues to damage nearby zombie');

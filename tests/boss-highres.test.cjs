@@ -27,7 +27,7 @@ assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')>0);
 assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')<html.indexOf('src="assets/ip/v2/object-zombies.js"'));
 for(const name of names)assert(sw.includes('./assets/ip/v2/'+name+'_hd.png'),name+' precached offline');
 assert(sw.includes('./assets/ip/v2/boss-geometry.js'),'HD geometry offline');
-assert(sw.includes('shell-v17-green-horde-fire-barrel'),'fresh cache');
+assert(sw.includes('shell-v18-dynamic-impact'),'fresh cache');
 const src=[read(base+'sprite-geometry.js'),read(base+'boss-geometry.js'),read(base+'object-zombies.js')].map(x=>x.toString());
 function boot(failHD=false){
  const calls=[];

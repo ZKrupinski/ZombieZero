@@ -10,12 +10,12 @@ vm.runInContext(fs.readFileSync('dist/game.js','utf8')+`
 function check(v,m){if(!v)throw Error(m)}
 { start();serve();wave=1;rack();
 const target=foes[0],oldX=target.x,oldY=target.y,oldW=target.w,oldH=target.h;
-target.form=0;target.hp=2;target.max=2;
+target.form=0;target.hp=3;target.max=3;
 const oldScore=score;
-damage(target,2,false,{x:0,y:1});
+damage(target,1,false,{x:0,y:1},true);
 check(!foes.includes(target),'fatal critical removes enemy from physics immediately');
 check(score>oldScore,'critical kill still scores once');
-check(enemyDeaths.length===1&&enemyDeaths[0].critical,'strong lethal hit on green cube triggers critical sequence');
+check(enemyDeaths.length===1&&enemyDeaths[0].critical,'explicit full-health critical strike triggers green sequence');
 check(enemyDeaths[0].split>.5,'critical uses a readable open-lid and brain interval');
 check(target.x===oldX&&target.y===oldY&&target.w===oldW&&target.h===oldH,'critical animation does not alter physics');
 drawEnemyDeaths();
