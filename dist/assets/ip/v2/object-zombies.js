@@ -75,7 +75,8 @@ function drawFrame(ctx,img,z,frame,opacity=1){
  // Pack the 9-column horde edge-to-edge while limiting wider boxes to 56px.
  // Both axes use the same scale so cube shape/face proportions are intact.
  const desiredHeight=z.boss?(id==='big_zombie'?104:98):Math.min(66,61*walk[3]/walk[2]);
- const scale=z.boss?desiredHeight/walk[3]:Math.min(desiredHeight/walk[3],56/walk[2]);
+ const scale=z.boss?desiredHeight/walk[3]:
+   Math.min(desiredHeight/walk[3],55/walk[3],43/walk[2]);
  const x=z.x+z.w/2-(rect[2]*scale)/2;
  const y=z.y+z.h+2-rect[3]*scale;
  ctx.save();ctx.globalAlpha*=opacity;
