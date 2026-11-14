@@ -64,8 +64,8 @@ check(STAGE_ART_COUNT===8,'exactly 8 backgrounds');
 check(STAGE_PLAYFIELD_VEIL.length===8,'independent playfield contrast for all 8 moods');
 for(let stage=1;stage<=24;stage++){
  wave=stage;setStageBackground(true);draws.length=0;background();
- const main=draws.filter(d=>images.includes(d.args[0]));
- check(main.length===1&&main[0].args[0]===images[(stage-1)%8],
+ const main=draws.filter(d=>window.ZZStageArt.images.includes(d.args[0]));
+ check(main.length===1&&main[0].args[0]===window.ZZStageArt.images[(stage-1)%8],
   'stage '+stage+' maps to the correct bitmap and cycles every 8 stages');
  check(main[0].args.slice(1).join(',')==='0,0,450,710',
   'native source fits fixed 450x710 board');
@@ -73,20 +73,20 @@ for(let stage=1;stage<=24;stage++){
 wave=1;setStageBackground(true);
 wave=2;setStageBackground();check(previousArtIndex===0&&stageArtIndex===1,'stage transition remembers previous scene');
 updateStageBackground(.45);draws.length=0;background();
-const transition=draws.filter(d=>images.includes(d.args[0]));
-check(transition.length===2&&transition[0].args[0]===images[0]&&transition[1].args[0]===images[1],
+const transition=draws.filter(d=>window.ZZStageArt.images.includes(d.args[0]));
+check(transition.length===2&&transition[0].args[0]===window.ZZStageArt.images[0]&&transition[1].args[0]===window.ZZStageArt.images[1],
  'two stage environments crossfade without blank flash');
 check(Math.abs(transition[1].alpha-.5)<.001,'smooth half opacity at mid-transition');
-art.ready[2]=false;
+window.ZZStageArt.ready[2]=false;
 wave=3;setStageBackground();const old=stageArtBlend;
 updateStageBackground(.5);draws.length=0;background();
-const missing=draws.filter(d=>images.includes(d.args[0]));
-check(stageArtBlend===old&&missing.length===1&&missing[0].args[0]===images[1],
+const missing=draws.filter(d=>window.ZZStageArt.images.includes(d.args[0]));
+check(stageArtBlend===old&&missing.length===1&&missing[0].args[0]===window.ZZStageArt.images[1],
  'keep prior scene instead of blank frame when new scene is not loaded yet');
-art.ready[2]=true;updateStageBackground(.9);
+window.ZZStageArt.ready[2]=true;updateStageBackground(.9);
 check(previousArtIndex===-1&&stageArtBlend===1,'transition resolves when new image is ready');
-art.ready.fill(false);draws.length=0;background();
-check(draws.filter(d=>images.includes(d.args[0])).length===0,
+window.ZZStageArt.ready.fill(false);draws.length=0;background();
+check(draws.filter(d=>window.ZZStageArt.images.includes(d.args[0])).length===0,
  'missing scenery renders the original procedural road rather than crashing');
 check(DEFENSE_Y===565&&PY===584&&SHIELD_LINE_Y===H-58,
  'background transition never changes the defense, player or shield collision heights');
