@@ -44,20 +44,20 @@ check(a.x<170&&approx(a.y,secondY),'down-left cannot push toward the defense lin
 // Up and horizontal are NOT weakened: their original near-40px strength stays.
 a=enemy(120);foes=[a];check(applyKnockback(a,{x:0,y:-400},1),'upward knockback works');
 check(a.y<=161,'vertical upward force retains its previous reach');
-let b=enemy(146),c=enemy(193);a=enemy(100);foes=[a,b,c];
+let chainSecond=enemy(146),chainThird=enemy(193);a=enemy(100);foes=[a,chainSecond,chainThird];
 check(applyKnockback(a,{x:300,y:0},1),'horizontal multi-enemy chain remains active');
-check(a.x>130&&b.x>146&&c.x>193,'same horizontal force propagates to chain');
-check([a,b,c].every(z=>approx(z.y,200)),'horizontal chain does not alter any Y');
+check(a.x>130&&chainSecond.x>146&&chainThird.x>193,'same horizontal force propagates to chain');
+check([a,chainSecond,chainThird].every(z=>approx(z.y,200)),'horizontal chain does not alter any Y');
 // An overlap repair must not shove an enemy down by a full knockback amount.
-a=enemy(160,225,1);b=enemy(160,257,2);foes=[a,b];
-const beforeA=a.y,beforeB=b.y;clock+=.1;
+a=enemy(160,225,1);chainSecond=enemy(160,257,2);foes=[a,chainSecond];
+const beforeA=a.y,beforeB=chainSecond.y;clock+=.1;
 march(.016);
-check(a.y<=beforeA+1&&b.y<=beforeB+1,
+check(a.y<=beforeA+1&&chainSecond.y<=beforeB+1,
  'overlap repair cannot produce sudden Y+ snap; natural march <=1 px remains');
-check(!zombieBoxesOverlap(a,a,b,b,0),'overlap solver still separates collisions');
+check(!zombieBoxesOverlap(a,a,chainSecond,chainSecond,0),'overlap solver still separates collisions');
 // Integration: an actual downward-moving ball hit must reflect but NOT
 // move the impacted enemy 40-50px toward the defensive line.
-a=enemy(120,225);b=enemy(340,120);foes=[a,b];
+a=enemy(120,225);chainSecond=enemy(340,120);foes=[a,chainSecond];
 balls=[newBall(136,209,0,430,false)];mode='playing';
 const realY=a.y,oldHP=a.hp;
 update(.033);
