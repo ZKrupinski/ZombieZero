@@ -981,7 +981,7 @@ function drawItemArtwork(k,x,y,size=24){
  const atlas=window.ZZItemIcons,ix=ITEM_ICON_KEYS.indexOf(k);
  if(ix>=0&&atlas?.ready&&atlas.image){
   g.drawImage(atlas.image,ix*128,0,128,128,x-size/2,y-size/2,size,size);
- }else drawIcon(k,x,y); // resilient while an image loads or on very old browsers
+ }else{g.save();g.translate(x,y);g.scale(size/24,size/24);drawIcon(k,0,0);g.restore()} // same-sized fallback
 }
 // Small power-up symbols, not a toolbar: no timer text, solid panels or
 // changing screen anchors. The faint ring alone indicates duration remaining.
