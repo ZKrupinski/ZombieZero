@@ -415,22 +415,83 @@ function explodeRedBarrel(z){
 // Power/rocket overkill and burning kills are not critical finishers.
 const CRITICAL_GREEN_CHANCE=.11,CRITICAL_SPECIAL_CHANCE=.065;
 function criticalEligible(z){return !z.boss&&Number.isInteger(z.form)&&z.hp>=z.max&&z.max>=3}
+// Push a small chain of zombies when a hit has room to travel. Compute all
+// destinations first, so no zombie moves if a wall, boss or crowded rank blocks
+// the chain. This keeps collision rectangles separate and prevents phantom hits.
+const KNOCK_CHAIN_LIMIT=5,KNOCK_TRAIL_LIFE=.20;
+function zombieBoxesOverlap(a,pa,b,pb,gap=.5){
+ return pa.x<pb.x+b.w+gap&&pa.x+a.w+gap>pb.x&&
+        pa.y<pb.y+b.h+gap&&pa.y+a.h+gap>pb.y;
+}
+function insideZombieRoad(z,p){
+ return p.x>=20&&p.x+z.w<=430&&p.y>=18&&p.y+z.h<=DEFENSE_Y-16;
+}
 function canKnockback(z,x,y){
- if(x<20||x+z.w>430||y<18||y+z.h>DEFENSE_Y-16)return false;
- return !foes.some(other=>other!==z&&
-  x<other.x+other.w+1&&x+z.w>other.x-1&&
-  y<other.y+other.h+1&&y+z.h>other.y-1);
+ const pos={x,y};
+ return insideZombieRoad(z,pos)&&!foes.some(other=>other!==z&&
+   zombieBoxesOverlap(z,pos,other,{x:other.x,y:other.y},1));
+}
+function planKnockPush(z,dx,dy,plans,depth=0){
+ if(z.boss||depth>KNOCK_CHAIN_LIMIT||plans.has(z))return false;
+ const pos={x:z.x+dx,y:z.y+dy};
+ if(!insideZombieRoad(z,pos))return false;
+ plans.set(z,pos);
+ const pushX=Math.abs(dx)>=Math.abs(dy);
+ const direction=Math.sign(pushX?dx:dy);
+ if(!direction)return false;
+ for(const other of foes){
+  if(other===z)continue;
+  const otherPos=plans.get(other)||{x:other.x,y:other.y};
+  if(!zombieBoxesOverlap(z,pos,other,otherPos,1))continue;
+  if(other.boss||plans.has(other))return false;
+  const overlapX=direction>0?pos.x+z.w+1-otherPos.x:
+    otherPos.x+other.w+1-pos.x;
+  const overlapY=direction>0?pos.y+z.h+1-otherPos.y:
+    otherPos.y+other.h+1-pos.y;
+  const push=pushX?{dx:direction*Math.max(1,overlapX),dy:0}:
+                  {dx:0,dy:direction*Math.max(1,overlapY)};
+  if(!planKnockPush(other,push.dx,push.dy,plans,depth+1))return false;
+ }
+ return true;
 }
 function applyKnockback(z,impact,n=1){
  if(!impact||z.boss)return false;
- let x=impact.x||0,y=impact.y||0;
- const mag=Math.hypot(x,y);
+ const vx=impact.x||0,vy=impact.y||0,mag=Math.hypot(vx,vy);
  if(mag<.01)return false;
- const dist=Math.min(14,7+Math.min(n,4)*2),nx=x/mag,ny=y/mag;
- // In dense ranks, try shortened steps; no overlapping colliders or road escape.
- for(const amount of [1,.7,.4,.2]){
-  const xx=z.x+nx*dist*amount,yy=z.y+ny*dist*amount;
-  if(canKnockback(z,xx,yy)){z.x=xx;z.y=yy;return true}
+ // The previous 9–14px was barely perceptible. 26–34px is readable,
+ // with contact transferring reduced motion to up to five other zombies.
+ const distance=Math.min(34,24+Math.min(n,5)*2);
+ const dirX=vx/mag,dirY=vy/mag;
+ for(const factor of [1,.8,.6,.4,.25,.12]){
+  const plans=new Map();
+  if(!planKnockPush(z,dirX*distance*factor,dirY*distance*factor,plans))continue;
+  let valid=true;
+  for(const [a,pa] of plans)
+   for(const other of foes){
+    if(a===other)continue;
+    const pb=plans.get(other)||{x:other.x,y:other.y};
+    if(zombieBoxesOverlap(a,pa,other,pb,.5)){valid=false;break}
+   }
+  if(!valid)continue;
+  for(const [actor,pos] of plans){
+   const beforeX=actor.x,beforeY=actor.y;
+   actor.x=pos.x;actor.y=pos.y;
+   actor.knockFromX=beforeX;actor.knockFromY=beforeY;
+   actor.knockTime=KNOCK_TRAIL_LIFE;
+   if(actor!==z){
+    actor.flinch=Math.max(actor.flinch||0,.25);
+    actor.recoil=Math.max(actor.recoil||0,.12);
+    hitFlashes.push({x:actor.x+actor.w/2,y:actor.y+actor.h/2,t:0,life:.12,critical:false});
+   }
+   // Active diagonal animation must not snap the pushed zombie back
+   // onto its old target column or teleport through an ally.
+   if(Number.isFinite(actor.breakoutTime)){
+    delete actor.breakoutTime;delete actor.breakoutDuration;actor.moveDir=0;
+    actor.breakoutCooldownUntil=clock+2;
+   }
+  }
+  if(hitFlashes.length>36)hitFlashes.splice(0,hitFlashes.length-36);
+  return true;
  }
  return false;
 }
@@ -565,7 +626,7 @@ function enemyDeath(z,critical=false){
  const split=objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  enemyDeaths.push({z:{...z,flash:.1},critical,spriteMode,t:0,split,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
 function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
-function updateEnemyVisuals(dt){hitFlashes=hitFlashes.filter(f=>(f.t+=dt)<f.life);barrelBlasts=barrelBlasts.filter(b=>(b.t+=dt)<b.life);bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
+function updateEnemyVisuals(dt){hitFlashes=hitFlashes.filter(f=>(f.t+=dt)<f.life);barrelBlasts=barrelBlasts.filter(b=>(b.t+=dt)<b.life);bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt);z.knockTime=Math.max(0,(z.knockTime||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
  // Final bitmap already depicts lying down / cute brain debris; do not duplicate
  // the old procedural blast or turn a normal backward fall into a side explosion.
  if(!d.spriteMode)scatterEnemy(d)
@@ -778,7 +839,14 @@ function drawBarrelBlasts(){
   g.restore();
  }});
 }
-function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();for(const z of foes)zombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);rect(-19,-19,38,38,'#142b29');g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
+function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();
+ // Translucent bitmap afterimage exposes how far each zombie was pushed.
+ if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0){
+  g.save();g.globalAlpha=.29*(z.knockTime/KNOCK_TRAIL_LIFE);
+  zombie({...z,x:z.knockFromX,y:z.knockFromY,flash:0,burn:0,knockTime:0});
+  g.restore();
+ }
+ for(const z of foes)zombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);rect(-19,-19,38,38,'#142b29');g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
 drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
