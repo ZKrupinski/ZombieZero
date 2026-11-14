@@ -358,11 +358,11 @@ let lastSupportAt=-60,supportDangerTime=0;
 function supportRisk(){if(!foes.length)return 0;const bottom=Math.max(...foes.map(z=>z.y+z.h)),alive=citizens.filter(p=>p.alive).length;return bottom>=475||(bottom>=380&&(lives===1||alive<=5))?2:bottom>=390||lives===1||alive<=8?1:0}
 function supportAvailable(){return citizens.some(p=>p.alive)&&clock-lastSupportAt>=45&&!has('bazooka')&&!items.some(i=>i.k==='bazooka')&&!rockets.length}
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
-function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3)return;items.push({x:car,y:485,k:'bazooka',phase:0});lastSupportAt=clock;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
+function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3||items.length>=LOOT_MAX_VISIBLE)return;const pos=pickupLocation(car,PY-119);if(!pos)return;items.push({...pos,k:'bazooka',phase:0});lastSupportAt=clock;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
 // Controlled loot: a few meaningful, non-duplicate pickups per wave.
 // Fire is recoverably rare (guaranteed after a dry streak of stages), not absent.
-const LOOT_DROP_CHANCE=.26,LOOT_MAX_VISIBLE=2,LOOT_MAX_STAGE=4,LOOT_SPACING=48;
-const FIRE_DROP_CHANCE=.12,FIRE_DROP_COOLDOWN=24,FIRE_DROP_STAGE_GAP=2,FIRE_PITY_STAGES=3;
+const LOOT_DROP_CHANCE=.19,LOOT_MAX_VISIBLE=2,LOOT_MAX_STAGE=3,LOOT_SPACING=72;
+const FIRE_DROP_CHANCE=.20,FIRE_DROP_COOLDOWN=24,FIRE_DROP_STAGE_GAP=2,FIRE_PITY_STAGES=3;
 let fireDropsThisWave=0,lastFireDropAt=-1e6,lastFireDropWave=0;
 let stageLootCount=0,recentLootKinds=[];
 function fireCanDrop(){
@@ -371,27 +371,29 @@ function fireCanDrop(){
    !items.some(item=>item.k==='fire');
 }
 function pickupLocation(x,y){
- const offsets=[[0,0],[54,0],[-54,0],[0,-54],[0,54],[108,0],[-108,0],
-    [54,-54],[-54,-54],[54,54],[-54,54]];
+ // Pickup icons have 38px silhouettes; keep them apart while they fall.
+ const offsets=[[0,0],[72,0],[-72,0],[0,-72],[0,72],[144,0],[-144,0],
+  [72,-72],[-72,-72],[72,72],[-72,72],[0,-144],[0,144]];
  for(const [dx,dy] of offsets){
   const px=clamp(x+dx,40,410),py=clamp(y+dy,35,H-65);
-  if(items.every(item=>Math.abs(item.x-px)>=LOOT_SPACING||
-                              Math.abs(item.y-py)>=LOOT_SPACING))
+  if(items.every(item=>Math.hypot(item.x-px,item.y-py)>=LOOT_SPACING))
    return {x:px,y:py};
  }
  return null;
 }
 function drop(z){
  if(z.max<2&&!z.boss)return;
- const boss=!!z.boss;
- if(!boss&&stageLootCount>=LOOT_MAX_STAGE)return;
- const fireReady=fireCanDrop(),
-       pity=fireReady&&wave>=3&&wave-lastFireDropWave>=FIRE_PITY_STAGES;
+ const boss=!!z.boss,fireReady=fireCanDrop();
+ const pity=fireReady&&wave>=3&&wave-lastFireDropWave>=FIRE_PITY_STAGES;
+ // Keep a slot open for overdue fire even when ordinary loot has dropped.
+ if(!boss&&stageLootCount>=LOOT_MAX_STAGE-(pity?1:0))return;
  if(!boss&&!pity&&Math.random()>=LOOT_DROP_CHANCE)return;
- // A boss prize replaces an old uncollected one rather than stacking icons.
+ // Fire pity and boss rewards can replace one uncollected regular pickup.
  if(items.length>=LOOT_MAX_VISIBLE){
-  if(!boss)return;
-  items.shift();
+  if(!boss&&!pity)return;
+  const replaceIndex=items.findIndex(item=>item.k!=='fire');
+  if(replaceIndex<0)return;
+  items.splice(replaceIndex,1);
  }
  let k=null;
  if(fireReady&&(pity||Math.random()<FIRE_DROP_CHANCE)){
@@ -400,9 +402,10 @@ function drop(z){
   k='bazooka';
  }else{
   const choices=Object.keys(SKILLS).filter(key=>key!=='fire'&&key!=='bazooka'&&
-    !has(key)&&!items.some(item=>item.k===key));
+   !has(key)&&!items.some(item=>item.k===key));
   const fresh=choices.filter(key=>!recentLootKinds.includes(key));
-  const pool=fresh.length?fresh:choices;
+  const oldest=Math.min(...choices.map(key=>recentLootKinds.lastIndexOf(key)));
+  const pool=fresh.length?fresh:choices.filter(key=>recentLootKinds.lastIndexOf(key)===oldest);
   if(!pool.length)return;
   k=pool[Math.floor(Math.random()*pool.length)];
  }
@@ -412,7 +415,7 @@ function drop(z){
  items.push({...pos,k,phase:Math.random()*6});
  stageLootCount++;
  recentLootKinds.push(k);
- if(recentLootKinds.length>2)recentLootKinds.shift();
+ if(recentLootKinds.length>4)recentLootKinds.shift();
  if(k==='fire'){
   fireDropsThisWave++;lastFireDropAt=clock;lastFireDropWave=wave;
  }
@@ -442,7 +445,7 @@ function criticalEligible(z){return !z.boss&&Number.isInteger(z.form)&&z.hp>=z.m
 // Push a small chain of zombies when a hit has room to travel. Compute all
 // destinations first, so no zombie moves if a wall, boss or crowded rank blocks
 // the chain. This keeps collision rectangles separate and prevents phantom hits.
-const KNOCK_CHAIN_LIMIT=5,KNOCK_TRAIL_LIFE=.20;
+const KNOCK_CHAIN_LIMIT=8,KNOCK_TRAIL_LIFE=.32;
 function zombieBoxesOverlap(a,pa,b,pb,gap=.5){
  return pa.x<pb.x+b.w+gap&&pa.x+a.w+gap>pb.x&&
         pa.y<pb.y+b.h+gap&&pa.y+a.h+gap>pb.y;
@@ -482,11 +485,11 @@ function applyKnockback(z,impact,n=1){
  if(!impact||z.boss)return false;
  const vx=impact.x||0,vy=impact.y||0,mag=Math.hypot(vx,vy);
  if(mag<.01)return false;
- // The previous 9–14px was barely perceptible. 26–34px is readable,
- // with contact transferring reduced motion to up to five other zombies.
- const distance=Math.min(34,24+Math.min(n,5)*2);
+ // Contact transfers displacement to successive zombies. Attempt shorter
+ // shoves when tightly packed ranks, bosses or road edges block the impulse.
+ const distance=Math.min(50,36+Math.min(n,5)*3);
  const dirX=vx/mag,dirY=vy/mag;
- for(const factor of [1,.8,.6,.4,.25,.12]){
+ for(const factor of [1,.85,.7,.55,.4,.25,.12]){
   const plans=new Map();
   if(!planKnockPush(z,dirX*distance*factor,dirY*distance*factor,plans))continue;
   let valid=true;
@@ -501,11 +504,12 @@ function applyKnockback(z,impact,n=1){
    const beforeX=actor.x,beforeY=actor.y;
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
-   actor.knockTime=KNOCK_TRAIL_LIFE;
+   actor.knockTime=KNOCK_TRAIL_LIFE;actor.knockChain=actor!==z;
    if(actor!==z){
-    actor.flinch=Math.max(actor.flinch||0,.25);
-    actor.recoil=Math.max(actor.recoil||0,.12);
-    hitFlashes.push({x:actor.x+actor.w/2,y:actor.y+actor.h/2,t:0,life:.12,critical:false});
+    actor.flinch=Math.max(actor.flinch||0,.32);
+    actor.recoil=Math.max(actor.recoil||0,.2);
+    hitFlashes.push({x:actor.x+actor.w/2,y:actor.y+actor.h/2,t:0,life:.16,critical:false});
+    burst(actor.x+actor.w/2,actor.y+actor.h/2,'#d2ffdc',4);
    }
    // Active diagonal animation must not snap the pushed zombie back
    // onto its old target column or teleport through an ally.
@@ -864,13 +868,17 @@ function drawBarrelBlasts(){
  }});
 }
 function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();
- // Translucent bitmap afterimage exposes how far each zombie was pushed.
+ // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0){
-  g.save();g.globalAlpha=.29*(z.knockTime/KNOCK_TRAIL_LIFE);
+  const fade=z.knockTime/KNOCK_TRAIL_LIFE;
+  g.save();g.globalAlpha=.4*fade;
   zombie({...z,x:z.knockFromX,y:z.knockFromY,flash:0,burn:0,knockTime:0});
-  g.restore();
+  g.globalAlpha=.7*fade;g.strokeStyle=z.knockChain?'#b9ffe2':'#fff2bb';
+  g.lineWidth=z.knockChain?3:4;g.lineCap='round';
+  g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
+  g.lineTo(z.x+z.w/2,z.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)zombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);rect(-19,-19,38,38,'#142b29');g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
+ for(const z of foes)zombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);if(item.k==='fire'){g.shadowColor='#ff6d24';g.shadowBlur=18}rect(-19,-19,38,38,'#142b29');g.shadowBlur=0;g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
 drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
