@@ -205,7 +205,7 @@ function rack(){
  if(bossStage){
   const hp=Math.round(24+Math.min(wave,10)*4+Math.max(0,wave-10)*1.2);
   const bossForm=(wave/3-1)%BOSS_FORMS.length;
-  foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
+  foes.push({x:192,y:120,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
  }
@@ -1025,16 +1025,21 @@ function recordKill(){
  citizenCue(p,true);effect(p.x,p.y-12,'#91f4d0',65);burst(p.x,p.y-10,'#91f4d0',24);sfx('return');toast('시민 +1 복귀! · '+killCombo+' COMBO');
 }
 function drawKillCombo(){
- if(killCombo<2||!['playing','clearing','paused'].includes(mode))return;
+ // Combo belongs in its own fixed HUD slot, NEVER over the boss or zombies.
+ const el=$('combo-hud');
+ if(!el)return;
+ if(killCombo<2||killTimer<=0||!['playing','clearing','paused'].includes(mode)){
+  el.hidden=true;return;
+ }
  const tier=killCombo>=30?4:killCombo>=20?3:killCombo>=10?2:killCombo>=5?1:0;
  const color=['#d5f48d','#8fe9db','#ffd57a','#f7a6d5','#b8b0ff'][tier];
  const praise=['NICE!','GREAT!','AMAZING!','UNSTOPPABLE!','LEGENDARY!'][tier];
- g.save();g.translate(W/2,154);const scale=1+comboPop*.25; // dedicated combo band below fixed stage HUDg.scale(scale,scale);
- g.globalAlpha=Math.min(1,killTimer/.4);rect(-88,-34,176,71,'#111b3066');
- g.textAlign='center';g.fillStyle=color;g.font='italic bold 25px Arial, sans-serif';g.fillText(killCombo+' COMBO',0,-7);
- g.font='bold 12px Arial, sans-serif';g.fillText(praise,0,12);rect(-74,24,148,3,'#354153');rect(-74,24,148*killTimer/6,3,color);g.restore();
+ const label=killCombo+' COMBO · '+praise;
+ if(el.textContent!==label)el.textContent=label;
+ el.style.color=color;
+ el.style.opacity=String(Math.min(1,killTimer/.35));
+ el.hidden=false;
 }
-
 const citizens=Array.from({length:18},(_,i)=>({x:26+i*23.4,y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%6,phase:i*.9,alive:true,dying:0}));
 function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0}bubbles=[];bubbleTimer=.25}
 function haptic(pattern){if(!fxEnabled||!touchUsed||typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return;const now=Date.now();if(now-lastBuzz<100)return;lastBuzz=now;try{navigator.vibrate(pattern)}catch{}}
@@ -1099,10 +1104,9 @@ $('share').onclick=async()=>{const url=new URL('./',location.href).href;try{if(n
 // system as the drawing surface, so the whole extra space is playable.
 function resizeCanvas(){
  const bounds=c.getBoundingClientRect(),widthCss=bounds.width||W,heightCss=bounds.height||710;
- const fullscreenPortrait=Boolean(document.documentElement?.classList?.contains?.('portrait-play'));
- // Width already fills the viewport. Match virtual height to its true ratio,
- // rather than forcing 710px on nearly square foldables (which squeezed art).
- const targetH=fullscreenPortrait?clamp(Math.round(W*heightCss/widthCss),450,1600):710;
+ // All display sizes render the SAME logical 450×710 arena. App.fit() sizes
+ // the CSS canvas as a contain-fit rectangle instead of resizing game physics.
+ const targetH=710;
  if(targetH!==H){
   const oldH=H,delta=targetH-oldH;
   H=targetH;VIEW_DELTA=H-710;PY=H-126;DEFENSE_Y=H-145;
