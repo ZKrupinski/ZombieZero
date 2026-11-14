@@ -48,12 +48,12 @@ for(let frame=0;frame<8;frame++){
  const x0=frame*192,x1=x0+192;
  // Frame content is always above the validated blank separator.
  assert.equal(count(x0,179,x1,192),0,'Ace frame '+frame+' has no Ruby overflow');
- assert.equal(count(x0,192+172,x1,384),0,
+ assert.equal(count(x0,192+179,x1,384),0,
    'Ruby frame '+frame+' cannot contain the next red-haired Liam character');
- assert.equal(count(x0,384+172,x1,576),0,'Liam frame '+frame+' has clean lower border');
+ assert.equal(count(x0,384+179,x1,576),0,'Liam frame '+frame+' has clean lower border');
  for(let hero=0;hero<3;hero++){
   const y0=hero*192;
-  assert(count(x0,y0,x1,y0+172)>2800,
+  assert(count(x0,y0,x1,y0+179)>2800,
    'hero '+hero+' frame '+frame+' retains original character, vehicle and attack art');
  }
 }
@@ -61,8 +61,8 @@ const css=fs.readFileSync('dist/style.css','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const loader=fs.readFileSync('dist/assets/ip/hero-car-attack.js','utf8');
 assert(css.includes('clip-path:inset(0 0 5px 0)'),'selection portrait crops away neighbor interpolation');
-assert(css.includes('hero-car-attack.png?v=38-clean-hero-sprite'),'selection card requests new clean atlas');
-assert(loader.includes('hero-car-attack.png?v=38-clean-hero-sprite'),'actual gameplay requests same clean atlas');
-assert(html.includes('hero-car-attack.js?v=38-clean-hero-sprite'),'new loader bypasses old cache');
-assert(html.includes('style.css?v=38-clean-hero-sprite'),'new selection styles bypass old cache');
+assert(css.includes('hero-car-attack.png?v=40-aligned-heroes'),'selection card requests new clean atlas');
+assert(loader.includes('hero-car-attack.png?v=40-aligned-heroes'),'actual gameplay requests same clean atlas');
+assert(html.includes('hero-car-attack.js?v=40-aligned-heroes'),'new loader bypasses old cache');
+assert(html.includes('style.css?v=40-voxel-heart-hud'),'new selection styles bypass old cache');
 console.log('PASS: all 24 hero/vehicle/attack frames preserved, zero cross-row hair bleed, clean portrait and gameplay cache');
