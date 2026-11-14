@@ -31,9 +31,9 @@ function check(v,m){if(!v)throw Error(m)}
  check(foes.every(z=>z.moveDir===0&&!Number.isFinite(z.breakoutTime)),
        'full formation never uses fake diagonal or random lateral drift');
 
- // A few dead zombies still do not authorize breakouts.
- foes.splice(0,5);clock=breakoutNextCheck+.01;march(.016);
- check(foes.every(z=>z.moveDir===0),'five casualties not sufficient');
+ // One or two casualties still do not authorize breakouts.
+ foes.splice(0,2);clock=breakoutNextCheck+.01;march(.016);
+ check(foes.every(z=>z.moveDir===0),'two casualties not sufficient');
 
  // Wave still has five columns' worth of large gaps: a rogue can
  // actually move toward a VACANT column, not just play side-steps.
@@ -43,7 +43,7 @@ function check(v,m){if(!v)throw Error(m)}
  const initial=foes.map(z=>({z,x:z.x,col:z.col,row:z.row}));
  march(.04);
  let dashing=foes.filter(z=>Number.isFinite(z.breakoutTime));
- check(dashing.length===1,'one rogue enters short diagonal action');
+ check(dashing.length>=1&&dashing.length<=3,'1–3 rogues can enter varied diagonal actions');
  const rogue=dashing[0];
  check(!rogue.boss,'never a boss');
  check(rogue.row>0,'front or middle rank only');
@@ -53,7 +53,7 @@ function check(v,m){if(!v)throw Error(m)}
  check(Math.abs(dx)>60&&vy>45,'fast short diagonal, not a fake turn');
  const columnBefore=initial.find(e=>e.z===rogue).col;
  const dest=rogue.breakoutTargetCol;
- check(Math.abs(dest-columnBefore)===1,'dashes into adjacent vacant lane');
+ check(Math.abs(dest-columnBefore)>=1&&Math.abs(dest-columnBefore)<=2,'dashes across one or two cleared lanes');
  for(let k=0;k<20;k++){clock+=.04;march(.04)}
  check(!Number.isFinite(rogue.breakoutTime),'breakout animation is bounded');
  check(rogue.col===dest,'column metadata follows real position');
@@ -61,7 +61,7 @@ function check(v,m){if(!v)throw Error(m)}
  check(rogue.breakoutCooldownUntil>clock,'per-zombie cooldown');
  march(.016);check(rogue.moveDir===0,'front-facing resumes immediately');
  check(foes.filter(z=>Number.isFinite(z.breakoutTime)).length<=BREAKOUT_MAX_ACTIVE,
-   'at most two exceptional rogues');
+   'at most three exceptional rogues');
 
  // Too close to defense line is a hard no-dash condition.
  rack();foes=foes.filter(z=>z.row>0&&[0,4,8].includes(z.col));
@@ -76,7 +76,7 @@ function check(v,m){if(!v)throw Error(m)}
  Math.random=()=>0;
  clock=breakoutNextCheck+.01;march(.016);
  dashing=foes.filter(z=>Number.isFinite(z.breakoutTime));
- check(dashing.length===2,'rare second front-row rogue when severely sparse');
+ check(dashing.length===2,'up to two separate rows break out in a sparse two-row formation');
  check(dashing[0].row!==dashing[1].row,'no two rogues in the same row');
  check(foes.every(z=>z.x>=20&&z.x+z.w<=W-20),'stay inside road');
 
@@ -88,6 +88,6 @@ function check(v,m){if(!v)throw Error(m)}
  check(src.includes("rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8"), 'meaningful boss overhead HP remains');
  check(!src.includes('Math.sin(clock*1.4+(z.seed||0))*radius'),
    'no perpetual sinusoidal diagonal posing');
- console.log('PASS: full density front-only, sparse trigger, actual fast diagonal, vacancy targeting, timed return, cooldown, fairness and two-roguemax');
+ console.log('PASS: default frontal walk, frequent sparse 1–3 diagonal surges, variable 1–2 lane distance, cooldown and defense safety');
 }
 `,sandbox);
