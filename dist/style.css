@@ -299,3 +299,81 @@ html.landscape-game,html.landscape-game body{
 @media(prefers-reduced-motion:reduce){
  .hero-card[aria-pressed="true"] .hero-vehicle-portrait{animation:none}
 }
+
+
+/* Mobile playable HUD v31 — the game world uses a 450 logical-unit width.
+   Keep all four controls in fixed grid slots. Only the scale changes with
+   viewport width; media breakpoints never move stage/score/menu positions. */
+:root{--ui-scale:1}
+.portrait-play .hud,.landscape-game .hud{
+ display:grid!important;
+ grid-template-columns:minmax(0,1.18fr) minmax(0,.92fr)
+  minmax(40px,calc(44px * var(--ui-scale)))
+  minmax(40px,calc(44px * var(--ui-scale)))!important;
+ align-items:center!important;
+ justify-content:stretch!important;
+ column-gap:calc(6px * var(--ui-scale))!important;
+ row-gap:0!important;
+ width:100%!important;
+ box-sizing:border-box!important;
+ padding-left:calc(12px * var(--ui-scale))!important;
+ padding-right:calc(12px * var(--ui-scale))!important;
+}
+.portrait-play .hud{
+ min-height:calc(68px * var(--ui-scale) + env(safe-area-inset-top,0px))!important;
+ padding-top:calc(7px * var(--ui-scale) + env(safe-area-inset-top,0px))!important;
+ padding-bottom:calc(8px * var(--ui-scale))!important;
+}
+.landscape-game .hud{
+ min-height:calc(55px * var(--ui-scale))!important;
+ padding-top:calc(5px * var(--ui-scale))!important;
+ padding-bottom:calc(5px * var(--ui-scale))!important;
+}
+.portrait-play .hud>div,.landscape-game .hud>div{
+ min-width:0!important;width:100%;margin:0!important;
+ text-align:left!important;overflow:hidden;
+}
+.portrait-play .hud .wave,.landscape-game .hud .wave{
+ text-align:center!important;justify-self:center!important;
+}
+.portrait-play .hud small,.landscape-game .hud small{
+ display:block;font-size:max(8px,calc(9px * var(--ui-scale)))!important;
+ line-height:1.2!important;white-space:nowrap;overflow:hidden;
+ text-overflow:ellipsis;letter-spacing:0!important;
+}
+.portrait-play .hud strong,.landscape-game .hud strong{
+ font-size:clamp(15px,calc(24px * var(--ui-scale)),29px)!important;
+ font-variant-numeric:tabular-nums;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis;display:block!important;
+}
+.portrait-play .hud .wave strong,.landscape-game .hud .wave strong{
+ font-size:clamp(16px,calc(22px * var(--ui-scale)),27px)!important;
+}
+.portrait-play .hud #pause,.portrait-play .hud #options-toggle,
+.landscape-game .hud #pause,.landscape-game .hud #options-toggle{
+ display:inline-flex!important;justify-content:center!important;
+ align-items:center!important;
+ min-width:40px!important;min-height:40px!important;
+ width:100%!important;height:max(40px,calc(44px * var(--ui-scale)))!important;
+ flex:auto!important;margin:0!important;
+ font-size:clamp(17px,calc(20px * var(--ui-scale)),23px)!important;
+}
+.landscape-game .hud small{display:none!important}
+/* Bottom bar also follows the same scale and remains in reserved lanes. */
+.portrait-play footer,.landscape-game footer{
+ padding-left:calc(18px * var(--ui-scale))!important;
+ padding-right:calc(18px * var(--ui-scale))!important;
+}
+.portrait-play .skill-tray,.landscape-game .skill-tray{
+ bottom:calc(39px * var(--ui-scale) + env(safe-area-inset-bottom,0px))!important;
+}
+.portrait-play .stage .overlay{
+ padding-top:calc(76px * var(--ui-scale) + env(safe-area-inset-top,0px))!important;
+ padding-bottom:calc(54px * var(--ui-scale) + env(safe-area-inset-bottom,0px))!important;
+}
+/* Fullscreen and stand-alone modes retain all safe areas and prevent
+   browser swipe scrolling; if native fullscreen is unsupported, the game
+   still occupies the available viewport without rearranging the HUD. */
+html:fullscreen,html:fullscreen body{
+ width:100%;height:100%;overflow:hidden;overscroll-behavior:none;
+}
