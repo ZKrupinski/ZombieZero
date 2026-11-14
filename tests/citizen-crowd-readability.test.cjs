@@ -1,6 +1,6 @@
 'use strict';
-// Screenshot regression: v41 had 35px citizens on 23.4px centers, and
-// the SHIELD pickup's H-35 luminous beam crossed their faces.
+// Protect the intended v41 citizen scale: visually friendly overlap is
+// intentional; the SHIELD pickup must stay above heads at H-58.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('dist/game.js','utf8');
 assert(source.includes("rect(20,H-51,410,4,'#7189a2')"),
@@ -15,8 +15,8 @@ assert(source.includes('b.y+radius>=SHIELD_LINE_Y'),
  'bounce collision must coincide with visible shield');
 assert(!source.includes('rect(21,H-35,408,4'),
  'no old face-height shield is drawn');
-assert(source.includes('const tile=128,width=23,height=34;'),
- 'citizen display art must fit 23.4px centers and 34px collider height');
+assert(source.includes('const tile=128,width=35,height=46;'),
+ 'v41 approved large bitmap citizens restored without changing the 20x34 colliders');
 const noop=()=>{},elements={},draws=[],rects=[];
 const g=new Proxy({drawImage:(...args)=>draws.push(args),
  fillRect:(...args)=>rects.push(args)},
@@ -50,13 +50,13 @@ check(crowd.length===18,'all 18 original citizens remain visible and functional'
 check(new Set(crowd.map(a=>a[1])).size===8,'all 8 costumes remain distinct');
 for(let i=0;i<crowd.length;i++){
  const d=crowd[i],p=citizens[i];
- check(d[7]===23&&d[8]===34,'no stretched or overlapping citizen art');
- check(Math.abs(d[5]-(p.x-11.5))<.01,'sprite is centered on original hitbox');
- check(Math.abs(d[6]-(p.y-13))<.01,'sprite head aligns with collision box top');
- check(Math.abs((d[6]+34)-(p.y+21))<.01,'feet align with collision box bottom');
+ check(d[7]===35&&d[8]===46,'v41 approved larger citizen art is restored');
+ check(Math.abs(d[5]-(p.x-17.5))<.01,'large sprite remains centered on original hitbox');
+ check(Math.abs(d[6]-(p.y-25))<.01,'sprite top returns to v41 approved position');
+ check(Math.abs((d[6]+46)-(p.y+21))<.01,'feet still align with original collision box bottom');
  if(i){
   const prev=crowd[i-1];
-  check(d[5]-(prev[5]+23)>.3,'separate citizens must have a visible gap');
+  check(Math.abs((d[5]-prev[5])-23.4)<.01,'citizen positions unchanged, deliberately denser at larger scale');
  }
 }
 const longStripes=rects.filter(a=>a[2]>=400);
@@ -66,9 +66,9 @@ check(longStripes[0][1]===H-51&&longStripes[1][1]===H-47,
 check(citizens.every(p=>p.alive),'pure drawing does not affect any defensive citizen');
 // The shield is a skill, not a platform decoration. The graphics, spark and
 // physics all use exactly the same new Y while the civilian colliders stay.
-const lowestHead=Math.min(...citizens.map(p=>p.y-13));
-check(SHIELD_LINE_Y+3+10<lowestHead,
- 'beam and its 10px bloom stay clear of the citizen heads');
+const lowestHead=Math.min(...citizens.map(p=>p.y-25));
+check(SHIELD_LINE_Y+3<lowestHead,
+ 'visible shield beam is above restored larger citizen heads');
 active.shield=18;mode='playing';balls=[newBall(60,SHIELD_LINE_Y-12,0,400,false)];
 update(.04);
 check(balls[0].vy<0&&balls[0].y+8<=SHIELD_LINE_Y,
@@ -80,5 +80,5 @@ check(rects.some(a=>a[0]===21&&a[1]===SHIELD_LINE_Y&&a[2]===408&&a[3]===3),
  'actual gameplay uses new raised visible shield line');
 check(!rects.some(a=>a[0]===21&&a[1]===H-35&&a[2]===408&&a[3]===4),
  'old eye-level beam never reappears');
-console.log('PASS: 18 distinct citizens, original crowd trim, shield beam above faces with matching real ball collision');
+console.log('PASS: restored 35x46 crowd as in v41, unchanged citizen hitboxes, shield beam above heads and correct bounce');
 `,sandbox);

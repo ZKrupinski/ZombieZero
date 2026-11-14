@@ -13,7 +13,7 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 const src=fs.readFileSync('dist/game.js','utf8');
 assert(html.includes('assets/ip/citizen-cast-v41.js?v=41-voxel-citizens'),
  'live game loads new citizen atlas reader');
-assert(html.indexOf('citizen-cast-v41.js')<html.indexOf('game.js?v=42-raised-shield'),
+assert(html.indexOf('citizen-cast-v41.js')<html.indexOf('game.js?v=43-restored-citizens'),
  'sprite loader arrives before game.js');
 for(const f of ['citizen-cheer-v41.png','citizen-sacrifice-v41.png','citizen-cast-v41.js'])
  assert(sw.includes(f),'offline asset cached: '+f);
@@ -53,8 +53,8 @@ const crowd=images.filter(a=>a[0]===window.ZZCitizenCast.cheer);
 check(crowd.length===18,'all citizens use transparent PNG animation frames');
 check(crowd[0][1]===0&&crowd[1][1]===128&&crowd[7][1]===896,
  'column index maps to the correct distinct citizen');
-check(crowd.every(a=>a[3]===128&&a[4]===128&&a[7]===23&&a[8]===34),
- 'source cells independent and each citizen fits its 23.4px spacing and 34px collider');
+check(crowd.every(a=>a[3]===128&&a[4]===128&&a[7]===35&&a[8]===46),
+ 'restore previous approved 35x46 crowd bitmap display while keeping 128px source cells');
 images.length=0;cheerTime=1.1;clock=.3;drawCrowd();
 const cheering=images.filter(a=>a[0]===window.ZZCitizenCast.cheer);
 check(cheering.length===18&&cheering.some(a=>a[2]>0),
