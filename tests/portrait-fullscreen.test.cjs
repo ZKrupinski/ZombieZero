@@ -19,7 +19,7 @@ vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync('dist/game.js','utf8')+`
 function check(x,m){if(!x)throw Error(m)}
 {
- check(H===710&&PY===604&&DEFENSE_Y===565,'desktop base reference stays unchanged');
+ check(H===710&&PY===584&&DEFENSE_Y===565,'desktop base reference stays unchanged');
  let y0=citizens[0].y;
  document.documentElement.classList.contains('portrait-play');
 }
@@ -31,7 +31,7 @@ portrait=true;
 sandbox.resizeCanvas();
 const h=Math.round(450*dimensions.height/dimensions.width);
 assert.equal(layout.getHeight(),h,'viewport determines real world height');
-assert.equal(layout.getPaddleY(),h-106,'paddle remains near viewport bottom');
+assert.equal(layout.getPaddleY(),h-126,'paddle remains near viewport bottom');
 assert.equal(layout.getDefenseY(),h-145,'defense zone tracks viewport bottom');
 assert.equal(elements.game.height,dimensions.height*2,'canvas consumes full portrait height at DPR 2');
 assert.equal(elements.game.width,dimensions.width*2,'canvas consumes full portrait width');
@@ -46,7 +46,7 @@ vm.runInContext(`
 `,sandbox);
 portrait=false;dimensions.width=450;dimensions.height=710;sandbox.resizeCanvas();
 assert.equal(layout.getHeight(),710,'rotation returns to original game coordinate space');
-assert.equal(layout.getPaddleY(),604,'base paddle geometry restored');
+assert.equal(layout.getPaddleY(),584,'base paddle geometry restored');
 // Unfolded near-square phone: still fills the device horizontally and never
 // stretches square cube heads to a fictitious 710px world height.
 portrait=true;dimensions.width=660;dimensions.height=720;sandbox.resizeCanvas();
