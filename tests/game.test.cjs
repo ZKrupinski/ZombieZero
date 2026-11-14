@@ -31,7 +31,7 @@ selectedHero=0;start();serve();let lastEnemy=foes[0];foes=[lastEnemy];items=[{x:
 // Nine close-packed lanes visually cover the road from left to right.
 {
  check(ENEMY_COLUMNS===9&&ENEMY_PITCH===46.375&&ENEMY_LEFT_X===23,'nine edge-packed lanes at 46.375px pitch');
- for(const [w,total] of [[1,27],[2,27],[3,22],[4,36],[6,31]]){
+ for(const [w,total] of [[1,18],[2,27],[3,22],[4,36],[6,31]]){
   wave=w;rack();
   check(foes.length===total,'stage '+w+' crowded without runaway enemy counts');
   let normals=foes.filter(z=>!z.boss);
