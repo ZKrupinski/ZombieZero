@@ -147,6 +147,12 @@ function stageFeaturedForm(stage){
     ZOMBIE_FORMS[i].unlock>ZOMBIE_FORMS[best].unlock)best=i;
  return best;
 }
+function stageRosterLabel(stage){
+ const latest=stageFeaturedForm(stage);
+ return stage>1&&ZOMBIE_FORMS[latest].unlock===stage
+  ? 'NEW · '+ZOMBIE_FORMS[latest].name
+  : '그린 좀비 중심 대열';
+}
 function setStageForms(regulars,stage){
  const forms=stageRoster(stage,regulars.length);
  // Shuffle slots, not the counts: no stage ever fills randomly with rare types.
@@ -174,7 +180,7 @@ function rack(){
   Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
   Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
  )));
- const bossStage=wave%3===0,latest=stageFeaturedForm(wave);
+ const bossStage=wave%3===0;
  for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
   if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
   const maxKind=Math.min(4,1+Math.floor(wave/2));
@@ -193,7 +199,7 @@ function rack(){
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
  }
  $('encounter').textContent=(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)
-  +' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:ZOMBIE_FORMS[latest].name)
+  +' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:stageRosterLabel(wave))
   +' / 진군 속도 '+marchBase().toFixed(1);
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
  breakoutNextCheck=clock+2.2;
@@ -287,7 +293,7 @@ function march(dt){
  }
 }
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
-function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+ZOMBIE_FORMS[stageFeaturedForm(wave)].name)}
+function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+stageRosterLabel(wave))}
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
