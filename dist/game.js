@@ -613,7 +613,7 @@ function drawBurningOverlays(){
  if(!fxEnabled)return;
  luminous(()=>{for(const z of foes){
   if(!(z.burn>0))continue;
-  const cx=z.x+z.w/2,base=z.y+z.h-3,t=clock*11+z.seed,
+  const cx=z.x+z.w/2,base=z.y+z.h-3,t=clock*11+(z.seed||0),
         flicker=.86+.14*Math.sin(t),height=z.boss?48:28;
   g.save();g.globalAlpha=.86*Math.min(1,z.burn/.3);
   g.shadowColor='#ff7d25';g.shadowBlur=13;
