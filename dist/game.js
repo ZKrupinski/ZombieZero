@@ -1,5 +1,5 @@
 'use strict';
-const c=document.getElementById('game');let g=c.getContext('2d');const $=id=>document.getElementById(id),W=450;let H=710,PY=604,VIEW_DELTA=0;
+const c=document.getElementById('game');let g=c.getContext('2d');const $=id=>document.getElementById(id),W=450;let H=710,PY=584,VIEW_DELTA=0;
 // Preserve normal drawing; collect only luminous shapes for the additive pass.
 let fxRenderer=null;
 function luminous(draw){
@@ -651,21 +651,29 @@ if(has('slow')){g.strokeStyle='#86f2e050';g.strokeRect(24,22,402,DEFENSE_Y-30)}
 function player(){
  const sprite=window.ZZHeroCarAttack;
  if(sprite&&sprite.ready&&sprite.image){
-  // Visual-only replacement: ball rebound, paddle width, car collision boxes
-  // and player stats remain exactly where the original game expects them.
+  // 50% of the prior onscreen car/hero size. Re-center on the OLD 154px
+  // rectangle's midpoint rather than anchoring its bottom; the raised
+  // bounce line now runs through the seated hero's weapon-hand height.
+  // Physics width and the forgiving car body emergency save stay unchanged.
   const t=heroAttackTime>0?1-heroAttackTime/HERO_ATTACK_DURATION:0;
   const order=[2,3,4,5,6,7,0];
   const n=heroAttackTime>0?order[Math.min(order.length-1,Math.floor(t*order.length))]:0;
-  const w=154,h=154;
+  const w=77,h=77; // 154×154 → 77×77; preserve the 192px master atlas
   const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
+  // The line visual and actual bounce test use the same raised PY height.
+  const paddleY=PY-VIEW_DELTA;
+  g.strokeStyle=swing>0?'#e5ff9e':'#c9ed9388';
+  g.lineWidth=swing>0?3:2;
+  g.beginPath();g.moveTo(car-hero().paddle,paddleY);
+  g.lineTo(car+hero().paddle,paddleY);g.stroke();
   g.drawImage(sprite.image,n*192,selectedHero*192,192,192,
-    car-w/2,656-h,w,h);
+    car-w/2,579-h/2,w,h);
   g.restore();
   return;
  }
- let x=car;const h=hero(),win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';g.save();g.translate(0,VIEW_DELTA);if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);/* no baked vehicle ground shadow */rect(x-57,626,13,24,'#14251f');rect(x+44,626,13,24,'#14251f');cube(x-52,621,104,25,h.color,'#ffbc72','#54313a');rect(x-45,625,90,5,'#ff9c58');cube(x-27,612,53,18,'#182e2a','#3d5441','#18221d');heroSprite(x,600,1,win);rect(x-46,635,18,6,'#fff2b2');rect(x+29,635,18,6,'#fff2b2');rect(x-47,649,95,5,'#b1b59b');g.strokeStyle='#e6d399';g.lineWidth=6;g.beginPath();g.moveTo(x+14,611);g.lineTo(x+32,602);g.stroke();g.save();g.translate(x+34,604-5);g.rotate(swing>0?-.25:0);g.strokeStyle='#e7c696';g.lineWidth=5;g.beginPath();g.ellipse(0,0,24,13,0,0,Math.PI*2);g.stroke();g.lineWidth=.8;g.strokeStyle='#f7f4dbaa';for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-9);g.lineTo(i,9);g.stroke()}for(let i=-6;i<=6;i+=6){g.beginPath();g.moveTo(-19,i);g.lineTo(19,i);g.stroke()}g.restore();g.strokeStyle=swing>0?'#e5ff9e':'#c9ed9366';g.lineWidth=swing>0?4:2;g.beginPath();g.moveTo(x-h.paddle,604);g.lineTo(x+h.paddle,604);g.stroke();g.restore()}
+ let x=car;const h=hero(),win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';g.save();g.translate(0,VIEW_DELTA);if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);/* no baked vehicle ground shadow */rect(x-57,626,13,24,'#14251f');rect(x+44,626,13,24,'#14251f');cube(x-52,621,104,25,h.color,'#ffbc72','#54313a');rect(x-45,625,90,5,'#ff9c58');cube(x-27,612,53,18,'#182e2a','#3d5441','#18221d');heroSprite(x,600,1,win);rect(x-46,635,18,6,'#fff2b2');rect(x+29,635,18,6,'#fff2b2');rect(x-47,649,95,5,'#b1b59b');g.strokeStyle='#e6d399';g.lineWidth=6;g.beginPath();g.moveTo(x+14,611);g.lineTo(x+32,602);g.stroke();g.save();g.translate(x+34,604-5);g.rotate(swing>0?-.25:0);g.strokeStyle='#e7c696';g.lineWidth=5;g.beginPath();g.ellipse(0,0,24,13,0,0,Math.PI*2);g.stroke();g.lineWidth=.8;g.strokeStyle='#f7f4dbaa';for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-9);g.lineTo(i,9);g.stroke()}for(let i=-6;i<=6;i+=6){g.beginPath();g.moveTo(-19,i);g.lineTo(19,i);g.stroke()}g.restore();g.strokeStyle=swing>0?'#e5ff9e':'#c9ed9366';g.lineWidth=swing>0?4:2;g.beginPath();g.moveTo(x-h.paddle,PY-VIEW_DELTA);g.lineTo(x+h.paddle,PY-VIEW_DELTA);g.stroke();g.restore()}
 // Cosmetic poses only: no pose or death fragment participates in physics.
 let enemyDeaths=[],enemyPieces=[],barrelBlasts=[],hitFlashes=[];
 const ENEMY_CLOTH=['#65535a','#242b39','#302139','#574b66','#68415a','#e4d6b0','#d49b39','#733e65'];
@@ -1024,7 +1032,7 @@ function resizeCanvas(){
  const targetH=fullscreenPortrait?clamp(Math.round(W*heightCss/widthCss),450,1600):710;
  if(targetH!==H){
   const oldH=H,delta=targetH-oldH;
-  H=targetH;VIEW_DELTA=H-710;PY=H-106;DEFENSE_Y=H-145;
+  H=targetH;VIEW_DELTA=H-710;PY=H-126;DEFENSE_Y=H-145;
   // Keep live positions stable relative to the expanded screen.
   for(const citizen of citizens)citizen.y+=delta;
   for(const ball of balls){
