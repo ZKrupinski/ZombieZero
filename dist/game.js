@@ -184,7 +184,7 @@ function setStageForms(regulars,stage){
  for(const z of regulars)z.hp=z.max=zombieHP(z.form,z.kind,stage);
 }
 function rack(){
- foes=[];stageDelay=0;fireDropsThisWave=0;
+ foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;
  const rows=Math.min(4,Math.max(2,Math.min(
   Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
   Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
@@ -320,7 +320,7 @@ function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();ret
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
-function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;lives=hero().lives;car=target=225;clearTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;lives=hero().lives;car=target=225;clearTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){balls[0].held=false;balls[0].vx=125;balls[0].vy=-365;syncMulti();sfx('serve');hud()}}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('overlay').hidden=false;endlessUI()}
 function pause(){releaseInput();if(mode==='playing'||mode==='clearing'){resumeMode=mode;mode='paused';sfx('pause');overlay('잠깐,<br><em>숨 고르기.</em>','게임과 스킬 지속시간이 멈췄습니다.','계속하기','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
@@ -335,23 +335,63 @@ function supportRisk(){if(!foes.length)return 0;const bottom=Math.max(...foes.ma
 function supportAvailable(){return citizens.some(p=>p.alive)&&clock-lastSupportAt>=45&&!has('bazooka')&&!items.some(i=>i.k==='bazooka')&&!rockets.length}
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
 function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3)return;items.push({x:car,y:485,k:'bazooka',phase:0});lastSupportAt=clock;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
-// Fire should be an uncommon tactical pickup, not a near-permanent screen clear.
-// A conditional 2.5% fire roll applies only after a normal item drop (45%
-// against an eligible ordinary enemy), with one per wave and a 30s lockout.
-const FIRE_DROP_CHANCE=.025,FIRE_DROP_COOLDOWN=30;
-let fireDropsThisWave=0,lastFireDropAt=-1e6;
+// Controlled loot: a few meaningful, non-duplicate pickups per wave.
+// Fire is recoverably rare (guaranteed after a dry streak of stages), not absent.
+const LOOT_DROP_CHANCE=.26,LOOT_MAX_VISIBLE=2,LOOT_MAX_STAGE=4,LOOT_SPACING=48;
+const FIRE_DROP_CHANCE=.12,FIRE_DROP_COOLDOWN=24,FIRE_DROP_STAGE_GAP=2,FIRE_PITY_STAGES=3;
+let fireDropsThisWave=0,lastFireDropAt=-1e6,lastFireDropWave=0;
+let stageLootCount=0,recentLootKinds=[];
+function fireCanDrop(){
+ return fireDropsThisWave===0&&wave-lastFireDropWave>=FIRE_DROP_STAGE_GAP&&
+   clock-lastFireDropAt>=FIRE_DROP_COOLDOWN&&!has('fire')&&
+   !items.some(item=>item.k==='fire');
+}
+function pickupLocation(x,y){
+ const offsets=[[0,0],[54,0],[-54,0],[0,-54],[0,54],[108,0],[-108,0],
+    [54,-54],[-54,-54],[54,54],[-54,54]];
+ for(const [dx,dy] of offsets){
+  const px=clamp(x+dx,40,410),py=clamp(y+dy,35,H-65);
+  if(items.every(item=>Math.abs(item.x-px)>=LOOT_SPACING||
+                              Math.abs(item.y-py)>=LOOT_SPACING))
+   return {x:px,y:py};
+ }
+ return null;
+}
 function drop(z){
  if(z.max<2&&!z.boss)return;
- if(!z.boss&&Math.random()>=.45)return;
- const chance=supportChance(),roll=Math.random();
- const normal=Object.keys(SKILLS).filter(k=>k!=='bazooka'&&k!=='fire');
- let k=roll<chance?'bazooka':normal[Math.min(normal.length-1,
-  Math.floor((roll-chance)/(1-chance)*normal.length))];
- if(k!=='bazooka'&&fireDropsThisWave===0&&clock-lastFireDropAt>=FIRE_DROP_COOLDOWN&&
-    !has('fire')&&!items.some(item=>item.k==='fire')&&Math.random()<FIRE_DROP_CHANCE){
-  k='fire';fireDropsThisWave++;lastFireDropAt=clock;
+ const boss=!!z.boss;
+ if(!boss&&stageLootCount>=LOOT_MAX_STAGE)return;
+ const fireReady=fireCanDrop(),
+       pity=fireReady&&wave>=3&&wave-lastFireDropWave>=FIRE_PITY_STAGES;
+ if(!boss&&!pity&&Math.random()>=LOOT_DROP_CHANCE)return;
+ // A boss prize replaces an old uncollected one rather than stacking icons.
+ if(items.length>=LOOT_MAX_VISIBLE){
+  if(!boss)return;
+  items.shift();
  }
- items.push({x:z.x+z.w/2,y:z.y+z.h/2,k,phase:Math.random()*6});
+ let k=null;
+ if(fireReady&&(pity||Math.random()<FIRE_DROP_CHANCE)){
+  k='fire';
+ }else if(supportAvailable()&&Math.random()<supportChance()){
+  k='bazooka';
+ }else{
+  const choices=Object.keys(SKILLS).filter(key=>key!=='fire'&&key!=='bazooka'&&
+    !has(key)&&!items.some(item=>item.k===key));
+  const fresh=choices.filter(key=>!recentLootKinds.includes(key));
+  const pool=fresh.length?fresh:choices;
+  if(!pool.length)return;
+  k=pool[Math.floor(Math.random()*pool.length)];
+ }
+ if(items.some(item=>item.k===k))return;
+ const pos=pickupLocation(z.x+z.w/2,z.y+z.h/2);
+ if(!pos)return;
+ items.push({...pos,k,phase:Math.random()*6});
+ stageLootCount++;
+ recentLootKinds.push(k);
+ if(recentLootKinds.length>2)recentLootKinds.shift();
+ if(k==='fire'){
+  fireDropsThisWave++;lastFireDropAt=clock;lastFireDropWave=wave;
+ }
  if(k==='bazooka')lastSupportAt=clock;
 }
 const RED_BARREL_RADIUS=86;
