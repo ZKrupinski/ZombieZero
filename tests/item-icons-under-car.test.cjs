@@ -2,6 +2,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const path='dist/assets/ip/item-icons-v37.png';
 const png=fs.readFileSync(path);
+assert(!fs.readFileSync('dist/game.js','utf8').includes("SKILLS[k].name+' · '+SKILLS[k].desc"),'item pickups no longer show description toasts');
 assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a','must use genuine PNG');
 assert.equal(png.readUInt32BE(16),1024,'8 transparent 128px icons, one row');
 assert.equal(png.readUInt32BE(20),128,'icon cells retain 128px master resolution');
@@ -62,6 +63,6 @@ check(drawCalls.length===8,'all eight equipped skill icons are supported');
 check(drawCalls.every(a=>a[5]>=0&&a[5]+a[7]<=450),'all icon-only statuses remain on-screen at left car edge');
 car=378;drawCalls.length=0;drawActiveItemIcons();
 check(drawCalls.every(a=>a[5]>=0&&a[5]+a[7]<=450),'all icons remain on-screen at right car edge');
-check(!fs.readFileSync('dist/game.js','utf8').includes("SKILLS[k].name+' · '+SKILLS[k].desc"),'pickup no longer prints item descriptions as toasts');
+check(skillUI()===undefined,'icon status render has no timer text cards');
 console.log('PASS: eight 128px voxel image icons incl golden bullet, no bottom timer panels, 17px car-follow badges with countdown arcs and edge safety');
 `,sandbox);
