@@ -49,7 +49,7 @@ a=composition(28);check(a.wood===1,'wooden crate remains a single cameo');
 a=composition(32);check(a.blackBarrel===1,'black barrel remains a single cameo');
 a=composition(35);check(a.yellow===3&&a.red===3&&a.black===3,'late-stage colored cast only 2–3 each');
 a=composition(50);check(a.barrel===2&&a.green>a.total*.58,'50th stage retains densely green formation');
-a=composition(51);check(a.yellow===3&&a.red===3&&a.black===3,'endless mode keeps stable cast balance');
+a=composition(51);check(a.yellow===3&&a.red===3&&a.black>=2&&a.black<=3,'endless mode respects boss-stage reduced slots');
 for(const stage of [1,4,6,9,16,24,35,50,80]){
  let previous=null;
  for(const roll of [.01,.23,.5,.79,.99]){
