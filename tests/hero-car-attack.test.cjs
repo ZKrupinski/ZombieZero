@@ -8,14 +8,14 @@ assert(png.includes(Buffer.from('tRNS')),'transparent sprite pixels, no opaque s
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const loader=fs.readFileSync('dist/assets/ip/hero-car-attack.js','utf8');
-assert(html.includes('src="assets/ip/hero-car-attack.js?v=38-clean-hero-sprite"')&&html.includes('src="game.js?v=39-falling-loot-glow"'),'loader included before game');
-assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=38-clean-hero-sprite"')<html.indexOf('src="game.js?v=39-falling-loot-glow"'),'load art first');
+assert(html.includes('src="assets/ip/hero-car-attack.js?v=40-aligned-heroes"')&&html.includes('src="game.js?v=40-voxel-heart-hud"'),'loader included before game');
+assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=40-aligned-heroes"')<html.indexOf('src="game.js?v=40-voxel-heart-hud"'),'load art first');
 assert(sw.includes('hero-car-attack.png')&&sw.includes('hero-car-attack.js'),'offline cache includes both assets');
 assert(loader.includes('atlas.naturalWidth===1536&&atlas.naturalHeight===576'),'reject incomplete atlas');
-assert(loader.includes("hero-car-attack.png?v=38-clean-hero-sprite"),'runtime bitmap must bypass old PWA/CDN cache');
-assert(html.includes('style.css?v=38-clean-hero-sprite')&&html.includes('app.js?v=37-tiny-items'),'fresh stylesheet and service worker bootstrap');
+assert(loader.includes("hero-car-attack.png?v=40-aligned-heroes"),'runtime bitmap must bypass old PWA/CDN cache');
+assert(html.includes('style.css?v=40-voxel-heart-hud')&&html.includes('app.js?v=40-voxel-heart-hud'),'fresh stylesheet and service worker bootstrap');
 assert(sw.includes('cache.match(new URL(u.pathname,u.origin))'),'offline use of versioned resource requests can fall back to unversioned pre-cache');
-assert(fs.readFileSync('dist/style.css','utf8').includes('hero-car-attack.png?v=38-clean-hero-sprite'),'portrait CSS must display the same current atlas');
+assert(fs.readFileSync('dist/style.css','utf8').includes('hero-car-attack.png?v=40-aligned-heroes'),'portrait CSS must display the same current atlas');
 const source=fs.readFileSync('dist/game.js','utf8'),noop=()=>{},els={},calls=[];
 const g=new Proxy({drawImage:(...args)=>calls.push(args)},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
 const el=id=>els[id]??={textContent:'',innerHTML:'',style:{},hidden:false,addEventListener:noop,
