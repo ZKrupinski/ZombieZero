@@ -58,5 +58,7 @@ assert(loader.includes("sourceView:'isometric',gameplayCompatible:false,gameplay
 assert(loader.includes('removeFloorShadow'),'gallery shadows removed at load');
 assert(game.includes('/* no baked character ground shadow'),'Canvas shadow is removed');
 assert(game.includes('enemyHead(z,f,p,skin,a)'),'procedural front-oriented fallback retained');
-for(const name of ['그린 좀비','드럼통 좀비 · 레드','일회용 포장 박스 좀비','빅 좀비','쓰레기통 좀비','생존자 소년','금발 소녀','빨간 안경 소녀'])assert(game.includes(name),name+' present in game');
+for(const name of ['그린 좀비','드럼통 좀비 · 레드','일회용 포장 박스 좀비','빅 좀비','쓰레기통 좀비'])assert(game.includes(name),name+' present in game');
+for(const name of ['생존자 소년','금발 소녀','빨간 안경 소녀'])assert(loader.includes(name),name+' preserved in original gallery');
+for(const name of ['에이스','루비','리암'])assert(game.includes("name:'"+name+"'"),name+' displayed as the playable character name');
 console.log('PASS: 13 canon gallery sprites, PNG integrity, camera gate, no baked shadows, PWA fallback');
