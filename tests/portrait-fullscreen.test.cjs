@@ -61,14 +61,13 @@ vm.runInContext(`
 }
 `,sandbox);
 portrait=false;dimensions.width=450;dimensions.height=710;sandbox.resizeCanvas();
-const gameplayAspectInvariant=()=>Math.abs((450/710)-(450/710))<1e-12;
 const html=fs.readFileSync('dist/index.html','utf8');
 const css=fs.readFileSync('dist/style.css','utf8');
 const app=fs.readFileSync('dist/app.js','utf8');
 assert(html.includes('id="options-dialog"')&&html.includes('id="options-toggle"'),'settings dialog exists');
 assert(css.includes('.portrait-play .stage')&&css.includes('height:100%!important'),'game canvas fills its fixed-aspect board');
 assert(css.includes('var(--board-offset-y,0px)')&&css.includes('var(--board-width,450px)'),'game board is contained and centered in fullscreen shell');
-assert(gameplayAspectInvariant());
+assert(Math.abs(elements.game.width/elements.game.height-450/710)<.002,'backing canvas also preserves fixed aspect');
 assert(app.includes("root.classList.toggle('portrait-play',portrait)"),'portrait mode chosen from usable viewport');
 assert(!app.includes('room*450/710);root.style.setProperty('),'old hardcoded header deduction removed for portrait');
 console.log('PASS: screenshot-ratio portrait and foldable contain-fit stage, fixed 450×710 physics, stable ball/boss/citizen coordinates');
