@@ -8,12 +8,12 @@ assert(png.includes(Buffer.from('tRNS')),'transparent sprite pixels, no opaque s
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const loader=fs.readFileSync('dist/assets/ip/hero-car-attack.js','utf8');
-assert(html.includes('src="assets/ip/hero-car-attack.js?v=29-hero-70"')&&html.includes('src="game.js?v=32-fixed-stage"'),'loader included before game');
-assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=29-hero-70"')<html.indexOf('src="game.js?v=32-fixed-stage"'),'load art first');
+assert(html.includes('src="assets/ip/hero-car-attack.js?v=29-hero-70"')&&html.includes('src="game.js?v=33-cube-combo"'),'loader included before game');
+assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=29-hero-70"')<html.indexOf('src="game.js?v=33-cube-combo"'),'load art first');
 assert(sw.includes('hero-car-attack.png')&&sw.includes('hero-car-attack.js'),'offline cache includes both assets');
 assert(loader.includes('atlas.naturalWidth===1536&&atlas.naturalHeight===576'),'reject incomplete atlas');
 assert(loader.includes("hero-car-attack.png?v=29-hero-70"),'runtime bitmap must bypass old PWA/CDN cache');
-assert(html.includes('style.css?v=32-fixed-stage')&&html.includes('app.js?v=32-fixed-stage'),'fresh stylesheet and service worker bootstrap');
+assert(html.includes('style.css?v=33-cube-combo')&&html.includes('app.js?v=33-cube-combo'),'fresh stylesheet and service worker bootstrap');
 assert(sw.includes('cache.match(new URL(u.pathname,u.origin))'),'offline use of versioned resource requests can fall back to unversioned pre-cache');
 assert(fs.readFileSync('dist/style.css','utf8').includes('hero-car-attack.png?v=29-hero-70'),'portrait CSS must display the same current atlas');
 const source=fs.readFileSync('dist/game.js','utf8'),noop=()=>{},els={},calls=[];
