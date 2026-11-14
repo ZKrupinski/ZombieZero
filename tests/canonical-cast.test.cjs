@@ -45,7 +45,7 @@ assert(finished&&hasTransparency&&off===png.length,'complete transparent atlas')
 for(const s of parts){
  assert(html.includes('src="assets/ip/'+s+'"'),s+' is on page');
  assert(sw.includes('./assets/ip/'+s),s+' is precached');
- assert(html.indexOf('src="assets/ip/'+s+'"')<html.indexOf('src="game.js?v=33-cube-combo"'),'art loads before game');
+ assert(html.indexOf('src="assets/ip/'+s+'"')<html.indexOf('src="game.js?v=34-compact-combo"'),'art loads before game');
 }
 assert(game.includes('cast.bossIndex[z.bossForm??0]'),'boss art mapping');
 assert(game.includes('cast.enemyIndex[z.form??0]'),'regular art mapping');
