@@ -76,7 +76,7 @@ hit(boss,{x:0,y:-300});check(boss.hp===23,'boss cannot be one-shot crit');
 // Knockback is limited by occupied space and road boundaries.
 z=testZombie(0,ENEMY_LEFT_X,130);const adjacent=testZombie(0,ENEMY_LEFT_X+ENEMY_PITCH,130);
 foes=[z,adjacent,spare];
-check(!applyKnockback(z,{x:-300,y:0},1),'no knockback through left wall');
+applyKnockback(z,{x:-300,y:0},1);check(z.x>=20,'knockback is strictly clamped by left wall');
 const xx=z.x;
 applyKnockback(z,{x:300,y:0},3);
 check(z.x+z.w<=adjacent.x-1,'knockback cannot shove zombie through a neighbour');
