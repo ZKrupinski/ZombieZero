@@ -1305,10 +1305,9 @@ function citizenSpriteFrame(p,cheering){
 function drawCitizenBitmap(p,x,y,cheering){
  const frame=citizenSpriteFrame(p,cheering);
  if(!frame||!frame.atlas)return false;
- // 18 citizens have 23.4px center spacing. Keep sprites narrower than that
- // spacing (with ~1px visual allowance) and align their feet with the
- // existing 20x34px collision boxes, rather than stacking large heads.
- const tile=128,width=23,height=34;
+ // Restore v41's approved, expressive citizen size. Mild overlap is
+ // intentional in the packed audience; keep foot anchor and all hitboxes.
+ const tile=128,width=35,height=46;
  g.drawImage(frame.atlas,frame.identity*tile,frame.frame*tile,tile,tile,
              x-width/2,y-height+21,width,height);
  return true;
