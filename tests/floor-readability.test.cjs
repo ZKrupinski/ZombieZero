@@ -1,9 +1,9 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const src=fs.readFileSync('dist/game.js','utf8');
-const a=src.indexOf("function background(){");
-const b=src.indexOf("function player(){",a);
-assert(a>=0&&b>a,'current scene draws roadway in background()');
+const a=src.indexOf("function proceduralBackground(){");
+const b=src.indexOf("const STAGE_ART_COUNT=8;",a);
+assert(a>=0&&b>a,'neutral three-palette road remains available when a painted bitmap is missing');
 const bg=src.slice(a,b);
 const p=bg.match(/const palette=([\s\S]*?)\]\[\(wave-1\)%3\];/);
 assert(p,'three rotating road palettes');
@@ -28,4 +28,4 @@ assert(bg.includes("for(let i=0;i<16;i++)"),'less road sparkle noise');
 assert(bg.includes("g.globalAlpha=.10"),'animated lane markings softer than before');
 assert(!bg.includes("#5cd9de")&&!bg.includes("#e791e9"),'saturated previous palette removed');
 assert(!bg.includes("#131d38")&&!bg.includes("#261a38"),'no near-black saturated original road');
-console.log('PASS: medium-dark low-chroma three-stage road palettes, subtle tiles/cracks for bright combat FX');
+console.log('PASS: legacy neutral road fallback remains readable when an image is not loaded');
