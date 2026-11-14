@@ -261,3 +261,41 @@ html.landscape-game,html.landscape-game body{
 }
 .landscape-game .empty-skills{display:none!important}
 .landscape-game .overlay{inset:0;padding:48px 12px 36px!important;overflow:auto}
+
+
+/* High-resolution 192px authored PNG frames: 96px preview per character. */
+.hero-card .hero-vehicle-portrait{
+ display:block;flex:none;width:96px;height:96px;
+ background-image:url('assets/ip/hero-car-attack.png');
+ background-repeat:no-repeat;background-size:768px 288px;
+ image-rendering:auto;overflow:hidden;
+}
+.hero-card .hero-vehicle-portrait.row-0{background-position:0 0}
+.hero-card .hero-vehicle-portrait.row-1{background-position:0 -96px}
+.hero-card .hero-vehicle-portrait.row-2{background-position:0 -192px}
+.hero-card[aria-pressed="true"] .hero-vehicle-portrait{
+ animation:zz-hero-car-preview 2.4s steps(8,end) infinite;
+}
+@keyframes zz-hero-car-preview{
+ 0%,26%{background-position-x:0}
+ 57%{background-position-x:-768px}
+ 57.01%,100%{background-position-x:0}
+}
+@media(max-width:500px){
+ .hero-card .hero-vehicle-portrait{
+  width:78px;height:78px;background-size:624px 234px;
+ }
+ .hero-card .hero-vehicle-portrait.row-1{background-position-y:-78px}
+ .hero-card .hero-vehicle-portrait.row-2{background-position-y:-156px}
+ .hero-card[aria-pressed="true"] .hero-vehicle-portrait{
+  animation-name:zz-hero-car-preview-mobile;
+ }
+ @keyframes zz-hero-car-preview-mobile{
+  0%,26%{background-position-x:0}
+  57%{background-position-x:-624px}
+  57.01%,100%{background-position-x:0}
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .hero-card[aria-pressed="true"] .hero-vehicle-portrait{animation:none}
+}
