@@ -20,8 +20,10 @@ The original eight (`bg-01.webp` through `bg-08.webp`) are unchanged.
 
 ## Asset integration status
 
-The 10 original landscape source illustrations have been converted into 10 portrait WebP bitmaps (900×1420); these are currently provided as a separate ZIP in the ChatGPT conversation. **Those binary assets are not committed on this branch yet.** Do not merge or deploy this branch as a completed art integration until `bg-09.webp` .. `bg-18.webp` are uploaded under `dist/assets/stages/`.
+All 10 900×1420 portrait WebP image payloads are now committed in the branch, stored as reversible plain-text base64 at `dist/assets/stages/bg-09.webp.b64` through `bg-18.webp.b64`. The game loader fetches each file and creates a native WebP image from the `data:image/webp;base64,` URL; there is no image re-encoding or vector substitution at runtime. The original eight `.webp` files remain unchanged.
 
-The existing stage code has safe fallback behavior when images are missing, but new visuals cannot appear until the binaries are present. Once the assets have been committed, add the 10 files to the `FILES` precache array in `dist/sw.js` before release and run `node tools/test.cjs`.
+Each of the 10 new base64 files was read back from GitHub and verified against the expected byte count and RIFF WebP signature. `dist/sw.js` precaches all 18 scene files, including new base64 payloads.
 
-Gameplay logic and collision coordinates remain unchanged.
+A separate user-facing ZIP containing conventional `bg-09.webp` through `bg-18.webp` assets and the 16:9 source illustrations is also provided in the ChatGPT conversation.
+
+This approach preserves the pixel art exactly, despite the currently available GitHub connector not accepting binary uploads directly. Gameplay logic, damage, HP, collisions, balls, citizens, and difficulty remain unchanged.
