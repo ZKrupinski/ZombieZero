@@ -23,9 +23,33 @@ function fit(){
  root.style.setProperty('--app-height',height+'px');
  root.style.setProperty('--board-width',width+'px');
  root.style.setProperty('--board-height',height+'px');
+ // HUD measurements use one stable 450-unit coordinate system. Phone width
+ // changes only the uniform scale, never the position or number of HUD cells.
+ const boardWidth=portrait?width:Math.min(width,height*450/710);
+ root.style.setProperty('--ui-scale',String(Math.max(.55,Math.min(1.3,boardWidth/450))));
  resizeCanvas();
 }
 function updateLabels(){button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':'⛶ 전체화면';button('install').textContent=standalone()?'✓ 설치 실행 중':'↓ 앱 설치'}
+
+ // Native mobile fullscreen requires a real user gesture. The game-start
+ // button supplies that gesture; never try to request fullscreen on load.
+ // Unsupported WebViews / iOS Safari keep the existing immersive CSS layout.
+ const mobileDevice=()=>navigator.maxTouchPoints>0||
+   /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
+ function enterMobileFullscreen(){
+  if(!mobileDevice()||document.fullscreenElement||standalone())return;
+  const fn=root.requestFullscreen||root.webkitRequestFullscreen;
+  if(typeof fn!=='function')return;
+  try{
+   const result=fn.call(root,{navigationUI:'hide'});
+   result?.catch?.(()=>{}); // permission/platform refusal is nonfatal
+  }catch{
+   try{const fallback=fn.call(root);fallback?.catch?.(()=>{})}catch{}
+  }
+ }
+ for(const id of ['start','endless'])
+  button(id)?.addEventListener('click',enterMobileFullscreen,{capture:true});
+
 button('fullscreen').onclick=async()=>{try{if(document.fullscreenElement){await document.exitFullscreen()}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen({navigationUI:'hide'})}else{inform('주소창 없이 플레이','이 브라우저에서는 전체화면 버튼을 지원하지 않습니다. Safari는 공유 → 홈 화면에 추가, Android Chrome은 메뉴 → 앱 설치 또는 홈 화면에 추가를 사용해 주세요.')}}catch{inform('전체화면 실행 안내','현재 브라우저에서 전체화면 요청이 허용되지 않았습니다. Chrome 또는 Safari에서 이 링크를 직접 열고, 홈 화면에 추가한 아이콘으로 실행해 주세요.')}fit();updateLabels()};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;button('install').textContent='↓ 앱 설치'});
 window.addEventListener('appinstalled',()=>{installPrompt=null;button('install').textContent='✓ 설치됨'});
