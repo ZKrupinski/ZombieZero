@@ -5,16 +5,19 @@ const root={style:{setProperty:(k,v)=>vars[k]=parseFloat(v)},classList:{toggle:(
 const stage={},main={},bar=el('bar'),machine={children:[stage,...[62,34,34,0,18,28].map(h=>({getBoundingClientRect:()=>({height:h})}))]};let resumed=0;
 const s={console,mode:'playing',pause:()=>s.mode=s.mode==='paused'?'playing':'paused',resizeCanvas:()=>resumed++,getComputedStyle:()=>({paddingTop:'0',paddingBottom:'0'}),requestAnimationFrame:fn=>fn(),navigator:{userAgent:'Android',platform:'Linux',maxTouchPoints:1},window:{innerWidth:390,innerHeight:800,matchMedia:q=>({matches:q==='(pointer: coarse)'}),visualViewport:{height:800,width:390,addEventListener(){}},addEventListener:(k,f)=>listeners[k]=f},document:{documentElement:root,fullscreenElement:null,getElementById:el,querySelector:q=>({'main':main,'.machine':machine,'.stage':stage,'.app-bar':bar,'.guide':el('guide')})[q],addEventListener:(k,f)=>listeners[k]=f}};
 vm.createContext(s);vm.runInContext(fs.readFileSync('dist/app.js','utf8'),s);
-for(const [width,height] of [[390,800],[360,640],[412,915],[660,720],[720,720],[844,390]]){
+for(const [width,height] of [[390,800],[360,640],[412,915],[660,720],[720,720],[844,390],[658,1536],[1182,1344]]){
  s.window.innerWidth=width;s.window.innerHeight=height;
  s.window.visualViewport.width=width;s.window.visualViewport.height=height;
  listeners.resize();
  assert(classes.has('compact-app'),'all modes hide bottom chrome');
- assert.equal(vars['--board-width'],width,'no width cap or side margin');
- assert.equal(vars['--board-height'],height,'viewport height never reserves footer buttons');
- const stableBoardWidth=height>=width?width:Math.min(width,height*450/710);
- assert.equal(vars['--ui-scale'],Math.max(.55,Math.min(1.3,stableBoardWidth/450)),
-   'all mobile HUD slots use one scale from the 450 logical-width baseline');
+ const scale=Math.min(width/450,height/710);
+ const boardWidth=450*scale,boardHeight=710*scale;
+ assert.equal(vars['--board-width'],boardWidth,'contain game board width at fixed 450:710 aspect');
+ assert.equal(vars['--board-height'],boardHeight,'contain board height prevents ultra-long and squashed games');
+ assert.equal(vars['--board-offset-x'],(width-boardWidth)/2,'symmetric left/right letterboxing');
+ assert.equal(vars['--board-offset-y'],(height-boardHeight)/2,'symmetric top/bottom letterboxing');
+ assert.equal(vars['--ui-scale'],scale,'HUD and game canvas share one uniform scale');
+ assert(Math.abs(boardWidth/boardHeight-450/710)<1e-10,'game aspect ratio is invariant');
  assert.equal(classes.has('portrait-play'),height>=width,'square and portrait are full-bleed');
  assert.equal(classes.has('landscape-game'),height<width,'landscape preserves sprite aspect');
 }
