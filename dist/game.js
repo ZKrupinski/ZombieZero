@@ -651,14 +651,14 @@ if(has('slow')){g.strokeStyle='#86f2e050';g.strokeRect(24,22,402,DEFENSE_Y-30)}
 function player(){
  const sprite=window.ZZHeroCarAttack;
  if(sprite&&sprite.ready&&sprite.image){
-  // 80% of the original onscreen car/hero size. Re-center on the OLD 154px
+  // 90% of the original onscreen car/hero size. Re-center on the OLD 154px
   // rectangle's midpoint rather than anchoring its bottom; the raised
   // bounce line now runs through the seated hero's weapon-hand height.
   // Physics width and the forgiving car body emergency save stay unchanged.
   const t=heroAttackTime>0?1-heroAttackTime/HERO_ATTACK_DURATION:0;
   const order=[2,3,4,5,6,7,0];
   const n=heroAttackTime>0?order[Math.min(order.length-1,Math.floor(t*order.length))]:0;
-  const w=123,h=123; // 154×154 → 123×123 (80%); preserve the 192px master atlas
+  const w=139,h=139; // 154×154 → 139×139 (90%); preserve the 192px master atlas
   const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
