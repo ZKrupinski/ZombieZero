@@ -156,7 +156,8 @@ function stageRosterLabel(stage){
 // Character durability is independent from palette/tier; green survives
 // several normal hits and featured variants endure longer without boss HP.
 function zombieHP(form,kind=0,stage=wave){
- const base=3+(stage>=20?1:0)+(stage>=38?1:0);
+ // Opening two stages use low durability before the full progression starts.
+ const base=(stage<=2?2:3)+(stage>=20?1:0)+(stage>=38?1:0);
  const tier=Math.floor(kind/2);
  const bonus=[0,2,3,3,2,2,4,2][form??0]??0;
  return base+tier+bonus;
@@ -184,8 +185,8 @@ function setStageForms(regulars,stage){
  for(const z of regulars)z.hp=z.max=zombieHP(z.form,z.kind,stage);
 }
 function rack(){
- foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;
- const rows=Math.min(4,Math.max(2,Math.min(
+ foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;supportDropsThisWave=0;
+ const rows=wave===1&&runMode==='campaign'?2:Math.min(4,Math.max(2,Math.min(
   Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
   Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
  )));
@@ -354,11 +355,11 @@ function multiCount(){return (has('dual')?2:1)*(has('triple')?3:1)}
 function syncMulti(){if(!balls.length||balls[0].held)return;const n=multiCount(),src=balls[0];while(balls.length<n){const angles=[-1.1,...balls.map(b=>clamp(Math.atan2(b.vx,Math.abs(b.vy)),-1.1,1.1)),1.1].sort((a,b)=>a-b);let gap=0,a=0;for(let i=1;i<angles.length;i++)if(angles[i]-angles[i-1]>gap){gap=angles[i]-angles[i-1];a=(angles[i]+angles[i-1])/2}const sp=Math.max(350,Math.hypot(src.vx,src.vy));balls.push(newBall(src.x,src.y,Math.sin(a)*sp,-Math.cos(a)*sp,false))}if(balls.length>n)balls=balls.slice(0,n);hud()}
 function activate(k){active[k]=SKILLS[k].duration*hero().duration;if(k==='dual'||k==='triple'){syncMulti()}if(k==='bazooka'){bazookaTimer=0;lastSupportAt=clock}sfx('item');effect(car,PY-20,SKILLS[k].color,95,SKILLS[k].name);burst(car,PY,SKILLS[k].color,22);toast(k==='bazooka'&&!citizens.some(p=>p.alive)?'시민 바주카 · 복귀할 시민을 기다리는 중':SKILLS[k].name+' · '+SKILLS[k].desc);hud()}
 // Support is rare while safe, weighted toward danger, and rate-limited per run.
-let lastSupportAt=-60,supportDangerTime=0;
+let lastSupportAt=-60,supportDangerTime=0,supportDropsThisWave=0;
 function supportRisk(){if(!foes.length)return 0;const bottom=Math.max(...foes.map(z=>z.y+z.h)),alive=citizens.filter(p=>p.alive).length;return bottom>=475||(bottom>=380&&(lives===1||alive<=5))?2:bottom>=390||lives===1||alive<=8?1:0}
-function supportAvailable(){return citizens.some(p=>p.alive)&&clock-lastSupportAt>=45&&!has('bazooka')&&!items.some(i=>i.k==='bazooka')&&!rockets.length}
+function supportAvailable(){return wave>=3&&supportDropsThisWave<1&&citizens.some(p=>p.alive)&&clock-lastSupportAt>=45&&!has('bazooka')&&!items.some(i=>i.k==='bazooka')&&!rockets.length}
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
-function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3||items.length>=LOOT_MAX_VISIBLE)return;const pos=pickupLocation(car,PY-119);if(!pos)return;items.push({...pos,k:'bazooka',phase:0});lastSupportAt=clock;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
+function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3||items.length>=LOOT_MAX_VISIBLE)return;const pos=pickupLocation(car,PY-119);if(!pos)return;items.push({...pos,k:'bazooka',phase:0});lastSupportAt=clock;supportDropsThisWave++;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
 // Controlled loot: a few meaningful, non-duplicate pickups per wave.
 // Fire is recoverably rare (guaranteed after a dry streak of stages), not absent.
 const LOOT_DROP_CHANCE=.19,LOOT_MAX_VISIBLE=2,LOOT_MAX_STAGE=3,LOOT_SPACING=72;
@@ -419,7 +420,7 @@ function drop(z){
  if(k==='fire'){
   fireDropsThisWave++;lastFireDropAt=clock;lastFireDropWave=wave;
  }
- if(k==='bazooka')lastSupportAt=clock;
+ if(k==='bazooka'){lastSupportAt=clock;supportDropsThisWave++}
 }
 const RED_BARREL_RADIUS=86;
 function explodeRedBarrel(z){
@@ -445,7 +446,16 @@ function criticalEligible(z){return !z.boss&&Number.isInteger(z.form)&&z.hp>=z.m
 // Push a small chain of zombies when a hit has room to travel. Compute all
 // destinations first, so no zombie moves if a wall, boss or crowded rank blocks
 // the chain. This keeps collision rectangles separate and prevents phantom hits.
-const KNOCK_CHAIN_LIMIT=8,KNOCK_TRAIL_LIFE=.32;
+const KNOCK_CHAIN_LIMIT=8,KNOCK_TRAIL_LIFE=.32,KNOCK_TWEEN_LIFE=.20;
+// Safe collider destinations are committed immediately; the animated sprite
+// travels there over ~12 frames rather than visibly teleporting in one frame.
+function knockVisualPosition(z){
+ if(!(z.knockTime>0)||!Number.isFinite(z.knockFromX))return z;
+ const t=clamp((KNOCK_TRAIL_LIFE-z.knockTime)/KNOCK_TWEEN_LIFE,0,1);
+ const ease=1-Math.pow(1-t,3);
+ return {...z,x:z.knockFromX+(z.x-z.knockFromX)*ease,
+              y:z.knockFromY+(z.y-z.knockFromY)*ease};
+}
 function zombieBoxesOverlap(a,pa,b,pb,gap=.5){
  return pa.x<pb.x+b.w+gap&&pa.x+a.w+gap>pb.x&&
         pa.y<pb.y+b.h+gap&&pa.y+a.h+gap>pb.y;
@@ -501,15 +511,18 @@ function applyKnockback(z,impact,n=1){
    }
   if(!valid)continue;
   for(const [actor,pos] of plans){
-   const beforeX=actor.x,beforeY=actor.y;
+   // Repeated hits restart from the current rendered position, not a
+   // previous distant collider destination.
+   const before=knockVisualPosition(actor);
+   const beforeX=before.x,beforeY=before.y; // snapshot values before actor mutates
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockTime=KNOCK_TRAIL_LIFE;actor.knockChain=actor!==z;
    if(actor!==z){
     actor.flinch=Math.max(actor.flinch||0,.32);
     actor.recoil=Math.max(actor.recoil||0,.2);
-    hitFlashes.push({x:actor.x+actor.w/2,y:actor.y+actor.h/2,t:0,life:.16,critical:false});
-    burst(actor.x+actor.w/2,actor.y+actor.h/2,'#d2ffdc',4);
+    hitFlashes.push({x:beforeX+actor.w/2,y:beforeY+actor.h/2,t:0,life:.16,critical:false});
+    burst(beforeX+actor.w/2,beforeY+actor.h/2,'#d2ffdc',4);
    }
    // Active diagonal animation must not snap the pushed zombie back
    // onto its old target column or teleport through an ally.
@@ -537,11 +550,12 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false){
   haptic(critical?[25,18,25]:z.boss?20:16);
   if(z.hp>0)applyKnockback(z,impact,amount);
  }
- effect(z.x+z.w/2,z.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
+ const hitPosition=knockVisualPosition(z);
+ effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount);
  score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;
- burst(z.x+z.w/2,z.y+z.h/2,burning?'#ff985f':critical?'#fff6be':TYPES[z.kind].color,
+ burst(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ff985f':critical?'#fff6be':TYPES[z.kind].color,
   z.boss?20:burning?3:12);
  if(!burning&&amount>=2&&!z.boss)sfx('powerhit');
  if(!burning&&z.hp>0){
@@ -802,7 +816,8 @@ function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.stro
 // Fire stays attached to each burning enemy and sits on top of its sprite.
 function drawBurningOverlays(){
  if(!fxEnabled)return;
- luminous(()=>{for(const z of foes){
+ luminous(()=>{for(const actor of foes){
+  const z=knockVisualPosition(actor);
   if(!(z.burn>0))continue;
   const cx=z.x+z.w/2,base=z.y+z.h-3,t=clock*11+(z.seed||0),
         flicker=.86+.14*Math.sin(t),height=z.boss?48:28;
@@ -875,10 +890,11 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   zombie({...z,x:z.knockFromX,y:z.knockFromY,flash:0,burn:0,knockTime:0});
   g.globalAlpha=.7*fade;g.strokeStyle=z.knockChain?'#b9ffe2':'#fff2bb';
   g.lineWidth=z.knockChain?3:4;g.lineCap='round';
+  const visible=knockVisualPosition(z);
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
-  g.lineTo(z.x+z.w/2,z.y+z.h/2);g.stroke();g.restore();
+  g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)zombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);if(item.k==='fire'){g.shadowColor='#ff6d24';g.shadowBlur=18}rect(-19,-19,38,38,'#142b29');g.shadowBlur=0;g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
+ for(const z of foes)zombie(knockVisualPosition(z));drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);if(item.k==='fire'){g.shadowColor='#ff6d24';g.shadowBlur=18}rect(-19,-19,38,38,'#142b29');g.shadowBlur=0;g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
 drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();

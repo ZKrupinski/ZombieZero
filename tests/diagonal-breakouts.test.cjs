@@ -23,7 +23,7 @@ function check(v,m){if(!v)throw Error(m)}
 {
  // Deterministic eligibility/choice. A normal wave has no diagonal anim.
  Math.random=()=>.5;
- start();serve();wave=1;rack();
+ start();serve();wave=2;rack();
  check(waveInitialRegulars===27,'initial density denominator');
  check(foes.every(z=>z.moveDir===undefined),'zombies initially face front');
  clock=breakoutNextCheck+1;

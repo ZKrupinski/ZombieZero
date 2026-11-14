@@ -22,7 +22,7 @@ vm.runInContext(src+`
 function check(v,msg){if(!v)throw Error(msg)}
 Math.random=()=>.5;
 start();serve();
-check(zombieHP(0,0,1)===3,'initial green requires three standard hits');
+check(zombieHP(0,0,1)===2&&zombieHP(0,0,2)===2&&zombieHP(0,0,3)===3,'two-hit onboarding then three-hit stage 3');
 check(zombieHP(0,0,24)>=4,'later stage greens require more hits');
 check(zombieHP(0,0,40)>=5,'late green durability');
 for(let f=1;f<8;f++){
@@ -36,12 +36,12 @@ for(const stage of [1,6,9,18,24,40,50]){
   check(z.hp===z.max&&z.max===zombieHP(z.form,z.kind,stage),'rack assigns correct form-specific HP');
  }
 }
-function testZombie(form=0,x=180,y=150,hp=zombieHP(form,0,1)){
+function testZombie(form=0,x=180,y=150,hp=zombieHP(form,0,3)){
  return{x,y,w:33,h:44,hp,max:hp,form,kind:0,seed:1.2,
   flash:0,burn:0,burnTick:0,spreadTick:0};
 }
 const spare=testZombie(0,360,180,99);
-wave=1;mode='playing';clearSkills();selectedHero=0;
+wave=3;mode='playing';clearSkills();selectedHero=0;
 let z=testZombie(0),oldX=z.x,oldY=z.y;
 foes=[z,spare];Math.random=()=>.99;
 hit(z,{x:280,y:-200});

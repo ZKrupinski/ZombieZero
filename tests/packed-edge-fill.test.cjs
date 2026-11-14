@@ -34,7 +34,7 @@ function check(cond,msg){if(!cond)throw Error(msg)}
  start();serve();
  for(const stage of [1,2,3,4,6,20,50]){
   wave=stage;rack();
-  const rows=Math.min(4,Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))),boss=wave%3===0;
+  const rows=wave===1?2:Math.min(4,Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))),boss=wave%3===0;
   const count=rows*9-(boss?6:0)+(boss?1:0);
   check(foes.length===count,'near-original difficulty at stage '+stage);
   check(foes.every(z=>z.row>=0||z.boss),'every spawned enemy has a row');
