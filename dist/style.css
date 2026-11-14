@@ -741,3 +741,10 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
 @media(prefers-reduced-motion:reduce){
  .zz-combo-overlay .zz-combo-emblem{animation:none!important}
 }
+
+
+/* v37: The previous full-width powerup duration tray is removed. All active
+   statuses are 17px transparent voxel bitmaps drawn at Y=649 immediately
+   beneath the moving car, with small progress rings (no number/text boxes). */
+.skill-tray,.empty-skills{display:none!important}
+#skills[hidden]{display:none!important}
