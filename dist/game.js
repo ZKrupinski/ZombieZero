@@ -520,8 +520,8 @@ function applyKnockback(z,impact,n=1){
    if(actor!==z){
     actor.flinch=Math.max(actor.flinch||0,.32);
     actor.recoil=Math.max(actor.recoil||0,.2);
-    hitFlashes.push({x:actor.x+actor.w/2,y:actor.y+actor.h/2,t:0,life:.16,critical:false});
-    burst(actor.x+actor.w/2,actor.y+actor.h/2,'#d2ffdc',4);
+    hitFlashes.push({x:before.x+actor.w/2,y:before.y+actor.h/2,t:0,life:.16,critical:false});
+    burst(before.x+actor.w/2,before.y+actor.h/2,'#d2ffdc',4);
    }
    // Active diagonal animation must not snap the pushed zombie back
    // onto its old target column or teleport through an ally.
@@ -549,11 +549,12 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false){
   haptic(critical?[25,18,25]:z.boss?20:16);
   if(z.hp>0)applyKnockback(z,impact,amount);
  }
- effect(z.x+z.w/2,z.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
+ const hitPosition=knockVisualPosition(z);
+ effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount);
  score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;
- burst(z.x+z.w/2,z.y+z.h/2,burning?'#ff985f':critical?'#fff6be':TYPES[z.kind].color,
+ burst(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ff985f':critical?'#fff6be':TYPES[z.kind].color,
   z.boss?20:burning?3:12);
  if(!burning&&amount>=2&&!z.boss)sfx('powerhit');
  if(!burning&&z.hp>0){
