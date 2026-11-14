@@ -1,14 +1,20 @@
 'use strict';
-// Screenshot regression: the v41 crowd had 35px citizens on 23.4px centers
-// and a bloom-affected platform line at face height H-51.
+// Screenshot regression: v41 had 35px citizens on 23.4px centers, and
+// the SHIELD pickup's H-35 luminous beam crossed their faces.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('dist/game.js','utf8');
-assert(source.includes("rect(20,H-6,410,2,'#213139')"),
- 'subtle platform trim sits at the feet, not eye height');
-assert(source.includes("rect(20,H-4,410,2,'#14252e')"),
- 'dark secondary trim sits beneath the crowd');
-assert(!source.includes("rect(20,H-51,410,4,'#7189a2')"),
- 'remove luminous bar through all 18 citizens');
+assert(source.includes("rect(20,H-51,410,4,'#7189a2')"),
+ 'restore original rear platform trim, which was not the glowing beam');
+assert(source.includes("rect(20,H-47,410,3,'#182d40')"),
+ 'retain original dark back rail');
+assert(source.includes('const SHIELD_LINE_Y=H-58;'),
+ 'the actual shield beam should move 23px up, clear of citizen heads');
+assert(source.includes('rect(21,SHIELD_LINE_Y,408,3'),
+ 'draw the shield at the new height');
+assert(source.includes('b.y+radius>=SHIELD_LINE_Y'),
+ 'bounce collision must coincide with visible shield');
+assert(!source.includes('rect(21,H-35,408,4'),
+ 'no old face-height shield is drawn');
 assert(source.includes('const tile=128,width=23,height=34;'),
  'citizen display art must fit 23.4px centers and 34px collider height');
 const noop=()=>{},elements={},draws=[],rects=[];
@@ -54,8 +60,25 @@ for(let i=0;i<crowd.length;i++){
  }
 }
 const longStripes=rects.filter(a=>a[2]>=400);
-check(longStripes.length===2,'only two quiet platform/foot strip rectangles');
-check(longStripes.every(a=>a[1]>=H-6),'no stripe crosses the citizens faces');
+check(longStripes.length===2,'the two original platform stripes remain');
+check(longStripes[0][1]===H-51&&longStripes[1][1]===H-47,
+ 'dark platform trim sits behind and above the citizen sprite heads');
 check(citizens.every(p=>p.alive),'pure drawing does not affect any defensive citizen');
-console.log('PASS: 18 distinct citizens without body overlap; bottom-aligned colliders; no luminous face-height rail');
+// The shield is a skill, not a platform decoration. The graphics, spark and
+// physics all use exactly the same new Y while the civilian colliders stay.
+const lowestHead=Math.min(...citizens.map(p=>p.y-13));
+check(SHIELD_LINE_Y+3+10<lowestHead,
+ 'beam and its 10px bloom stay clear of the citizen heads');
+active.shield=18;mode='playing';balls=[newBall(60,SHIELD_LINE_Y-12,0,400,false)];
+update(.04);
+check(balls[0].vy<0&&balls[0].y+8<=SHIELD_LINE_Y,
+ 'shield still reflects a falling ball at the newly visible beam');
+check(citizens.every(p=>p.alive),
+ 'shield catches ball without sacrificing any citizen');
+rects.length=0;draw();
+check(rects.some(a=>a[0]===21&&a[1]===SHIELD_LINE_Y&&a[2]===408&&a[3]===3),
+ 'actual gameplay uses new raised visible shield line');
+check(!rects.some(a=>a[0]===21&&a[1]===H-35&&a[2]===408&&a[3]===4),
+ 'old eye-level beam never reappears');
+console.log('PASS: 18 distinct citizens, original crowd trim, shield beam above faces with matching real ball collision');
 `,sandbox);
