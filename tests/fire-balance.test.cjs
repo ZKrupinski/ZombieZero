@@ -21,9 +21,9 @@ const src=fs.readFileSync('dist/game.js','utf8');
 vm.runInContext(src+`
 function check(c,m){if(!c)throw Error(m)}
 start();serve();
-check(FIRE_DROP_CHANCE===.12&&FIRE_DROP_COOLDOWN===24,'fire visible but not continuous');
+check(FIRE_DROP_CHANCE===.20&&FIRE_DROP_COOLDOWN===24,'fire visible but not continuous');
 check(FIRE_DROP_STAGE_GAP===2&&FIRE_PITY_STAGES===3,'fire arrives by third eligible stage');
-check(LOOT_DROP_CHANCE===.26&&LOOT_MAX_VISIBLE===2&&LOOT_MAX_STAGE===4,
+check(LOOT_DROP_CHANCE===.19&&LOOT_MAX_VISIBLE===2&&LOOT_MAX_STAGE===3,
  'fewer simultaneous/total items');
 check(SKILLS.fire.duration===10,'fireball still shorter than previous 14s');
 check(FIRE_MAX_ACTIVE===5&&FIRE_SPREAD_DEPTH===1,'simultaneous and propagation depth capped');
