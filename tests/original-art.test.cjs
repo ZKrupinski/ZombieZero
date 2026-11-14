@@ -34,7 +34,7 @@ while(offset+12<=png.length){
 }
 assert(ended&&transparency,'transparent PNG is complete');
 assert.equal(offset,png.length,'no trailing PNG garbage');
-assert(html.includes('assets/ip/green-zombie.js')&&html.indexOf('assets/ip/green-zombie.js')<html.indexOf('src="game.js?v=40-voxel-heart-hud"'),'sprite loader precedes game');
+assert(html.includes('assets/ip/green-zombie.js')&&html.indexOf('assets/ip/green-zombie.js')<html.indexOf('src="game.js?v=41-voxel-citizens"'),'sprite loader precedes game');
 assert(sw.includes('assets/ip/green-zombie.js')&&sw.includes('shell-v21-visible-loot-chain-knock'),'asset cached in updated service worker');
 assert(!game.includes('g.drawImage(originalGreen,-3,-8,39,52)'),'legacy isometric green reference not drawn in gameplay');
 assert(!game.includes("rect(-3,39,40,5,'#0b132699')"),'procedural ground shadow removed');
