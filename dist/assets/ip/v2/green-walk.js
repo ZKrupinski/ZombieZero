@@ -6,7 +6,7 @@
  const image=new Image();
  image.decoding='async';
  const pack={
-   image,ready:false,failed:false,cell:128,
+   image,ready:false,failed:false,cell:128,variants:[image],
    groups:{down:[0,8],left:[8,8],right:[16,8],hurt:[24,2]},
    getFrame(z,t){
      if((z.recoil||0)>.015)return 24+Math.min(1,Math.floor(Math.max(0,.22-z.recoil)/.11));
@@ -27,6 +27,9 @@
    draw(ctx,z,t){
      if(!pack.ready)return false;
      const frame=pack.getFrame(z,t),rect=pack.sourceRect(frame);
+     const palette=window.ZZGreenPalette;
+     const selected=palette?.paletteFor(z)??0;
+     const bitmap=pack.variants[selected]||image;
      const walk=window.ZZSpriteGeometry?.green_zombie?.walkUnion||[0,0,128,128];
      // 66px tall mascot: its face and cube almost touch adjacent 46px lanes.
      const scale=66/walk[3];
@@ -34,13 +37,13 @@
      const y=z.y+z.h+2-rect[3]*scale;
      ctx.save();
      if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
-     ctx.drawImage(image,...rect,x,y,rect[2]*scale,rect[3]*scale);
+     ctx.drawImage(bitmap,...rect,x,y,rect[2]*scale,rect[3]*scale);
      ctx.restore();
      return true;
    }
  };
  window.ZZGreenWalk=pack;
- image.onload=()=>{pack.ready=image.naturalWidth===1024&&image.naturalHeight===512;pack.failed=!pack.ready};
+ image.onload=()=>{pack.ready=image.naturalWidth===1024&&image.naturalHeight===512;pack.failed=!pack.ready;if(pack.ready)pack.variants=window.ZZGreenPalette?.variants(image)||[image]};
  image.onerror=()=>{pack.failed=true;pack.ready=false};
  image.src='assets/ip/v2/green_zombie.png';
 })();
