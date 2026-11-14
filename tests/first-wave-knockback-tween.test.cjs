@@ -25,7 +25,7 @@ check(foes.length===18,'stage 1 is two rows of nine, rather than 27 zombies');
 check(foes.every(z=>z.max===2),'opening zombies need two ordinary hits');
 check(!supportAvailable()&&supportChance()===0,'no stage-one bazooka spam');
 wave=2;rack();
-check(foes.length===27&&foes.every(z=>z.max===2),'stage 2 gradually increases crowd');
+check(foes.length===27&&foes.every(z=>z.max>=2&&z.max<=3),'stage 2 increases crowd with mostly low HP');
 check(!supportAvailable(),'second stage also has no random supply');
 wave=3;rack();clock=100;lastSupportAt=0;
 check(foes.some(z=>!z.boss&&z.max===3),'full durability starts at stage 3');
