@@ -25,6 +25,8 @@ assert(css.includes('.portrait-play .arcade-tools'),'bottom audio/FX row removed
 assert(css.includes('.landscape-game .encounter'),'bottom stage banner removed');
 assert(css.includes('.portrait-play .encounter'),'bottom stage banner removed in portrait');
 assert(css.includes('.landscape-game .hud'),'landscape options and pause float on game');
-assert(game.includes('clamp(Math.round(W*heightCss/widthCss),450,1600)'),'game uses true viewport ratio for square folded phones');
+assert(game.includes('const targetH=710;'),'all screen shapes preserve one 450x710 game world');
+assert(app.includes('const scale=Math.min(width/450,height/710)'),'responsive board is contained uniformly without extending playfield');
+assert(css.includes('var(--board-offset-y,0px)'),'extra tall/large screen area becomes letterbox background');
 assert(game.includes('Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1'),'shorter near-square world avoids spawning zombies behind defense');
-console.log('PASS: full-width square/portrait canvas, zero bottom UI strips, actual options and responsive world geometry');
+console.log('PASS: fullscreen letterbox shell, fixed-aspect stage, zero bottom chrome, stable options and physics');
