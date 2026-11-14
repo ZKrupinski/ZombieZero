@@ -12,6 +12,9 @@ for(const [width,height] of [[390,800],[360,640],[412,915],[660,720],[720,720],[
  assert(classes.has('compact-app'),'all modes hide bottom chrome');
  assert.equal(vars['--board-width'],width,'no width cap or side margin');
  assert.equal(vars['--board-height'],height,'viewport height never reserves footer buttons');
+ const stableBoardWidth=height>=width?width:Math.min(width,height*450/710);
+ assert.equal(vars['--ui-scale'],Math.max(.55,Math.min(1.3,stableBoardWidth/450)),
+   'all mobile HUD slots use one scale from the 450 logical-width baseline');
  assert.equal(classes.has('portrait-play'),height>=width,'square and portrait are full-bleed');
  assert.equal(classes.has('landscape-game'),height<width,'landscape preserves sprite aspect');
 }
@@ -25,6 +28,15 @@ assert.equal(s.mode,'paused');assert(el('options-dialog').open);
 el('options-close').onclick();assert.equal(s.mode,'playing');
 await el('fullscreen').onclick();assert.equal(el('app-dialog').open,true);assert.equal(s.mode,'paused');assert.match(el('app-message').textContent,/지원하지/);
 root.requestFullscreen=async()=>s.document.fullscreenElement=root;s.document.exitFullscreen=async()=>s.document.fullscreenElement=null;await el('fullscreen').onclick();assert(s.document.fullscreenElement);await el('fullscreen').onclick();assert.equal(s.document.fullscreenElement,null);
+// A real user click on Play requests fullscreen before the game starts.
+assert.equal(typeof el('start').handlers.click,'function','mobile play has a fullscreen click handler');
+s.navigator.userAgent='Android';s.navigator.maxTouchPoints=1;
+await el('start').handlers.click();assert.equal(s.document.fullscreenElement,root,'tap Start enters mobile fullscreen');
+s.document.fullscreenElement=null;
+await el('endless').handlers.click();assert.equal(s.document.fullscreenElement,root,'tap Endless also enters fullscreen');
+s.document.fullscreenElement=null;s.navigator.userAgent='Desktop';s.navigator.maxTouchPoints=0;
+await el('start').handlers.click();assert.equal(s.document.fullscreenElement,null,'desktop start does not force fullscreen');
+s.navigator.userAgent='Android';s.navigator.maxTouchPoints=1;
 let prompted=0;listeners.beforeinstallprompt({preventDefault(){},prompt:async()=>prompted++,userChoice:Promise.resolve({outcome:'accepted'})});await el('install').onclick();assert.equal(prompted,1);assert.match(el('install').textContent,/설치됨/);
 s.navigator.userAgent='iPhone';await el('install').onclick();assert.match(el('app-message').textContent,/Safari/);
 let prevented=0;listeners.touchmove({target:{closest:()=>null},preventDefault:()=>prevented++});listeners.touchmove({target:{closest:()=>({})},preventDefault:()=>prevented++});assert.equal(prevented,1);
