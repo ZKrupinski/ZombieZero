@@ -23,7 +23,7 @@ for(const k of keys){
  assert(html.includes('assets/ip/v2/object-zombies.js'),'game loader injected');
  assert(sw.includes('./assets/ip/v2/'+k+'.png'),k+' offline precache');
 }
-assert(sw.includes('shell-v19-controlled-fire'),'new PWA cache version');
+assert(sw.includes('shell-v20-zombie-tones-controlled-fire'),'new PWA cache version');
 assert(game.includes('originalObject?.draw(g,z,clock)'),'original runtime draws in actual zombie loop');
 assert(game.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,d.t,d.split)'),'normal and critical death renderer connected');
 assert(game.includes('const CRITICAL_GREEN_CHANCE=')&&game.includes('CRITICAL_SPECIAL_CHANCE=.065'),'probabilistic critical can trigger on green and non-green sprites');
