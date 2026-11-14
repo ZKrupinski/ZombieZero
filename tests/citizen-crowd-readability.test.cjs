@@ -37,6 +37,7 @@ vm.createContext(sandbox);
 vm.runInContext(source+`
 function check(ok,message){if(!ok)throw Error(message)}
 start();serve();mode='playing';cheerTime=0;clock=0;
+for(const p of citizens)p.phase=-Math.PI/2; // deterministic idle, no cheer bob
 draws.length=0;rects.length=0;drawCrowd();
 const crowd=draws.filter(a=>a[0]===window.ZZCitizenCast.cheer);
 check(crowd.length===18,'all 18 original citizens remain visible and functional');
