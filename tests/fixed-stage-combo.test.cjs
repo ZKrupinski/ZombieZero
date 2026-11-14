@@ -16,17 +16,22 @@ vm.createContext(sandbox);
 vm.runInContext(source+`
 function check(test,reason){if(!test)throw Error(reason)}
 check(H===710&&PY===584&&DEFENSE_Y===565,'fixed game coordinates');
-killTimer=6;mode='playing';
+killTimer=6;comboDisplayTime=1.45;mode='playing';
 const tiers=[[2,'NICE!',0],[5,'COOL!',1],[10,'GREAT!',2],
  [15,'AWESOME!',3],[20,'UNSTOPPABLE!',4],[30,'LEGENDARY!',5]];
 for(const [count,word,tier] of tiers){
- killCombo=count;canvasCalls.length=0;drawKillCombo();
+ killCombo=count;comboDisplayTime=1.45;canvasCalls.length=0;drawKillCombo();
  check($('combo-overlay').hidden===false,'combo visible as separate banner');
  check($('combo-number').textContent===String(count),'large count preserved');
  check($('combo-praise').textContent===word,'six unique tier phrases');
  check($('combo-overlay').dataset.tier===String(tier),'six artwork palettes');
  check(canvasCalls.length===0,'badge never paints over zombie or boss sprites');
 }
+killCombo=12;comboDisplayTime=.24;drawKillCombo();
+check(Math.abs(Number($('combo-overlay').style.opacity)-.5)<.001,'combo visibly fades at the end of its short lifetime');
+comboDisplayTime=0;drawKillCombo();
+check($('combo-overlay').hidden,'visual combo expires after 1.45 seconds without resetting streak');
+check(killCombo===12&&killTimer===6,'visible duration never modifies six-second combo game rules');
 killCombo=0;drawKillCombo();check($('combo-overlay').hidden,'combo hidden after streak');
 killCombo=30;killTimer=0;drawKillCombo();check($('combo-overlay').hidden,'expired combo is removed');
 
@@ -42,6 +47,9 @@ assert(css.includes('aspect-ratio:450/710!important'),'game frame cannot be dist
 assert(app.includes('const scale=Math.min(width/450,height/710)'),
  'on-screen frame is contained by a single uniform scale');
 assert(source.includes('const targetH=710;'),'playable height never depends on device aspect');
-assert(source.includes('const minBarY=killCombo>=2&&killTimer>0?186:90'),'boss HP label moves only when combo artwork is active');
+assert(source.includes('const minBarY=killCombo>=2&&comboDisplayTime>0?122:90'),'boss health label is displaced minimally only while the small combo is visible');
+assert(css.includes('width:calc(183px * var(--ui-scale,1))!important'),'voxel banner is reduced to 183px logical width');
+assert(css.includes('height:calc(57px * var(--ui-scale,1))!important'),'voxel banner height is reduced to 57px logical units');
+assert(css.includes('#17283b44,#10182e28'),'overlay panel is translucent rather than a dark opaque rectangle');
 assert(css.includes('.zz-combo-overlay[data-tier="5"]'),'legendary tier artwork exists');
-console.log('PASS: fixed 450:710 field, distinct large six-color cube combo artwork, boss HP safe band and intact hitboxes');
+console.log('PASS: compact 183x57 translucent six-tier combo, 1.45s show / fade, 6s game streak preserved, boss label safe');
