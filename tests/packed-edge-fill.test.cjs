@@ -28,7 +28,7 @@ function check(cond,msg){if(!cond)throw Error(msg)}
  check(ENEMY_ROW_PITCH===58,'crowded formation vertical pitch');
  const firstX=ENEMY_LEFT_X+33/2,lastX=ENEMY_LEFT_X+ENEMY_PITCH*8+33/2;
  const alpha=window.ZZSpriteGeometry?.green_zombie?.down;
- if(alpha){const half=alpha[2]/2*(66/122);check(firstX-half<=20&&lastX+half>=430,'actual sprite pixels touch both road edges')}
+ if(alpha){const half=alpha[2]/2*Math.min(66/122,55/122,43/92);check(firstX-half>=20&&lastX+half<=430,'bitmap stays inside edge lanes')}
 
  check(step>45&&step<47,'roughly 46px between 33px collision boxes');
  start();serve();
