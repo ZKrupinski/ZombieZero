@@ -845,8 +845,8 @@ function background(){
  }else if(newReady)g.drawImage(art.images[stageArtIndex],0,0,W,H);
  else g.drawImage(art.images[previousArtIndex],0,0,W,H);
  g.restore();
- // All eighteen pictures are fitted with the baked lane line precisely at
- // DEFENSE_Y. Apply a soft veil only over gameplay, not bright side scenery:
+ // Keep the original collision boundary at DEFENSE_Y regardless of art.
+ // The drawn lane stripe is authoritative for new as well as old backgrounds. Apply a soft veil only over gameplay, not bright side scenery:
  // voxel zombies, balls, item pickups, and combo remain the visual focus.
  g.save();
  g.fillStyle='rgba(10,18,26,'+STAGE_PLAYFIELD_VEIL[stageArtIndex]+')';
