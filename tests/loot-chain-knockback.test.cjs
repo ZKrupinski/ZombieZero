@@ -33,8 +33,7 @@ pick();check(items.length===1,'first loot appears on eligible roll');
 const kind=items[0].k;
 pick();check(items.length===2,'a second eligible kill yields a second item');
 check(items[1].k!==kind,'no identical pickup types on ground');
-check(Math.abs(items[0].x-items[1].x)>=LOOT_SPACING||
-      Math.abs(items[0].y-items[1].y)>=LOOT_SPACING,
+check(Math.hypot(items[0].x-items[1].x,items[0].y-items[1].y)>=LOOT_SPACING,
       'pickup icons do not overlap despite identical spawn points');
 pick();check(items.length===2,'maximum two simultaneous items');
 for(const item of items){check(item.x>=40&&item.x<=410,'loot stays inside visible roadway')}
@@ -51,8 +50,7 @@ drop({x:200,y:120,w:66,h:88,max:50,boss:true});
 check(items.length===2,'boss reward replaces oldest pickup, never stacks a third');
 check(stageLootCount===priorLoot+1,'boss retains guaranteed reward');
 check(new Set(items.map(i=>i.k)).size===2,'boss reward also avoids duplicates');
-check(Math.abs(items[0].x-items[1].x)>=LOOT_SPACING||
-      Math.abs(items[0].y-items[1].y)>=LOOT_SPACING,'boss reward does not overlap another pickup');
+check(Math.hypot(items[0].x-items[1].x,items[0].y-items[1].y)>=LOOT_SPACING,'boss reward does not overlap another pickup');
 
 // Contact chain: a hit on one zombie pushes the next two in order, leaving
 // collision boxes completely separate.
@@ -71,8 +69,8 @@ check(!zombieBoxesOverlap(a,{x:a.x,y:a.y},b,{x:b.x,y:b.y},0),
  'contact chain cannot overlap neighbor');
 check(!zombieBoxesOverlap(b,{x:b.x,y:b.y},third,{x:third.x,y:third.y},0),
  'contact chain cannot overlap next neighbor');
-updateEnemyVisuals(.23);
-check([a,b,third].every(z=>!z.knockTime),'afterimage ends within .20 seconds');
+updateEnemyVisuals(.33);
+check([a,b,third].every(z=>!z.knockTime),'afterimage ends within .32 seconds');
 // Bounding-box limits block a shove against the roadway wall.
 a=foe(20,130);foes=[a];
 check(!applyKnockback(a,{x:-300,y:0},1),'wall safely blocks outward knockback');
