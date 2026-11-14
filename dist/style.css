@@ -266,9 +266,11 @@ html.landscape-game,html.landscape-game body{
 /* High-resolution 192px authored PNG frames: 96px preview per character. */
 .hero-card .hero-vehicle-portrait{
  display:block;flex:none;width:96px;height:96px;
- background-image:url('assets/ip/hero-car-attack.png?v=29-hero-70');
+ background-image:url('assets/ip/hero-car-attack.png?v=38-clean-hero-sprite');
  background-repeat:no-repeat;background-size:768px 288px;
  image-rendering:auto;overflow:hidden;
+ /* Keep adjacent atlas row pixels from sampling into another portrait. */
+ clip-path:inset(0 0 5px 0);
 }
 .hero-card .hero-vehicle-portrait.row-0{background-position:0 0}
 .hero-card .hero-vehicle-portrait.row-1{background-position:0 -96px}
