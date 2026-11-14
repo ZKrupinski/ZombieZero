@@ -33,7 +33,7 @@
      const x=z.x+z.w/2-(rect[2]*scale)/2;
      const y=z.y+z.h+2-rect[3]*scale;
      ctx.save();
-     if(z.flash>0)ctx.filter='brightness(1.55)';
+     if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
      ctx.drawImage(image,...rect,x,y,rect[2]*scale,rect[3]*scale);
      ctx.restore();
      return true;
