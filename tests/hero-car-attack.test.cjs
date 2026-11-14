@@ -8,14 +8,14 @@ assert(png.includes(Buffer.from('tRNS')),'transparent sprite pixels, no opaque s
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const loader=fs.readFileSync('dist/assets/ip/hero-car-attack.js','utf8');
-assert(html.includes('src="assets/ip/hero-car-attack.js?v=28-hero-live"')&&html.includes('src="game.js?v=28-hero-live"'),'loader included before game');
-assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=28-hero-live"')<html.indexOf('src="game.js?v=28-hero-live"'),'load art first');
+assert(html.includes('src="assets/ip/hero-car-attack.js?v=29-hero-70"')&&html.includes('src="game.js?v=29-hero-70"'),'loader included before game');
+assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=29-hero-70"')<html.indexOf('src="game.js?v=29-hero-70"'),'load art first');
 assert(sw.includes('hero-car-attack.png')&&sw.includes('hero-car-attack.js'),'offline cache includes both assets');
 assert(loader.includes('atlas.naturalWidth===1536&&atlas.naturalHeight===576'),'reject incomplete atlas');
-assert(loader.includes("hero-car-attack.png?v=28-hero-live"),'runtime bitmap must bypass old PWA/CDN cache');
-assert(html.includes('style.css?v=28-hero-live')&&html.includes('app.js?v=28-hero-live'),'fresh stylesheet and service worker bootstrap');
+assert(loader.includes("hero-car-attack.png?v=29-hero-70"),'runtime bitmap must bypass old PWA/CDN cache');
+assert(html.includes('style.css?v=29-hero-70')&&html.includes('app.js?v=29-hero-70'),'fresh stylesheet and service worker bootstrap');
 assert(sw.includes('cache.match(new URL(u.pathname,u.origin))'),'offline use of versioned resource requests can fall back to unversioned pre-cache');
-assert(fs.readFileSync('dist/style.css','utf8').includes('hero-car-attack.png?v=28-hero-live'),'portrait CSS must display the same current atlas');
+assert(fs.readFileSync('dist/style.css','utf8').includes('hero-car-attack.png?v=29-hero-70'),'portrait CSS must display the same current atlas');
 const source=fs.readFileSync('dist/game.js','utf8'),noop=()=>{},els={},calls=[];
 const g=new Proxy({drawImage:(...args)=>calls.push(args)},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
 const el=id=>els[id]??={textContent:'',innerHTML:'',style:{},hidden:false,addEventListener:noop,
@@ -44,8 +44,8 @@ for(let i=0;i<3;i++){
  check(artCalls.length===1,'one composite car/hero bitmap rather than duplicated procedural cars');
  const a=artCalls[0];
  check(a[1]===0&&a[2]===i*192&&a[3]===192&&a[4]===192,'correct row and frame');
- check(a[5]===car-139/2&&a[6]===579-139/2,'90% scale stays centered around original hero/car sprite midpoint');
- check(a[7]===139&&a[8]===139,'onscreen hero/car are 90% of 154px while 192px source stays intact');
+ check(a[5]===car-108/2&&a[6]===579-108/2,'70% scale stays centered around original hero/car sprite midpoint');
+ check(a[7]===108&&a[8]===108,'onscreen hero/car are 70% of 154px while 192px source stays intact');
 }
 selectedHero=1;artCalls.length=0;
 heroAttackTime=HERO_ATTACK_DURATION;player();
@@ -61,5 +61,5 @@ start();serve();selectedHero=0;balls=[newBall(car,584-9,0,380,false)];
 update(.02);check(balls[0].vy<0,'ball rebounds at the new 584px weapon height');
 start();serve();balls=[newBall(car,600,0,380,false)];update(.02);
 check(balls[0].vy>0,'old 604px paddle altitude no longer produces an invisible rebound');
-console.log('PASS: restored hero names, full-resolution atlas, 90% onscreen size, matching raised line and actual paddle collision, all three attack rows');
+console.log('PASS: restored hero names, full-resolution atlas, 70% onscreen size, matching raised line and actual paddle collision, all three attack rows');
 `,sandbox);
