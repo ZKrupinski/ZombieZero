@@ -1029,7 +1029,7 @@ function drawKillCombo(){
  const tier=killCombo>=30?4:killCombo>=20?3:killCombo>=10?2:killCombo>=5?1:0;
  const color=['#d5f48d','#8fe9db','#ffd57a','#f7a6d5','#b8b0ff'][tier];
  const praise=['NICE!','GREAT!','AMAZING!','UNSTOPPABLE!','LEGENDARY!'][tier];
- g.save();g.translate(W/2,48);const scale=1+comboPop*.25;g.scale(scale,scale);
+ g.save();g.translate(W/2,154);const scale=1+comboPop*.25; // dedicated combo band below fixed stage HUDg.scale(scale,scale);
  g.globalAlpha=Math.min(1,killTimer/.4);rect(-88,-34,176,71,'#111b3066');
  g.textAlign='center';g.fillStyle=color;g.font='italic bold 25px Arial, sans-serif';g.fillText(killCombo+' COMBO',0,-7);
  g.font='bold 12px Arial, sans-serif';g.fillText(praise,0,12);rect(-74,24,148,3,'#354153');rect(-74,24,148*killTimer/6,3,color);g.restore();
