@@ -42,7 +42,7 @@ const baseCount=images.length;
 images.length=0;active.pierce=10;
 drawActiveItemIcons();
 check(images.length===1&&images[0][7]===17,'equipped icon below car stays 17px unchanged');
-images.length=0;itemPickupFX=[];items=[{k:'pierce',x:car,y:PY-9,phase:0}];
+images.length=0;itemPickupFX=[];items=[{k:'pierce',x:car,y:PY+3,phase:0}];
 update(.016);
 check(items.length===0,'real falling loot is collected by the moving car');
 check(itemPickupFX.length===1&&itemPickupFX[0].k==='pierce','pickup effect is spawned on real collection');
