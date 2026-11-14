@@ -78,5 +78,5 @@ assert.strictEqual(calls.pop().img,walk.variants[actual],'diagonal shares same c
 assert(html.indexOf('green-palette.js')<html.indexOf('green-death-loader.js'),'shared colorizer loads before green death');
 assert(html.indexOf('green-palette.js')<html.indexOf('green-walk.js'),'shared colorizer loads before walk');
 assert(sw.includes('./assets/ip/v2/green-palette.js'),'offline precache palette code');
-assert(sw.includes('shell-v20-zombie-tones-controlled-fire'),'PWA cache updated');
+assert(sw.includes('shell-v21-visible-loot-chain-knock'),'PWA cache updated');
 console.log('PASS: five stable low-chroma original-bitmap palettes, green majority, unchanged faces and transparency, identical walk/hit/normal/crit death colors');
