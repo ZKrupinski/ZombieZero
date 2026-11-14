@@ -8,7 +8,13 @@
  const atlas=new Image();atlas.decoding='async';
  const pack={image:atlas,ready:false,cell:192,columns:8,rows:3};
  window.ZZHeroCarAttack=pack;
- atlas.onload=()=>{pack.ready=atlas.naturalWidth===1536&&atlas.naturalHeight===576;};
- atlas.onerror=()=>{pack.ready=false;};
- atlas.src='assets/ip/hero-car-attack.png';
+ atlas.onload=()=>{pack.ready=atlas.naturalWidth===1536&&atlas.naturalHeight===576;
+  if(typeof document!=='undefined'&&document.documentElement)
+   document.documentElement.dataset.zzHeroAtlas=pack.ready?'ready':'bad-size';
+ };
+ atlas.onerror=()=>{pack.ready=false;
+  if(typeof document!=='undefined'&&document.documentElement)
+   document.documentElement.dataset.zzHeroAtlas='load-error';
+ };
+ atlas.src='assets/ip/hero-car-attack.png?v=28-hero-live';
 })();

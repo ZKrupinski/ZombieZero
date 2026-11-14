@@ -58,6 +58,6 @@ button('help-close').onclick=()=>button('help-dialog').close();button('app-close
 // Prevent vertical browser gestures on the play surface; modal contents keep their own scroll.
 document.addEventListener('touchmove',e=>{if(root.classList.contains('compact-app')&&!e.target.closest('dialog,.overlay'))e.preventDefault()},{passive:false});
 window.addEventListener('resize',fit);window.visualViewport?.addEventListener('resize',fit);document.addEventListener('fullscreenchange',()=>{fit();updateLabels()});
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});}
 fit();updateLabels();requestAnimationFrame(fit);
 })();
