@@ -293,16 +293,23 @@ function march(dt){
    const timeStep=Math.max(0,Math.min(dt*(has('slow')?.4:1),
      z.breakoutDuration-z.breakoutTime));
    const previousX=z.x;
-   z.x=clamp(z.x+z.breakoutVX*timeStep,20,W-20-z.w);
-   extraY=z.breakoutVY*timeStep;
-   z.breakoutTime+=timeStep;
-   // The diagonal frame is gated by real horizontal movement, not a pose RNG.
-   z.moveDir=Math.sign(z.x-previousX);
-   if(z.breakoutTime>=z.breakoutDuration-1e-6){
-    z.x=z.breakoutTargetX;z.col=z.breakoutTargetCol;
-    delete z.breakoutTime;
-    delete z.breakoutDuration;
-    z.breakoutCooldownUntil=Math.max(z.breakoutCooldownUntil||0,clock+1.3);
+   const proposedX=clamp(z.x+z.breakoutVX*timeStep,20,W-20-z.w);
+   // An adjacent lane may have closed after an ally was knocked into it.
+   // Stop the dash rather than ghosting through a zombie then teleporting.
+   if(canKnockback(z,proposedX,z.y)){
+    z.x=proposedX;extraY=z.breakoutVY*timeStep;
+    z.breakoutTime+=timeStep;
+    z.moveDir=Math.sign(z.x-previousX);
+    if(z.breakoutTime>=z.breakoutDuration-1e-6){
+     if(canKnockback(z,z.breakoutTargetX,z.y)){
+      z.x=z.breakoutTargetX;z.col=z.breakoutTargetCol;
+     }
+     delete z.breakoutTime;delete z.breakoutDuration;
+     z.breakoutCooldownUntil=Math.max(z.breakoutCooldownUntil||0,clock+1.3);
+    }
+   }else{
+    delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;
+    z.breakoutCooldownUntil=clock+1.7;
    }
   }else z.moveDir=0;
   let next=z.y+enemySpeed(z)*dt+extraY;
@@ -313,6 +320,23 @@ function march(dt){
   }
   z.y=Math.max(z.y,next);
   done.push(z);
+ }
+ // Collision-box guard for independently paced marchers, knockback chains
+ // and diagonally repositioned rogues. The sprites may touch, never interpenetrate.
+ for(let pass=0;pass<2;pass++){
+  let corrected=0;
+  for(let i=0;i<foes.length;i++)for(let j=i+1;j<foes.length;j++){
+   const a=foes[i],b=foes[j],pa={x:a.x,y:a.y},pb={x:b.x,y:b.y};
+   if(!zombieBoxesOverlap(a,pa,b,pb,0))continue;
+   const dx=a.x+a.w/2-b.x-b.w/2,dy=a.y+a.h/2-b.y-b.h/2,
+     overlapX=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),
+     overlapY=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
+   const horizontal=overlapX<overlapY||a.row===b.row,
+     push=horizontal?{x:dx>=0?1:-1,y:0}:{x:0,y:dy>=0?1:-1};
+   if(applyKnockback(a,push,3)||applyKnockback(b,{x:-push.x,y:-push.y},3))
+    corrected++;
+  }
+  if(!corrected)break;
  }
 }
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
