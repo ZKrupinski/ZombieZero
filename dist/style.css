@@ -377,3 +377,61 @@ html.landscape-game,html.landscape-game body{
 html:fullscreen,html:fullscreen body{
  width:100%;height:100%;overflow:hidden;overscroll-behavior:none;
 }
+
+
+/* v32: The app fills the viewport, the GAME BOARD is letterboxed to exactly
+   450:710 and centered in both portrait and foldable / landscape layouts.
+   Previous portrait rules used inset:0 and created an unfair extra-long road. */
+html.portrait-play,html.landscape-game,
+html.portrait-play body,html.landscape-game body{overflow:hidden!important}
+.portrait-play main,.landscape-game main{
+ display:block!important;position:relative!important;
+ height:var(--app-height,100dvh)!important;
+ width:100vw!important;max-width:none!important;
+ margin:0!important;padding:0!important;overflow:hidden!important;
+ background-color:#13242a!important;
+ background-image:
+  linear-gradient(#b6d5d00c 1px,transparent 1px),
+  linear-gradient(90deg,#b6d5d00c 1px,transparent 1px),
+  linear-gradient(180deg,#192f32,#0e1a28)!important;
+ background-size:48px 48px,48px 48px,100% 100%!important;
+}
+.portrait-play .machine,.landscape-game .machine{
+ position:absolute!important;display:block!important;inset:auto!important;
+ top:var(--board-offset-y,0px)!important;
+ left:var(--board-offset-x,0px)!important;
+ width:var(--board-width,450px)!important;
+ height:var(--board-height,710px)!important;
+ max-width:none!important;max-height:none!important;
+ margin:0!important;padding:0!important;
+ border:0!important;border-radius:0!important;
+ box-shadow:0 0 0 1px #73848866,0 16px 80px #0006!important;
+ overflow:hidden!important;
+}
+.portrait-play .stage,.landscape-game .stage{
+ position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;
+ max-width:none!important;max-height:none!important;
+ aspect-ratio:450/710!important;overflow:hidden!important;
+}
+.portrait-play .stage #game,.landscape-game .stage #game{
+ display:block!important;width:100%!important;height:100%!important;
+ touch-action:none;
+}
+/* Stage and combo never share the play canvas: the streak lives directly
+   beneath the stage value, within the same column on every aspect ratio. */
+.hud .combo-hud[hidden]{display:none!important}
+.hud .combo-hud{
+ display:block!important;width:100%;min-width:0;
+ margin:calc(2px * var(--ui-scale,1)) 0 0!important;
+ padding:0!important;
+ font:800 clamp(9px,calc(11px * var(--ui-scale,1)),18px)/1.2 system-ui,sans-serif!important;
+ letter-spacing:-.02em!important;white-space:nowrap!important;
+ overflow:hidden;text-overflow:ellipsis;
+ text-align:center!important;
+ color:#d5f48d;text-shadow:0 1px 4px #000b;
+}
+.portrait-play .hud .wave,.landscape-game .hud .wave{
+ overflow:visible!important;min-width:0!important;
+}
+.landscape-game .hud small{display:block!important}

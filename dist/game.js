@@ -850,10 +850,13 @@ const originalObject=window.ZZObjectSprite;
 if(!death&&originalObject?.draw(g,z,clock)){
  // The original colours are character identity, not HP tint.
  if(z.boss){
+  // Keep original enemy spawn/hitbox but clamp only the HP overlay below HUD.
+  g.save();g.translate(0,Math.max(0,90-(z.y-32)));
   rect(z.x-14,z.y-32,100,8,'#211e27');
   rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');
   g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';
   g.fillText(BOSS_FORMS[z.bossForm??0]+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38);
+  g.restore();
  }
  if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
   for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
@@ -889,7 +892,7 @@ if(atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
  g.restore();
  if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
  g.restore();
- if(z.boss&&!death){rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38)}
+ if(z.boss&&!death){g.save();g.translate(0,Math.max(0,90-(z.y-32)));rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38);g.restore()}
  return;
 }
 // Actual top/front-oriented sprite pilot: same approved artwork as normal and
@@ -910,7 +913,7 @@ rect(3,38+a.legL,10,6,'#273748');rect(22,38+a.legR,10,6,'#273748');enemyTorso(f,
 enemyArm(f,p,skin,0,a.left+(death?Math.sin(death.t*60)*.3:0),a.shoulder);enemyArm(f,p,skin,1,a.right-(death?Math.sin(death.t*49)*.3:0),-a.shoulder*.7);
 g.save();g.translate(16.5,23);g.rotate(a.head);g.translate(-16.5,-23-a.hit*1.3);enemyHead(z,f,p,skin,a);g.restore();
 if(z.boss){rect(2,34,4,4,'#ffd27b');rect(26,34,4,4,'#ffd27b')}
-if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}g.restore();if(z.boss&&!death){rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38)}}
+if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}g.restore();if(z.boss&&!death){g.save();g.translate(0,Math.max(0,90-(z.y-32)));rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38);g.restore()}}
 function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.strokeStyle=SKILLS[k].color;g.lineWidth=2.5;g.lineCap='round';g.lineJoin='round';const circle=(x,y,r)=>{g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.stroke()};if(k==='dual'){circle(9,12,5);circle(23,20,5)}if(k==='triple'){circle(16,7,4);circle(7,23,4);circle(25,23,4)}if(k==='power'){circle(16,16,12);g.stroke(new Path2D('M17 6 10 18H16L15 26 23 13H17Z'))}if(k==='fire')g.stroke(new Path2D('M17 3C21 12 13 12 19 17L24 11C33 23 25 30 16 29S3 21 8 13L11 18C15 14 11 10 17 3Z'));if(k==='slow'){circle(16,17,11);g.stroke(new Path2D('M16 10V18L22 21M12 2H20M16 2V4'))}if(k==='bazooka')g.stroke(new Path2D('M5 21 20 6 27 13 12 28ZM18 8 24 14M6 22 4 28 10 26M19 3 21 1M28 10 31 9M26 3 29 0'));if(k==='shield')g.stroke(new Path2D('M16 3 27 7V17C27 23 16 29 16 29S5 23 5 17V7ZM10 16 14 20 22 11'));g.restore()}
 // Fire stays attached to each burning enemy and sits on top of its sprite.
 function drawBurningOverlays(){
@@ -1025,16 +1028,21 @@ function recordKill(){
  citizenCue(p,true);effect(p.x,p.y-12,'#91f4d0',65);burst(p.x,p.y-10,'#91f4d0',24);sfx('return');toast('시민 +1 복귀! · '+killCombo+' COMBO');
 }
 function drawKillCombo(){
- if(killCombo<2||!['playing','clearing','paused'].includes(mode))return;
+ // Combo belongs in its own fixed HUD slot, NEVER over the boss or zombies.
+ const el=$('combo-hud');
+ if(!el)return;
+ if(killCombo<2||killTimer<=0||!['playing','clearing','paused'].includes(mode)){
+  el.hidden=true;return;
+ }
  const tier=killCombo>=30?4:killCombo>=20?3:killCombo>=10?2:killCombo>=5?1:0;
  const color=['#d5f48d','#8fe9db','#ffd57a','#f7a6d5','#b8b0ff'][tier];
  const praise=['NICE!','GREAT!','AMAZING!','UNSTOPPABLE!','LEGENDARY!'][tier];
- g.save();g.translate(W/2,154);const scale=1+comboPop*.25; // dedicated combo band below fixed stage HUDg.scale(scale,scale);
- g.globalAlpha=Math.min(1,killTimer/.4);rect(-88,-34,176,71,'#111b3066');
- g.textAlign='center';g.fillStyle=color;g.font='italic bold 25px Arial, sans-serif';g.fillText(killCombo+' COMBO',0,-7);
- g.font='bold 12px Arial, sans-serif';g.fillText(praise,0,12);rect(-74,24,148,3,'#354153');rect(-74,24,148*killTimer/6,3,color);g.restore();
+ const label=killCombo+' COMBO · '+praise;
+ if(el.textContent!==label)el.textContent=label;
+ el.style.color=color;
+ el.style.opacity=String(Math.min(1,killTimer/.35));
+ el.hidden=false;
 }
-
 const citizens=Array.from({length:18},(_,i)=>({x:26+i*23.4,y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%6,phase:i*.9,alive:true,dying:0}));
 function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0}bubbles=[];bubbleTimer=.25}
 function haptic(pattern){if(!fxEnabled||!touchUsed||typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return;const now=Date.now();if(now-lastBuzz<100)return;lastBuzz=now;try{navigator.vibrate(pattern)}catch{}}
@@ -1099,10 +1107,9 @@ $('share').onclick=async()=>{const url=new URL('./',location.href).href;try{if(n
 // system as the drawing surface, so the whole extra space is playable.
 function resizeCanvas(){
  const bounds=c.getBoundingClientRect(),widthCss=bounds.width||W,heightCss=bounds.height||710;
- const fullscreenPortrait=Boolean(document.documentElement?.classList?.contains?.('portrait-play'));
- // Width already fills the viewport. Match virtual height to its true ratio,
- // rather than forcing 710px on nearly square foldables (which squeezed art).
- const targetH=fullscreenPortrait?clamp(Math.round(W*heightCss/widthCss),450,1600):710;
+ // All display sizes render the SAME logical 450×710 arena. App.fit() sizes
+ // the CSS canvas as a contain-fit rectangle instead of resizing game physics.
+ const targetH=710;
  if(targetH!==H){
   const oldH=H,delta=targetH-oldH;
   H=targetH;VIEW_DELTA=H-710;PY=H-126;DEFENSE_Y=H-145;

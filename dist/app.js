@@ -20,13 +20,19 @@ function fit(){
  root.classList.toggle('compact-app',true);
  root.classList.toggle('portrait-play',portrait);
  root.classList.toggle('landscape-game',!portrait);
+ // Fullscreen belongs to the application shell, not the gameplay world.
+ // Contain the original 450:710 board at ONE uniform scale, with symmetric
+ // decorative letterboxing instead of stretching the physical arena.
+ const scale=Math.min(width/450,height/710);
+ const boardWidth=450*scale,boardHeight=710*scale;
  root.style.setProperty('--app-height',height+'px');
- root.style.setProperty('--board-width',width+'px');
- root.style.setProperty('--board-height',height+'px');
- // HUD measurements use one stable 450-unit coordinate system. Phone width
- // changes only the uniform scale, never the position or number of HUD cells.
- const boardWidth=portrait?width:Math.min(width,height*450/710);
- root.style.setProperty('--ui-scale',String(Math.max(.55,Math.min(1.3,boardWidth/450))));
+ root.style.setProperty('--board-width',boardWidth+'px');
+ root.style.setProperty('--board-height',boardHeight+'px');
+ root.style.setProperty('--board-offset-x',((width-boardWidth)/2)+'px');
+ root.style.setProperty('--board-offset-y',((height-boardHeight)/2)+'px');
+ // Use precisely the same scale for the HUD and canvas so foldable/tall
+ // phones don't change control placements or gameplay distances.
+ root.style.setProperty('--ui-scale',String(scale));
  resizeCanvas();
 }
 function updateLabels(){button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':'⛶ 전체화면';button('install').textContent=standalone()?'✓ 설치 실행 중':'↓ 앱 설치'}

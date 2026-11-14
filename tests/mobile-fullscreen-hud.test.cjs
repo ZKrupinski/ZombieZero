@@ -13,7 +13,9 @@ assert(css.includes('minmax(40px,calc(44px * var(--ui-scale)))'),'touch targets 
 assert(css.includes('.portrait-play .hud .wave'),'stage number has a dedicated grid position');
 assert(css.includes('env(safe-area-inset-top,0px)'),'notch and status-bar safe area respected');
 assert(css.includes('env(safe-area-inset-bottom,0px)'),'home indicator safe area respected');
-assert(game.includes("g.translate(W/2,154);const scale=1+comboPop*.25"),'combo stays below stage and score HUD');
-assert(!game.includes("g.translate(W/2,48);const scale=1+comboPop*.25"),'old combo-staging overlap is removed');
+assert(game.includes("const el=$('combo-hud');"),'combo text is DOM HUD rather than obstructing gameplay canvas');
+assert(!game.includes('g.translate(W/2,154);const scale=1+comboPop*.25'),'oversized playfield combo removed');
+assert(html.includes('id="combo-hud"'),'combo has dedicated stage HUD slot');
+assert(css.includes('.hud .combo-hud'),'combo is styled inside the HUD column');
 assert(html.includes('viewport-fit=cover'),'fullscreen screen and safe-area support');
-console.log('PASS: mobile Start/Endless native fullscreen, proportionally fixed four-slot HUD, reserved safe areas and separate combo band');
+console.log('PASS: native fullscreen and safe-area HUD, fixed-ratio board and stage-column combo outside gameplay');
