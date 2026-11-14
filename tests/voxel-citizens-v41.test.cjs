@@ -13,7 +13,7 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 const src=fs.readFileSync('dist/game.js','utf8');
 assert(html.includes('assets/ip/citizen-cast-v41.js?v=41-voxel-citizens'),
  'live game loads new citizen atlas reader');
-assert(html.indexOf('citizen-cast-v41.js')<html.indexOf('game.js?v=42-raised-shield'),
+assert(html.indexOf('citizen-cast-v41.js')<html.indexOf('game.js?v=43-restored-citizens'),
  'sprite loader arrives before game.js');
 for(const f of ['citizen-cheer-v41.png','citizen-sacrifice-v41.png','citizen-cast-v41.js'])
  assert(sw.includes(f),'offline asset cached: '+f);
