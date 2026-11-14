@@ -40,8 +40,8 @@ for(let i=0;i<3;i++){
  check(artCalls.length===1,'one composite car/hero bitmap rather than duplicated procedural cars');
  const a=artCalls[0];
  check(a[1]===0&&a[2]===i*192&&a[3]===192&&a[4]===192,'correct row and frame');
- check(a[5]===car-123/2&&a[6]===579-123/2,'80% scale stays centered around original hero/car sprite midpoint');
- check(a[7]===123&&a[8]===123,'onscreen hero/car are 80% of 154px while 192px source stays intact');
+ check(a[5]===car-139/2&&a[6]===579-139/2,'90% scale stays centered around original hero/car sprite midpoint');
+ check(a[7]===139&&a[8]===139,'onscreen hero/car are 90% of 154px while 192px source stays intact');
 }
 selectedHero=1;artCalls.length=0;
 heroAttackTime=HERO_ATTACK_DURATION;player();
@@ -57,5 +57,5 @@ start();serve();selectedHero=0;balls=[newBall(car,584-9,0,380,false)];
 update(.02);check(balls[0].vy<0,'ball rebounds at the new 584px weapon height');
 start();serve();balls=[newBall(car,600,0,380,false)];update(.02);
 check(balls[0].vy>0,'old 604px paddle altitude no longer produces an invisible rebound');
-console.log('PASS: restored hero names, full-resolution atlas, 80% onscreen size, matching raised line and actual paddle collision, all three attack rows');
+console.log('PASS: restored hero names, full-resolution atlas, 90% onscreen size, matching raised line and actual paddle collision, all three attack rows');
 `,sandbox);
