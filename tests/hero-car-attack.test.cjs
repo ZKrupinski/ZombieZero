@@ -33,13 +33,15 @@ vm.createContext(sandbox);
 vm.runInContext(source+`
 function check(v,msg){if(!v)throw Error(msg)}
 start();serve();
+check(PY===584&&DEFENSE_Y===565,'racket bounce line raised 20px yet remains below the zombie defense line');
 check(HEROES.map(h=>h.name).join(',')==='에이스,루비,리암','original playable names restored');
 for(let i=0;i<3;i++){
  selectedHero=i;artCalls.length=0;heroAttackTime=0;player();
  check(artCalls.length===1,'one composite car/hero bitmap rather than duplicated procedural cars');
  const a=artCalls[0];
  check(a[1]===0&&a[2]===i*192&&a[3]===192&&a[4]===192,'correct row and frame');
- check(a[7]>=145&&a[8]>=145,'high resolution source renders at readable gameplay size');
+ check(a[5]===car-77/2&&a[6]===579-77/2,'half-scale stays centered around former full-size sprite midpoint');
+ check(a[7]===77&&a[8]===77,'onscreen hero/car are half former 154px size while 192px master stays intact');
 }
 selectedHero=1;artCalls.length=0;
 heroAttackTime=HERO_ATTACK_DURATION;player();
@@ -50,5 +52,10 @@ heroAttackTime=0;balls=[newBall(car,PY-9,0,380,false)];mode='playing';update(.02
 check(heroAttackTime===HERO_ATTACK_DURATION,'actual ball bounce starts swing animation');
 artCalls.length=0;player();
 check(artCalls[0][2]===192,'pink car stays selected while bouncing');
-console.log('PASS: original playable names, three original-colored cars, high-res 192px alpha atlas, swing on bounce, separate row sprites, offline caching');
+// The hitbox is raised together with the visible line, not just drawn higher.
+start();serve();selectedHero=0;balls=[newBall(car,584-9,0,380,false)];
+update(.02);check(balls[0].vy<0,'ball rebounds at the new 584px weapon height');
+start();serve();balls=[newBall(car,600,0,380,false)];update(.02);
+check(balls[0].vy>0,'old 604px paddle altitude no longer produces an invisible rebound');
+console.log('PASS: restored hero names, full-resolution atlas, 50% onscreen size, matching raised line and actual paddle collision, all three attack rows');
 `,sandbox);
