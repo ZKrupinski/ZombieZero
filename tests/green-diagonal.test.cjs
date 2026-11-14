@@ -24,14 +24,16 @@ while(off+12<=png.length){
 }
 assert(finished&&transparent&&off===png.length,'no opaque backdrop or corrupt chunks');
 assert(html.includes('src="assets/ip/v2/green-walk.js"'),'green loader before game');
-assert(html.indexOf('src="assets/ip/v2/green-walk.js"')<html.indexOf('src="game.js?v=29-hero-70"'),'load ordering');
+assert(html.indexOf('src="assets/ip/v2/green-walk.js"')<html.indexOf('src="game.js?v=30-short-diagonals"'),'load ordering');
 assert(sw.includes('./assets/ip/v2/green_zombie.png')&&sw.includes('./assets/ip/v2/green-walk.js'),'offline assets');
 assert(sw.includes('shell-v21-visible-loot-chain-knock'),'cache version');
 assert(game.includes('mascot?.draw(g,z,clock)'),'runtime connected');
 assert(game.includes('const isGreen=!z.boss&&(z.form??0)===0'),'green uses dedicated final death 8/10 frames');
 assert(game.includes('function tryStartBreakouts()'),'green diagonal movement now requires sparse-wave gap AI');
 assert(game.includes('z.moveDir=Math.sign(z.x-previousX)'),'left/right animation follows actual lateral velocity');
-assert(game.includes('}else z.moveDir=0;'),'default walk is frontal');
+assert(game.includes('}else shortDiagonalStep(z,dt);'),'normal march has genuine short lateral footsteps');
+assert(game.includes('z.moveDir=Math.sign(z.x-lastX)'),'short diagonal sheet follows the measured displacement');
+assert(game.includes('if(!canKnockback(z,nextX,z.y))'),'blocked sidesteps never clip through other zombies');
 assert(!game.includes('Math.sin(clock*1.4+(z.seed||0))*radius'),'former random walk removed');
 let draws=[];
 class ImageMock {

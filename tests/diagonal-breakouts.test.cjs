@@ -21,19 +21,35 @@ const src=fs.readFileSync('dist/game.js','utf8');
 sandbox.src=src;vm.runInContext(src+`
 function check(v,m){if(!v)throw Error(m)}
 {
- // Deterministic eligibility/choice. A normal wave has no diagonal anim.
+ // Full formations now take small genuine diagonal steps; long breakouts remain sparse only.
  Math.random=()=>.5;
  start();serve();wave=2;rack();
  check(waveInitialRegulars===27,'initial density denominator');
  check(foes.every(z=>z.moveDir===undefined),'zombies initially face front');
  clock=breakoutNextCheck+1;
- for(let j=0;j<250;j++){clock+=.04;march(.04)}
- check(foes.every(z=>z.moveDir===0&&!Number.isFinite(z.breakoutTime)),
-       'full formation never uses fake diagonal or random lateral drift');
+ let actualSideFrames=0,frontalFrames=0,shortDistance=0;
+ for(let j=0;j<250;j++){
+  const before=new Map(foes.map(z=>[z,z.x]));
+  clock+=.04;march(.04);
+  for(const z of foes){
+   const dx=z.x-before.get(z);
+   if(Math.abs(dx)>1e-7){
+    actualSideFrames++;
+    shortDistance+=Math.abs(dx);
+    check(z.moveDir===Math.sign(dx),'short diagonal animation tracks genuine x movement');
+   }else if(z.moveDir===0)frontalFrames++;
+   check(Math.abs(z.x-(ENEMY_LEFT_X+z.col*ENEMY_PITCH))<=SHORT_STEP_RADIUS+.01,
+         'full formation short motions remain inside safe lane bounds');
+  }
+ }
+ check(actualSideFrames>100&&frontalFrames>100&&shortDistance>80,
+       'dense formation frequently mixes real short diagonal motion with frontal descent');
+ check(foes.every(z=>!Number.isFinite(z.breakoutTime)),
+       'dense formation does not trigger rare long breakouts');
 
  // One or two casualties still do not authorize breakouts.
  foes.splice(0,2);clock=breakoutNextCheck+.01;march(.016);
- check(foes.every(z=>z.moveDir===0),'two casualties not sufficient');
+ check(foes.every(z=>!Number.isFinite(z.breakoutTime)),'two casualties do not authorize long breakouts');
 
  // Wave still has five columns' worth of large gaps: a rogue can
  // actually move toward a VACANT column, not just play side-steps.
@@ -88,6 +104,6 @@ function check(v,m){if(!v)throw Error(m)}
  check(src.includes("rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8"), 'meaningful boss overhead HP remains');
  check(!src.includes('Math.sin(clock*1.4+(z.seed||0))*radius'),
    'no perpetual sinusoidal diagonal posing');
- console.log('PASS: default frontal walk, frequent sparse 1–3 diagonal surges, variable 1–2 lane distance, cooldown and defense safety');
+ console.log('PASS: frequent physical left/right microsteps in dense formation, real directional animation, rare sparse breakouts, cooldown and defense safety');
 }
 `,sandbox);
