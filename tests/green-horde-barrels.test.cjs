@@ -79,7 +79,7 @@ updateEnemyVisuals(.25);check(blast.t>.2,'live explosion animated');
 updateEnemyVisuals(.4);check(!barrelBlasts.includes(blast),'explosion visuals are temporary');
 balls=[newBall(225,430,0,-320,false)];
 near.y=140;near.burnTick=0;clock=breakoutNextCheck-1;
-update(.78);check(near.hp<5,'existing flame DOT continues to damage nearby zombie');
+update(1.15);check(near.hp<5,'reduced flame DOT still damages nearby zombie');
 // A barrel killed by fire still explodes; the blast can ignite a secondary.
 const b2={...barrel,x:170,y:180,hp:1,burn:3,burnTick:0,spreadTick:0};
 const secondary={...near,x:230,y:180,hp:5,burn:0,burnTick:0,spreadTick:0};
