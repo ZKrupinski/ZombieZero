@@ -6,7 +6,7 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},w
 vm.runInContext(fs.readFileSync('dist/game.js','utf8')+`
 function check(v,m){if(!v)throw Error(m)}
 start();serve();check(balls.length===1&&!balls[0].held,'serve');
-check(foes.every(z=>z.hp===TYPES[z.kind].hp),'color / HP contract');
+check(foes.every(z=>z.hp===zombieHP(z.form,z.kind,wave)&&z.hp===z.max),'form-dependent HP contract');
 let b=balls[0];b.x=car;b.y=PY-9;b.vy=380;b.vx=0;update(.02);check(b.vy<0,'racket bounce');
 activate('dual');check(balls.length===2,'double ball');active.dual=9;activate('triple');check(balls.length===6&&has('dual')&&active.dual===9,'stacked six balls with independent timers');check(new Set(balls.map(b=>b.vx.toFixed(3))).size===6,'distinct split directions');check($('skills').innerHTML.includes('더블볼')&&$('skills').innerHTML.includes('트리플볼'),'both skill timers displayed');activate('triple');check(balls.length===6&&active.dual===9,'repeat pickup capped at six');active.triple=.01;update(.02);check(balls.length===2&&has('dual'),'triple expiry leaves double');active.dual=.01;update(.02);check(balls.length===1,'both expire to one');
 activate('triple');active.triple=8;activate('dual');check(balls.length===6&&active.triple===8,'reverse pickup order');active.dual=.01;update(.02);check(balls.length===3&&has('triple'),'double expiry leaves triple');balls=balls.slice(0,1);active.triple=.01;update(.02);check(balls.length===1,'expiry never resurrects lost balls');
