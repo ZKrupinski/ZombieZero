@@ -550,7 +550,9 @@ function canKnockback(z,x,y){
    zombieBoxesOverlap(z,pos,other,{x:other.x,y:other.y},1));
 }
 function planKnockPush(z,dx,dy,plans,depth=0){
- if(z.boss||depth>KNOCK_CHAIN_LIMIT||plans.has(z))return false;
+ // Knockback must NEVER move an enemy toward the defense line (positive Y),
+ // including recursive pushes and the overlap-repair pass in march().
+ if(dy>0||z.boss||depth>KNOCK_CHAIN_LIMIT||plans.has(z))return false;
  const pos={x:z.x+dx,y:z.y+dy};
  if(!insideZombieRoad(z,pos))return false;
  plans.set(z,pos);
@@ -574,7 +576,10 @@ function planKnockPush(z,dx,dy,plans,depth=0){
 }
 function applyKnockback(z,impact,n=1){
  if(!impact||z.boss)return false;
- const vx=impact.x||0,vy=impact.y||0,mag=Math.hypot(vx,vy);
+ // Incoming balls can hit the back/top of a zombie while travelling DOWN.
+ // Remove only the forward Y impulse: keep the existing upward and sideways
+ // knockback distances, directions, chain count and smooth visual tween.
+ const vx=impact.x||0,vy=Math.min(0,impact.y||0),mag=Math.hypot(vx,vy);
  if(mag<.01)return false;
  // Contact transfers displacement to successive zombies. Attempt shorter
  // shoves when tightly packed ranks, bosses or road edges block the impulse.
