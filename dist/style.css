@@ -668,3 +668,76 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
 @media(prefers-reduced-motion:reduce){
  .zz-combo-overlay *{animation:none!important}
 }
+
+
+/* v34 / playfield visibility: shrink prior 310×100 cube banner by ~42%.
+   Center below the 45px HUD, not across the first enemy rows. The interior
+   panel becomes mostly transparent; hit feedback ends after 1.45 seconds. */
+.zz-combo-overlay{
+ top:calc(52px * var(--ui-scale,1))!important;
+ width:calc(183px * var(--ui-scale,1))!important;
+ max-width:56%!important;
+ height:calc(57px * var(--ui-scale,1))!important;
+ filter:none!important
+}
+.zz-combo-emblem{
+ left:7%!important;top:4%!important;width:86%!important;height:90%!important;
+ border-width:max(1px,calc(1.3px * var(--ui-scale,1)))!important;
+ background:linear-gradient(180deg,#17283b44,#10182e28)!important;
+ box-shadow:0 0 calc(4px * var(--ui-scale,1)) var(--combo-glow)!important;
+ clip-path:polygon(0 15%,6% 15%,6% 0,94% 0,94% 15%,100% 15%,100% 85%,94% 85%,94% 100%,6% 100%,6% 85%,0 85%)!important;
+}
+.zz-combo-emblem:before{
+ opacity:.35!important;inset:calc(2px * var(--ui-scale,1))!important;
+ border-width:1px!important
+}
+.zz-combo-praise{
+ font-size:calc(11.5px * var(--ui-scale,1))!important;
+ line-height:1!important;margin:calc(2px * var(--ui-scale,1)) 0 0!important;
+ text-shadow:0 1px 0 #0009,0 0 calc(4px * var(--ui-scale,1)) var(--combo-glow)!important
+}
+.zz-combo-score{gap:calc(4px * var(--ui-scale,1))!important;text-shadow:0 1px 1px #0008!important}
+.zz-combo-score strong{
+ font-size:calc(24px * var(--ui-scale,1))!important;
+ line-height:1.02!important
+}
+.zz-combo-score span{
+ font-size:calc(16px * var(--ui-scale,1))!important;
+ line-height:1.02!important
+}
+.zz-combo-meter{
+ bottom:calc(3px * var(--ui-scale,1))!important;
+ height:max(1px,calc(2px * var(--ui-scale,1)))!important;
+ background:#526b6833!important;box-shadow:none!important
+}
+.zz-combo-cubes{top:24%!important;height:56%!important;width:23%!important;opacity:.83!important;filter:none!important}
+.zz-combo-cubes i{
+ width:calc(10px * var(--ui-scale,1))!important;
+ height:calc(10px * var(--ui-scale,1))!important;
+ box-shadow:0 1px 2px #0006!important
+}
+.zz-combo-cubes i:before{
+ top:calc(-4px * var(--ui-scale,1))!important;
+ height:calc(4px * var(--ui-scale,1))!important
+}
+.zz-combo-cubes i:after{
+ right:calc(-4px * var(--ui-scale,1))!important;
+ width:calc(4px * var(--ui-scale,1))!important
+}
+.zz-combo-pixels{opacity:.45!important}
+.zz-combo-pixels i{
+ width:calc(3px * var(--ui-scale,1))!important;
+ height:calc(3px * var(--ui-scale,1))!important;
+ box-shadow:0 0 3px var(--combo-glow)!important
+}
+.zz-combo-overlay[data-tier="4"] .zz-combo-emblem,
+.zz-combo-overlay[data-tier="5"] .zz-combo-emblem{
+ animation:zz-combo-glow-soft 1.45s ease-in-out infinite alternate
+}
+@keyframes zz-combo-glow-soft{
+ from{filter:drop-shadow(0 0 1px var(--combo-glow))}
+ to{filter:drop-shadow(0 0 4px var(--combo-glow))}
+}
+@media(prefers-reduced-motion:reduce){
+ .zz-combo-overlay .zz-combo-emblem{animation:none!important}
+}
