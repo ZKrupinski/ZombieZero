@@ -223,8 +223,8 @@ function enemySpeed(z){
  return marchBase()*(z.boss?.62:[1.1,1.04,.97,.89,.82][z.kind])*
    pace*pulse*(has('slow')?.4:1);
 }
-// Default = frontal descent. ONLY a real fast diagonal move may select
-// the left/right motion sheets. No perpetual wiggle or fake diagonal animation.
+// Frequent short physical steps blend down/front/left/right animations even
+// while the full horde is intact. The sprites face the ACTUAL movement vector.
 const BREAKOUT_DENSITY=.86,BREAKOUT_MIN_KILLS=3,BREAKOUT_MAX_ACTIVE=3;
 function tryStartBreakouts(){
  if(clock<breakoutNextCheck)return;
@@ -275,6 +275,7 @@ function tryStartBreakouts(){
   if(!choices.length)break;
   const pick=choices[Math.floor(Math.random()*choices.length)];
   const z=pick.z,duration=.30+Math.random()*.42;
+  clearShortStep(z,duration+.65);
   z.breakoutTime=0;z.breakoutDuration=duration;
   z.breakoutVX=(pick.dest-z.x)/duration;
   z.breakoutVY=(22+Math.random()*42)/duration;
@@ -286,6 +287,76 @@ function tryStartBreakouts(){
   occupied.add(z.row+':'+pick.destCol);
  }
 }
+
+ // Per-zombie short diagonal footwork. In the packed nine-column formation,
+ // +/-6px still leaves a gap between adjacent 33px collision rectangles.
+ // 0.38–0.66s travel + 0.27–0.65s front-facing pause, per enemy.
+ const SHORT_STEP_RADIUS=6;
+ function shortStepNoise(z,salt){
+   const n=(z.seed||0)*31.73+(z.col||0)*23.81+(z.row||0)*13.71+
+     (z.shortStepCount||0)*17.13+salt*7.31;
+   const value=Math.sin(n)*43758.5453;
+   return value-Math.floor(value);
+ }
+ function clearShortStep(z,wait=.35){
+   delete z.shortStepElapsed;delete z.shortStepDuration;
+   delete z.shortStepFromX;delete z.shortStepTargetX;
+   z.shortStepNext=clock+wait;
+ }
+ function shortDiagonalStep(z,dt){
+   z.moveDir=0;
+   if(z.boss||!Number.isInteger(z.row)||!Number.isInteger(z.col))return;
+   if(z.shortStepCol!==z.col){
+     z.shortStepCol=z.col;
+     z.shortStepHomeX=ENEMY_LEFT_X+z.col*ENEMY_PITCH;
+     clearShortStep(z,.22+shortStepNoise(z,1)*.5);
+   }
+   // Recoil, chain knockback and rare long breakout own movement first.
+   if((z.recoil||0)>.015||(z.hitHold||0)>0||(z.knockTime||0)>0){
+     if((z.knockTime||0)>0)z.shortStepHomeX=z.x;
+     clearShortStep(z,.35);
+     return;
+   }
+   if(!Number.isFinite(z.shortStepNext))
+     z.shortStepNext=clock+.12+shortStepNoise(z,2)*.62;
+   if(!Number.isFinite(z.shortStepElapsed)){
+     if(clock<z.shortStepNext)return;
+     z.shortStepCount=(z.shortStepCount||0)+1;
+     let home=z.shortStepHomeX;
+     if(!Number.isFinite(home)||Math.abs(z.x-home)>SHORT_STEP_RADIUS+4){
+       home=z.x;z.shortStepHomeX=home;
+     }
+     const magnitude=4+shortStepNoise(z,3)*2;
+     const sign=shortStepNoise(z,4)<.5?-1:1;
+     let dest=clamp(home+sign*magnitude,20,W-20-z.w);
+     if(Math.abs(dest-z.x)<3)
+       dest=clamp(home-sign*magnitude,20,W-20-z.w);
+     if(Math.abs(dest-z.x)<2||!canKnockback(z,dest,z.y)){
+       z.shortStepNext=clock+.24+shortStepNoise(z,5)*.38;
+       return;
+     }
+     z.shortStepFromX=z.x;z.shortStepTargetX=dest;
+     z.shortStepElapsed=0;
+     z.shortStepDuration=.38+shortStepNoise(z,6)*.28;
+   }
+   const d=Math.min(dt*(has('slow')?.4:1),
+     z.shortStepDuration-z.shortStepElapsed);
+   if(d<=0){clearShortStep(z,.3);return}
+   const t=(z.shortStepElapsed+d)/z.shortStepDuration;
+   const eased=t*t*(3-2*t); // eased turning, no position teleport
+   const nextX=z.shortStepFromX+
+     (z.shortStepTargetX-z.shortStepFromX)*eased;
+   if(!canKnockback(z,nextX,z.y)){
+     clearShortStep(z,.35+shortStepNoise(z,7)*.3);
+     return;
+   }
+   const lastX=z.x;
+   z.x=nextX;
+   z.shortStepElapsed+=d;
+   z.moveDir=Math.sign(z.x-lastX);
+   if(z.shortStepElapsed>=z.shortStepDuration-1e-5)
+     clearShortStep(z,.27+shortStepNoise(z,8)*.38);
+ }
 function march(dt){
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
@@ -313,7 +384,7 @@ function march(dt){
     delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;
     z.breakoutCooldownUntil=clock+1.7;
    }
-  }else z.moveDir=0;
+  }else shortDiagonalStep(z,dt);
   let next=z.y+enemySpeed(z)*dt+extraY;
   for(const front of done){
    if(Number.isInteger(z.row)&&z.row===front.row)continue;
@@ -519,6 +590,8 @@ function applyKnockback(z,impact,n=1){
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockTime=KNOCK_TRAIL_LIFE;actor.knockChain=actor!==z;
+   // Chain pushes interrupt the short step and re-anchor at the new x.
+   clearShortStep(actor,.48);actor.shortStepHomeX=pos.x;
    if(actor!==z){
     actor.flinch=Math.max(actor.flinch||0,.32);
     actor.recoil=Math.max(actor.recoil||0,.2);
