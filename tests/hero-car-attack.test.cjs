@@ -8,8 +8,8 @@ assert(png.includes(Buffer.from('tRNS')),'transparent sprite pixels, no opaque s
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const loader=fs.readFileSync('dist/assets/ip/hero-car-attack.js','utf8');
-assert(html.includes('src="assets/ip/hero-car-attack.js?v=38-clean-hero-sprite"')&&html.includes('src="game.js?v=37-tiny-items"'),'loader included before game');
-assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=38-clean-hero-sprite"')<html.indexOf('src="game.js?v=37-tiny-items"'),'load art first');
+assert(html.includes('src="assets/ip/hero-car-attack.js?v=38-clean-hero-sprite"')&&html.includes('src="game.js?v=39-falling-loot-glow"'),'loader included before game');
+assert(html.indexOf('src="assets/ip/hero-car-attack.js?v=38-clean-hero-sprite"')<html.indexOf('src="game.js?v=39-falling-loot-glow"'),'load art first');
 assert(sw.includes('hero-car-attack.png')&&sw.includes('hero-car-attack.js'),'offline cache includes both assets');
 assert(loader.includes('atlas.naturalWidth===1536&&atlas.naturalHeight===576'),'reject incomplete atlas');
 assert(loader.includes("hero-car-attack.png?v=38-clean-hero-sprite"),'runtime bitmap must bypass old PWA/CDN cache');
