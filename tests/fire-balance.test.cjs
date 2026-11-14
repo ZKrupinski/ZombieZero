@@ -21,32 +21,29 @@ const src=fs.readFileSync('dist/game.js','utf8');
 vm.runInContext(src+`
 function check(c,m){if(!c)throw Error(m)}
 start();serve();
-check(FIRE_DROP_CHANCE===.025&&FIRE_DROP_COOLDOWN===30,'fire drop only 2.5% after item drop, 30s cooldown');
-check(SKILLS.fire.duration===10,'fireball shorter than previous 14s');
+check(FIRE_DROP_CHANCE===.12&&FIRE_DROP_COOLDOWN===24,'fire visible but not continuous');
+check(FIRE_DROP_STAGE_GAP===2&&FIRE_PITY_STAGES===3,'fire arrives by third eligible stage');
+check(LOOT_DROP_CHANCE===.26&&LOOT_MAX_VISIBLE===2&&LOOT_MAX_STAGE===4,
+ 'fewer simultaneous/total items');
+check(SKILLS.fire.duration===10,'fireball still shorter than previous 14s');
 check(FIRE_MAX_ACTIVE===5&&FIRE_SPREAD_DEPTH===1,'simultaneous and propagation depth capped');
 check(FIRE_TICK_DAMAGE===.75&&FIRE_TICK_INTERVAL===1.05&&FIRE_DURATION===2.4,
- 'fire damage reduced to around 1.5HP total over 2.4s');
-function forceDrop(){
- const seq=[.1,.5,0,.25];
- Math.random=()=>seq.length?seq.shift():.5;
- drop({x:120,y:100,w:33,h:44,max:4,boss:false});
- return items[items.length-1]?.k;
-}
-items=[];clock=100;wave=10;rack();
-check(forceDrop()==='fire','fire remains possible on the rare drop roll');
-check(fireDropsThisWave===1&&lastFireDropAt===100,'first pickup exhausts wave quota');
-items=[];check(forceDrop()!=='fire','second fire drop blocked within same wave');
-for(let i=0;i<12;i++){items=[];check(forceDrop()!=='fire','wave quota blocks repeated attempts')}
-clock+=2;wave=11;rack();items=[];
-check(forceDrop()!=='fire','new wave still respects cross-wave cooldown');
-clock+=31;wave=12;rack();items=[];
-check(forceDrop()==='fire','fire can drop again after 30s in a new wave');
-clock+=40;wave=13;rack();items=[];active.fire=10;
-check(forceDrop()!=='fire','fire may not drop while fire effect is active');
-active={};wave=14;rack();items=[{k:'fire'}];
-check(forceDrop()!=='fire','fire cannot pile up while one pickup is on the road');
-items=[];wave=15;rack();clock+=40;
-check(forceDrop()==='fire','later stage still permits an occasional fire pickup');
+ 'fire damage remains weaker');
+const corpse={x:120,y:100,w:33,h:44,max:4,boss:false};
+Math.random=()=>0;items=[];clock=100;wave=3;rack();
+drop(corpse);
+check(items.length===1&&items[0].k==='fire','fire guaranteed after no fire in first three stages');
+check(fireDropsThisWave===1&&lastFireDropWave===3&&lastFireDropAt===100,'fire wave and time recorded');
+items=[];drop(corpse);
+check(items.every(i=>i.k!=='fire'),'second fire blocked in same wave');
+clock+=3;wave=4;rack();items=[];drop(corpse);
+check(items.every(i=>i.k!=='fire'),'next immediate wave must not spam fire');
+clock+=25;wave=5;rack();items=[];drop(corpse);
+check(items.some(i=>i.k==='fire'),'fire can reappear with a low roll after two stages and time cooldown');
+items=[];clock+=31;wave=6;rack();drop(corpse);
+check(items.every(i=>i.k!=='fire'),'one intervening wave is insufficient');
+clock+=31;wave=8;rack();items=[];drop(corpse);
+check(items.some(i=>i.k==='fire'),'another three-stage dry streak guarantees fire');
 items=[];clearSkills();
 // Enemy circle in an empty lane: separate targets 47px apart, so only
 // first-generation direct flames can reach one extra target.
@@ -85,5 +82,5 @@ check(barrelBlasts.length===1,'red barrel explosion visuals retained');
 check(foes.filter(z=>z.burn>0).length===FIRE_BARREL_TARGETS,
  'barrel detonation directly ignites only three nearby enemies');
 check(foes.every(z=>z.burn<=0||z.burnDepth===0),'barrel flame source is root level');
-console.log('PASS: rare one-per-wave fire pickup with 30s cooldown, 10s effect, weaker DOT, 5 concurrent burns and one-hop spread, three-target barrel ignition');
+console.log('PASS: 3-wave fire pity with 2-stage/24s separation, 2 visible pickups, 4-stage item cap, weaker DOT and bounded one-hop spread');
 `,sandbox);
