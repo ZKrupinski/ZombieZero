@@ -17,15 +17,15 @@ for(let i=0;i<3;i++){
  const base=four[0],t1=four[1],t2=four[2],trim=four[3];
  for(const rgb of four){
   assert(Math.max(...rgb)-Math.min(...rgb)<32,'floor remains neutral, not neon');
-  assert(brightness(rgb)>=135&&brightness(rgb)<=196,'light enough behind dark silhouettes');
+  assert(brightness(rgb)>=65&&brightness(rgb)<=155,'medium-dark neutral tones keep FX luminous');
  }
  assert(Math.abs(brightness(t1)-brightness(t2))<15,'tile contrast is not distracting');
  assert(Math.abs(brightness(base)-brightness(t1))<25,'subtle ground gradient');
  assert(brightness(trim)>brightness(base),'subtle trim differentiates the road');
 }
-assert(bg.includes("rect(x+7,y+25,11,2,'#59656032')"),'cracks softened and desaturated');
+assert(bg.includes("rect(x+7,y+25,11,2,'#24303835')"),'cracks softened and desaturated');
 assert(bg.includes("for(let i=0;i<16;i++)"),'less road sparkle noise');
 assert(bg.includes("g.globalAlpha=.10"),'animated lane markings softer than before');
 assert(!bg.includes("#5cd9de")&&!bg.includes("#e791e9"),'saturated previous palette removed');
-assert(!bg.includes("#131d38")&&!bg.includes("#261a38"),'dark floor no longer overpowers zombie sprites');
-console.log('PASS: brighter low-chroma three-stage road palettes, subtle tiles/cracks and less overlay noise');
+assert(!bg.includes("#131d38")&&!bg.includes("#261a38"),'no near-black saturated original road');
+console.log('PASS: medium-dark low-chroma three-stage road palettes, subtle tiles/cracks for bright combat FX');
