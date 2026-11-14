@@ -16,5 +16,5 @@
   if(typeof document!=='undefined'&&document.documentElement)
    document.documentElement.dataset.zzHeroAtlas='load-error';
  };
- atlas.src='assets/ip/hero-car-attack.png?v=28-hero-live';
+ atlas.src='assets/ip/hero-car-attack.png?v=29-hero-70';
 })();
