@@ -9,7 +9,7 @@ function luminous(draw){
  fxRenderer.capture(original,context=>{g=context;try{draw()}finally{g=original}});
 }
 const TYPES=[{color:'#a9d67c',top:'#dcf3b1',side:'#60945b',hp:1,name:'그린'},{color:'#78d4e5',top:'#bbf3f6',side:'#367e98',hp:2,name:'블루'},{color:'#eabb58',top:'#ffdf96',side:'#a57932',hp:3,name:'골드'},{color:'#df87b5',top:'#ffc3e3',side:'#92527c',hp:4,name:'퍼플'},{color:'#ed7966',top:'#ffb091',side:'#a1403f',hp:5,name:'레드'}];
-const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:14,color:'#ff9763',desc:'주변 화염 전염',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:12,color:'#86f2e0',desc:'공·좀비 감속',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
+const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:10,color:'#ff9763',desc:'점화 최대 2명 · 전염 1회',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:12,color:'#86f2e0',desc:'공·좀비 감속',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
 const HEROES=[
@@ -184,7 +184,7 @@ function setStageForms(regulars,stage){
  for(const z of regulars)z.hp=z.max=zombieHP(z.form,z.kind,stage);
 }
 function rack(){
- foes=[];stageDelay=0;
+ foes=[];stageDelay=0;fireDropsThisWave=0;
  const rows=Math.min(4,Math.max(2,Math.min(
   Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
   Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
@@ -320,7 +320,7 @@ function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();ret
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
-function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;lives=hero().lives;car=target=225;clearTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;lives=hero().lives;car=target=225;clearTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){balls[0].held=false;balls[0].vx=125;balls[0].vy=-365;syncMulti();sfx('serve');hud()}}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('overlay').hidden=false;endlessUI()}
 function pause(){releaseInput();if(mode==='playing'||mode==='clearing'){resumeMode=mode;mode='paused';sfx('pause');overlay('잠깐,<br><em>숨 고르기.</em>','게임과 스킬 지속시간이 멈췄습니다.','계속하기','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
@@ -335,7 +335,25 @@ function supportRisk(){if(!foes.length)return 0;const bottom=Math.max(...foes.ma
 function supportAvailable(){return citizens.some(p=>p.alive)&&clock-lastSupportAt>=45&&!has('bazooka')&&!items.some(i=>i.k==='bazooka')&&!rockets.length}
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
 function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3)return;items.push({x:car,y:485,k:'bazooka',phase:0});lastSupportAt=clock;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
-function drop(z){if(z.max<2&&!z.boss)return;if(z.boss||Math.random()<.45){let ks=Object.keys(SKILLS).filter(k=>k!=='bazooka'),chance=supportChance(),roll=Math.random(),k=roll<chance?'bazooka':ks[Math.min(ks.length-1,Math.floor((roll-chance)/(1-chance)*ks.length))];items.push({x:z.x+z.w/2,y:z.y+z.h/2,k,phase:Math.random()*6});if(k==='bazooka')lastSupportAt=clock}}
+// Fire should be an uncommon tactical pickup, not a near-permanent screen clear.
+// A conditional 2.5% fire roll applies only after a normal item drop (45%
+// against an eligible ordinary enemy), with one per wave and a 30s lockout.
+const FIRE_DROP_CHANCE=.025,FIRE_DROP_COOLDOWN=30;
+let fireDropsThisWave=0,lastFireDropAt=-1e6;
+function drop(z){
+ if(z.max<2&&!z.boss)return;
+ if(!z.boss&&Math.random()>=.45)return;
+ const chance=supportChance(),roll=Math.random();
+ const normal=Object.keys(SKILLS).filter(k=>k!=='bazooka'&&k!=='fire');
+ let k=roll<chance?'bazooka':normal[Math.min(normal.length-1,
+  Math.floor((roll-chance)/(1-chance)*normal.length))];
+ if(k!=='bazooka'&&fireDropsThisWave===0&&clock-lastFireDropAt>=FIRE_DROP_COOLDOWN&&
+    !has('fire')&&!items.some(item=>item.k==='fire')&&Math.random()<FIRE_DROP_CHANCE){
+  k='fire';fireDropsThisWave++;lastFireDropAt=clock;
+ }
+ items.push({x:z.x+z.w/2,y:z.y+z.h/2,k,phase:Math.random()*6});
+ if(k==='bazooka')lastSupportAt=clock;
+}
 const RED_BARREL_RADIUS=86;
 function explodeRedBarrel(z){
  const x=z.x+z.w/2,y=z.y+z.h/2;
@@ -344,11 +362,14 @@ function explodeRedBarrel(z){
  effect(x,y,'#ffac48',112);burst(x,y,'#ff913b',48);
  sfx('blast');haptic(12);
  // Fire spreads to nearby enemy collision rectangles, not to the player or civilians.
- for(const other of foes){
+ const victims=foes.map(other=>{
   const dx=x-clamp(x,other.x,other.x+other.w);
   const dy=y-clamp(y,other.y,other.y+other.h);
-  if(dx*dx+dy*dy<=RED_BARREL_RADIUS*RED_BARREL_RADIUS)ignite(other);
- }
+  return {other,dist:dx*dx+dy*dy};
+ }).filter(v=>v.dist<=RED_BARREL_RADIUS*RED_BARREL_RADIUS)
+   .sort((a,b)=>a.dist-b.dist);
+ let ignited=0;
+ for(const v of victims)if(ignite(v.other,0)&&++ignited>=FIRE_BARREL_TARGETS)break;
 }
 // A CRITICAL is a probability-driven, full-health single-strike knockout.
 // Power/rocket overkill and burning kills are not critical finishers.
@@ -408,8 +429,35 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false){
  }
  hud();if(!foes.length)beginClear();
 }
-function ignite(z){if(!foes.includes(z))return;z.burn=Math.max(z.burn,3);}
-function hit(z,impact=null){combo++;const critical=criticalEligible(z)&&Math.random()<(z.form===0?CRITICAL_GREEN_CHANCE:CRITICAL_SPECIAL_CHANCE);damage(z,hero().damage*(has('power')?2:1),false,impact,critical);if(has('fire')){ignite(z);for(const other of foes)if(Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82)ignite(other);sfx('fire')}}
+// Fire has a hard simultaneous cap and at most one single-hop spread per
+// directly ignited zombie. Propagated flames cannot propagate again.
+const FIRE_MAX_ACTIVE=5,FIRE_DURATION=2.4,FIRE_TICK_INTERVAL=1.05,FIRE_TICK_DAMAGE=.75;
+const FIRE_SPREAD_RADIUS=52,FIRE_SPREAD_DEPTH=1,FIRE_DIRECT_TARGETS=2,FIRE_BARREL_TARGETS=3;
+function ignite(z,depth=0){
+ if(!foes.includes(z)||z.burn>0||foes.filter(other=>other.burn>0).length>=FIRE_MAX_ACTIVE)
+  return false;
+ z.burn=FIRE_DURATION;z.burnTick=0;z.spreadTick=0;
+ z.burnDepth=depth;z.spreadDone=false;
+ return true;
+}
+function fireTargetsNear(z,radius){
+ return foes.filter(other=>other!==z&&other.burn<=0&&
+  Math.hypot(other.x+other.w/2-z.x-z.w/2,
+             other.y+other.h/2-z.y-z.h/2)<=radius)
+  .sort((a,b)=>Math.hypot(a.x-z.x,a.y-z.y)-Math.hypot(b.x-z.x,b.y-z.y));
+}
+function hit(z,impact=null){
+ combo++;
+ const critical=criticalEligible(z)&&Math.random()<(z.form===0?CRITICAL_GREEN_CHANCE:CRITICAL_SPECIAL_CHANCE);
+ damage(z,hero().damage*(has('power')?2:1),false,impact,critical);
+ if(has('fire')){
+  const targets=foes.includes(z)?[z,...fireTargetsNear(z,82)]:foes.filter(other=>
+   Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82);
+  let count=0;
+  for(const other of targets)if(ignite(other,0)&&++count>=FIRE_DIRECT_TARGETS)break;
+  if(count)sfx('fire');
+ }
+}
 function update(dt){if(mode==='over'&&failureScene){failureScene.t+=dt;clock+=dt;cameraKick*=Math.exp(-dt*10);if(failureScene.t>=1.8){failureScene=null;$('overlay').hidden=false}return}if(mode!=='playing'&&mode!=='clearing')return;clock+=dt;resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;fx=fx.filter(f=>(f.t+=dt)<f.life);swing=Math.max(0,swing-dt);particles=particles.filter(p=>p.t>0);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
 if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt)}
 updateCrowd(dt);updateEmergencySupport(dt);
@@ -419,7 +467,21 @@ const previousCar=car;if(keys.ArrowLeft||keys.a)target-=hero().speed*dt;if(keys.
 for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple')balls=balls.slice(0,multiCount());sfx('expire');hud()}}skillUI();
 for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65){items.splice(items.indexOf(item),1);activate(item.k)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
 if(balls[0]?.held){balls[0].x=car;balls[0].y=PY-17;return}
-march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){z.burn-=dt;z.burnTick+=dt;z.spreadTick+=dt;if(z.spreadTick>=.8){z.spreadTick=0;for(const other of foes)if(other!==z&&other.burn<=0&&Math.hypot(other.x-z.x,other.y-z.y)<70)ignite(other)}if(z.burnTick>=.75){z.burnTick=0;damage(z,1,true);if(mode!=='playing')return}}if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
+march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
+ z.burn=Math.max(0,z.burn-dt);z.burnTick+=dt;z.spreadTick+=dt;
+ if(z.spreadTick>=.95&&!z.spreadDone){
+  z.spreadDone=true;
+  if((z.burnDepth||0)<FIRE_SPREAD_DEPTH){
+   const neighbour=fireTargetsNear(z,FIRE_SPREAD_RADIUS)[0];
+   if(neighbour)ignite(neighbour,(z.burnDepth||0)+1);
+  }
+ }
+ if(z.burnTick>=FIRE_TICK_INTERVAL){
+  z.burnTick-=FIRE_TICK_INTERVAL;
+  damage(z,FIRE_TICK_DAMAGE,true);
+  if(mode!=='playing')return;
+ }
+}if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 for(const b of [...balls]){const radius=has('power')?16:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<20+radius){b.x=20+radius;b.vx=Math.abs(b.vx);sfx('wall')}if(b.x>430-radius){b.x=430-radius;b.vx=-Math.abs(b.vx);sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);sfx('wall')}
 for(const z of foes){if(b.lastHit===z&&b.hitLock>0)continue;if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&b.y+radius>z.y&&b.y-radius<z.y+z.h){const impact={x:b.vx,y:b.vy};if(ox+radius<=z.x||ox-radius>=z.x+z.w){b.vx*=-1;b.x=ox}else{b.vy*=-1;b.y=oy}b.lastHit=z;b.hitLock=.1;hit(z,impact);if(mode!=='playing')return;break}}
