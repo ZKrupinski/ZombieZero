@@ -116,7 +116,22 @@ function drawOutcome(){if(resistFlash>0){const t=1-resistFlash/1.4;g.save();g.gl
  if(!failureScene)return;const f=failureScene;g.save();rect(20,16,410,H-20,'#160d2444');g.strokeStyle='#ff6278';g.lineWidth=4;
  if(f.type==='breach'){rect(20,DEFENSE_Y-3,410,6,'#ff546c');g.beginPath();g.arc(f.x,f.y,42+Math.sin(f.t*15)*4,0,Math.PI*2);g.stroke();g.fillStyle='#ffd8ce';g.font='bold 14px Arial, sans-serif';g.textAlign='center';g.fillText('이 적이 방어선을 돌파했습니다',225,DEFENSE_Y+26)}else{g.beginPath();g.moveTo(f.x,H-95);g.lineTo(f.x,H-11);g.stroke();poly([[f.x-12,H-28],[f.x,H-8],[f.x+12,H-28]],'#ff7182');g.textAlign='center';g.font='bold 25px Arial, sans-serif';g.fillStyle='#ff9b9b';g.fillText('♡  0',225,H-55)}
  rect(38,264,374,142,'#251827ed');g.fillStyle='#ffad9f';g.font='bold 25px Arial, sans-serif';g.textAlign='center';g.fillText(f.type==='breach'?'방어선 돌파!':'마지막 공을 놓쳤습니다!',225,299);g.font='bold 14px Arial, sans-serif';g.fillStyle='#fff0d4';g.fillText(f.type==='breach'?'하트가 남아 있어도':'남은 하트가 0이 되어',225,329);g.fillText(f.type==='breach'?'방어선이 뚫리면 패배합니다.':'게임이 종료됩니다.',225,350);g.fillText((runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)+' · SCORE '+score.toLocaleString('ko-KR'),225,382);g.restore()}
-function hud(){$('score').textContent=score.toLocaleString('ko-KR');$('wave').textContent=runMode==='endless'?'∞ '+(wave-50):String(wave).padStart(2,'0');$('progress').textContent=runMode==='endless'?'ENDLESS · '+(wave-51)+' 웨이브 생존':(wave-1)+'/50 스테이지 클리어';$('lives').textContent='♥ '.repeat(lives)+'♡ '.repeat(Math.max(0,hero().lives-lives));$('status').textContent=balls[0]?.held?'TAP TO SERVE':'BALLS '+balls.length;skillUI()}
+function hud(){
+ $('score').textContent=score.toLocaleString('ko-KR');
+ $('wave').textContent=runMode==='endless'?'∞ '+(wave-50):String(wave).padStart(2,'0');
+ $('progress').textContent=runMode==='endless'?'ENDLESS · '+(wave-51)+' 웨이브 생존':(wave-1)+'/50 스테이지 클리어';
+ // Only one prominent 3D voxel heart in the upper-left; a high-contrast
+ // number tells the player exactly how many lives remain.
+ const heart=$('hud-hearts');
+ $('hud-heart-count').textContent='×'+Math.max(0,lives);
+ heart.setAttribute('aria-label','남은 생명 '+Math.max(0,lives)+'개');
+ heart.style.opacity=lives>0?'1':'.42';
+ // Keep the historical node for script/test compatibility, but it is hidden
+ // so lives never render twice in the footer.
+ $('lives').textContent='';
+ $('status').textContent=balls[0]?.held?'TAP TO SERVE':'BALLS '+balls.length;
+ skillUI();
+}
 function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity=0,1400)}
 // A separate density meter controls rare actual diagonal breakouts, not UI.
 let waveInitialRegulars=0,breakoutNextCheck=0;
