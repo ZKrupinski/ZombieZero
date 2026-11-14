@@ -21,6 +21,19 @@
    ready[i]=img.naturalWidth===900&&img.naturalHeight===1420;
   };
   img.onerror=()=>{ready[i]=false;};
-  img.src='assets/stages/bg-'+String(i+1).padStart(2,'0')+'.webp?v=45-eighteen-scenes';
+  if(i<8){
+   img.src='assets/stages/bg-'+String(i+1).padStart(2,'0')+'.webp?v=45-eighteen-scenes';
+  }else{
+   // These are byte-identical WebP images stored as reversible base64 text.
+   // GitHub's text-file endpoint supports binary art without changing the pixels.
+   // The browser decodes the data URI into a normal bitmap Image object.
+   const path='assets/stages/bg-'+String(i+1).padStart(2,'0')+'.webp.b64?v=45-eighteen-scenes';
+   fetch(path).then(response=>{
+    if(!response.ok)throw Error('stage image '+(i+1)+' HTTP '+response.status);
+    return response.text();
+   }).then(encoded=>{
+    img.src='data:image/webp;base64,'+encoded.trim();
+   }).catch(()=>{ready[i]=false;});
+  }
  }
 })();
