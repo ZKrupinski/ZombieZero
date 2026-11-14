@@ -26,7 +26,7 @@ assert(finished&&transparent&&off===png.length,'no opaque backdrop or corrupt ch
 assert(html.includes('src="assets/ip/v2/green-walk.js"'),'green loader before game');
 assert(html.indexOf('src="assets/ip/v2/green-walk.js"')<html.indexOf('src="game.js"'),'load ordering');
 assert(sw.includes('./assets/ip/v2/green_zombie.png')&&sw.includes('./assets/ip/v2/green-walk.js'),'offline assets');
-assert(sw.includes('shell-v17-green-horde-fire-barrel'),'cache version');
+assert(sw.includes('shell-v18-dynamic-impact'),'cache version');
 assert(game.includes('mascot?.draw(g,z,clock)'),'runtime connected');
 assert(game.includes('const isGreen=!z.boss&&(z.form??0)===0'),'green uses dedicated final death 8/10 frames');
 assert(game.includes('function tryStartBreakouts()'),'green diagonal movement now requires sparse-wave gap AI');
