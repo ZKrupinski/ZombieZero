@@ -60,16 +60,16 @@ const cheering=images.filter(a=>a[0]===window.ZZCitizenCast.cheer);
 check(cheering.length===18&&cheering.some(a=>a[2]>0),
  'cheer action progresses through four actual frames');
 let p=citizens[0];p.shooting=1.1;images.length=0;drawCrowd();
-check(images.some(a=>a[0]===attack&&a[1]===0),'bazooka hero switches to citizen attack sheet');
+check(images.some(a=>a[0]===window.ZZCitizenCast.attack&&a[1]===0),'bazooka hero switches to citizen attack sheet');
 p.shooting=0;p.supportTime=.62;images.length=0;drawCrowd();
-check(images.some(a=>a[0]===attack),'ordinary thrown support animates a counterattack');
+check(images.some(a=>a[0]===window.ZZCitizenCast.attack),'ordinary thrown support animates a counterattack');
 p.supportTime=0;
 const ball=newBall(p.x,p.y-12,0,400,false);const ok=citizenCollision(ball,8);
 check(ok&&!p.alive&&p.dying===.8,'ball sacrifice preserves original bounce/loss rules');
 images.length=0;drawCrowd();
-check(images.some(a=>a[0]===attack),'sacrificed citizen displays distinct hero animation');
+check(images.some(a=>a[0]===window.ZZCitizenCast.attack),'sacrificed citizen displays distinct hero animation');
 updateCrowd(.27);images.length=0;drawCrowd();
-check(images.some(a=>a[0]===attack&&a[2]>=128),'sacrifice frames progress after collision');
+check(images.some(a=>a[0]===window.ZZCitizenCast.attack&&a[2]>=128),'sacrifice frames progress after collision');
 resetCitizens();
 check(citizens.every(p=>p.alive&&p.supportTime===0),'all citizens recover and are reset for another game');
 const boss={x:192,y:74,row:-1,col:4,w:66,h:88,hp:36,max:36,
