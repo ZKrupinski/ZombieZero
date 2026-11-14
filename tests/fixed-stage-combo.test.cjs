@@ -11,7 +11,7 @@ const el=id=>els[id]??={textContent:'',innerHTML:'',style:{},hidden:false,
 const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  window:{addEventListener:noop},localStorage:{getItem:()=>0,setItem:noop},
  Path2D:class{},requestAnimationFrame:noop,setTimeout:()=>0,
- clearTimeout:noop,Math:Object.create(Math),console};
+ clearTimeout:noop,Math:Object.create(Math),console,canvasCalls};
 vm.createContext(sandbox);
 vm.runInContext(source+`
 function check(test,reason){if(!test)throw Error(reason)}
@@ -26,7 +26,7 @@ check($('combo-hud').textContent==='12 COMBO · AMAZING!','streak tier updates')
 killCombo=0;drawKillCombo();check($('combo-hud').hidden,'combo hidden after streak');
 wave=3;rack();
 const boss=foes.find(z=>z.boss);
-check(boss&&boss.y>=110,'boss and overhead health bar begin beneath stage HUD');
+check(boss&&boss.y===74,'boss spawn and difficulty stay at original coordinates');
 `,sandbox);
 assert(html.includes('id="combo-hud"'),'stage HUD owns combo');
 assert(css.includes('var(--board-offset-y,0px)')&&css.includes('var(--board-offset-x,0px)'),
@@ -35,4 +35,5 @@ assert(css.includes('aspect-ratio:450/710!important'),'game frame cannot be dist
 assert(app.includes('const scale=Math.min(width/450,height/710)'),
  'on-screen frame is contained by a single uniform scale');
 assert(source.includes('const targetH=710;'),'playable height never depends on device aspect');
+assert(source.includes('Math.max(0,90-(z.y-32))'),'boss health label stays below top HUD without changing its physical position');
 console.log('PASS: stage screenshots preserve fixed 450:710 frame; boss HP and combo leave HUD unobstructed');
