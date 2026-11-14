@@ -806,11 +806,11 @@ for(let i=0;i<16;i++){let x=25+(i*137)%400,y=(i*97+clock*9)%(DEFENSE_Y-15);rect(
 g.setLineDash([8,7]);g.strokeStyle='#ff947b99';g.beginPath();g.moveTo(23,DEFENSE_Y);g.lineTo(427,DEFENSE_Y);g.stroke();g.setLineDash([]);g.fillStyle='#ffc794aa';g.font='10px Arial, sans-serif';g.textAlign='left';g.fillText('DEFENSE LINE / 넘기면 끝!',30,DEFENSE_Y+14);rect(20,H-50,410,50,'#17252baa');
 if(has('slow')){g.strokeStyle='#86f2e050';g.strokeRect(24,22,402,DEFENSE_Y-30)}
 }
-// Eight stage-local bitmap scenes. Keep the game world's fixed 450×710
+// Eighteen stage-local bitmap scenes. Keep the game world's fixed 450×710
 // coordinates and its collision/defense positions completely unchanged.
-const STAGE_ART_COUNT=8;
+const STAGE_ART_COUNT=18;
 const STAGE_FADE_SECONDS=.9;
-const STAGE_PLAYFIELD_VEIL=[.10,.12,.14,.12,.18,.16,.12,.14];
+const STAGE_PLAYFIELD_VEIL=[.10,.12,.14,.12,.18,.16,.12,.14,.13,.22,.12,.14,.11,.11,.12,.19,.13,.13];
 let stageArtIndex=0,previousArtIndex=-1,stageArtBlend=1;
 function stageArtForWave(n){return ((Math.max(1,n)-1)%STAGE_ART_COUNT)}
 function setStageBackground(immediate=false){
@@ -845,8 +845,8 @@ function background(){
  }else if(newReady)g.drawImage(art.images[stageArtIndex],0,0,W,H);
  else g.drawImage(art.images[previousArtIndex],0,0,W,H);
  g.restore();
- // All eight pictures are fitted with the baked lane line precisely at
- // DEFENSE_Y. Apply a soft veil only over gameplay, not bright side scenery:
+ // Keep the original collision boundary at DEFENSE_Y regardless of art.
+ // The drawn lane stripe is authoritative for new as well as old backgrounds. Apply a soft veil only over gameplay, not bright side scenery:
  // voxel zombies, balls, item pickups, and combo remain the visual focus.
  g.save();
  g.fillStyle='rgba(10,18,26,'+STAGE_PLAYFIELD_VEIL[stageArtIndex]+')';
