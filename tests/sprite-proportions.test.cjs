@@ -25,7 +25,7 @@ function validate(z,name,critical=false){
  assert(calls.length>0,name+' creates bitmap draw calls');
  const walk=data[name].walkUnion;
  const desired=name==='green_zombie'?66:z.boss?(name==='big_zombie'?104:98):Math.min(66,61*walk[3]/walk[2]);
- const scale=name==='green_zombie'||z.boss?desired/walk[3]:Math.min(desired/walk[3],56/walk[2]);
+ const scale=z.boss?desired/walk[3]:Math.min(desired/walk[3],55/walk[3],43/walk[2]);
  for(const [img,sx,sy,sw,sh,dx,dy,dw,dh] of calls){
   assert(sw>0&&sw<=128&&sh>0&&sh<=128,name+' source is alpha cropped');
   assert(Math.abs(dw/sw-dh/sh)<1e-8,name+' aspect ratio maintained on cropped rectangle');
