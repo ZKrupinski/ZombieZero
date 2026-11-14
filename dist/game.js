@@ -385,8 +385,8 @@ function drop(z){
  if(z.max<2&&!z.boss)return;
  const boss=!!z.boss,fireReady=fireCanDrop();
  const pity=fireReady&&wave>=3&&wave-lastFireDropWave>=FIRE_PITY_STAGES;
- // Keep a slot open for overdue fire even when ordinary loot has dropped.
- if(!boss&&stageLootCount>=LOOT_MAX_STAGE-(pity?1:0))return;
+ // An overdue fire reward takes priority over ordinary random drops.
+ if(!boss&&stageLootCount>=LOOT_MAX_STAGE)return;
  if(!boss&&!pity&&Math.random()>=LOOT_DROP_CHANCE)return;
  // Fire pity and boss rewards can replace one uncollected regular pickup.
  if(items.length>=LOOT_MAX_VISIBLE){
