@@ -435,3 +435,236 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
  overflow:visible!important;min-width:0!important;
 }
 .landscape-game .hud small{display:block!important}
+
+
+/* v33 · Compact fixed-coordinate top HUD / original cube-style combo badge.
+   All dimensions refer to the 450x710 virtual board and scale uniformly with
+   the contained board, not with device-specific aspect/breakpoints. */
+.portrait-play .hud,.landscape-game .hud{
+ display:block!important;grid-template-columns:none!important;position:absolute!important;
+ left:0!important;right:0!important;top:0!important;z-index:5!important;
+ width:100%!important;height:calc(54px * var(--ui-scale,1) + env(safe-area-inset-top,0px))!important;
+ min-height:0!important;margin:0!important;padding:0!important;
+ background:linear-gradient(180deg,#07131de8 0%,#07131d99 65%,transparent 100%)!important;
+ border:0!important;overflow:visible!important;pointer-events:none;
+}
+.portrait-play .hud>div:first-child,.landscape-game .hud>div:first-child{
+ position:absolute!important;top:calc(7px * var(--ui-scale,1) + env(safe-area-inset-top,0px))!important;
+ left:calc(9px * var(--ui-scale,1))!important;
+ width:calc(118px * var(--ui-scale,1))!important;
+ max-width:28%!important;min-width:0!important;
+ margin:0!important;padding:0!important;text-align:left!important;
+ overflow:visible!important;
+}
+.portrait-play .hud .wave,.landscape-game .hud .wave{
+ position:absolute!important;top:calc(6px * var(--ui-scale,1) + env(safe-area-inset-top,0px))!important;
+ left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+ width:calc(94px * var(--ui-scale,1))!important;
+ min-width:0!important;max-width:24%!important;
+ margin:0!important;padding:0!important;text-align:center!important;
+ overflow:visible!important;
+}
+.portrait-play .hud small,.landscape-game .hud small{
+ font:700 max(8px,calc(8.5px * var(--ui-scale,1)))/1.1 system-ui,sans-serif!important;
+ letter-spacing:0!important;margin:0 0 calc(2px * var(--ui-scale,1))!important;
+ color:#b8d6d1!important;white-space:nowrap!important;
+}
+.portrait-play .hud strong,.landscape-game .hud strong{
+ font:900 max(16px,calc(21px * var(--ui-scale,1)))/1.04 system-ui,sans-serif!important;
+ font-variant-numeric:tabular-nums!important;letter-spacing:-.03em!important;
+ margin:0!important;padding:0!important;display:block!important;
+ color:#e6f5cd!important;white-space:nowrap!important;
+ text-overflow:clip!important;overflow:visible!important;
+}
+.portrait-play .hud .wave strong,.landscape-game .hud .wave strong{
+ font-size:max(17px,calc(22px * var(--ui-scale,1)))!important;
+ color:#d9ff83!important;
+}
+.portrait-play .hud #progress,.landscape-game .hud #progress,
+.hud #combo-hud{display:none!important}
+.portrait-play .hud #pause,.portrait-play .hud #options-toggle,
+.landscape-game .hud #pause,.landscape-game .hud #options-toggle{
+ display:flex!important;position:absolute!important;top:calc(7px * var(--ui-scale,1) + env(safe-area-inset-top,0px))!important;
+ left:auto!important;bottom:auto!important;transform:none!important;
+ align-items:center!important;justify-content:center!important;
+ flex:none!important;min-width:0!important;min-height:0!important;
+ width:max(34px,calc(36px * var(--ui-scale,1)))!important;
+ height:max(34px,calc(36px * var(--ui-scale,1)))!important;
+ padding:0!important;margin:0!important;
+ font:700 max(16px,calc(19px * var(--ui-scale,1)))/1 system-ui,sans-serif!important;
+ border-radius:calc(8px * var(--ui-scale,1))!important;
+ border:1px solid #718d93!important;
+ background:#102b32c9!important;color:#edf9e7!important;
+ box-shadow:0 2px 8px #0007!important;pointer-events:auto!important;
+}
+.portrait-play .hud #pause,.landscape-game .hud #pause{
+ right:calc(47px * var(--ui-scale,1))!important
+}
+.portrait-play .hud #options-toggle,.landscape-game .hud #options-toggle{
+ right:calc(7px * var(--ui-scale,1))!important
+}
+
+/* Six true 3D-looking voxel tiers. Bitmap-like chunky cubes are built from
+   shaded pixel faces (no SVG or thin vector paths); the source sprites remain
+   untouched. CSS only animates the HUD overlay, never the gameplay canvas. */
+.zz-combo-overlay{
+ --cube-face:#b7f55d;--cube-top:#f5ffb0;--cube-side:#598c3c;
+ --combo-edge:#e3ff86;--combo-glow:#b1ef55bb;--combo-core:#eaff9e;
+ position:absolute!important;
+ top:calc(65px * var(--ui-scale,1));
+ left:50%;transform:translateX(-50%);
+ width:calc(310px * var(--ui-scale,1));max-width:88%;
+ height:calc(100px * var(--ui-scale,1));
+ z-index:6!important;pointer-events:none!important;
+ overflow:visible!important;isolation:isolate;
+}
+.zz-combo-overlay[hidden]{display:none!important}
+.zz-combo-overlay[data-tier="0"]{
+ --cube-face:#a5eb57;--cube-top:#f2ffb6;--cube-side:#517839;
+ --combo-edge:#d2f981;--combo-glow:#b2e86f99;--combo-core:#edffaf
+}
+.zz-combo-overlay[data-tier="1"]{
+ --cube-face:#4ceacc;--cube-top:#bffff0;--cube-side:#228d88;
+ --combo-edge:#8fffe6;--combo-glow:#3ef9d6b5;--combo-core:#b4fff0
+}
+.zz-combo-overlay[data-tier="2"]{
+ --cube-face:#ffbe40;--cube-top:#fff1a6;--cube-side:#bb6c22;
+ --combo-edge:#ffdc70;--combo-glow:#ffc348bc;--combo-core:#fff2a1
+}
+.zz-combo-overlay[data-tier="3"]{
+ --cube-face:#ff729c;--cube-top:#ffc3c5;--cube-side:#b53d81;
+ --combo-edge:#ffacd3;--combo-glow:#fb74bbba;--combo-core:#ffe5f4
+}
+.zz-combo-overlay[data-tier="4"]{
+ --cube-face:#a464fb;--cube-top:#ecbeff;--cube-side:#563ab8;
+ --combo-edge:#d9a7ff;--combo-glow:#b475ffcc;--combo-core:#f2d6ff
+}
+.zz-combo-overlay[data-tier="5"]{
+ --cube-face:#f7bb48;--cube-top:#fff4bd;--cube-side:#9667d6;
+ --combo-edge:#ffef8b;--combo-glow:#f7d46be6;--combo-core:#fff5c6
+}
+.zz-combo-emblem{
+ position:absolute;left:8%;top:5%;width:84%;height:86%;z-index:2;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ border:calc(2px * var(--ui-scale,1)) solid var(--combo-edge);
+ background:
+  linear-gradient(165deg,#ffffff32 0%,transparent 38%),
+  linear-gradient(180deg,#1b2d3bef 0%,#111b2dec 60%,#161b2fe8 100%);
+ clip-path:polygon(0 15%,5% 15%,5% 0,95% 0,95% 15%,100% 15%,100% 85%,95% 85%,95% 100%,5% 100%,5% 85%,0 85%);
+ box-shadow:0 0 calc(16px * var(--ui-scale,1)) var(--combo-glow),
+  0 calc(7px * var(--ui-scale,1)) calc(18px * var(--ui-scale,1)) #0008;
+}
+.zz-combo-emblem:before{
+ content:'';position:absolute;inset:calc(4px * var(--ui-scale,1));
+ border-top:calc(2px * var(--ui-scale,1)) solid var(--combo-edge);
+ border-bottom:calc(2px * var(--ui-scale,1)) solid var(--cube-side);
+ opacity:.6;pointer-events:none
+}
+.zz-combo-praise{
+ display:block;position:relative;z-index:1;max-width:96%;
+ font:1000 calc(19px * var(--ui-scale,1))/1 system-ui,sans-serif;
+ font-style:italic;letter-spacing:-.055em;
+ color:var(--combo-core);text-shadow:0 2px 0 #000,0 0 calc(10px * var(--ui-scale,1)) var(--combo-glow);
+ white-space:nowrap;margin:calc(2px * var(--ui-scale,1)) 0 calc(3px * var(--ui-scale,1));
+}
+.zz-combo-score{
+ position:relative;z-index:1;
+ display:flex;justify-content:center;align-items:baseline;
+ gap:calc(6px * var(--ui-scale,1));
+ white-space:nowrap;color:#fff;
+ text-shadow:calc(2px * var(--ui-scale,1)) calc(3px * var(--ui-scale,1)) 0 #0009,
+  0 0 calc(9px * var(--ui-scale,1)) var(--combo-glow);
+}
+.zz-combo-score strong{
+ font:1000 calc(37px * var(--ui-scale,1))/1 system-ui,sans-serif;
+ font-variant-numeric:tabular-nums;letter-spacing:-.055em;
+ color:var(--combo-core);
+}
+.zz-combo-score span{
+ font:1000 italic calc(26px * var(--ui-scale,1))/1 system-ui,sans-serif;
+ letter-spacing:-.045em;color:#f5fff1;
+}
+.zz-combo-meter{
+ position:absolute;bottom:calc(8px * var(--ui-scale,1));left:14%;width:72%;
+ height:max(2px,calc(3px * var(--ui-scale,1)));
+ background:#526b6855;box-shadow:0 0 0 1px #131a27
+}
+.zz-combo-meter i{
+ display:block;width:100%;height:100%;transform-origin:left center;
+ transform:scaleX(var(--combo-progress,1));
+ background:var(--combo-edge);box-shadow:0 0 9px var(--combo-glow)
+}
+.zz-combo-cubes{
+ position:absolute;top:27%;left:0;width:22%;height:60%;z-index:3;
+ filter:drop-shadow(0 2px 4px #0009);
+}
+.zz-combo-cubes-right{left:auto;right:0;transform:scaleX(-1)}
+.zz-combo-cubes i{
+ position:absolute;display:block;left:6%;top:22%;
+ width:calc(17px * var(--ui-scale,1));height:calc(17px * var(--ui-scale,1));
+ background:var(--cube-face);box-shadow:inset 0 2px 0 #ffffff4d,1px 2px 0 #101c2b;
+}
+.zz-combo-cubes i:before{
+ content:'';position:absolute;left:0;top:calc(-6px * var(--ui-scale,1));
+ width:100%;height:calc(6px * var(--ui-scale,1));
+ background:var(--cube-top);transform:skewX(-38deg);
+ transform-origin:bottom left
+}
+.zz-combo-cubes i:after{
+ content:'';position:absolute;right:calc(-6px * var(--ui-scale,1));top:calc(-3px * var(--ui-scale,1));
+ width:calc(6px * var(--ui-scale,1));height:100%;
+ background:var(--cube-side);transform:skewY(-38deg);
+ transform-origin:top left
+}
+.zz-combo-cubes i:nth-child(2){left:39%;top:53%;transform:scale(.75)}
+.zz-combo-cubes i:nth-child(3){left:62%;top:2%;transform:scale(.54)}
+.zz-combo-pixels{
+ position:absolute;inset:-8% auto -8% -5%;width:27%;z-index:1;
+ opacity:.75;pointer-events:none
+}
+.zz-combo-pixels-right{left:auto;right:-5%;transform:scaleX(-1)}
+.zz-combo-pixels i{
+ position:absolute;display:block;width:calc(6px * var(--ui-scale,1));height:calc(6px * var(--ui-scale,1));
+ background:var(--cube-top);box-shadow:0 0 7px var(--combo-glow)
+}
+.zz-combo-pixels i:nth-child(1){left:6%;top:4%}
+.zz-combo-pixels i:nth-child(2){left:29%;top:79%;transform:scale(.7)}
+.zz-combo-pixels i:nth-child(3){left:66%;top:5%;transform:scale(.65)}
+.zz-combo-pixels i:nth-child(4){left:12%;top:51%;transform:scale(.5)}
+.zz-combo-overlay[data-tier="4"] .zz-combo-emblem,
+.zz-combo-overlay[data-tier="5"] .zz-combo-emblem{
+ animation:zz-combo-glow 1.45s ease-in-out infinite alternate
+}
+.zz-combo-overlay.zz-combo-hit .zz-combo-emblem{
+ animation:zz-combo-pop .28s cubic-bezier(.2,1.5,.28,1) both
+}
+.zz-combo-overlay.zz-combo-hit .zz-combo-cubes i{
+ animation:zz-cube-fly .38s cubic-bezier(.18,.8,.2,1.1) both
+}
+.zz-combo-overlay.zz-combo-hit .zz-combo-pixels i{
+ animation:zz-pixel-spark .38s ease-out both
+}
+.zz-combo-overlay.zz-combo-hit .zz-combo-pixels i:nth-child(2){animation-delay:.05s}
+.zz-combo-overlay.zz-combo-hit .zz-combo-pixels i:nth-child(3){animation-delay:.08s}
+@keyframes zz-combo-pop{
+ 0%{transform:scale(.72);filter:brightness(2.2)}
+ 58%{transform:scale(1.13);filter:brightness(1.55)}
+ 100%{transform:scale(1);filter:brightness(1)}
+}
+@keyframes zz-cube-fly{
+ 0%{opacity:0;translate:0 0;scale:.4}
+ 62%{opacity:1;translate:calc(-6px * var(--ui-scale,1)) calc(-5px * var(--ui-scale,1));scale:1.16}
+ 100%{opacity:1;translate:0 0;scale:1}
+}
+@keyframes zz-pixel-spark{
+ 0%{opacity:0;scale:.4}
+ 45%{opacity:1;scale:1.8}
+ 100%{opacity:.7;scale:1}
+}
+@keyframes zz-combo-glow{
+ from{filter:drop-shadow(0 0 2px var(--combo-glow))}
+ to{filter:drop-shadow(0 0 13px var(--combo-glow))}
+}
+@media(prefers-reduced-motion:reduce){
+ .zz-combo-overlay *{animation:none!important}
+}
