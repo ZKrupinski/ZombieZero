@@ -16,7 +16,7 @@ assert(!html.includes('class="empty-skills"'),'unused item instruction panel rem
 assert(html.includes('id="skills" hidden'),'invisible legacy DOM hook exists safely');
 assert(css.includes('.skill-tray,.empty-skills{display:none!important}'),'old tray is suppressed in all layouts');
 assert(html.includes('src="assets/ip/item-icons.js?v=37-tiny-items"'),'bitmap loader is enabled');
-assert(html.indexOf('src="assets/ip/item-icons.js?v=37-tiny-items"')<html.indexOf('src="game.js?v=37-tiny-items"'),'load art before game');
+assert(html.indexOf('src="assets/ip/item-icons.js?v=37-tiny-items"')<html.indexOf('src="game.js?v=39-falling-loot-glow"'),'load art before game');
 assert(sw.includes("assets/ip/item-icons-v37.png")&&sw.includes("assets/ip/item-icons.js"),'both offline bitmap and loader are precached');
 assert(iconLoader.includes('naturalWidth===1024&&image.naturalHeight===128'),'reject wrong atlas dimensions');
 const noop=()=>{},elements={},drawCalls=[],arcCalls=[];
