@@ -415,7 +415,7 @@ function march(dt){
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
 function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+stageRosterLabel(wave))}
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
-function resetBalls(){killCombo=0;killTimer=0;comboPop=0;balls=[newBall()];combo=0;hud()}
+function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){balls[0].held=false;balls[0].vx=125;balls[0].vy=-365;syncMulti();sfx('serve');hud()}}
@@ -676,7 +676,7 @@ function hit(z,impact=null){
  }
 }
 function update(dt){if(mode==='over'&&failureScene){failureScene.t+=dt;clock+=dt;cameraKick*=Math.exp(-dt*10);if(failureScene.t>=1.8){failureScene=null;$('overlay').hidden=false}return}if(mode!=='playing'&&mode!=='clearing')return;clock+=dt;resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;fx=fx.filter(f=>(f.t+=dt)<f.life);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);particles=particles.filter(p=>p.t>0);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
-if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt)}
+if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt);comboDisplayTime=Math.max(0,comboDisplayTime-dt)}
 updateCrowd(dt);updateEmergencySupport(dt);
 if(mode==='clearing'){clearTime+=dt;clearBurst+=dt;car+=(225-car)*Math.min(1,dt*3);if(fxEnabled&&clearBurst>.22){clearBurst=0;burst(35+Math.random()*380,160+Math.random()*200,['#ffe97a','#8df3c8','#f9a2de'][Math.floor(Math.random()*3)],14)}if(clearTime>=2.8)advanceStage();return}
 if(!foes.length){beginClear();return}
@@ -848,7 +848,7 @@ if(f===7){rect(2,-5,29,8,'#ecaa78');for(let i=0;i<4;i++)rect(5+i*6,-3,2,5,'#a35b
 // The combo uses the 66–164 logical-pixel band. Move ONLY the boss
 // health UI below it (never the boss sprite, hitbox, or falling speed).
 function bossHpOffset(z){
- const minBarY=killCombo>=2&&killTimer>0?186:90;
+ const minBarY=killCombo>=2&&comboDisplayTime>0?122:90;
  return Math.max(0,minBarY-(z.y-32));
 }
 function zombie(z,death=null){
@@ -1024,9 +1024,9 @@ function portrait(h){
 function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;$('start').innerHTML=hero().name+'로 시작 <span>↗</span>'}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
-let killCombo=0,killTimer=0,comboPop=0;
+let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
 function recordKill(){
- killCombo=killTimer>0?killCombo+1:1;killTimer=6;comboPop=.22;
+ killCombo=killTimer>0?killCombo+1:1;killTimer=6;comboPop=.22;comboDisplayTime=1.45;
  if(killCombo%5!==0)return;
  const p=citizens.filter(p=>!p.alive&&p.absent>=8).sort((a,b)=>b.absent-a.absent)[0];
  if(!p)return;
@@ -1049,7 +1049,7 @@ function comboTier(count){
 function drawKillCombo(){
  const el=$('combo-overlay');
  if(!el)return;
- if(killCombo<2||killTimer<=0||!['playing','clearing','paused'].includes(mode)){
+ if(killCombo<2||killTimer<=0||comboDisplayTime<=0||!['playing','clearing','paused'].includes(mode)){
   el.hidden=true;comboRenderedCount=-1;comboRenderedTier=-1;return;
  }
  const tier=comboTier(killCombo),count=String(killCombo);
@@ -1068,7 +1068,10 @@ function drawKillCombo(){
   comboRenderedCount=killCombo;comboRenderedTier=tier;
  }
  el.hidden=false;
- el.style.opacity=String(Math.min(1,killTimer/.38));
+ // Visible briefly on each hit, then clears the top of the enemy formation.
+ const fade=Math.min(1,comboDisplayTime/.48);
+ el.style.opacity=String(Math.max(0,Math.min(1,fade)));
+ el.style.setProperty?.('--combo-quiet',String(Math.max(0,Math.min(1,(1.45-comboDisplayTime)/1.45))));
  el.style.setProperty?.('--combo-progress',String(Math.max(0,Math.min(1,killTimer/6))));
 }
 const citizens=Array.from({length:18},(_,i)=>({x:26+i*23.4,y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%6,phase:i*.9,alive:true,dying:0}));
