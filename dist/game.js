@@ -23,7 +23,7 @@ const hero=()=>HEROES[selectedHero];
 // 9 tightly packed columns span the full road, from x=23 to x=394.
 // The 33px colliders stay unchanged; only their formation positions move.
 const ENEMY_COLUMNS=9,ENEMY_PITCH=46.375,ENEMY_LEFT_X=23,ENEMY_ROW_PITCH=58;
-const ZOMBIE_FORMS=[{name:'그린 좀비',unlock:1},{name:'드럼통 좀비 · 레드',unlock:2},{name:'드럼통 좀비 · 블랙',unlock:4},{name:'브레인 큐브 · 레드',unlock:5},{name:'일회용 포장 박스 좀비',unlock:7},{name:'나무 상자 좀비',unlock:8},{name:'브레인 큐브 · 블랙',unlock:10},{name:'브레인 큐브 · 옐로',unlock:12}];
+const ZOMBIE_FORMS=[{name:'그린 좀비',unlock:1},{name:'드럼통 좀비 · 레드',unlock:6},{name:'드럼통 좀비 · 블랙',unlock:32},{name:'브레인 큐브 · 레드',unlock:9},{name:'일회용 포장 박스 좀비',unlock:24},{name:'나무 상자 좀비',unlock:28},{name:'브레인 큐브 · 블랙',unlock:16},{name:'브레인 큐브 · 옐로',unlock:4}];
 const BOSS_FORMS=['빅 좀비','쓰레기통 좀비','빅 좀비','쓰레기통 좀비'];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const has=k=>(active[k]||0)>0;
@@ -112,7 +112,92 @@ function hud(){$('score').textContent=score.toLocaleString('ko-KR');$('wave').te
 function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity=0,1400)}
 // A separate density meter controls rare actual diagonal breakouts, not UI.
 let waveInitialRegulars=0,breakoutNextCheck=0;
-function rack(){foes=[];stageDelay=0;const rows=Math.min(4,Math.max(2,Math.min(Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))))),bossStage=wave%3===0,available=ZOMBIE_FORMS.map((v,i)=>({v,i})).filter(x=>x.v.unlock<=wave),latest=available[available.length-1].i;for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;let maxKind=Math.min(4,1+Math.floor(wave/2)),kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-wave*.12))*(maxKind+1)),hp=TYPES[kind].hp,form=col===0&&r===0?latest:available[Math.floor(Math.random()*available.length)].i;foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,row:r,col,w:33,h:44,hp,max:hp,kind,form,flash:0,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0})}if(bossStage){let hp=Math.round(24+Math.min(wave,10)*4+Math.max(0,wave-10)*1.2),bossForm=(wave/3-1)%BOSS_FORMS.length;foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm])}$('encounter').textContent=(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)+' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:ZOMBIE_FORMS[latest].name)+' / 진군 속도 '+marchBase().toFixed(1);waveInitialRegulars=foes.filter(z=>!z.boss).length;breakoutNextCheck=clock+2.2;}
+// Green is always the majority. New colors arrive in order:
+// yellow (4), red (9), black (16); each gradually increases from 1 to 3.
+// The exploding red barrel is a rare tactical target (1–2 per stage).
+const STAGE_SPECIALS=[
+ {form:1,at:[6,18]},        // red exploding barrel
+ {form:7,at:[4,8,15]},      // yellow brain cube
+ {form:3,at:[9,16,23]},     // red brain cube
+ {form:6,at:[16,25,35]},    // black brain cube
+ {form:4,at:[24]},          // packaging cameo
+ {form:5,at:[28]},          // wooden crate cameo
+ {form:2,at:[32]}           // black barrel cameo
+];
+function stageRoster(stage,slots){
+ const cap=Math.floor(slots*.42); // >=58% regular green even on short foldable screens.
+ const activeSpecs=STAGE_SPECIALS.map(spec=>({
+  form:spec.form,want:spec.at.filter(at=>stage>=at).length
+ })).filter(spec=>spec.want>0);
+ const chosen=[],counts={};
+ // Each newly unlocked form gets an initial one-character appearance.
+ for(const spec of activeSpecs)if(chosen.length<cap){chosen.push(spec.form);counts[spec.form]=1}
+ // Later stages gradually add a second and third of each colored form.
+ for(let tier=2;tier<=3&&chosen.length<cap;tier++)
+  for(const spec of activeSpecs)
+   if(chosen.length<cap&&spec.want>=tier){
+    chosen.push(spec.form);counts[spec.form]=(counts[spec.form]||0)+1;
+   }
+ return chosen;
+}
+function stageFeaturedForm(stage){
+ let best=0;
+ for(let i=1;i<ZOMBIE_FORMS.length;i++)
+  if(ZOMBIE_FORMS[i].unlock<=stage&&
+    ZOMBIE_FORMS[i].unlock>ZOMBIE_FORMS[best].unlock)best=i;
+ return best;
+}
+function setStageForms(regulars,stage){
+ const forms=stageRoster(stage,regulars.length);
+ // Shuffle slots, not the counts: no stage ever fills randomly with rare types.
+ const available=regulars.slice();
+ for(let i=available.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [available[i],available[j]]=[available[j],available[i]];
+ }
+ const deployedBarrels=[];
+ for(const form of forms){
+  let index=available.findIndex(z=>form!==1||z.row>0&&
+    deployedBarrels.every(other=>Math.hypot(z.x-other.x,z.y-other.y)>95));
+  if(index<0)index=available.findIndex(z=>form!==1||
+    deployedBarrels.every(other=>Math.hypot(z.x-other.x,z.y-other.y)>65));
+  if(index<0)index=0;
+  const [z]=available.splice(index,1);
+  if(!z)break;
+  z.form=form;
+  if(form===1)deployedBarrels.push(z);
+ }
+}
+function rack(){
+ foes=[];stageDelay=0;
+ const rows=Math.min(4,Math.max(2,Math.min(
+  Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
+  Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
+ )));
+ const bossStage=wave%3===0,latest=stageFeaturedForm(wave);
+ for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
+  if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
+  const maxKind=Math.min(4,1+Math.floor(wave/2));
+  const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-wave*.12))*(maxKind+1));
+  const hp=TYPES[kind].hp;
+  foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,
+   row:r,col,w:33,h:44,hp,max:hp,kind,form:0,flash:0,
+   seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
+ }
+ setStageForms(foes,wave);
+ if(bossStage){
+  const hp=Math.round(24+Math.min(wave,10)*4+Math.max(0,wave-10)*1.2);
+  const bossForm=(wave/3-1)%BOSS_FORMS.length;
+  foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
+   form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
+  sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
+ }
+ $('encounter').textContent=(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)
+  +' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:ZOMBIE_FORMS[latest].name)
+  +' / 진군 속도 '+marchBase().toFixed(1);
+ waveInitialRegulars=foes.filter(z=>!z.boss).length;
+ breakoutNextCheck=clock+2.2;
+}
 function marchBase(){const stage=Math.min(50,wave),n=Math.min(9,Math.max(0,stage-1)),late=Math.max(0,stage-10);return 2.7+.22*n+.006*n*n+.07*late+.0008*late*late+(runMode==='endless'?Math.min(9,Math.max(0,wave-50)*.035):0)}
 function enemySpeed(z){return marchBase()*(z.boss?.62:[1.1,1.04,.97,.89,.82][z.kind])*(has('slow')?.4:1)}
 // Default = frontal descent. ONLY a real fast diagonal move may select
@@ -202,11 +287,11 @@ function march(dt){
  }
 }
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
-function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+ZOMBIE_FORMS.filter(v=>v.unlock<=wave).at(-1).name)}
+function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+ZOMBIE_FORMS[stageFeaturedForm(wave)].name)}
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
-function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;lives=hero().lives;car=target=225;clearTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];fx=[];enemyDeaths=[];enemyPieces=[];cameraKick=0;clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;lives=hero().lives;car=target=225;clearTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];cameraKick=0;clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){balls[0].held=false;balls[0].vx=125;balls[0].vy=-365;syncMulti();sfx('serve');hud()}}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('overlay').hidden=false;endlessUI()}
 function pause(){releaseInput();if(mode==='playing'||mode==='clearing'){resumeMode=mode;mode='paused';sfx('pause');overlay('잠깐,<br><em>숨 고르기.</em>','게임과 스킬 지속시간이 멈췄습니다.','계속하기','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
@@ -222,13 +307,27 @@ function supportAvailable(){return citizens.some(p=>p.alive)&&clock-lastSupportA
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
 function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3)return;items.push({x:car,y:485,k:'bazooka',phase:0});lastSupportAt=clock;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
 function drop(z){if(z.max<2&&!z.boss)return;if(z.boss||Math.random()<.45){let ks=Object.keys(SKILLS).filter(k=>k!=='bazooka'),chance=supportChance(),roll=Math.random(),k=roll<chance?'bazooka':ks[Math.min(ks.length-1,Math.floor((roll-chance)/(1-chance)*ks.length))];items.push({x:z.x+z.w/2,y:z.y+z.h/2,k,phase:Math.random()*6});if(k==='bazooka')lastSupportAt=clock}}
+const RED_BARREL_RADIUS=86;
+function explodeRedBarrel(z){
+ const x=z.x+z.w/2,y=z.y+z.h/2;
+ barrelBlasts.push({x,y,t:0,life:.46});
+ if(barrelBlasts.length>6)barrelBlasts.shift();
+ effect(x,y,'#ffac48',95);burst(x,y,'#ff913b',30);
+ sfx('blast');haptic(12);
+ // Fire spreads to nearby enemy collision rectangles, not to the player or civilians.
+ for(const other of foes){
+  const dx=x-clamp(x,other.x,other.x+other.w);
+  const dy=y-clamp(y,other.y,other.y+other.h);
+  if(dx*dx+dy*dy<=RED_BARREL_RADIUS*RED_BARREL_RADIUS)ignite(other);
+ }
+}
 function damage(z,n=1,burning=false,impact=null){if(!foes.includes(z))return;z.hp-=n;z.flash=.12;enemyReaction(z,n,impact);effect(z.x+z.w/2,z.y+z.h/2,burning?'#ffac48':TYPES[z.kind].color,z.hp<=0?(z.boss?150:55):24,z.hp<=0?(z.boss?'BOSS BREAK!':'+'+(100*z.max)):('-'+n));score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;burst(z.x+z.w/2,z.y+z.h/2,burning?'#ff985f':TYPES[z.kind].color,z.boss?20:8);if(!burning&&n>=2&&z.hp<=0&&!z.boss){sfx('powerhit');cameraKick=fxEnabled?Math.max(cameraKick,2.6):0;haptic(10)}if(!burning&&z.hp>0){if(z.boss){cameraKick=fxEnabled?Math.max(cameraKick,3.3):0;sfx('bosshit');haptic(14)}else if(n>=2){cameraKick=fxEnabled?Math.max(cameraKick,2.4):0;sfx('powerhit');haptic(10)}}if(z.hp<=0){
  const criticalGreen=!burning&&!z.boss&&(z.form??0)===0&&n>=2;
  // A strong lethal strike triggers the authored finisher for the other object types.
  const criticalObject=!burning&&window.ZZObjectSprite?.available(z)===true&&n>=(z.boss?8:2);
  enemyDeath(z,criticalGreen||criticalObject);
  if(criticalGreen){burst(z.x+z.w/2,z.y+8,'#ff8ab4',7)}
- recordKill();foes.splice(foes.indexOf(z),1);drop(z);sfx(z.boss?'boss':'kill');if(z.boss){toast('BOSS DOWN · +1500');haptic([18,25,28])}}else if(!burning&&!z.boss&&n<2)sfx('hit');hud();if(foes.length===0)beginClear()}
+ recordKill();foes.splice(foes.indexOf(z),1);if(!z.boss&&z.form===1)explodeRedBarrel(z);drop(z);sfx(z.boss?'boss':'kill');if(z.boss){toast('BOSS DOWN · +1500');haptic([18,25,28])}}else if(!burning&&!z.boss&&n<2)sfx('hit');hud();if(foes.length===0)beginClear()}
 function ignite(z){if(!foes.includes(z))return;z.burn=Math.max(z.burn,3);}
 function hit(z,impact=null){combo++;damage(z,hero().damage*(has('power')?2:1),false,impact);if(has('fire')){ignite(z);for(const other of foes)if(Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82)ignite(other);sfx('fire')}}
 function update(dt){if(mode==='over'&&failureScene){failureScene.t+=dt;clock+=dt;cameraKick*=Math.exp(-dt*10);if(failureScene.t>=1.8){failureScene=null;$('overlay').hidden=false}return}if(mode!=='playing'&&mode!=='clearing')return;clock+=dt;resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;fx=fx.filter(f=>(f.t+=dt)<f.life);swing=Math.max(0,swing-dt);particles=particles.filter(p=>p.t>0);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
@@ -265,7 +364,7 @@ if(has('slow')){g.strokeStyle='#86f2e050';g.strokeRect(24,22,402,DEFENSE_Y-30)}
 }
 function player(){let x=car;const h=hero(),win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';g.save();g.translate(0,VIEW_DELTA);if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);/* no baked vehicle ground shadow */rect(x-57,626,13,24,'#14251f');rect(x+44,626,13,24,'#14251f');cube(x-52,621,104,25,h.color,'#ffbc72','#54313a');rect(x-45,625,90,5,'#ff9c58');cube(x-27,612,53,18,'#182e2a','#3d5441','#18221d');heroSprite(x,600,1,win);rect(x-46,635,18,6,'#fff2b2');rect(x+29,635,18,6,'#fff2b2');rect(x-47,649,95,5,'#b1b59b');g.strokeStyle='#e6d399';g.lineWidth=6;g.beginPath();g.moveTo(x+14,611);g.lineTo(x+32,602);g.stroke();g.save();g.translate(x+34,604-5);g.rotate(swing>0?-.25:0);g.strokeStyle='#e7c696';g.lineWidth=5;g.beginPath();g.ellipse(0,0,24,13,0,0,Math.PI*2);g.stroke();g.lineWidth=.8;g.strokeStyle='#f7f4dbaa';for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-9);g.lineTo(i,9);g.stroke()}for(let i=-6;i<=6;i+=6){g.beginPath();g.moveTo(-19,i);g.lineTo(19,i);g.stroke()}g.restore();g.strokeStyle=swing>0?'#e5ff9e':'#c9ed9366';g.lineWidth=swing>0?4:2;g.beginPath();g.moveTo(x-h.paddle,604);g.lineTo(x+h.paddle,604);g.stroke();g.restore()}
 // Cosmetic poses only: no pose or death fragment participates in physics.
-let enemyDeaths=[],enemyPieces=[];
+let enemyDeaths=[],enemyPieces=[],barrelBlasts=[];
 const ENEMY_CLOTH=['#65535a','#242b39','#302139','#574b66','#68415a','#e4d6b0','#d49b39','#733e65'];
 const fract=n=>n-Math.floor(n);
 function enemyAnim(z){if(z.anim)return z.anim;const seed=(z.seed||0)*13.71+z.x*.31+z.y*.17+(z.form||0)*7.13;const r=n=>fract(Math.sin(seed+n*19.17)*43758.5453);return z.anim={type:Math.floor(r(1)*6),phase:r(2)*6.28,speed:2.5+r(3)*1.8,amp:.7+r(4)*.6,period:3+r(5)*3,side:r(6)>.5?1:-1,seed}}
@@ -284,7 +383,7 @@ function enemyDeath(z,critical=false){
  const split=objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  enemyDeaths.push({z:{...z,flash:.1},critical,spriteMode,t:0,split,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
 function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
-function updateEnemyVisuals(dt){bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
+function updateEnemyVisuals(dt){barrelBlasts=barrelBlasts.filter(b=>(b.t+=dt)<b.life);bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
  // Final bitmap already depicts lying down / cute brain debris; do not duplicate
  // the old procedural blast or turn a normal backward fall into a side explosion.
  if(!d.spriteMode)scatterEnemy(d)
@@ -429,8 +528,21 @@ g.save();g.translate(16.5,23);g.rotate(a.head);g.translate(-16.5,-23-a.hit*1.3);
 if(z.boss){rect(2,34,4,4,'#ffd27b');rect(26,34,4,4,'#ffd27b')}
 if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}g.restore();if(z.boss&&!death){rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38)}}
 function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.strokeStyle=SKILLS[k].color;g.lineWidth=2.5;g.lineCap='round';g.lineJoin='round';const circle=(x,y,r)=>{g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.stroke()};if(k==='dual'){circle(9,12,5);circle(23,20,5)}if(k==='triple'){circle(16,7,4);circle(7,23,4);circle(25,23,4)}if(k==='power'){circle(16,16,12);g.stroke(new Path2D('M17 6 10 18H16L15 26 23 13H17Z'))}if(k==='fire')g.stroke(new Path2D('M17 3C21 12 13 12 19 17L24 11C33 23 25 30 16 29S3 21 8 13L11 18C15 14 11 10 17 3Z'));if(k==='slow'){circle(16,17,11);g.stroke(new Path2D('M16 10V18L22 21M12 2H20M16 2V4'))}if(k==='bazooka')g.stroke(new Path2D('M5 21 20 6 27 13 12 28ZM18 8 24 14M6 22 4 28 10 26M19 3 21 1M28 10 31 9M26 3 29 0'));if(k==='shield')g.stroke(new Path2D('M16 3 27 7V17C27 23 16 29 16 29S5 23 5 17V7ZM10 16 14 20 22 11'));g.restore()}
+function drawBarrelBlasts(){
+ if(!barrelBlasts.length)return;
+ luminous(()=>{for(const b of barrelBlasts){
+  const t=clamp(b.t/b.life,0,1),radius=12+t*RED_BARREL_RADIUS;
+  g.save();g.globalAlpha=(1-t)*.72;
+  g.fillStyle='#ff9b43';g.beginPath();g.arc(b.x,b.y,radius*.65,0,Math.PI*2);g.fill();
+  g.strokeStyle='#ffe4a0';g.lineWidth=5*(1-t)+1;
+  g.beginPath();g.arc(b.x,b.y,radius,0,Math.PI*2);g.stroke();
+  g.globalAlpha=(1-t)*.9;g.fillStyle='#fff2b8';
+  g.beginPath();g.arc(b.x,b.y,Math.max(1,11*(1-t)),0,Math.PI*2);g.fill();
+  g.restore();
+ }});
+}
 function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();for(const z of foes)zombie(z);drawEnemyDeaths();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);rect(-19,-19,38,38,'#142b29');g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
-drawKillCombo();for(const b of balls){const r=has('power')?16:8,col=has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
+drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
  const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null,ix=cast&&cast.heroIndex[selectedHero];
