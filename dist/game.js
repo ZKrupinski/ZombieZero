@@ -211,63 +211,77 @@ function rack(){
   +' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:stageRosterLabel(wave))
   +' / 진군 속도 '+marchBase().toFixed(1);
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
- breakoutNextCheck=clock+2.2;
+ breakoutNextCheck=clock+.85;
 }
 function marchBase(){const stage=Math.min(50,wave),n=Math.min(9,Math.max(0,stage-1)),late=Math.max(0,stage-10);return 2.7+.22*n+.006*n*n+.07*late+.0008*late*late+(runMode==='endless'?Math.min(9,Math.max(0,wave-50)*.035):0)}
-function enemySpeed(z){return marchBase()*(z.boss?.62:[1.1,1.04,.97,.89,.82][z.kind])*(has('slow')?.4:1)}
+function enemySpeed(z){
+ const seed=Number.isFinite(z.seed)?z.seed:0;
+ const pace=Number.isFinite(z.seed)?.80+.43*((seed*.61803398875)%1):1;
+ const pulse=Number.isFinite(z.seed)?1+.14*Math.sin(clock*.8+seed*1.73):1;
+ return marchBase()*(z.boss?.62:[1.1,1.04,.97,.89,.82][z.kind])*
+   pace*pulse*(has('slow')?.4:1);
+}
 // Default = frontal descent. ONLY a real fast diagonal move may select
 // the left/right motion sheets. No perpetual wiggle or fake diagonal animation.
-const BREAKOUT_DENSITY=.60,BREAKOUT_MIN_KILLS=6,BREAKOUT_MAX_ACTIVE=2;
+const BREAKOUT_DENSITY=.86,BREAKOUT_MIN_KILLS=3,BREAKOUT_MAX_ACTIVE=3;
 function tryStartBreakouts(){
  if(clock<breakoutNextCheck)return;
- breakoutNextCheck=clock+2.3+Math.random()*1.1;
- const living=foes.filter(z=>!z.boss);
- if(waveInitialRegulars<9||
+ breakoutNextCheck=clock+.8+Math.random()*.7;
+ const living=foes.filter(z=>!z.boss),activeCount=living.filter(z=>Number.isFinite(z.breakoutTime)).length;
+ if(activeCount>=BREAKOUT_MAX_ACTIVE||waveInitialRegulars<9||
     waveInitialRegulars-living.length<BREAKOUT_MIN_KILLS||
     living.length>waveInitialRegulars*BREAKOUT_DENSITY)return;
- if(living.some(z=>Number.isFinite(z.breakoutTime)))return;
- // One eligibility lottery at each interval; never use chance per frame.
- if(Math.random()>.55)return;
- const occupied=new Set(living.filter(z=>Number.isInteger(z.row)&&Number.isInteger(z.col))
-   .map(z=>z.row+':'+z.col));
- const choices=[];
- for(const z of living){
-  if(!Number.isInteger(z.row)||!Number.isInteger(z.col)||
-     z.row===0||z.y+z.h>DEFENSE_Y-110||
-     (z.breakoutCooldownUntil||0)>clock||(z.hitHold||0)>0||
-     (z.recoil||0)>.015)continue;
-  for(const direction of [-1,1]){
-   const targetCol=z.col+direction;
-   if(targetCol<0||targetCol>=ENEMY_COLUMNS||
-      occupied.has(z.row+':'+targetCol))continue;
-   const dest=ENEMY_LEFT_X+ENEMY_PITCH*targetCol;
-   if(dest<20||dest+z.w>W-20)continue;
-   // Empty lane must also be physically free; never dash through a boss.
-   if(foes.some(other=>other!==z&&(
-      (other.boss&&Math.abs(other.x+other.w/2-(dest+z.w/2))<52&&
-        Math.abs(other.y+other.h/2-(z.y+z.h/2+20))<75)||
-      (other.row===z.row&&Math.abs(other.x-dest)<z.w+7)
-   )))continue;
-   choices.push({z,targetCol,dest});
+ // More deliberate breakthroughs as the formation opens up, but never random
+ // sideways animations without actual diagonal displacement.
+ if(Math.random()>.82)return;
+ const chosen=[],available=foes.filter(z=>!z.boss);
+ const occupied=new Set(available.filter(z=>Number.isInteger(z.row)&&Number.isInteger(z.col))
+  .map(z=>z.row+':'+z.col));
+ const density=living.length/waveInitialRegulars;
+ const capacity=Math.min(BREAKOUT_MAX_ACTIVE-activeCount,
+   density<.52?3:density<.72?2:1);
+ const count=1+(capacity>1&&Math.random()<.7?1:0)+
+   (capacity>2&&Math.random()<.36?1:0);
+ for(let k=0;k<count;k++){
+  const choices=[];
+  for(const z of living){
+   if(chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
+      !Number.isInteger(z.col)||!Number.isInteger(z.row)||
+      z.row===0||z.y+z.h>=DEFENSE_Y-125||
+      (z.breakoutCooldownUntil||0)>clock||
+      (z.hitHold||0)>0||(z.recoil||0)>.015)continue;
+   for(const dir of [-1,1]){
+    for(const distance of [1,2]){
+     if(distance===2&&Math.random()<.32)continue;
+     const destCol=z.col+distance*dir;
+     if(destCol<0||destCol>=ENEMY_COLUMNS)continue;
+     // The path must stay clear, not merely its destination.
+     let free=true;
+     for(let step=1;step<=distance;step++)
+      if(occupied.has(z.row+':'+(z.col+dir*step)))free=false;
+     if(!free)continue;
+     const dest=ENEMY_LEFT_X+ENEMY_PITCH*destCol;
+     if(dest<20||dest+z.w>W-20)continue;
+     if(foes.some(other=>other!==z&&(
+       other.boss&&Math.abs(other.x+other.w/2-(dest+z.w/2))<70&&
+                     Math.abs(other.y+other.h/2-(z.y+z.h/2+25))<110
+       )))continue;
+     choices.push({z,destCol,dest,distance});
+    }
+   }
   }
- }
- if(!choices.length)return;
- const start=({z,targetCol,dest})=>{
-  const duration=.42+Math.random()*.14;
+  if(!choices.length)break;
+  const pick=choices[Math.floor(Math.random()*choices.length)];
+  const z=pick.z,duration=.30+Math.random()*.42;
   z.breakoutTime=0;z.breakoutDuration=duration;
-  z.breakoutVX=(dest-z.x)/duration;
-  z.breakoutVY=(28+Math.random()*10)/duration;
-  z.breakoutTargetX=dest;z.breakoutTargetCol=targetCol;
-  z.breakoutCooldownUntil=clock+duration+4;
- };
- const first=choices[Math.floor(Math.random()*choices.length)];
- start(first);
- // Two are possible only in the sparse end of a wave, from separate rows.
- if(living.length<=waveInitialRegulars*.35&&Math.random()<.18){
-  const second=choices.filter(c=>c.z!==first.z&&c.z.row!==first.z.row&&
-    !(c.z.row===first.z.row&&c.targetCol===first.targetCol));
-  if(second.length&&BREAKOUT_MAX_ACTIVE>1)
-   start(second[Math.floor(Math.random()*second.length)]);
+  z.breakoutVX=(pick.dest-z.x)/duration;
+  z.breakoutVY=(22+Math.random()*42)/duration;
+  z.breakoutTargetX=pick.dest;z.breakoutTargetCol=pick.destCol;
+  z.breakoutCooldownUntil=clock+duration+1.5+Math.random()*2.2;
+  chosen.push(pick);
+  // Reserve destinations during this batch so multiple movers never converge.
+  occupied.delete(z.row+':'+z.col);
+  occupied.add(z.row+':'+pick.destCol);
  }
 }
 function march(dt){
@@ -288,7 +302,7 @@ function march(dt){
     z.x=z.breakoutTargetX;z.col=z.breakoutTargetCol;
     delete z.breakoutTime;
     delete z.breakoutDuration;
-    z.breakoutCooldownUntil=clock+4;
+    z.breakoutCooldownUntil=Math.max(z.breakoutCooldownUntil||0,clock+1.3);
    }
   }else z.moveDir=0;
   let next=z.y+enemySpeed(z)*dt+extraY;
