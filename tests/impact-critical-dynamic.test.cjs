@@ -22,7 +22,7 @@ vm.runInContext(src+`
 function check(v,msg){if(!v)throw Error(msg)}
 Math.random=()=>.5;
 start();serve();
-check(zombieHP(0,0,1)===3,'initial green requires three standard hits');
+check(zombieHP(0,0,1)===2&&zombieHP(0,0,2)===2&&zombieHP(0,0,3)===3,'two-hit onboarding then three-hit stage 3');
 check(zombieHP(0,0,24)>=4,'later stage greens require more hits');
 check(zombieHP(0,0,40)>=5,'late green durability');
 for(let f=1;f<8;f++){
