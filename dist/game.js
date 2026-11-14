@@ -745,7 +745,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    if(mode!=='playing')return;
    break;
   }
- }}
+ }
 if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');haptic(8)}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=H-35){b.y=H-35-radius;b.vy=-Math.abs(b.vy);sfx('shield');effect(b.x,H-35,'#a1fbe6',75,'SAVE!');burst(b.x,H-35,'#b9f684',10)}
