@@ -85,7 +85,14 @@ if(sub===0&&bar%2===0){[0,boss?3:4,7,12].forEach(n=>tone(hz(root+n),step*7,'tria
 function effect(x,y,color,size=45,text=''){if(!fxEnabled)return;fx.push({x,y,color,size,text,t:0,life:text?.85:.48});if(fx.length>45)fx.shift();cameraKick=Math.max(cameraKick,size>=120?5.2:size>=70?3.2:size>=45?2:.9)}
 function drawEffects(labels=false){if(!fxEnabled)return;for(const f of fx){let a=1-f.t/f.life,r=8+f.t/f.life*f.size;g.globalAlpha=a;if(!labels){g.strokeStyle=f.color;g.lineWidth=3;g.beginPath();for(let i=0;i<=8;i++){let ang=i*Math.PI/4;let x=f.x+Math.cos(ang)*r,y=f.y+Math.sin(ang)*r;i?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();for(let i=0;i<8;i++){let ang=i*Math.PI/4;rect(f.x+Math.cos(ang)*r*1.3,f.y+Math.sin(ang)*r*1.3,4,4,f.color)}}if(labels&&f.text){g.font='bold 15px monospace';g.textAlign='center';g.fillStyle='#081322';g.fillText(f.text,f.x+2,f.y-18-f.t*36+2);g.fillStyle=f.color;g.fillText(f.text,f.x,f.y-18-f.t*36)}}g.globalAlpha=1}
 function icon(k){return '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+SKILLS[k].icon+'</svg>'}
-function skillUI(){const markup=Object.keys(SKILLS).filter(has).map(k=>{let s=SKILLS[k],pct=active[k]/(s.duration*hero().duration)*100;return '<div class="skill" style="--skill:'+s.color+'" title="'+s.desc+'">'+icon(k)+'<span>'+s.name+'<b>'+Math.ceil(active[k])+'s</b></span><i style="width:'+Math.ceil(pct)+'%"></i></div>'}).join('');if(markup!==lastSkillMarkup){$('skills').innerHTML=markup;lastSkillMarkup=markup}$('skills').hidden=!markup}
+// Previous timer cards are intentionally gone. Effects are communicated
+// through tiny, image-only badges anchored to the moving car inside canvas.
+function skillUI(){
+ const el=$('skills');
+ if(!el)return;
+ if(el.innerHTML)el.innerHTML='';
+ el.hidden=true;
+}
 let DEFENSE_Y=565;
 let runMode='campaign',endlessUnlocked=false,lastStandUsed=false,resistFlash=0,failureScene=null,lastLostBall=null;
 try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
@@ -434,7 +441,7 @@ function retireBall(b,reason='expire'){
 function burst(x,y,color,n=12){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*230,vy:(Math.random()-.6)*230,t:.5+Math.random()*.3,color,size:3+Math.random()*4});if(particles.length>400)particles.splice(0,particles.length-400)}
 function multiCount(){return (has('dual')?2:1)*(has('triple')?3:1)}
 function syncMulti(){if(!balls.length||balls[0].held)return;const n=multiCount(),src=balls[0];while(balls.length<n){const angles=[-1.1,...balls.map(b=>clamp(Math.atan2(b.vx,Math.abs(b.vy)),-1.1,1.1)),1.1].sort((a,b)=>a-b);let gap=0,a=0;for(let i=1;i<angles.length;i++)if(angles[i]-angles[i-1]>gap){gap=angles[i]-angles[i-1];a=(angles[i]+angles[i-1])/2}const sp=Math.max(350,Math.hypot(src.vx,src.vy));balls.push(newBall(src.x,src.y,Math.sin(a)*sp,-Math.cos(a)*sp,false))}if(balls.length>n){for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}hud()}
-function activate(k){active[k]=SKILLS[k].duration*hero().duration;if(k==='dual'||k==='triple'){syncMulti()}if(k==='bazooka'){bazookaTimer=0;lastSupportAt=clock}sfx('item');effect(car,PY-20,SKILLS[k].color,95,SKILLS[k].name);burst(car,PY,SKILLS[k].color,22);toast(k==='bazooka'&&!citizens.some(p=>p.alive)?'시민 바주카 · 복귀할 시민을 기다리는 중':SKILLS[k].name+' · '+SKILLS[k].desc);hud()}
+function activate(k){active[k]=SKILLS[k].duration*hero().duration;if(k==='dual'||k==='triple'){syncMulti()}if(k==='bazooka'){bazookaTimer=0;lastSupportAt=clock}sfx('item');effect(car,PY-20,SKILLS[k].color,65);burst(car,PY,SKILLS[k].color,12);hud()}
 // Support is rare while safe, weighted toward danger, and rate-limited per run.
 let lastSupportAt=-60,supportDangerTime=0,supportDropsThisWave=0;
 function supportRisk(){if(!foes.length)return 0;const bottom=Math.max(...foes.map(z=>z.y+z.h)),alive=citizens.filter(p=>p.alive).length;return bottom>=475||(bottom>=380&&(lives===1||alive<=5))?2:bottom>=390||lives===1||alive<=8?1:0}
@@ -969,6 +976,37 @@ enemyArm(f,p,skin,0,a.left+(death?Math.sin(death.t*60)*.3:0),a.shoulder);enemyAr
 g.save();g.translate(16.5,23);g.rotate(a.head);g.translate(-16.5,-23-a.hit*1.3);enemyHead(z,f,p,skin,a);g.restore();
 if(z.boss){rect(2,34,4,4,'#ffd27b');rect(26,34,4,4,'#ffd27b')}
 if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}g.restore();if(z.boss&&!death){g.save();g.translate(0,bossHpOffset(z));rect(z.x-14,z.y-32,100,8,'#211e27');rect(z.x-14,z.y-32,100*Math.max(0,z.hp/z.max),8,'#f67968');g.fillStyle='#ffdec5';g.font='bold 11px Arial, sans-serif';g.textAlign='center';g.fillText((BOSS_FORMS[z.bossForm??0])+' '+Math.ceil(Math.max(0,z.hp))+'/'+z.max,z.x+36,z.y-38);g.restore()}}
+const ITEM_ICON_KEYS=['bazooka','dual','triple','power','fire','slow','pierce','shield'];
+function drawItemArtwork(k,x,y,size=24){
+ const atlas=window.ZZItemIcons,ix=ITEM_ICON_KEYS.indexOf(k);
+ if(ix>=0&&atlas?.ready&&atlas.image){
+  g.drawImage(atlas.image,ix*128,0,128,128,x-size/2,y-size/2,size,size);
+ }else{g.save();g.translate(x,y);g.scale(size/24,size/24);drawIcon(k,0,0);g.restore()} // same-sized fallback
+}
+// Small power-up symbols, not a toolbar: no timer text, solid panels or
+// changing screen anchors. The faint ring alone indicates duration remaining.
+function drawActiveItemIcons(){
+ const keys=ITEM_ICON_KEYS.filter(has);
+ if(!keys.length||!['playing','clearing','paused'].includes(mode))return;
+ const size=17,step=20;
+ const total=(keys.length-1)*step+size;
+ const center=clamp(car,total/2+8,W-total/2-8);
+ const first=center-(keys.length-1)*step/2;
+ const y=649+VIEW_DELTA;
+ for(let i=0;i<keys.length;i++){
+  const key=keys[i],x=first+i*step;
+  const skill=SKILLS[key],ratio=clamp(active[key]/(skill.duration*hero().duration),0,1);
+  g.save();g.globalAlpha=.95;
+  g.shadowColor=skill.color;g.shadowBlur=3;
+  drawItemArtwork(key,x,y,size);g.shadowBlur=0;
+  // A fine radial remaining-time indicator; intentionally no numbers.
+  g.lineWidth=1.4;g.strokeStyle='#1b283a99';
+  g.beginPath();g.arc(x,y,10.5,-Math.PI/2,Math.PI*1.5);g.stroke();
+  g.strokeStyle=skill.color;
+  g.beginPath();g.arc(x,y,10.5,-Math.PI/2,-Math.PI/2+Math.PI*2*ratio);g.stroke();
+  g.restore();
+ }
+}
 function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.strokeStyle=SKILLS[k].color;g.lineWidth=2.5;g.lineCap='round';g.lineJoin='round';const circle=(x,y,r)=>{g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.stroke()};if(k==='dual'){circle(9,12,5);circle(23,20,5)}if(k==='triple'){circle(16,7,4);circle(7,23,4);circle(25,23,4)}if(k==='power'){circle(16,16,12);g.stroke(new Path2D('M17 6 10 18H16L15 26 23 13H17Z'))}if(k==='fire')g.stroke(new Path2D('M17 3C21 12 13 12 19 17L24 11C33 23 25 30 16 29S3 21 8 13L11 18C15 14 11 10 17 3Z'));if(k==='slow'){circle(16,17,11);g.stroke(new Path2D('M16 10V18L22 21M12 2H20M16 2V4'))}if(k==='bazooka')g.stroke(new Path2D('M5 21 20 6 27 13 12 28ZM18 8 24 14M6 22 4 28 10 26M19 3 21 1M28 10 31 9M26 3 29 0'));if(k==='pierce'){circle(6,16,4);g.beginPath();g.moveTo(12,16);g.lineTo(29,16);g.moveTo(22,9);g.lineTo(29,16);g.lineTo(22,23);g.stroke()}if(k==='shield')g.stroke(new Path2D('M16 3 27 7V17C27 23 16 29 16 29S5 23 5 17V7ZM10 16 14 20 22 11'));g.restore()}
 // Fire stays attached to each burning enemy and sits on top of its sprite.
 function drawBurningOverlays(){
@@ -1094,7 +1132,7 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)zombie(knockVisualPosition(z));drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);if(item.k==='fire'){g.shadowColor='#ff6d24';g.shadowBlur=18}rect(-19,-19,38,38,'#142b29');g.shadowBlur=0;g.strokeStyle=SKILLS[item.k].color;g.lineWidth=2;g.strokeRect(-18,-18,36,36);drawIcon(item.k,0,0);g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
+ for(const z of foes)zombie(knockVisualPosition(z));drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=15;rect(21,H-35,408,4,'#b9f684');g.shadowBlur=0});player();drawActiveItemIcons();drawBazooka();for(const item of items){g.save();g.translate(item.x,item.y);g.rotate(Math.sin(clock*3+item.phase)*.08);if(item.k==='fire'){g.shadowColor='#ff6d24';g.shadowBlur=12}drawItemArtwork(item.k,0,0,34);g.shadowBlur=0;g.restore();if(fxEnabled){g.globalAlpha=.45;rect(item.x-1,item.y-33,3,7,SKILLS[item.k].color);rect(item.x-4,item.y-30,9,2,SKILLS[item.k].color);g.globalAlpha=1}}
 drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('pierce')?'#ffe77b':has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('pierce')?25:has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(has('pierce')&&!b.held){g.strokeStyle='#fff8ae';g.lineWidth=2;g.strokeRect(b.x-r*.45,b.y-r*.45,r*.9,r*.9)}if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}drawBallVanish();if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawCriticalPopups();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
