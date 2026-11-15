@@ -129,7 +129,9 @@ function hud(){
  // Keep the historical node for script/test compatibility, but it is hidden
  // so lives never render twice in the footer.
  $('lives').textContent='';
- $('status').textContent=balls[0]?.held?'TAP TO SERVE':'BALLS '+balls.length;
+ // Keep the serve hint; ball counts are deliberately absent because hearts
+ // at the top already communicate remaining lives (extra balls stay in play).
+ $('status').textContent=balls[0]?.held?'TAP TO SERVE':'';
  skillUI();
 }
 function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity=0,1400)}
@@ -803,8 +805,7 @@ const palette=[['#444e53','#566064','#4e595d','#77878a'],
 for(let side of [0,432]){rect(side,0,18,H,'#343e43');for(let y=0;y<H;y+=42){rect(side+4,y,10,24,palette[3]);rect(side+6,y+2,3,18,'#8b9b97')}}
 g.globalAlpha=.10;for(let y=-60;y<H;y+=92)rect(222,y+(clock*12)%92,6,34,palette[3]);g.globalAlpha=1;g.strokeStyle=palette[3]+'24';g.lineWidth=2;g.strokeRect(29,27,392,DEFENSE_Y-45);
 for(let i=0;i<16;i++){let x=25+(i*137)%400,y=(i*97+clock*9)%(DEFENSE_Y-15);rect(x,y,2,2,palette[3]+'30')}
-// The text alone marks the defense threshold; no duplicate vector dash line.
-g.fillStyle='#ffc794aa';g.font='10px Arial, sans-serif';g.textAlign='left';g.fillText('DEFENSE LINE / 넘기면 끝!',30,DEFENSE_Y+14);rect(20,H-50,410,50,'#17252baa');
+// Defense breach remains a physics rule; no always-on text or vector indicator.rect(20,H-50,410,50,'#17252baa');
 if(has('slow')){g.strokeStyle='#86f2e050';g.strokeRect(24,22,402,DEFENSE_Y-30)}
 }
 // Eighteen stage-local bitmap scenes. Keep the game world's fixed 450×710
@@ -852,9 +853,7 @@ function background(){
  g.save();
  g.fillStyle='rgba(10,18,26,'+STAGE_PLAYFIELD_VEIL[stageArtIndex]+')';
  g.fillRect(20,63,410,Math.max(1,DEFENSE_Y-63));
- // Keep only the defense label here. The logical breach threshold stays at DEFENSE_Y.
- g.fillStyle='#ffddb4c9';g.font='10px Arial, sans-serif';g.textAlign='left';
- g.fillText('DEFENSE LINE / 넘기면 끝!',30,DEFENSE_Y+14);
+ // Visual defense caption removed; zombie breach logic still uses DEFENSE_Y.
  // A light backing tint separates the colorful supporter sprites from
  // the illustrated footer without covering the original details.
  rect(20,H-50,410,50,'#17252b66');

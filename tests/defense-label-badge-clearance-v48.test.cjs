@@ -1,6 +1,6 @@
 'use strict';
-/* v48 visual-only regression: remove redundant defense dashes but preserve
- * the readable label, the real collision boundary, and shield behavior. */
+/* v49 regression: remove redundant defense dashes and caption; preserve
+ * the real collision boundary and shield behavior. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const code=fs.readFileSync('dist/game.js','utf8');
@@ -10,7 +10,7 @@ const between=(a,b)=>{const x=code.indexOf(a),y=code.indexOf(b,x+a.length);asser
 const fallback=between('function proceduralBackground(){','const STAGE_ART_COUNT=18');
 const bitmap=between('function background(){','function player(){');
 for(const [name,body] of [['procedural',fallback],['bitmap',bitmap]]){
- assert(body.includes("fillText('DEFENSE LINE / 넘기면 끝!'"),name+' preserves defense caption');
+ assert(!body.includes('DEFENSE LINE / 넘기면 끝!'),name+' removes defense caption');
  assert(!body.includes('setLineDash('),name+' no duplicated CSS/Canvas dash path');
  assert(!body.includes('g.moveTo(23,DEFENSE_Y)'),name+' no duplicate line across the road');
 }
@@ -29,6 +29,6 @@ const bloom=draw.indexOf('fxRenderer.composite(g);');
 const iconDraw=draw.indexOf('drawActiveItemIcons();');
 assert(player>=0&&bloom>player&&iconDraw>bloom,'icons render last, above shield and bloom FX');
 assert.equal(draw.split('drawActiveItemIcons();').length-1,1,'only one final icon pass');
-assert(html.includes('src="game.js?v=48-defense-ui-clean"'),'new gameplay script bypasses old cache');
-assert(sw.includes('zombie-zero-shell-v48-defense-ui-clean'),'PWA shell invalidated');
+assert(html.includes('src="game.js?v=49-clean-lower-hud"'),'new gameplay script bypasses old cache');
+assert(sw.includes('zombie-zero-shell-v49-clean-lower-hud'),'PWA shell invalidated');
 console.log('PASS: duplicate defense dashes removed in both paths, collision/text intact, equipped icons clear shield Bloom.');
