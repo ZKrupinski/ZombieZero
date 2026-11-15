@@ -64,6 +64,7 @@ check(b.x>oldB&&third.x>oldC,'collision transfer ripples through two bystanders'
 check(a.knockTime>0&&b.knockTime>0&&third.knockTime>0,
  'each displaced zombie gets a temporary motion echo');
 check(b.flinch>0&&third.flinch>0,'pushed bystanders react despite taking no damage');
+check(a.knockDelay<b.knockDelay&&b.knockDelay<third.knockDelay,'chain stagger progresses target to second to third zombie');
 check(b.hp===9&&third.hp===9,'collision propagation is force only, not extra damage');
 check(!zombieBoxesOverlap(a,{x:a.x,y:a.y},b,{x:b.x,y:b.y},0),
  'contact chain cannot overlap neighbor');

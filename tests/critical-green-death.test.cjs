@@ -22,7 +22,7 @@ drawEnemyDeaths();
 updateEnemyVisuals(.34);
 check(enemyDeaths.length===1,'lid / brain reveal remains onscreen before shattering');
 drawEnemyDeaths();
-updateEnemyVisuals(.25);
+updateEnemyVisuals(.32);
 check(enemyDeaths.length===0&&enemyPieces.length===6,'six special green pieces after reveal');
 check(enemyPieces.every(p=>p.criticalGreen),'lid, brain, green body fragment types retained');
 drawEnemyDeaths();

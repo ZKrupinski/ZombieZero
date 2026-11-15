@@ -78,10 +78,10 @@ assert.match(code,/if\(d\.t<\(d\.freeze\|\|0\)\)/);
 assert.match(code,/function drawStruckZombie\(z\)/);
 const testPath=vm.runInContext(`(function(){
  const b={x:80,y:100,held:false,trail:[]};
- for(let i=0;i<80;i++)recordBallTrail(b,80+i*4,100,i===25);
+ for(let i=0;i<80;i++)recordBallTrail(b,80+i*4,100,i===55);
  b.x=400;b.y=100;
  const a=buildBallTrailPath(b,8),p=buildBallTrailPath(b,16);
- const kink=a.some(k=>Math.abs(k.x-180)<.1&&Math.abs(k.y-100)<.1);
+ const kink=a.some(k=>Math.abs(k.x-300)<.1&&Math.abs(k.y-100)<.1);
  return {n:a[a.length-1].s,p:p[p.length-1].s,kink};
 })()`,ctx);
 assert(testPath.n<=170.01&&testPath.p<=190.01,'large balls get capped trail lengths');
