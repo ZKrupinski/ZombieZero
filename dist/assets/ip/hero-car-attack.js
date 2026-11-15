@@ -3,9 +3,9 @@
  * Ria (internally liam, row 2): pixel inspection of the SOURCE PNG showed
  * every red-haired frame starts with an unnaturally flat 37-48px forehead
  * silhouette at source Y=2, even BEFORE CSS cropping.
- * Restore a compact, faceted voxel top-crown on all eight original frames.
+ * Reproject the ORIGINAL textured red hair to recover a natural cuboid top.
  * Preserve 93% size and 18px headroom, but align to INTEGER pixels and
- * disable interpolation so the restored hard cube edges do not blur.
+ * disable interpolation so the source cube edges remain sharp, not blurred.
  * Only row 2 is altered. Ace, Ruby, cars, physics and hitboxes stay unchanged.
  */
 (function(){
@@ -17,55 +17,38 @@
  window.ZZHeroCarAttack=pack;
 
 
- // Accurate source-alpha spans at source row 2 (row-local y=2), measured for
- // all eight frames. These are red HAIR pixels, not generated circular masks.
- // The original y=2 roof is a flat 37-48px-wide slice; adding only transparent
- // margin (v46/v52) could never restore its missing cube-top silhouette.
+ // Per-frame head contours measured from the original pixel alpha at y=2.
+ // All 8 cells have an unnaturally short, flat crown. Rather than covering
+ // hand-painted hair with a synthetic solid-color polygon (which looks like
+ // an attached hat), reproject actual SOURCE hair pixels into the upper area.
+ // This preserves voxel color texture, facial features and attack animation.
  const RIA_CROWN_EDGES=[
   [93,132],[94,139],[100,147],[112,148],
   [112,150],[106,147],[115,152],[109,148]
  ];
- function facet(ctx,pts,color){
-  ctx.fillStyle=color;ctx.beginPath();
-  for(let k=0;k<pts.length;k++){
-   const p=pts[k];if(k===0)ctx.moveTo(p[0],p[1]);else ctx.lineTo(p[0],p[1]);
-  }
-  ctx.closePath();ctx.fill();
- }
  function restoreRiaCrown(ctx,frameIndex,cellX,cellY,insetX,size){
-  // Rebuild the FRONT/TOP/RIGHT 3D facets in the atlas itself, so gameplay
-  // and hero-selection previews share precisely the same corrected pixels.
-  // No per-frame animated offset and no replacement for face, hair sides,
-  // weapon, car or other characters.
-  if(typeof ctx.beginPath!=='function'||typeof ctx.fillRect!=='function')return;
-  const [sourceLeft,sourceRight]=RIA_CROWN_EDGES[frameIndex];
+  const [left,right]=RIA_CROWN_EDGES[frameIndex];
+  const minX=Math.max(0,left-36),maxX=Math.min(CELL,right+38);
+  const sourceWidth=maxX-minX,mid=(left+right)/2;
   const scale=size/CELL;
-  const l=cellX+Math.round(insetX+sourceLeft*scale);
-  const r=cellX+Math.round(insetX+(sourceRight+1)*scale);
-  // A wide crown connects to the REAL red hair at y=20..31.
-  // A narrow extra cap looked like a separate hat in the pixel preview.
-  const top=cellY+15,lip=cellY+31;
+  const centerX=cellX+insetX+mid*scale;
+  const top=13,bottom=40;
   ctx.save();
   ctx.imageSmoothingEnabled=false;
-  // Restore the missing broad, angular crown volume; keep existing hair,
-  // glasses and side braids entirely intact below this 16px upper strip.
-  facet(ctx,[[l-8,top],[r+5,top],[r+13,top+8],
-             [r+14,lip-2],[r+10,lip],[l-12,lip],
-             [l-15,top+8]],'#d54849');
-  // Lit top surface: broad flat voxel top with deliberate 45-degree bevels.
-  facet(ctx,[[l-8,top],[r+5,top],[r+11,top+7],
-             [l-14,top+7]],'#f16b5b');
-  // The front rim fades into original textured hair rather than making a
-  // second rectangular cap perched on top.
-  facet(ctx,[[l-14,top+7],[r+11,top+7],[r+13,top+12],
-             [l-13,top+12]],'#eb5e52');
-  // Short shaded right facet separates cube top/front/side planar lighting.
-  facet(ctx,[[r+5,top],[r+13,top+8],[r+14,top+16],
-             [r+9,top+11]],'#b6323e');
-  // Small warm squares echo the original painted block/voxel surface.
-  ctx.fillStyle='#ff876c';ctx.fillRect(l-1,top+2,9,2);
-  ctx.fillStyle='#e75349';ctx.fillRect(r-13,top+5,7,2);
-  ctx.fillStyle='#d84a46';ctx.fillRect(l-10,top+9,5,2);
+  // Stretch only the original head's top 22 source-pixel rows vertically.
+  // The upper original hair moves 7px higher, while the lower boundary
+  // returns to exactly its original y=40 position; no pasted-on hat seam.
+  // 22% extra width at the top flattens rounded contours into a cuboid roof;
+  // the width taper reaches the unaltered head by the last line.
+  for(let y=top;y<=bottom;y++){
+   const t=(y-top)/(bottom-top);
+   const sourceY=2+Math.round(22*t);
+   const widen=1+.22*Math.pow(1-t,1.1);
+   const destWidth=Math.round(sourceWidth*scale*widen);
+   const destX=Math.round(centerX-(mid-minX)*scale*widen);
+   ctx.drawImage(atlas,cellX+minX,cellY+sourceY,sourceWidth,1,
+                 destX,cellY+y,destWidth,1);
+  }
   ctx.restore();
  }
 
