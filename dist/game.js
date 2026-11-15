@@ -512,7 +512,14 @@ function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
-function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){balls[0].held=false;balls[0].bounceTime=0;balls[0].vx=125;balls[0].vy=-365;syncMulti();sfx('serve');hud()}}
+// Random signed upward launch angle on every serve; retain original ball speed.
+function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
+ const speed=Math.hypot(125,365);
+ const angle=(.16+Math.random()*.52)*(Math.random()<.5?-1:1);
+ balls[0].held=false;balls[0].bounceTime=0;
+ balls[0].vx=Math.sin(angle)*speed;balls[0].vy=-Math.cos(angle)*speed;
+ syncMulti();sfx('serve');hud();
+}}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('overlay').hidden=false;endlessUI()}
 function pause(){releaseInput();if(mode==='playing'||mode==='clearing'){resumeMode=mode;mode='paused';sfx('pause');overlay('잠깐,<br><em>숨 고르기.</em>','게임과 스킬 지속시간이 멈췄습니다.','계속하기','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
 function end(reason,detail=null){if(mode==='over')return;releaseInput();mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent=runMode==='endless'?'무한 '+(wave-50)+' 웨이브':wave+' 스테이지';$('result-cleared').textContent=runMode==='endless'?(wave-51)+' 웨이브 생존':(wave-1)+'개 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('게임 오버',reason,'다시 시작','GAME OVER');sfx('over');if(detail){failureScene={...detail,t:0};$('overlay').hidden=true;cameraKick=fxEnabled?4:0;haptic([30,40,30])}}
@@ -1522,10 +1529,6 @@ drawKillCombo();drawBarrelBlasts();
   drawBallSkillTrail(b,r,trailPath);
   drawBallStateAura(b,r);
   drawHeroBallSprite(b,r,palette.main);
-  if(b.held&&mode==='playing'){
-   g.save();g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';
-   g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.restore();
-  }
  }
  drawBallVanish();
  if(particles.length)luminous(()=>{
