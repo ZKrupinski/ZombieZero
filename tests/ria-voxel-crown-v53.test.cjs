@@ -32,7 +32,7 @@ for(let i=0;i<8;i++){
  assert.deepEqual(base.slice(1,5),[i*192,384,192,192],'the untouched original sprite is framed first');
  assert.deepEqual(base.slice(5),[i*192+7,402,179,179],'integer-pixel transform retains established jeep baseline');
  assert.equal(rows.length,28);
- const [l,r]=edges[i],minX=Math.max(0,l-36),maxX=Math.min(192,r+38),width=maxX-minX;
+ const [l,r]=edges[i],minX=Math.max(0,l-32),maxX=Math.min(192,r+32),width=maxX-minX;
  for(let j=0;j<28;j++){
   const a=rows[j],t=j/27,srcY=384+2+Math.round(22*t);
   const widen=1+.22*Math.pow(1-t,1.1);
