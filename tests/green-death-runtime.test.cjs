@@ -17,21 +17,21 @@ function check(cond,message){if(!cond)throw Error(message)}
  let idleDraws=draws.length;
  damage(green,1,false);
  check(score>oldScore&&enemyDeaths.length===1,'regular death keeps scoring');
- check(enemyDeaths[0].spriteMode&&enemyDeaths[0].split>=.52&&enemyDeaths[0].split<.62,'normal death uses 8-frame timing');
+ check(enemyDeaths[0].spriteMode&&enemyDeaths[0].split>=.62&&enemyDeaths[0].split<.70,'normal death uses 8-frame timing');
  drawEnemyDeaths();check(draws.length>idleDraws,'original bitmap rendered in live scene');
  updateEnemyVisuals(.30);check(enemyDeaths.length===1,'regular fall persists after 0.30s');
- updateEnemyVisuals(.30);check(!enemyDeaths.length&&!enemyPieces.length,'normal PNG complete, no duplicate shattered body');
+ updateEnemyVisuals(.37);check(!enemyDeaths.length&&!enemyPieces.length,'normal PNG complete, no duplicate shattered body');
  start();serve();wave=1;rack();
  let critical=foes.find(z=>!z.boss);
  critical.form=0;critical.hp=3;critical.max=3;
  damage(critical,1,false,null,true);
  check(enemyDeaths.length===1&&enemyDeaths[0].critical&&enemyDeaths[0].spriteMode,'full-health one-strike critical triggers bitmap sequence');
- check(enemyDeaths[0].split>=.58&&enemyDeaths[0].split<.68,'critical 10-frame duration');
+ check(enemyDeaths[0].split>=.68&&enemyDeaths[0].split<.75,'critical 10-frame duration');
  drawEnemyDeaths();
  // The impact freeze precedes the critical atlas; verify both stages.
- updateEnemyVisuals(.08);drawEnemyDeaths();
+ updateEnemyVisuals(.12);drawEnemyDeaths();
  check(draws.some(a=>a[2]===true),'critical atlas draws after the brief frozen flash');
- updateEnemyVisuals(.59);
+ updateEnemyVisuals(.6);
  check(enemyDeaths.length===0&&enemyPieces.length===0,'critical atlas already includes scatter, prevent double');
  const frames=draws.filter(a=>a[2]===true).length;check(frames>0,'critical atlas draw called');
  console.log('PASS: in-game green living sprite, normal and critical PNG death timings, draw calls, no duplicate debris, original scoring');
