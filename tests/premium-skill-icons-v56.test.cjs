@@ -71,5 +71,5 @@ assert(html.includes('item-icons.js?v=56-premium-clean-alpha'));
 assert(html.includes('game.js?v=73-obvious-elastic-ball'));
 assert(sw.includes("'./assets/ip/item-icons-v56.png'"));
 assert(!sw.includes("'./assets/ip/item-icons-v37.png'"));
-assert(sw.includes('zombie-zero-shell-v73-obvious-elastic-ball'));
+assert(sw.includes('zombie-zero-shell-v74-clean-trash-can-frames'));
 console.log('PASS: eight clean transparent premium chest PNG cells, no stray pixels or RGB fringes, readable active badges and intact skill mapping.');
