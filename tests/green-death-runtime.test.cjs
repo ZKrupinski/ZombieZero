@@ -13,7 +13,7 @@ assert.match(sw,/zombie-zero-shell-v83-fire-trail-stage-loot/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
-assert.match(code,/drawBallStateAura\(b,r\);\s*drawHeroBallSprite\(b,r,palette\.main\)/);
+assert.match(code,/drawBallStateAura\(b,r\);\s*drawBurningBallFlames\(b,r,false\);\s*drawHeroBallSprite\(b,r,palette\.main\)/);
 assert.doesNotMatch(code,/g\.strokeRect\(b\.x-r\*\.45,b\.y-r\*\.45/);
 
 const section=(start,end)=>{
