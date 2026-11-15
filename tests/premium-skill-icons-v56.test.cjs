@@ -20,7 +20,7 @@ while(offset<png.length){
 const raw=zlib.inflateSync(Buffer.concat(chunks));
 const W=1024,H=128,stride=W*4;
 assert.equal(raw.length,(stride+1)*H);
-const rgba=Buffer.alloc(W*H*4),prev=Buffer.alloc(stride);
+const rgba=Buffer.alloc(W*H*4);let prev=Buffer.alloc(stride);
 let src=0;
 for(let y=0;y<H;y++){
  const method=raw[src++],row=Buffer.alloc(stride);
