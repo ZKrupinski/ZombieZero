@@ -29,6 +29,6 @@ const bloom=draw.indexOf('fxRenderer.composite(g);');
 const iconDraw=draw.indexOf('drawActiveItemIcons();');
 assert(player>=0&&bloom>player&&iconDraw>bloom,'icons render last, above shield and bloom FX');
 assert.equal(draw.split('drawActiveItemIcons();').length-1,1,'only one final icon pass');
-assert(html.includes('src="game.js?v=49-clean-lower-hud"'),'new gameplay script bypasses old cache');
-assert(sw.includes('zombie-zero-shell-v49-clean-lower-hud'),'PWA shell invalidated');
+assert(html.includes('src="game.js?v=50-wall-ceiling-align"'),'new gameplay script bypasses old cache');
+assert(sw.includes('zombie-zero-shell-v50-wall-ceiling-align'),'PWA shell invalidated');
 console.log('PASS: duplicate defense dashes removed in both paths, collision/text intact, equipped icons clear shield Bloom.');
