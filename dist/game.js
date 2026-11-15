@@ -15,7 +15,7 @@ try{best=+(localStorage.getItem('zr-best')||0)}catch{}
 const HEROES=[
 {id:'ace',name:'에이스',role:'안정형',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:500,paddle:68,damage:1,lives:3,duration:1,desc:'넓은 라켓 · 목숨 3',stats:'이동 500 · 공격 1 · 라켓 136'},
 {id:'ruby',name:'루비',role:'기동형',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:660,paddle:51,damage:1,lives:3,duration:1.25,desc:'배트 · 이동 +32% · 스킬 +25%',stats:'이동 660 · 공격 1 · 반사 폭 102'},
-{id:'liam',name:'리암',role:'공격형',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:390,paddle:55,damage:2,lives:2,duration:1,desc:'해머 · 공격력 ×2 · 목숨 2',stats:'이동 390 · 공격 2 · 반사 폭 110'}];
+{id:'liam',name:'리아',role:'공격형',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:390,paddle:55,damage:2,lives:2,duration:1,desc:'해머 · 공격력 ×2 · 목숨 2',stats:'이동 390 · 공격 2 · 반사 폭 110'}];
 let touchUsed=false,lastBuzz=0,bubbles=[],bubbleTimer=.25;
 const HERO_ATTACK_DURATION=.42;let heroAttackTime=0;
 let selectedHero=0,clearTime=0,clearBurst=0,resumeMode='playing',crowdTimer=3.5,junk=[],cheerTime=0;
@@ -441,7 +441,7 @@ function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;ball
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){balls[0].held=false;balls[0].vx=125;balls[0].vy=-365;syncMulti();sfx('serve');hud()}}
-function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('overlay').hidden=false;endlessUI()}
+function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('overlay').hidden=false;endlessUI()}
 function pause(){releaseInput();if(mode==='playing'||mode==='clearing'){resumeMode=mode;mode='paused';sfx('pause');overlay('잠깐,<br><em>숨 고르기.</em>','게임과 스킬 지속시간이 멈췄습니다.','계속하기','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
 function end(reason,detail=null){if(mode==='over')return;releaseInput();mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent=runMode==='endless'?'무한 '+(wave-50)+' 웨이브':wave+' 스테이지';$('result-cleared').textContent=runMode==='endless'?(wave-51)+' 웨이브 생존':(wave-1)+'개 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('게임 오버',reason,'다시 시작','GAME OVER');sfx('over');if(detail){failureScene={...detail,t:0};$('overlay').hidden=true;cameraKick=fxEnabled?4:0;haptic([30,40,30])}}
 // A visual retirement is distinct from a missed-heart penalty. Expiring
@@ -1270,7 +1270,7 @@ if(win){rect(-12,-15,9,2,'#533a39');rect(-10,-17,5,2,'#533a39');rect(4,-15,9,2,'
 function portrait(h){
  const i=HEROES.indexOf(h);
  // 192px transparent car/hero art, sampled sharply for the narrow selection UI.
- // The stable names here are Ace/Ruby/Liam; artwork IP captions are not aliases.
+ // Public hero names: Ace / Ruby / Ria. The Liam sprite ID remains stable.
  return '<span class="hero-portrait hero-vehicle-portrait row-'+i+'" role="img" aria-label="'+h.name+' · 차량과 전용 무기"></span>';
 }
 function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;$('start').innerHTML=hero().name+'로 시작 <span>↗</span>'}
