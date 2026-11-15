@@ -1436,9 +1436,11 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
   left.push({x:p.x-dy/m*half,y:p.y+dx/m*half});
   right.push({x:p.x+dy/m*half,y:p.y-dx/m*half});
  }
- const tip=path[n],grad=g.createLinearGradient(tip.x,tip.y,b.x,b.y);
- grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,col.main+'b0');
- g.save();g.fillStyle=grad;g.beginPath();g.moveTo(left[0].x,left[0].y);
+ const tip=path[n],grad=g.createLinearGradient?.(tip.x,tip.y,b.x,b.y);
+ if(grad&&typeof grad.addColorStop==='function'){
+  grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,col.main+'b0');
+ }
+ g.save();g.fillStyle=grad||col.main+'88';g.beginPath();g.moveTo(left[0].x,left[0].y);
  for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
  for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
  g.closePath();g.fill();g.restore();
