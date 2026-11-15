@@ -12,8 +12,8 @@ assert(source.includes('z.y+z.h>=DEFENSE_Y'),'breach collision check preserved')
 assert(source.includes("f.type==='breach'?'방어선 돌파!'"),'failure explanation still exists');
 assert(!source.includes("'BALLS '+balls.length"),'no count text in the footer');
 assert(html.includes('id="hud-heart-count"'),'heart count still has its HUD node');
-assert(html.includes('game.js?v=67-crisp-bounce-hit'),'fresh game asset URL');
-assert(sw.includes('zombie-zero-shell-v67-crisp-bounce-hit'),'PWA cache updated');
+assert(html.includes('game.js?v=68-visible-hitstop'),'fresh game asset URL');
+assert(sw.includes('zombie-zero-shell-v68-visible-hitstop'),'PWA cache updated');
 const noop=()=>{},els={};
 const graphics=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
 const el=id=>els[id]??={textContent:'',innerHTML:'',style:{},hidden:false,addEventListener:noop,setAttribute:noop,getContext:()=>graphics,getBoundingClientRect:()=>({width:450,height:710,left:0,top:0}),setPointerCapture:noop};
