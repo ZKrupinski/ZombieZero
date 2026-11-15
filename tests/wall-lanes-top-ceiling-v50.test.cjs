@@ -7,7 +7,7 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(!src.includes("'TAP TO SERVE'")&&!src.includes("textContent='TAP TO SERVE'"),'no bottom serve label');
 assert(html.includes('game.js?v=73-obvious-elastic-ball'),'game script cache invalidated');
-assert(sw.includes('zombie-zero-shell-v74-clean-trash-can-frames'),'PWA cache invalidated');
+assert(sw.includes('zombie-zero-shell-v75-approved-bi'),'PWA cache invalidated');
 const noop=()=>{},els={};
 const ctx=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
 function el(id){return els[id]??={textContent:'',innerHTML:'',style:{},hidden:false,addEventListener:noop,setAttribute:noop,

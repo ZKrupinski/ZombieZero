@@ -30,5 +30,5 @@ const iconDraw=draw.indexOf('drawActiveItemIcons();');
 assert(player>=0&&bloom>player&&iconDraw>bloom,'icons render last, above shield and bloom FX');
 assert.equal(draw.split('drawActiveItemIcons();').length-1,1,'only one final icon pass');
 assert(html.includes('src="game.js?v=73-obvious-elastic-ball"'),'new gameplay script bypasses old cache');
-assert(sw.includes('zombie-zero-shell-v74-clean-trash-can-frames'),'PWA shell invalidated');
+assert(sw.includes('zombie-zero-shell-v75-approved-bi'),'PWA shell invalidated');
 console.log('PASS: duplicate defense dashes removed in both paths, collision/text intact, equipped icons clear shield Bloom.');

@@ -65,5 +65,5 @@ assert(css.includes('.hero-vehicle-portrait.row-2{background-position:0 -192px;c
 assert(css.includes('hero-car-attack.png?v=54-original-hair'),'selection card requests new clean atlas');
 assert(loader.includes('hero-car-attack.png?v=54-original-hair'),'actual gameplay requests same clean atlas');
 assert(html.includes('hero-car-attack.js?v=54-original-hair'),'new loader bypasses old cache');
-assert(html.includes('style.css?v=55-hero-anim'),'new selection styles bypass old cache');
+assert(html.includes('style.css?v=75-approved-zombiezero-bi'),'new selection styles bypass old cache');
 console.log('PASS: all 24 hero/vehicle/attack frames preserved, zero cross-row hair bleed, clean portrait and gameplay cache');
