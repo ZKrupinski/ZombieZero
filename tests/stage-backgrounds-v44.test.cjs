@@ -30,33 +30,48 @@ for(let i=1;i<=8;i++){
 }
 assert.equal(names.size,8,'each of the eight stages uses genuinely distinct art');
 assert(total<1000000,'all eight full-color 2x backgrounds total less than 1MB');
-// Stage 09–18 are genuine, directly loaded WebP files (no base64 text fetch).
-// All ten match the user-approved v57 camera and are tied to the precise assets.
+// Stage 09–18 are exact WebP bytes delivered from one verified ZIP_STORED pack.
+// There is no recompression or vector/gradient substitute at runtime.
 const expected={
  9:'54e26fd84cb3',10:'2a8c715178cd',11:'fb18885d846c',12:'4c7cf3e1869c',
  13:'4965690931cc',14:'5b8ac34d65e0',15:'e4745f60f4a4',16:'30e16912235b',
  17:'710be3e901e6',18:'452ff0d967a4'
 };
-let addedBytes=0;
-for(let i=9;i<=18;i++){
- const name='bg-'+String(i).padStart(2,'0')+'.webp';
- const file='dist/assets/stages/'+name;
- const img=fs.readFileSync(file);
- assert.equal(img.toString('ascii',0,4),'RIFF',name+' has valid RIFF signature');
- assert.equal(img.toString('ascii',8,12),'WEBP',name+' contains real WebP bitmap');
- assert(img.length>100000&&img.length<280000,name+' is a high-quality compact full-color scene');
- const hash=crypto.createHash('sha256').update(img).digest('hex');
- assert.equal(hash.slice(0,12),expected[i],name+' uses the correct original concept and camera frame');
- assert(sw.includes("'./assets/stages/"+name+"'"),name+' precached for offline use');
- assert(!sw.includes("'./assets/stages/"+name+".b64'"),name+' does not depend on old base64');
+const archive='dist/assets/stages/bg-09-18-v57-stored.zip';
+const packed=fs.readFileSync(archive);
+assert.equal(crypto.createHash('sha256').update(packed).digest('hex'),
+ '40f2169f2fa837de0abf56c68282a077fa73c581433e56366aeac1c701ac1493',
+ 'GitHub archive must contain byte-identical approved v57 art');
+assert(sw.includes("'./assets/stages/bg-09-18-v57-stored.zip'"),'all 10 artworks are precached in one ZIP');
+let addedBytes=0,at=0,count=0;
+while(at+30<=packed.length&&packed.readUInt32LE(at)===0x04034b50){
+ const flags=packed.readUInt16LE(at+6),method=packed.readUInt16LE(at+8),
+       compressed=packed.readUInt32LE(at+18),rawSize=packed.readUInt32LE(at+22),
+       nameLength=packed.readUInt16LE(at+26),extraLength=packed.readUInt16LE(at+28);
+ const name=packed.toString('utf8',at+30,at+30+nameLength);
+ const m=/^bg-(0[9]|1[0-8])\.webp$/.exec(name);
+ assert(m,name+' must be an expected image');
+ const stage=Number(m[1]),start=at+30+nameLength+extraLength,stop=start+compressed;
+ assert.equal(flags&8,0,'no data descriptors');
+ assert.equal(method,0,'ZIP stores already compressed WebP without recompression');
+ assert.equal(rawSize,compressed,'each WebP is copied exactly');
+ assert(stop<=packed.length);
+ const img=packed.subarray(start,stop);
+ assert.equal(img.toString('ascii',0,4),'RIFF');
+ assert.equal(img.toString('ascii',8,12),'WEBP');
+ assert(img.length>100000&&img.length<280000,'compressed full-color game bitmap');
+ assert.equal(crypto.createHash('sha256').update(img).digest('hex').slice(0,12),
+  expected[stage],name+' is the correct user-approved v57 image');
  names.add(img.subarray(0,Math.min(128,img.length)).toString('base64'));
  addedBytes+=img.length;
+ at=stop;count++;
 }
-assert.equal(names.size,18,'every illustrated stage is unique');
-assert(addedBytes<2500000,'ten 900x1420 illustrated stages remain below 2.5MB');
-assert(!loader.includes('.webp.b64'),'v57 loader fetches native compressed WebP directly');
-assert(loader.includes("const revision=i<8?'45-original-scenes':'57-playfield-camera';"),
- 'first 8 backgrounds unchanged, only 09–18 use the new artwork cache tag');
+assert.equal(count,10,'stage ZIP holds exactly ten new maps');
+assert.equal(names.size,18,'all eighteen backgrounds remain distinct');
+assert(addedBytes<2500000,'all ten high quality game scenes <2.5MB');
+assert(!loader.includes('.webp.b64'),'new runtime loader does not download old text images');
+assert(loader.includes("if(i<8)img.src="),'original 8 backgrounds retain their independent WebP source');
+assert(loader.includes("fetch(archive).then"),'stages 09–18 load from the one protected binary archive');
 
 const noop=()=>{},elements={},draws=[],styles=[];
 const ctx=new Proxy({globalAlpha:1,drawImage:function(...args){
