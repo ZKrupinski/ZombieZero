@@ -448,6 +448,86 @@ function tryStartBreakouts(){
    if(z.shortStepElapsed>=z.shortStepDuration-1e-5)
      clearShortStep(z,.27+shortStepNoise(z,8)*.38);
  }
+// V71: The boss roams only when a wide, safely traversable lane opens.
+// Its long lateral sweeps use ordinary sprite movement with modest depth jukes.
+const BOSS_SWEEP_MIN=84,BOSS_SWEEP_MAX=190,BOSS_SWEEP_SPEED=118,BOSS_DEPTH_SWAY=18;
+function bossPatrolFree(z,x,y,gap=8){
+ if(!insideZombieRoad(z,{x,y}))return false;
+ return foes.every(other=>other===z||
+  !zombieBoxesOverlap(z,{x,y},other,{x:other.x,y:other.y},gap));
+}
+function bossPatrolCorridor(z,x,y){
+ const dx=x-z.x,dy=y-z.y,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/9));
+ for(let i=1;i<=steps;i++){
+  const t=i/steps;
+  if(!bossPatrolFree(z,z.x+dx*t,z.y+dy*t))return false;
+ }
+ return true;
+}
+function bossSelectPatrol(z){
+ // Near the defense line the boss must continue advancing, not orbit forever.
+ if(z.bossHomeY+z.h>DEFENSE_Y-60)return false;
+ const options=[];
+ for(const direction of [-1,1]){
+  for(const span of [BOSS_SWEEP_MAX,160,125,90]){
+   const x=clamp(z.x+direction*span,zombieMinX(),zombieMaxX(z));
+   const travel=Math.abs(x-z.x);
+   if(travel<BOSS_SWEEP_MIN)continue;
+   for(const offsetY of [-BOSS_DEPTH_SWAY,0,BOSS_DEPTH_SWAY]){
+    const y=clamp(z.bossHomeY+offsetY,ENEMY_TOP_Y,DEFENSE_Y-z.h-38);
+    if(!bossPatrolCorridor(z,x,y))continue;
+    options.push({x,y,direction,
+     score:travel+(direction===-z.bossLastDir?28:0)+Math.random()*12-Math.abs(offsetY)*.35});
+   }
+  }
+ }
+ if(!options.length)return false;
+ options.sort((a,b)=>b.score-a.score);
+ const goal=options[0];
+ z.bossGoalX=goal.x;z.bossGoalY=goal.y;
+ z.bossGoalTime=clock+3.5;z.bossLastDir=goal.direction;
+ return true;
+}
+function bossPatrolStep(z,dt){
+ z.moveDir=0;
+ const speed=BOSS_SWEEP_SPEED*(has('slow')?.4:1);
+ if(!Number.isFinite(z.bossHomeY))z.bossHomeY=z.y;
+ z.bossHomeY+=enemySpeed(z)*dt;
+ const nearDefense=z.bossHomeY+z.h>DEFENSE_Y-60;
+ if(nearDefense){delete z.bossGoalX;delete z.bossGoalY;}
+ if(Number.isFinite(z.bossGoalX)&&clock>(z.bossGoalTime||0)){
+  delete z.bossGoalX;delete z.bossGoalY;
+ }
+ if(!Number.isFinite(z.bossGoalX)&&!nearDefense&&clock>=(z.bossNextMove||0)){
+  if(!bossSelectPatrol(z))z.bossNextMove=clock+.32;
+ }
+ if(Number.isFinite(z.bossGoalX)){
+  const dx=z.bossGoalX-z.x,dy=z.bossGoalY-z.y,range=Math.hypot(dx,dy);
+  const step=Math.min(range,speed*dt);
+  const x=range>0?z.x+dx/range*step:z.x;
+  const y=range>0?z.y+dy/range*step:z.y;
+  if(bossPatrolCorridor(z,x,y)){
+   const before=z.x;z.x=x;z.y=y;
+   z.moveDir=Math.sign(z.x-before);
+  }else{
+   delete z.bossGoalX;delete z.bossGoalY;z.bossNextMove=clock+.22;
+  }
+  if(range<=step+.5){
+   delete z.bossGoalX;delete z.bossGoalY;
+   z.bossNextMove=clock+.22+Math.random()*.3;
+  }
+ }else{
+  // Return toward the ordinary march baseline without accumulating Y drift.
+  const dy=clamp(z.bossHomeY-z.y,-speed*.30*dt,speed*.30*dt);
+  if(bossPatrolCorridor(z,z.x,z.y+dy))z.y+=dy;
+ }
+ if(nearDefense){
+  // Preserve the boss's ability to break the defense line.
+  const nextY=Math.max(z.y,z.bossHomeY-BOSS_DEPTH_SWAY);
+  if(bossPatrolFree(z,z.x,Math.min(nextY,DEFENSE_Y-z.h-16),0))
+   z.y=nextY;
+ }
+}
 function march(dt){
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
@@ -455,6 +535,7 @@ function march(dt){
   if(clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0)){
    done.push(z);continue;
   }
+  if(z.boss){bossPatrolStep(z,dt);done.push(z);continue;}
   let extraY=0;
   if(!z.boss&&Number.isFinite(z.breakoutTime)){
    const timeStep=Math.max(0,Math.min(dt*(has('slow')?.4:1),
