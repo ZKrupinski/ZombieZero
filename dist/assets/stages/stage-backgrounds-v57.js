@@ -19,6 +19,8 @@
   '해안 항구 창고','달빛 숲 캠핑장','석양 고층 옥상',
   '식생에 잠긴 폐허 쇼핑몰'
  ];
+ // Approved orthographic bitmap replacements. Fixed visual road edges x=72 and 828.
+ const override={8:'bg-09-v66-orthographic.webp',14:'bg-15-v66-orthographic.webp'};
  const images=new Array(18),ready=new Array(18).fill(false);
  const art={images,ready,themes,count:18,sourceWidth:900,sourceHeight:1420,version:57};
  window.ZZStageArt=art;
@@ -29,6 +31,7 @@
   img.onload=()=>{ready[i]=img.naturalWidth===900&&img.naturalHeight===1420;};
   img.onerror=()=>{ready[i]=false;};
   if(i<8)img.src='assets/stages/bg-'+String(i+1).padStart(2,'0')+'.webp?v=45-original-scenes';
+  else if(override[i])img.src='assets/stages/'+override[i]+'?v=66-exact-lanes';
  }
  const archive='assets/stages/bg-09-18-v57-stored.zip?v=57-gameplay-camera';
  fetch(archive).then(response=>{
@@ -52,6 +55,8 @@
    const match=/^bg-(0[9]|1[0-8])\.webp$/.exec(name);
    if(!match)throw Error('unexpected image name '+name);
    const i=Number(match[1])-1;
+   // Keep packed 09/15 bytes for compatibility, but never replace the new bitmaps.
+   if(override[i]){off=stop;count++;continue;}
    const url=URL.createObjectURL(new Blob([bytes.subarray(payload,stop)],{type:'image/webp'}));
    const img=images[i];
    img.onload=()=>{
