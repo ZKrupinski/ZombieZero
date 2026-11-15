@@ -96,9 +96,9 @@ if(sub===0||sub===6||sub===8||boss&&sub===10)tone(130,.13,'sine',.31,delay,true,
 if(sub===4||sub===12){noise(.065,.105,delay,true);tone(200,.055,'triangle',.1,delay,true,85)}else noise(sub===14?.06:.018,sub%2===0?.028:.014,delay,true);if(bar===3&&sub>=13){noise(.035,.06,delay,true);tone(hz(root+12+(sub-13)*3),.055,'triangle',.055,delay,true)}
 if(sub===0&&bar%2===0){[0,boss?3:4,7,12].forEach(n=>tone(hz(root+n),step*7,'triangle',.036,delay,true))}beat++;nextBeat+=step;}}
 // V60 cube FX: short explosive square fragments. No circular markers, wedges or spikes.
-function effect(x,y,color,size=45,text=''){
+function effect(x,y,color,size=45,text='',standardHit=false){
  if(!fxEnabled)return;
- fx.push({x,y,color,size,text,t:0,life:text?.85:.26,visualLife:size>=100?.31:.21,seed:Math.random()*6.28});
+ fx.push({x,y,color,size,text,t:0,life:text?.85:.26,visualLife:size>=100?.31:.21,seed:Math.random()*6.28,standardHit});
  if(fx.length>45)fx.shift();
  cameraKick=Math.max(cameraKick,size>=120?5.2:size>=70?3.2:size>=45?2:.9);
 }
@@ -107,7 +107,7 @@ function drawEffects(labels=false){
  for(const f of fx){
   const t=clamp(f.t/(f.visualLife||.22),0,1);
   if(!labels){
-   if(t<1)drawPixelBurst(f.x,f.y,t,f.size*.78,f.size>=90?25:14,f.seed||0,
+   if(t<1&&!f.standardHit)drawPixelBurst(f.x,f.y,t,f.size*.78,f.size>=90?25:14,f.seed||0,
       ['#fffdf0',f.color,f.color],0);
   }else if(f.text){
    const fade=Math.pow(1-clamp(f.t/f.life,0,1),.75);
@@ -767,10 +767,11 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  if(critical){criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,t:0,life:.72,pierce:piercingCritical});if(criticalPopups.length>12)criticalPopups.shift()}
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
-  z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount);
+  z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount,
+  !burning&&z.hp>0&&!critical);
  score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;
- burst(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ff985f':critical?'#fff6be':TYPES[z.kind].color,
-  z.boss?20:burning?3:12);
+ if(z.hp<=0||critical||burning)burst(hitPosition.x+z.w/2,hitPosition.y+z.h/2,
+  burning?'#ff985f':critical?'#fff6be':TYPES[z.kind].color,z.boss?20:burning?3:12);
  if(!burning&&amount>=2&&!z.boss)sfx('powerhit');
  if(!burning&&z.hp>0){
   if(z.boss)sfx('bosshit');

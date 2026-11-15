@@ -8,7 +8,7 @@ const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
 const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
-assert.match(html,/game\.js\?v=62-thick-trail-impact/);
+assert.match(html,/game\.js\?v=63-soft-trail-pixel-hit/);
 assert.match(sw,/zombie-zero-shell-v63-soft-trail-pixel-hit/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
@@ -66,6 +66,8 @@ assert.match(code,/f\.critical\?\.23:\.35/);
 assert.match(code,/f\.critical\?55:20,f\.critical\?32:16/);
 assert.match(code,/f\.critical\?1:1\.75/);
 assert.match(code,/f\.critical\?\.56:1\.45/);
+assert.match(code,/!burning&&z\.hp>0&&!critical/);
+assert.match(code,/if\(z\.hp<=0\|\|critical\|\|burning\)burst\(/);
 assert.match(code,/const box=Math.max\(3,Math.round/);
 assert.match(code,/const sz=Math.max\(4,Math.round\(r\*\(\.4/);
 assert.match(code,/drawPixelBurst\(b.x,b.y,t,BAZOOKA_RADIUS\*\.94,68/);
