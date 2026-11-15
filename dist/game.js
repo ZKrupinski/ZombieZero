@@ -803,7 +803,8 @@ const palette=[['#444e53','#566064','#4e595d','#77878a'],
 for(let side of [0,432]){rect(side,0,18,H,'#343e43');for(let y=0;y<H;y+=42){rect(side+4,y,10,24,palette[3]);rect(side+6,y+2,3,18,'#8b9b97')}}
 g.globalAlpha=.10;for(let y=-60;y<H;y+=92)rect(222,y+(clock*12)%92,6,34,palette[3]);g.globalAlpha=1;g.strokeStyle=palette[3]+'24';g.lineWidth=2;g.strokeRect(29,27,392,DEFENSE_Y-45);
 for(let i=0;i<16;i++){let x=25+(i*137)%400,y=(i*97+clock*9)%(DEFENSE_Y-15);rect(x,y,2,2,palette[3]+'30')}
-g.setLineDash([8,7]);g.strokeStyle='#ff947b99';g.beginPath();g.moveTo(23,DEFENSE_Y);g.lineTo(427,DEFENSE_Y);g.stroke();g.setLineDash([]);g.fillStyle='#ffc794aa';g.font='10px Arial, sans-serif';g.textAlign='left';g.fillText('DEFENSE LINE / 넘기면 끝!',30,DEFENSE_Y+14);rect(20,H-50,410,50,'#17252baa');
+// The text alone marks the defense threshold; no duplicate vector dash line.
+g.fillStyle='#ffc794aa';g.font='10px Arial, sans-serif';g.textAlign='left';g.fillText('DEFENSE LINE / 넘기면 끝!',30,DEFENSE_Y+14);rect(20,H-50,410,50,'#17252baa');
 if(has('slow')){g.strokeStyle='#86f2e050';g.strokeRect(24,22,402,DEFENSE_Y-30)}
 }
 // Eighteen stage-local bitmap scenes. Keep the game world's fixed 450×710
@@ -846,15 +847,12 @@ function background(){
  else g.drawImage(art.images[previousArtIndex],0,0,W,H);
  g.restore();
  // Keep the original collision boundary at DEFENSE_Y regardless of art.
- // The drawn lane stripe is authoritative for new as well as old backgrounds. Apply a soft veil only over gameplay, not bright side scenery:
+ // The threshold is enforced by physics; do not draw a redundant dashed line. Apply a soft veil only over gameplay, not bright side scenery:
  // voxel zombies, balls, item pickups, and combo remain the visual focus.
  g.save();
  g.fillStyle='rgba(10,18,26,'+STAGE_PLAYFIELD_VEIL[stageArtIndex]+')';
  g.fillRect(20,63,410,Math.max(1,DEFENSE_Y-63));
- // Explicit logical collision boundary; it aligns with the bitmap stripe.
- g.setLineDash([8,7]);g.strokeStyle='#ff947b7d';g.lineWidth=1.5;
- g.beginPath();g.moveTo(23,DEFENSE_Y);g.lineTo(427,DEFENSE_Y);g.stroke();
- g.setLineDash([]);
+ // Keep only the defense label here. The logical breach threshold stays at DEFENSE_Y.
  g.fillStyle='#ffddb4c9';g.font='10px Arial, sans-serif';g.textAlign='left';
  g.fillText('DEFENSE LINE / 넘기면 끝!',30,DEFENSE_Y+14);
  // A light backing tint separates the colorful supporter sprites from
@@ -1114,7 +1112,9 @@ function drawActiveItemIcons(){
  const total=(keys.length-1)*step+size;
  const center=clamp(car,total/2+8,W-total/2-8);
  const first=center-(keys.length-1)*step/2;
- const y=649+VIEW_DELTA;
+ // 15px above the shield beam: sits directly beneath the vehicle wheels.
+ // 17px artwork and 10.5px timer arc both finish before the line at Y=652.
+ const y=SHIELD_LINE_Y-15+VIEW_DELTA;
  for(let i=0;i<keys.length;i++){
   const key=keys[i],x=first+i*step;
   const skill=SKILLS[key],ratio=clamp(active[key]/(skill.duration*hero().duration),0,1);
@@ -1254,8 +1254,8 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)zombie(knockVisualPosition(z));drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});player();drawActiveItemIcons();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
-drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('pierce')?'#ffe77b':has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('pierce')?25:has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(has('pierce')&&!b.held){g.strokeStyle='#fff8ae';g.lineWidth=2;g.strokeRect(b.x-r*.45,b.y-r*.45,r*.9,r*.9)}if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}drawBallVanish();if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawCriticalPopups();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
+ for(const z of foes)zombie(knockVisualPosition(z));drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('pierce')?'#ffe77b':has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('pierce')?25:has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(has('pierce')&&!b.held){g.strokeStyle='#fff8ae';g.lineWidth=2;g.strokeRect(b.x-r*.45,b.y-r*.45,r*.9,r*.9)}if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}drawBallVanish();if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawCriticalPopups();drawBubbles();drawActiveItemIcons();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
  const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null,ix=cast&&cast.heroIndex[selectedHero];
