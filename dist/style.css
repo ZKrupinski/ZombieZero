@@ -1236,11 +1236,11 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
 .portrait-play .stage>.zz-combo-overlay,
 .landscape-game .stage>.zz-combo-overlay{
  top:calc(var(--hud-safe-top,0px) + 53px * var(--ui-scale,1))!important;
- left:calc(273px * var(--ui-scale,1))!important;
+ left:50%!important;
  transform:translateX(-50%)!important;
  z-index:9!important;
 }
 .portrait-play.zz-compact-hud .stage>.zz-combo-overlay,
 .landscape-game.zz-compact-hud .stage>.zz-combo-overlay{
- left:calc(257px * var(--ui-scale,1))!important;
+ left:50%!important;
 }

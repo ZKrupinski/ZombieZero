@@ -8,7 +8,7 @@ const css=fs.readFileSync('dist/style.css','utf8');
 assert(html.includes('id="boot-scene" class="zz-boot-scene"'));
 assert(html.includes('id="boot-load-status"'));
 assert(css.includes('53px * var(--ui-scale,1)'));
-assert(css.includes('left:calc(273px * var(--ui-scale,1))'));
+assert(css.includes('left:50%!important;'),'combo stays centered at all widths');
 const nodes={};
 function mk(id){
  if(!nodes[id])nodes[id]={id,hidden:false,style:{},textContent:'',handlers:{},children:[],open:false,
