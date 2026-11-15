@@ -6,8 +6,8 @@ const src=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(!src.includes("'TAP TO SERVE'")&&!src.includes("textContent='TAP TO SERVE'"),'no bottom serve label');
-assert(html.includes('game.js?v=76-smooth-ball-spin'),'game script cache invalidated');
-assert(sw.includes('zombie-zero-shell-v76-smooth-ball-spin'),'PWA cache invalidated');
+assert(html.includes('game.js?v=77-analytic-ball-blue-boss'),'game script cache invalidated');
+assert(sw.includes('zombie-zero-shell-v77-analytic-ball-blue-boss'),'PWA cache invalidated');
 const noop=()=>{},els={};
 const ctx=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
 function el(id){return els[id]??={textContent:'',innerHTML:'',style:{},hidden:false,addEventListener:noop,setAttribute:noop,
