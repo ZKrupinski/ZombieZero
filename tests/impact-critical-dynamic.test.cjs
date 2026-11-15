@@ -88,7 +88,7 @@ check(src.includes('function drawBurningOverlays()')&&src.includes('drawBurningO
  'persistent attached flame sprites display above burning zombies');
 check(src.includes('function drawImpactFlashes()')&&src.includes('drawImpactFlashes();'),
  'add/bloom hit streaks are drawn');
-check(src.includes('function drawBarrelBlasts()')&&src.includes("g.fillStyle='#fe812c'"),
+check(src.includes('function drawBarrelBlasts()')&&src.includes("g.fillStyle=layer?'#ffce65':'#fa5c20'"),
  'red-barrel death has bright jagged explosion core');
 const flash=hitFlashes[0];
 if(flash){updateEnemyVisuals(.35);check(!hitFlashes.includes(flash),'short impact bloom never lingers');}
