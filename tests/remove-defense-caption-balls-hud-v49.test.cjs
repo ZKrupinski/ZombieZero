@@ -30,7 +30,7 @@ vm.createContext(sandbox);
 vm.runInContext(source+`
 function check(ok,msg){if(!ok)throw Error(msg)}
 start();hud();
-check($('status').textContent==='TAP TO SERVE','serve hint remains when ball is held');
+check($('status').textContent==='','no serve hint remains when ball is held');
 check($('hud-heart-count').textContent==='×3','heart count retains original three lives');
 serve();hud();
 check($('status').textContent==='','footer is empty during play');
@@ -39,4 +39,4 @@ check(balls.length===2&&$('status').textContent==='','extra active balls do not 
 lives=2;hud();
 check($('hud-heart-count').textContent==='×2','remaining lives still update the top HUD');
 `,sandbox);
-console.log('PASS: caption and BALLS counter removed, serve hint kept, hearts and multi-ball gameplay intact.');
+console.log('PASS: caption and BALLS counter removed, serve hint removed, hearts and multi-ball gameplay intact.');
