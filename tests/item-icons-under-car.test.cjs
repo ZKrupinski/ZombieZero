@@ -51,7 +51,7 @@ check(drawCalls.length===3,'exactly three small icon images under vehicle');
 check(drawCalls.every(a=>a[0]===window.ZZItemIcons.image&&a[3]===128&&a[4]===128),'draw using exact source RGBA tiles');
 check(drawCalls.map(a=>a[1]).join(',')==='128,512,768','dual, fire and approved piercing bullet tiles drawn in stable order');
 check(drawCalls.every(a=>a[7]===17&&a[8]===17),'all icon sizes remain exactly 17 logical pixels');
-check(drawCalls.every(a=>a[6]===649-17/2),'item badges sit just below the 633px car sprite bottom');
+check(drawCalls.every(a=>a[6]===637-17/2),'item badges sit tightly under wheels, with timer arcs clear of the shield at Y=652');
 check(arcCalls.length===6,'each icon has a small clock arc instead of text digits');
 const firstX=drawCalls[0][5];car=280;drawCalls.length=0;drawActiveItemIcons();
 check(Math.abs(drawCalls[0][5]-firstX-55)<.01,'all three active badges follow actual horizontal car position');
