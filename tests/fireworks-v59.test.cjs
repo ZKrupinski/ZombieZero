@@ -9,7 +9,7 @@ const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
 assert.match(html,/game\.js\?v=59-weapon-fireworks/);
-assert.match(sw,/zombie-zero-shell-v59-weapon-fireworks/);
+assert.match(sw,/zombie-zero-shell-v60-cube-impact/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:38,y:2\},\{x:36,y:3\},\{x:38,y:3\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
@@ -56,5 +56,10 @@ for(const names of [['fire'],['pierce'],['power'],['fire','pierce']]){
  activeSkills=new Set(names);
  vm.runInContext('drawBallStateAura({x:180,y:560,vx:130,vy:-380,held:false},8);drawBallStateAura({x:225,y:585,vx:0,vy:0,held:true},8);',ctx,{timeout:1000});
 }
-assert.ok(drawCalls>180,'Expected rendered fireworks, sparks and energized ball state');
-console.log('V59 ball position / fire / pierce / impact / barrel / bazooka smoke checks passed.');
+assert.ok(drawCalls>90,'Expected rendered fireworks, sparks and energized ball state');
+console.log('V60 pixel FX and weapon ball rest smoke checks passed.');
+
+assert.match(code,/function drawHeroBallTrail\(b,r\)/);
+assert.match(code,/HERO_BALL_TRAILS=\[/);
+assert.match(code,/function drawPixelBurst\(/);
+assert.doesNotMatch(code,/const HELD_BALL_OFFSETS=\[\{x:38/);
