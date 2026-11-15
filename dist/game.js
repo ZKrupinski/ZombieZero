@@ -600,7 +600,7 @@ function march(dt){
 }
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];for(const b of balls)retireBall(b,'clear');balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent=''}
 function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;setStageBackground();if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+stageRosterLabel(wave))}
-function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5}}
+function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5,spinAngle:0,spinVelocity:0,spinDirection:vx<0?-1:1}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
@@ -614,6 +614,7 @@ function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  balls[0].bounceAxis='y';balls[0].bounceDir=-1;
  balls[0].impactKind='serve';balls[0].impactStrength=.7;
  balls[0].vx=Math.sin(angle)*speed;balls[0].vy=-Math.cos(angle)*speed;
+ balls[0].spinDirection=balls[0].vx<0?-1:1;
  syncMulti();sfx('serve');hud();
 }}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('overlay').hidden=false;endlessUI()}
@@ -964,7 +965,7 @@ march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
   if(mode!=='playing')return;
  }
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
-for(const b of [...balls]){b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?16:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
+for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?16:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');sfx('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
@@ -1565,14 +1566,29 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  }
  g.restore();
 }
+// V76: per-ball rotational inertia updated ONCE per game tick, not per frame
+// cell or direction change. Squash/stretch uses its own transform axes.
+const HERO_BALL_SPIN_FACTORS=[1,.82,1.13]; // tennis / baseball / toy
+function updateBallSpin(b,dt){
+ if(!b||!Number.isFinite(dt)||dt<=0)return;
+ const factor=HERO_BALL_SPIN_FACTORS[selectedHero]||1;
+ const speed=Math.hypot(b.vx||0,b.vy||0);
+ const goal=(b.held?.95:clamp(speed/92,2.7,7.1))*factor*(b.spinDirection||1);
+ const easing=1-Math.exp(-dt*6.5);
+ b.spinVelocity=(b.spinVelocity||0)+(goal-(b.spinVelocity||0))*easing;
+ b.spinAngle=((b.spinAngle||0)+b.spinVelocity*dt)%(Math.PI*2);
+}
 /* V72: Eight approved bitmaps now react to motion and impact like soft objects.
    Rest frames 0/1/6/7; vertical compression/recoil 2/3;
    left/right compression/recoil 4/5. Every pose is purely visual. */
 const BALL_MATERIAL_SPRING=[1,.78,1.22]; // tennis, baseball, rubber toy
 function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
- const spin=[0,1,6,7][Math.floor(now*(b.held?5:13))%4];
+ // Use the original clean idle bitmap for uninterrupted 360-degree texture rotation;
+ // the other existing frames remain available for collision deformation.
+ const spin=0;
  let index=spin,sx=1,sy=1,rotation=0;
- if(b.held)return {index,sx,sy,rotation};
+ const spinAngle=b.spinAngle||0;
+ if(b.held)return {index,sx,sy,rotation,spin:spinAngle};
  const speed=Math.hypot(b.vx||0,b.vy||0);
  const material=BALL_MATERIAL_SPRING[heroIndex]||1;
  if((b.bounceTime||0)>0){
@@ -1616,7 +1632,7 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
   sx=1+lengthening;sy=1-lengthening*.50;
   rotation=Math.atan2(b.vy||-1,b.vx||0);
  }
- return {index,sx,sy,rotation};
+ return {index,sx,sy,rotation,spin:spinAngle};
 }
 function drawHeroBallSprite(b,r,col){
  const sprites=window.ZZHeroBallsV58;
@@ -1624,7 +1640,10 @@ function drawHeroBallSprite(b,r,col){
  const ready=!!sprites?.ready?.[selectedHero]&&img&&img.naturalWidth===1774&&img.naturalHeight===887;
  const pose=ballSpritePose(b,r),index=pose.index;
  g.save();g.shadowColor='transparent';g.shadowBlur=0;
+ // Orient anisotropic squash/stretch in world space, but let the bitmap
+ // independently rotate by spinAngle. No angle snap when a ball hits a wall.
  g.translate(b.x,b.y);g.rotate(pose.rotation);g.scale(pose.sx,pose.sy);
+ g.rotate(pose.spin-pose.rotation);
  if(ready){
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
   const size=r*3.40;
