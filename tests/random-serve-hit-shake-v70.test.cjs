@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const source=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert.match(html,/game\.js\?v=76-smooth-ball-spin/);
-assert.match(sw,/zombie-zero-shell-v76-smooth-ball-spin/);
+assert.match(html,/game\.js\?v=77-analytic-ball-blue-boss/);
+assert.match(sw,/zombie-zero-shell-v77-analytic-ball-blue-boss/);
 assert.doesNotMatch(source,/setLineDash\(\[4,6\]\)/,'old predicted trajectory must not appear');
 assert.match(source,/const angle=\(\.16\+Math\.random\(\)\*\.52\)/);
 const shot=source.match(/function serve\(\)\{[\s\S]*?\n\}\}/);
