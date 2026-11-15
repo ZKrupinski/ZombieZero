@@ -756,7 +756,7 @@ function criticalEligible(z){return !z.boss&&Number.isInteger(z.form)&&z.hp>=z.m
 // At 60 fps: direct stun ~10f, chain stun ~8f, chain starts stagger ~5–6f.
 const KNOCK_CHAIN_LIMIT=8,KNOCK_TWEEN_LIFE=.27;
 const HIT_FREEZE_NORMAL=.16,HIT_FREEZE_BOSS=.19;
-const CHAIN_KNOCK_STEP=.09,CHAIN_HIT_FREEZE=.125;
+const CHAIN_KNOCK_STEP=.14,CHAIN_HIT_FREEZE=.125;
 const KNOCK_TRAIL_LIFE=KNOCK_TWEEN_LIFE+HIT_FREEZE_NORMAL+
   KNOCK_CHAIN_LIMIT*CHAIN_KNOCK_STEP+CHAIN_HIT_FREEZE;
 // Safe collider destinations are committed immediately; the animated sprite
@@ -1474,100 +1474,104 @@ function drawBarrelBlasts(){
 // V79: Full-sized, crisp elemental aura follows the actual ball, not just
 // the wake. The baseline ball art remains untouched; status colors distinguish
 // piercing (cyan), fire (orange) and large/power (gold).
+// V82: polished, close-fitting bitmap-ball accents. The real ball retains its
+// exact 2x powered diameter; effects never form a second oversized silhouette.
 function drawBallStateAura(b,r){
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
- const t=clock,phase=t*(b.held?3.2:6.4),pulse=.5+.5*Math.sin(t*12);
- const radius=r*1.82;
+ const phase=clock*(b.held?2.4:4.2),pulse=.5+.5*Math.sin(clock*9.5);
+ const shell=r*1.62,glowLimit=r*1.72;
+ const layers=Number(fire)+Number(pierce)+Number(power);
+ const balance=layers>1?.7:1;
+ const hue=fire&&pierce?'#d7e8df':fire?'#ff8c45':pierce?'#67dfff':'#f0d775';
  g.save();g.translate(b.x,b.y);
- g.shadowBlur=0;g.globalAlpha=1;g.globalCompositeOperation='lighter';
- // Ring sits outside the actual 3.40r bitmap frame, never fogging its face.
+ g.globalCompositeOperation='lighter';g.shadowBlur=0;g.lineCap='round';
+ // A feathered *internal* light falloff replaces hard square coronas.
+ const gradient=g.createRadialGradient?.(0,0,r*.72,0,0,glowLimit);
+ if(gradient&&typeof gradient.addColorStop==='function'){
+  gradient.addColorStop(0,'#ffffff00');
+  gradient.addColorStop(.50,hue+'12');
+  gradient.addColorStop(.79,hue+'42');
+  gradient.addColorStop(1,hue+'00');
+  g.globalAlpha=balance*(b.held?.57:.85);
+  g.fillStyle=gradient;g.beginPath();g.arc(0,0,glowLimit,0,Math.PI*2);g.fill();
+ }
  if(pierce){
-  g.strokeStyle='#8beaff';g.lineWidth=Math.max(2.3,r*.27);
-  g.globalAlpha=.82+.15*pulse;
-  g.beginPath();g.arc(0,0,radius+.6*pulse,0,Math.PI*2);g.stroke();
-  for(let i=0;i<8;i++){
-   const a=phase*.33+i*Math.PI/4,dist=radius+2+((i%3)-1)*1.3;
-   const x=Math.cos(a)*dist,y=Math.sin(a)*dist;
-   const length=r*(.62+.25*pulse),width=Math.max(2.6,r*.28);
-   g.save();g.translate(x,y);g.rotate(a);
-   g.globalAlpha=i%2?.96:.86;g.fillStyle=i%3?'#70dafc':'#f2ffff';
-   g.beginPath();g.moveTo(-width,-width);g.lineTo(length,0);
-   g.lineTo(-width,width);g.closePath();g.fill();
-   g.restore();
+  // Six separated cyan light arcs, not giant spikes projecting from the ball.
+  g.strokeStyle='#70dafc';g.lineWidth=Math.max(1,r*.105);
+  for(let i=0;i<6;i++){
+   const angle=phase*.31+i*Math.PI/3;
+   g.globalAlpha=balance*(.47+.18*pulse);
+   g.beginPath();g.arc(0,0,shell*.97,angle,angle+.28);g.stroke();
   }
-  for(let i=0;i<5;i++){
-   const a=phase*1.2+i*2.39996,dist=radius+r*(.42+.3*Math.sin(phase+i*1.4));
-   const sz=Math.max(3,Math.round(r*.46));
-   g.globalAlpha=.72;g.fillStyle=i%2?'#e8ffff':'#56c4f8';
-   g.fillRect(Math.round(Math.cos(a)*dist-sz/2),Math.round(Math.sin(a)*dist-sz/2),sz,sz);
+  for(let i=0;i<6;i++){
+   const angle=-phase*.38+i*Math.PI/3;
+   const d=shell*(.93+.035*Math.sin(phase+i));
+   g.globalAlpha=balance*(.5+.25*pulse);g.fillStyle=i%2?'#70dafc':'#e8ffff';
+   g.beginPath();g.arc(Math.cos(angle)*d,Math.sin(angle)*d,Math.max(.8,r*.072),0,Math.PI*2);g.fill();
   }
  }
  if(fire){
-  for(let i=0;i<9;i++){
-   const a=i*Math.PI*2/9+Math.sin(phase+i)*.13;
-   const d=radius-.5+Math.sin(phase*1.8+i*2.1)*1.5;
-   const x=Math.cos(a)*d,y=Math.sin(a)*d;
-   const len=r*(.75+.45*(.5+.5*Math.sin(phase*2+i*1.9)));
-   g.save();g.translate(x,y);g.rotate(a);
-   g.globalAlpha=.83;g.fillStyle=i%3===0?'#fff4a5':i%2?'#ffb248':'#ff5f2b';
-   g.beginPath();g.moveTo(-r*.36,-r*.27);g.lineTo(len,.05*r);
-   g.lineTo(-r*.36,r*.27);g.closePath();g.fill();
-   g.restore();
+  // Fine tapered-looking curved flame filaments stay within the ball outline.
+  for(let i=0;i<7;i++){
+   const angle=i*Math.PI*2/7+.12*Math.sin(phase+i*.8);
+   const start=r*1.12,tip=shell*(.95+.045*Math.sin(phase*1.6+i));
+   g.strokeStyle=i%3===0?'#fff1b7':i%2?'#ff9236':'#ff5f2b';
+   g.lineWidth=Math.max(1.1,r*.10);g.globalAlpha=balance*(.62+.13*pulse);
+   g.beginPath();
+   g.moveTo(Math.cos(angle)*start,Math.sin(angle)*start);
+   g.quadraticCurveTo(Math.cos(angle+.12)*(start+tip)*.53,Math.sin(angle+.12)*(start+tip)*.53,
+     Math.cos(angle+.08)*tip,Math.sin(angle+.08)*tip);
+   g.stroke();
   }
-  for(let i=0;i<8;i++){
-   const a=(phase*.85+i*2.1),age=(phase*.16+i/8)%1;
-   const dist=radius+r*(.4+1.1*age);
-   const sz=Math.max(3,Math.round(r*(.50-.22*age)));
-   g.globalAlpha=.88*(1-age*.7);g.fillStyle=i%3===0?'#fff4b2':i%2?'#ff9236':'#f76136';
-   g.fillRect(Math.round(Math.cos(a)*dist-sz/2),Math.round(Math.sin(a)*dist-sz/2),sz,sz);
+  for(let i=0;i<5;i++){
+   const angle=phase*.44+i*2.399963,dist=shell*(.79+.15*(.5+.5*Math.sin(phase+i*1.7)));
+   g.fillStyle=i%3===0?'#fff1b7':i%2?'#ff9236':'#ff5f2b';
+   g.globalAlpha=balance*.67;
+   g.beginPath();g.arc(Math.cos(angle)*dist,Math.sin(angle)*dist,
+     Math.max(.9,r*.082),0,Math.PI*2);g.fill();
   }
  }
  if(power){
-  const glowR=radius+r*(fire||pierce?.24:.14);
-  g.strokeStyle='#f9e18a';g.lineWidth=Math.max(2.5,r*.27);g.globalAlpha=.78+.17*pulse;
-  for(let i=0;i<4;i++){
-   const a=phase*.22+i*Math.PI/2;
-   g.beginPath();g.arc(0,0,glowR,a,a+Math.PI*.23);g.stroke();
+  // Thin, layered golden crescents frame the ball without enlarging it.
+  for(let i=0;i<5;i++){
+   const angle=phase*.17+i*Math.PI*2/5;
+   g.strokeStyle=i%2?'#fff4bd':'#f6d46d';
+   g.lineWidth=Math.max(1.15,r*.093);g.globalAlpha=balance*(.55+.2*pulse);
+   g.beginPath();g.arc(0,0,shell*.98,angle,angle+.41);g.stroke();
   }
   for(let i=0;i<4;i++){
-   const a=i*Math.PI/2-phase*.32,d=glowR+r*.12,sz=Math.max(4,Math.round(r*.45));
-   g.fillStyle=i%2?'#fff4bd':'#ffce61';g.globalAlpha=.82;
-   g.save();g.translate(Math.cos(a)*d,Math.sin(a)*d);g.rotate(a);
-   g.fillRect(-sz/2,-sz/2,sz,sz);g.restore();
+   const angle=phase*.24+i*Math.PI/2,dist=shell*(.85+.07*pulse);
+   g.fillStyle=i%2?'#fff4bd':'#f6d46d';g.globalAlpha=balance*.70;
+   g.beginPath();g.arc(Math.cos(angle)*dist,Math.sin(angle)*dist,
+     Math.max(1,r*.083),0,Math.PI*2);g.fill();
   }
  }
  g.restore();
 }
+
 // A few bright shards are drawn AFTER the opaque ball sprite so the state
 // remains readable on white baseballs and pale green tennis balls.
+// V82: sparse surface glints on TOP of the bitmap, not oversized pixels.
 function drawBallStatusForeground(b,r){
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
- const t=clock;
- g.save();g.translate(b.x,b.y);g.shadowBlur=0;
+ const count=Number(fire)+Number(pierce)+Number(power),balance=count>1?.73:1;
+ const rim=r*1.49,t=clock;
+ g.save();g.translate(b.x,b.y);g.shadowBlur=0;g.lineCap='round';
  g.globalCompositeOperation='lighter';
- const radius=r*1.83;
- if(pierce){
-  for(let i=0;i<4;i++){
-   const a=t*1.7+i*Math.PI/2;
-   const x=Math.cos(a)*radius,y=Math.sin(a)*radius,sz=Math.max(3,Math.round(r*.33));
-   g.globalAlpha=.9;g.fillStyle='#e8ffff';
-   g.fillRect(Math.round(x-sz/2),Math.round(y-sz/2),sz,sz);
-  }
- }
- if(fire){
-  for(let i=0;i<4;i++){
-   const a=t*1.3+i*Math.PI/2,dist=radius+r*.24;
-   const sz=Math.max(4,Math.round(r*.37));
-   g.globalAlpha=.92;g.fillStyle=i%2?'#ffe086':'#ff853c';
-   g.fillRect(Math.round(Math.cos(a)*dist-sz/2),Math.round(Math.sin(a)*dist-sz/2),sz,sz);
-  }
- }
- if(power&&!fire&&!pierce){
-  g.strokeStyle='#fff3b1';g.lineWidth=Math.max(2,r*.22);g.globalAlpha=.8;
-  g.beginPath();g.arc(0,0,radius,Math.PI*.1,Math.PI*.8);g.stroke();
- }
+ const glint=(angle,color,opacity,step=1)=>{
+  const x=Math.cos(angle)*rim,y=Math.sin(angle)*rim;
+  const dx=Math.cos(angle+.46)*step,dy=Math.sin(angle+.46)*step;
+  g.strokeStyle=color;g.lineWidth=Math.max(.95,r*.073);
+  g.globalAlpha=balance*opacity;
+  g.beginPath();g.moveTo(x-dx,y-dy);g.lineTo(x+dx,y+dy);g.stroke();
+ };
+ if(pierce)for(let i=0;i<4;i++)glint(t*.66+i*Math.PI/2,'#e8ffff',.8,1.6);
+ if(fire)for(let i=0;i<4;i++)glint(-t*.49+i*Math.PI/2,
+   i%2?'#fff1b7':'#ff9236',.72,1.5);
+ if(power)for(let i=0;i<4;i++)glint(t*.34+i*Math.PI/2,
+   i%2?'#fff5d4':'#f6d46d',.62,1.75);
  g.restore();
 }
 
@@ -1623,7 +1627,7 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
   const p=path[i],a=path[Math.max(0,i-1)],z=path[Math.min(n,i+1)];
   const dx=a.x-z.x,dy=a.y-z.y,m=Math.hypot(dx,dy)||1;
   const taper=clamp((len-p.s)/Math.min(17,len*.3),0,1);
-  const half=r*.94*(1-.2*p.s/len)*(.2+.8*taper);
+  const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper);
   left.push({x:p.x-dy/m*half,y:p.y+dx/m*half});
   right.push({x:p.x+dy/m*half,y:p.y-dx/m*half});
  }
@@ -1636,27 +1640,30 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
  for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
  g.closePath();g.fill();g.restore();
 }
+// V82: fine comet streaks / light motes. No wide blocky particle chips.
 function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  if(!fxEnabled||path.length<2)return;
- const fire=has('fire'),pierce=has('pierce'),power=has('power');if(!fire&&!pierce&&!power)return;
- const colors=fire&&pierce?['#ffbf64','#8beafa','#fff4d7']:fire?['#ffad52','#f46a31','#ffeb9b']:pierce?['#7dd9f7','#b5f5ff','#ffffff']:['#fff1bc','#e2e99d','#ffffff'];
+ const fire=has('fire'),pierce=has('pierce'),power=has('power');
+ if(!fire&&!pierce&&!power)return;
+ const colors=fire&&pierce?['#ffd49b','#91e6fd','#fff8de']:fire?['#ffba77','#ff813e','#fff0c5']:
+   pierce?['#79d8f6','#d9faff','#a3e7ff']:['#ffe8a0','#fff5d5','#e5c573'];
  const len=path[path.length-1].s;
- g.save();g.shadowBlur=0;
+ g.save();g.lineCap='round';g.shadowBlur=0;g.globalCompositeOperation='lighter';
  for(let d=10,i=0;d<len-4;d+=r>8?13:11,i++){
   const p=sampleBallTrail(path,d),next=sampleBallTrail(path,Math.min(len,d+5));
   if(!p||!next)continue;
   const dx=next.x-p.x,dy=next.y-p.y,mag=Math.hypot(dx,dy)||1;
   const nx=-dy/mag,ny=dx/mag;
-  const fade=1-.63*d/Math.max(1,len);
-  const size=Math.max(3,Math.round(r*.36));
-  g.globalAlpha=.76*fade;g.fillStyle=colors[i%3];
-  g.fillRect(Math.round(p.x-size/2),Math.round(p.y-size/2),size,size);
+  const fade=1-.74*d/Math.max(1,len);
+  const width=Math.min(2.3,Math.max(1,r*.14));
+  g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.58*fade;
+  g.beginPath();g.moveTo(p.x-dx/mag*2,p.y-dy/mag*2);
+  g.lineTo(p.x+dx/mag*3,p.y+dy/mag*3);g.stroke();
   if(i%2===0){
-   const lateral=r*.72,chip=Math.max(2,Math.round(size*.75));
+   const lateral=r*.72,chip=Math.max(.8,width*.48);
    for(const side of [-1,1]){
-    g.globalAlpha=.58*fade;g.fillStyle=colors[(i+1)%3];
-    g.fillRect(Math.round(p.x+nx*side*lateral-chip/2),
-               Math.round(p.y+ny*side*lateral-chip/2),chip,chip);
+    g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.43*fade;
+    g.beginPath();g.arc(p.x+nx*side*lateral,p.y+ny*side*lateral,chip,0,Math.PI*2);g.fill();
    }
   }
  }
@@ -1704,6 +1711,8 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
    rotation=b.bounceAxis==='x'?0:Math.PI/2;
   }
  }
+ // Powered bitmap stays near 2x the base ball even while rebounding.
+ if(r>8){sx=clamp(sx,.92,1.06);sy=clamp(sy,.92,1.06)}
  return {index,sx,sy,rotation,spin};
 }
 function drawHeroBallSprite(b,r,col){
