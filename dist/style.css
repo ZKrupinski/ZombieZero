@@ -1033,3 +1033,153 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
 @media(max-height:620px){.boot-content{gap:8px}.boot-content>.boot-logo-image{max-height:min(31svh,195px)}.boot-tagline{margin-bottom:4px!important}}
 @media(max-height:460px){.boot-screen{padding:9px 12px}.boot-content{gap:4px}.boot-content>.boot-logo-image{max-height:28svh}.boot-tagline{font-size:9px!important;margin:0!important}.boot-start{min-height:43px;font-size:18px}}
 @media(min-width:761px){.logo-heading>.game-logo{max-width:395px}}
+
+
+/* v78 · One 450×710 coordinate grid across phones, tablets and foldables.
+   Existing earlier rules are intentionally overridden at the end of the CSS.
+   The board remains uniformly letterboxed and physics coordinates stay fixed. */
+.portrait-play .machine,.landscape-game .machine{
+ --hud-safe-top:max(0px,calc(env(safe-area-inset-top,0px) - var(--board-offset-y,0px)));
+}
+.portrait-play .machine>.hud,.landscape-game .machine>.hud{
+ position:absolute!important;
+ inset:0 0 auto 0!important;
+ top:0!important;left:0!important;right:0!important;
+ transform:none!important;box-sizing:border-box!important;
+ display:block!important;
+ width:100%!important;
+ height:calc(61px * var(--ui-scale,1) + var(--hud-safe-top,0px))!important;
+ min-height:0!important;
+ margin:0!important;padding:0!important;
+ border:0!important;overflow:visible!important;
+ z-index:8!important;pointer-events:none!important;
+ background:linear-gradient(180deg,#06121bdc 0%,#07131da8 59%,#07131d00 100%)!important;
+}
+.portrait-play .machine>.hud>.hud-hearts,
+.landscape-game .machine>.hud>.hud-hearts{
+ position:absolute!important;transform:none!important;
+ top:calc(var(--hud-safe-top,0px) + 7px * var(--ui-scale,1))!important;
+ left:calc(8px * var(--ui-scale,1))!important;right:auto!important;
+ width:calc(113px * var(--ui-scale,1))!important;
+ max-width:26%!important;
+ height:calc(43px * var(--ui-scale,1))!important;
+ display:flex!important;align-items:center!important;justify-content:flex-start!important;
+ gap:calc(2px * var(--ui-scale,1))!important;
+ margin:0!important;padding:0!important;overflow:hidden!important;
+}
+.portrait-play .hud-hearts img,.landscape-game .hud-hearts img{
+ width:calc(39px * var(--ui-scale,1))!important;
+ height:calc(39px * var(--ui-scale,1))!important;
+}
+.portrait-play .hud-hearts strong,.landscape-game .hud-hearts strong{
+ font-size:max(17px,calc(25px * var(--ui-scale,1)))!important;
+ letter-spacing:-.035em!important;line-height:1!important;
+}
+.portrait-play .machine>.hud>.hud-center-stats,
+.landscape-game .machine>.hud>.hud-center-stats{
+ position:absolute!important;display:flex!important;box-sizing:border-box!important;
+ top:calc(var(--hud-safe-top,0px) + 7px * var(--ui-scale,1))!important;
+ left:calc(132px * var(--ui-scale,1))!important;right:auto!important;
+ transform:none!important;
+ width:calc(205px * var(--ui-scale,1))!important;
+ height:calc(47px * var(--ui-scale,1))!important;
+ gap:calc(9px * var(--ui-scale,1))!important;
+ align-items:flex-start!important;justify-content:flex-start!important;
+ padding:0!important;margin:0!important;
+ overflow:hidden!important;white-space:nowrap!important;
+ pointer-events:none!important;
+}
+.portrait-play .machine>.hud .hud-center-stats .wave,
+.landscape-game .machine>.hud .hud-center-stats .wave{
+ position:relative!important;top:auto!important;left:auto!important;right:auto!important;
+ transform:none!important;flex:0 0 calc(70px * var(--ui-scale,1))!important;
+ width:calc(70px * var(--ui-scale,1))!important;min-width:0!important;max-width:none!important;
+ margin:0!important;padding:0!important;
+ text-align:center!important;overflow:hidden!important;
+}
+.portrait-play .machine>.hud .hud-center-stats .score-compact,
+.landscape-game .machine>.hud .hud-center-stats .score-compact{
+ position:relative!important;top:auto!important;left:auto!important;right:auto!important;
+ transform:none!important;flex:1 1 0!important;
+ min-width:0!important;max-width:calc(120px * var(--ui-scale,1))!important;
+ margin:0!important;padding:0!important;
+ text-align:left!important;overflow:hidden!important;
+}
+.portrait-play .hud .hud-center-stats small,
+.landscape-game .hud .hud-center-stats small{
+ display:block!important;white-space:nowrap!important;
+ font-size:max(7px,calc(8px * var(--ui-scale,1)))!important;
+ line-height:1.15!important;margin:0 0 calc(3px * var(--ui-scale,1))!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;
+}
+.portrait-play .hud .wave strong,.landscape-game .hud .wave strong{
+ display:block!important;font-size:max(17px,calc(22px * var(--ui-scale,1)))!important;
+ line-height:1.08!important;white-space:nowrap!important;
+}
+.portrait-play .hud .score-compact strong,.landscape-game .hud .score-compact strong{
+ display:block!important;
+ font-size:max(14px,calc(19px * var(--ui-scale,1)))!important;
+ line-height:1.1!important;letter-spacing:-.055em!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+}
+.portrait-play .machine>.hud>#pause,
+.portrait-play .machine>.hud>#options-toggle,
+.landscape-game .machine>.hud>#pause,
+.landscape-game .machine>.hud>#options-toggle{
+ position:absolute!important;left:auto!important;bottom:auto!important;
+ top:calc(var(--hud-safe-top,0px) + 7px * var(--ui-scale,1))!important;
+ transform:none!important;
+ width:max(34px,calc(36px * var(--ui-scale,1)))!important;
+ height:max(34px,calc(36px * var(--ui-scale,1)))!important;
+ margin:0!important;padding:0!important;box-sizing:border-box!important;
+ pointer-events:auto!important;
+}
+.portrait-play .machine>.hud>#pause,
+.landscape-game .machine>.hud>#pause{
+ right:calc(47px * var(--ui-scale,1))!important;
+}
+.portrait-play .machine>.hud>#options-toggle,
+.landscape-game .machine>.hud>#options-toggle{
+ right:calc(7px * var(--ui-scale,1))!important;
+}
+/* Combo is a separate readable reward, not a duplicate top score layer.
+   The 78-unit HUD-to-combo separation remains identical at every scale. */
+.portrait-play .stage>.zz-combo-overlay,
+.landscape-game .stage>.zz-combo-overlay{
+ top:calc(var(--hud-safe-top,0px) + 80px * var(--ui-scale,1))!important;
+ left:50%!important;transform:translateX(-50%)!important;
+ width:calc(163px * var(--ui-scale,1))!important;
+ max-width:calc(100% - 30px * var(--ui-scale,1))!important;
+ height:calc(44px * var(--ui-scale,1))!important;
+ z-index:7!important;pointer-events:none!important;
+}
+.portrait-play .zz-combo-emblem,.landscape-game .zz-combo-emblem{
+ background:linear-gradient(180deg,#17283b32,#10182e19)!important;
+ box-shadow:0 0 calc(3px * var(--ui-scale,1)) var(--combo-glow)!important;
+}
+.portrait-play .zz-combo-praise,.landscape-game .zz-combo-praise{
+ font-size:calc(10px * var(--ui-scale,1))!important;
+}
+.portrait-play .zz-combo-score strong,.landscape-game .zz-combo-score strong{
+ font-size:calc(19px * var(--ui-scale,1))!important;
+}
+.portrait-play .zz-combo-score span,.landscape-game .zz-combo-score span{
+ font-size:calc(13px * var(--ui-scale,1))!important;
+}
+/* Very small viewport: defend 34px tap targets without squeezing the score. */
+@media(max-width:330px){
+ .portrait-play .machine>.hud>.hud-hearts,.landscape-game .machine>.hud>.hud-hearts{
+  width:24%!important;
+ }
+ .portrait-play .machine>.hud>.hud-center-stats,
+ .landscape-game .machine>.hud>.hud-center-stats{
+  left:26.5%!important;width:44%!important;gap:3px!important;
+ }
+ .portrait-play .machine>.hud .hud-center-stats .wave,
+ .landscape-game .machine>.hud .hud-center-stats .wave{
+  flex:0 0 39%!important;width:39%!important;
+ }
+ .portrait-play .hud .score-compact strong,.landscape-game .hud .score-compact strong{
+  font-size:14px!important;
+ }
+}
