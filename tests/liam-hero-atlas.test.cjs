@@ -57,6 +57,6 @@ for(let i=0;i<8;i++){
 }
 assert.equal(vars['--zz-hero-car-frames'],'url("blob:corrected-liam")');
 assert.match(css,/background-image:var\(--zz-hero-car-frames,/);
-assert.match(css,/clip-path:none;/);
-assert.doesNotMatch(css,/clip-path:inset\(0 0 5px 0\)/);
+assert.match(css,/clip-path:inset\(0 0 5px 0\)/); // unchanged Ace/Ruby bleed mask
+assert.match(css,/row-2\{background-position:0 -192px;clip-path:none\}/); // Liam-only unmask
 console.log('PASS: Liam 8 frame cells cut and inset, 95% size, wheels unmasked.');
