@@ -452,6 +452,9 @@ function march(dt){
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
  for(const z of sorted){
+  if(clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0)){
+   done.push(z);continue;
+  }
   let extraY=0;
   if(!z.boss&&Number.isFinite(z.breakoutTime)){
    const timeStep=Math.max(0,Math.min(dt*(has('slow')?.4:1),
@@ -642,12 +645,14 @@ function criticalEligible(z){return !z.boss&&Number.isInteger(z.form)&&z.hp>=z.m
 // Push a small chain of zombies when a hit has room to travel. Compute all
 // destinations first, so no zombie moves if a wall, boss or crowded rank blocks
 // the chain. This keeps collision rectangles separate and prevents phantom hits.
-const KNOCK_CHAIN_LIMIT=8,KNOCK_TRAIL_LIFE=.32,KNOCK_TWEEN_LIFE=.20;
+const KNOCK_CHAIN_LIMIT=8,KNOCK_TRAIL_LIFE=.45,KNOCK_TWEEN_LIFE=.22;
+const HIT_FREEZE_NORMAL=.055,HIT_FREEZE_BOSS=.083,CHAIN_KNOCK_STEP=.045;
 // Safe collider destinations are committed immediately; the animated sprite
 // travels there over ~12 frames rather than visibly teleporting in one frame.
 function knockVisualPosition(z){
  if(!(z.knockTime>0)||!Number.isFinite(z.knockFromX))return z;
- const t=clamp((KNOCK_TRAIL_LIFE-z.knockTime)/KNOCK_TWEEN_LIFE,0,1);
+ const elapsed=KNOCK_TRAIL_LIFE-z.knockTime-(z.knockDelay||0)-(z.knockFreeze||0);
+ const t=clamp(elapsed/KNOCK_TWEEN_LIFE,0,1);
  const ease=1-Math.pow(1-t,3);
  return {...z,x:z.knockFromX+(z.x-z.knockFromX)*ease,
               y:z.knockFromY+(z.y-z.knockFromY)*ease};
@@ -671,7 +676,7 @@ function planKnockPush(z,dx,dy,plans,depth=0){
  if(dy>0||z.boss||depth>KNOCK_CHAIN_LIMIT||plans.has(z))return false;
  const pos={x:z.x+dx,y:z.y+dy};
  if(!insideZombieRoad(z,pos))return false;
- plans.set(z,pos);
+ plans.set(z,{...pos,chainDepth:depth});
  const pushX=Math.abs(dx)>=Math.abs(dy);
  const direction=Math.sign(pushX?dx:dy);
  if(!direction)return false;
@@ -728,13 +733,17 @@ function applyKnockback(z,impact,n=1){
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockTime=KNOCK_TRAIL_LIFE;actor.knockChain=actor!==z;
+   actor.knockDelay=Math.min(.135,(pos.chainDepth||0)*CHAIN_KNOCK_STEP);
+   actor.knockFreeze=actor===z?Math.max(0,(actor.hitShakeUntil||0)-clock):.045;
    // Chain pushes interrupt the short step and re-anchor at the new x.
    clearShortStep(actor,.48);actor.shortStepHomeX=pos.x;
    if(actor!==z){
     actor.flinch=Math.max(actor.flinch||0,.32);
     actor.recoil=Math.max(actor.recoil||0,.2);
-    hitFlashes.push({x:beforeX+actor.w/2,y:beforeY+actor.h/2,t:0,life:.16,critical:false});
-    burst(beforeX+actor.w/2,beforeY+actor.h/2,'#d2ffdc',4);
+    actor.hitShakeFrom=clock+actor.knockDelay;
+    actor.hitShakeUntil=actor.hitShakeFrom+.045;
+    hitFlashes.push({x:beforeX+actor.w/2,y:beforeY+actor.h/2,t:0,
+      delay:actor.knockDelay,life:.20+actor.knockDelay,critical:false});
    }
    // Active diagonal animation must not snap the pushed zombie back
    // onto its old target column or teleport through an ally.
@@ -755,7 +764,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  const amount=criticalKnockout?z.hp:n;
  z.hp-=amount;
  z.flash=burning?.12:.22;
- enemyReaction(z,amount,impact);
+ enemyReaction(z,amount,impact,!burning);
  if(!burning){
   hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.32:.39,critical,spread:Math.max(z.w,z.h),piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
@@ -995,7 +1004,7 @@ function enemyAnim(z){if(z.anim)return z.anim;const seed=(z.seed||0)*13.71+z.x*.
 function enemyPose(z){const a=enemyAnim(z),t=z.hitHold>0?z.hitAt:clock,b=z.boss,person=b?[1,3,2,5][z.bossForm||0]:a.type,speed=b?[1.7,3.2,2.3,2.7][z.bossForm||0]:a.speed,q=t*speed+a.phase,low=b&&z.hp/z.max<.3?1.35:1,amp=a.amp*low*(fxEnabled?1:.6),cycle=Math.floor((t+a.phase)/a.period),u=(t+a.phase)%a.period,gate=fract(Math.sin(a.seed+cycle*8.3)*919.1),twitch=(person===2||person===5)&&u<.2?Math.sin(u*65)*.08:0,roar=b&&u>.5&&u<1.2?Math.sin((u-.5)/.7*Math.PI):0;
 const hit=clamp((z.recoil||0)/.22,0,1),dx=z.impactX||0,dy=z.impactY||-1,neighbor=(z.flinch||0)/.3;
 return {lean:clamp(Math.sin(q)*(person===0?.068:.037)*amp+twitch+neighbor*.035*(z.flinchSide||1)+hit*dx*.06,-.13,.13),bob:Math.sin(q*1.8)*.8*amp,head:clamp(Math.sin(q-.65)*.045*amp+(person===4?.04:0)*a.side+twitch*(person===2?1.3:.8)-hit*.09, -.16,.16),left:Math.sin(q*.91)*.24*amp+(person===1?.28:person===3?-.28:0)+hit*.35,right:Math.sin(q*1.13+1.8)*.24*amp+(person===3?-.3:0)-hit*.3,shoulder:Math.sin(q*2.31)*.7+roar*1.5,jaw:clamp((person===1?2:person===5?2.5:.4)+Math.max(0,Math.sin(q*.64))*1.7+(gate>.4&&u<.5?Math.sin(u*42)*.7:0)+roar*4,0,7),lidL:person===4?4:((gate<.65&&u<.23)?7*Math.sin(u/.23*Math.PI):1),lidR:person===1?3:((gate>.65&&u>.3&&u<.53)?8*Math.sin((u-.3)/.23*Math.PI):0),eye:gate>.45&&u>1.3&&u<1.7?a.side*2:0,legL:Math.sin(q+1.1)*1.3,legR:Math.sin(q*.94+3)*1.1,hit,dx,dy,roar};}
-function enemyReaction(z,n,impact){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.22;z.hitHold=z.boss?.065:.04;z.hitAt=clock;if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
+function enemyReaction(z,n,impact,ballHit=true){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.22;z.hitHold=ballHit?(z.boss?HIT_FREEZE_BOSS:HIT_FREEZE_NORMAL):.025;z.hitAt=clock;if(ballHit){z.hitShakeFrom=clock;z.hitShakeUntil=clock+z.hitHold;}if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
 function enemyDeath(z,critical=false){
  enemyAnim(z);
  // The green mascot uses its approved 8+10-frame death atlas, rather than
@@ -1005,7 +1014,8 @@ function enemyDeath(z,critical=false){
  const greenSprite=isGreen&&window.ZZGreenDeath?.ready===true;
  const spriteMode=objectSprite||greenSprite;
  const split=objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
- enemyDeaths.push({z:{...z,flash:.1},critical,spriteMode,t:0,split,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
+ const freeze=Math.max(0,(z.hitShakeUntil||0)-clock);
+ enemyDeaths.push({z:{...z,flash:.12},critical,spriteMode,t:0,freeze,split:split+freeze,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
 function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
 function updateEnemyVisuals(dt){hitFlashes=hitFlashes.filter(f=>(f.t+=dt)<f.life);barrelBlasts=barrelBlasts.filter(b=>(b.t+=dt)<b.life);bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);z.flinch=Math.max(0,(z.flinch||0)-dt);z.knockTime=Math.max(0,(z.knockTime||0)-dt)}for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
  // Final bitmap already depicts lying down / cute brain debris; do not duplicate
@@ -1051,12 +1061,19 @@ function drawCriticalGreenDeath(d){
  g.restore();
 }
 function drawEnemyDeaths(){for(const d of enemyDeaths){
+ if(d.t<(d.freeze||0)){
+  g.save();g.filter='brightness(1.72)';
+  g.translate(Math.sin(d.t*185)*1.6,Math.cos(d.t*173)*1.1);
+  zombie(d.z);g.restore();continue;
+ }
+ const elapsed=Math.max(0,d.t-(d.freeze||0));
+ const anim={...d,t:elapsed,split:Math.max(.01,d.split-(d.freeze||0))};
  if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true){
-   window.ZZObjectSprite.drawDeath(g,d.z,d.critical,d.t,d.split);
+   window.ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split);
  }else if(d.spriteMode&&window.ZZGreenDeath?.ready===true){
-   window.ZZGreenDeath.draw(g,d.z,d.critical,d.t);
- }else if(d.critical)drawCriticalGreenDeath(d);
- else zombie(d.z,d)
+   window.ZZGreenDeath.draw(g,d.z,d.critical,anim.t);
+ }else if(d.critical)drawCriticalGreenDeath(anim);
+ else zombie(d.z,anim)
 }for(const p of enemyPieces){g.save();g.globalAlpha=Math.min(1,(p.life-p.t)/.3);g.translate(p.x,p.y);g.rotate(p.angle);g.scale(p.sc,p.sc);const f=p.z.boss?[3,4,7,1][p.z.bossForm||0]:p.z.form||0,col=TYPES[p.z.kind],pose={jaw:2,lidL:3,lidR:0,eye:0};// When original sprites are active, scatter actual sampled character pieces
 // instead of switching to the older generic procedural humanoid fragments.
 const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null;
@@ -1285,7 +1302,8 @@ function drawCriticalPopups(){
 function drawImpactFlashes(){
  if(!fxEnabled||!hitFlashes.length)return;
  for(const f of hitFlashes){
-  const t=clamp(f.t/(f.critical?.23:.35),0,1);
+  if(f.t<(f.delay||0))continue;
+  const t=clamp((f.t-(f.delay||0))/(f.critical?.23:.35),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
   const drawHit=()=>drawPixelBurst(f.x,f.y,t,f.critical?55:(f.spread||44),f.critical?32:16,
@@ -1464,6 +1482,15 @@ function drawHeroBallSprite(b,r,col){
  }
  g.restore();
 }
+// Hit reaction stays attached to the actual zombie sprite, not a detached flash.
+function drawStruckZombie(z){
+ const active=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
+ if(!active){zombie(knockVisualPosition(z));return}
+ const t=clock-(z.hitShakeFrom||clock);
+ g.save();g.filter='brightness(1.68)';
+ g.translate(Math.sin(t*185)*1.7,Math.cos(t*159)*1.1);
+ zombie(knockVisualPosition(z));g.restore();
+}
 function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0){
@@ -1476,7 +1503,7 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)zombie(knockVisualPosition(z));drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  for(const b of balls){
   const r=has('power')?16:8;
