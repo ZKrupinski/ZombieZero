@@ -50,8 +50,19 @@
    document.documentElement.style.setProperty('--zz-hero-car-frames','url("'+objectUrl+'")');
    pack.portraitBlobUrl=objectUrl;
   };
+  // On Android the async toBlob callback can leave the card briefly
+  // showing the raw source row with only 2px top padding. Install the corrected
+  // image synchronously first, then switch to the memory-efficient blob URL.
+  if(typeof canvas.toDataURL==='function'){
+   try{
+    const immediate=canvas.toDataURL('image/png');
+    if(immediate.startsWith('data:image/png'))
+     document.documentElement.style.setProperty('--zz-hero-car-frames',
+       'url("'+immediate+'")');
+   }catch(e){/* fall back to blob or raw source */}
+  }
   if(typeof canvas.toBlob==='function'){
-   try{canvas.toBlob(install,'image/png');}catch(e){/* original CSS atlas is fallback */}
+   try{canvas.toBlob(install,'image/png');}catch(e){/* keep synchronous preview */}
   }
  }
  atlas.onload=()=>{
