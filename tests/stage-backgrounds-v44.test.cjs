@@ -6,9 +6,9 @@ const loader=fs.readFileSync('dist/assets/stages/stage-backgrounds-v57.js','utf8
 const game=fs.readFileSync('dist/game.js','utf8');
 assert(html.includes('assets/stages/stage-backgrounds-v57.js?v=57-gameplay-camera'),
   'bitmap scene loader is included on the live page');
-assert(html.indexOf('stage-backgrounds-v57.js')<html.indexOf('game.js?v=63-soft-trail-pixel-hit'),
+assert(html.indexOf('stage-backgrounds-v57.js')<html.indexOf('game.js?v=64-zombie-sized-impact'),
   'backgrounds begin loading before gameplay code');
-assert(sw.includes('zombie-zero-shell-v63-soft-trail-pixel-hit'),'offline cache invalidated');
+assert(sw.includes('zombie-zero-shell-v64-zombie-sized-impact'),'offline cache invalidated');
 assert(!game.includes('setStageBackground();PY='),'stage transitions never modify ball collision Y');
 assert(game.includes('wave++;setStageBackground();'),'every advancing stage switches theme');
 assert(game.includes("setStageBackground(true);lives=hero().lives"),'new campaign and endless runs reset backdrop correctly');
