@@ -12,9 +12,9 @@ assert(html.includes('id="boot-screen"')&&html.includes('id="boot-start"'),'dedi
 assert(html.includes('id="overlay" data-title="true" data-screen="selection"'),'selection follows GAME START');
 assert(html.includes('id="overlay-fullscreen"'),'user can re-enter fullscreen on results');
 assert(html.indexOf('id="boot-screen"')<html.indexOf('</section><div class="desktop-note"'),'attract covers the game machine, not a separate browser page');
-assert(html.includes('game.js?v=77-analytic-ball-blue-boss')&&html.includes('app.js?v=47-native-fullscreen'),'new game and fullscreen scripts loaded');
-assert(html.includes('style.css?v=75-approved-zombiezero-bi'),'layout cache bypass');
-assert(sw.includes('zombie-zero-shell-v77-analytic-ball-blue-boss'),'PWA cache invalidated');
+assert(html.includes('game.js?v=78-responsive-layout')&&html.includes('app.js?v=78-responsive-layout'),'new game and fullscreen scripts loaded');
+assert(html.includes('style.css?v=78-responsive-layout'),'layout cache bypass');
+assert(sw.includes('zombie-zero-shell-v78-responsive-layout'),'PWA cache invalidated');
 assert(css.includes('#overlay[data-screen="selection"] .hero-card')&&css.includes('#overlay[data-screen="results"] .hero-card'),'both screens use matching hero-card rules');
 assert(css.includes('height:auto!important;min-height:165px!important'),'old forced 112px portrait card height overridden');
 assert(css.includes('.boot-screen[hidden]{display:none!important}'),'first title is removed after start');
