@@ -1011,3 +1011,7 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
  }
 }
 /* Leave other modes (PAUSED) unchanged. */
+
+/* v51: no redundant situational text in the lower-left stage/footer.
+   Citizen speech bubbles are rendered separately in Canvas and preserved. */
+#status,#toast{display:none!important;visibility:hidden!important;pointer-events:none!important}
