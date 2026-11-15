@@ -1,9 +1,12 @@
-/* ZOMBIE ZERO – 18 illustrated 2x scene backgrounds (900×1420), v57.
- * Stages 01–08 retain their approved original art; 09–18 use corrected
- * gameplay-camera scenes with left/right walls and a clear zombie road.
- * Each background is a real compressed WebP image, loaded directly.
- * Loading is nonblocking: any missing frame keeps the previous stage or
- * falls back to the game's existing procedural road. No collision changes.
+/* ZOMBIE ZERO – 18 illustrated 900×1420 stage scenes, v57.
+ * Keep original backgrounds 01–08 exactly as before; backgrounds 09–18
+ * are the user's final corrected gameplay camera designs.
+ *
+ * 09–18 are lossless-bytes WebP payloads in a single STORED (uncompressed)
+ * ZIP bundle: browser-side unwrapping never re-encodes the bitmap pixels.
+ * One compact 2.1 MB fetch works offline through the existing service worker.
+ * Any invalid/missing image uses the existing procedural background fallback;
+ * stage order, 0.9s transitions, game collisions, and physics are unchanged.
  */
 (function(){
  'use strict';
@@ -23,12 +26,46 @@
   const img=new Image();
   img.decoding='async';
   images[i]=img;
-  img.onload=()=>{
-   ready[i]=img.naturalWidth===900&&img.naturalHeight===1420;
-  };
+  img.onload=()=>{ready[i]=img.naturalWidth===900&&img.naturalHeight===1420;};
   img.onerror=()=>{ready[i]=false;};
-  const name='bg-'+String(i+1).padStart(2,'0')+'.webp';
-  const revision=i<8?'45-original-scenes':'57-playfield-camera';
-  img.src='assets/stages/'+name+'?v='+revision;
+  if(i<8)img.src='assets/stages/bg-'+String(i+1).padStart(2,'0')+'.webp?v=45-original-scenes';
  }
+ const archive='assets/stages/bg-09-18-v57-stored.zip?v=57-gameplay-camera';
+ fetch(archive).then(response=>{
+  if(!response.ok)throw Error('stage archive HTTP '+response.status);
+  return response.arrayBuffer();
+ }).then(buffer=>{
+  const data=new DataView(buffer);
+  const bytes=new Uint8Array(buffer);
+  let off=0,count=0;
+  while(off+30<=bytes.length&&data.getUint32(off,true)===0x04034b50){
+   const flags=data.getUint16(off+6,true);
+   const compression=data.getUint16(off+8,true);
+   const compressed=data.getUint32(off+18,true);
+   const uncompressed=data.getUint32(off+22,true);
+   const nameLen=data.getUint16(off+26,true);
+   const extraLen=data.getUint16(off+28,true);
+   const payload=off+30+nameLen+extraLen,stop=payload+compressed;
+   if(flags&8||compression!==0||compressed!==uncompressed||stop>bytes.length)
+    throw Error('invalid stored ZIP WebP entry');
+   const name=String.fromCharCode.apply(null,bytes.subarray(off+30,off+30+nameLen));
+   const match=/^bg-(0[9]|1[0-8])\.webp$/.exec(name);
+   if(!match)throw Error('unexpected image name '+name);
+   const i=Number(match[1])-1;
+   const url=URL.createObjectURL(new Blob([bytes.subarray(payload,stop)],{type:'image/webp'}));
+   const img=images[i];
+   img.onload=()=>{
+    ready[i]=img.naturalWidth===900&&img.naturalHeight===1420;
+    URL.revokeObjectURL(url);
+   };
+   img.onerror=()=>{ready[i]=false;URL.revokeObjectURL(url);};
+   img.src=url;
+   off=stop;
+   count++;
+  }
+  if(count!==10)throw Error('missing stage background in archive: '+count+'/10');
+ }).catch(()=>{
+  // The existing game renderer handles missing stage art using its fallback.
+  for(let i=8;i<18;i++)if(!images[i].complete)ready[i]=false;
+ });
 })();
