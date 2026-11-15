@@ -142,7 +142,9 @@ function hud(){
  $('status').textContent='';
  skillUI();
 }
-function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity=0,1400)}
+// No bottom-left situational text overlays: the game already communicates
+// through sprites, the heart HUD, and the citizens' own speech balloons.
+function toast(t){const el=$('toast');if(el){el.textContent='';el.style.opacity=0}}
 // A separate density meter controls rare actual diagonal breakouts, not UI.
 let waveInitialRegulars=0,breakoutNextCheck=0;
 // Green is always the majority. New colors arrive in order:
@@ -444,7 +446,7 @@ function march(dt){
   if(!corrected)break;
  }
 }
-function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];for(const b of balls)retireBall(b,'clear');balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent='CITIZENS SAVED!'}
+function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];for(const b of balls)retireBall(b,'clear');balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent=''}
 function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;setStageBackground();if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+stageRosterLabel(wave))}
 function newBall(x=car,y=PY-17,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set()}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
@@ -891,18 +893,13 @@ function player(){
   const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
-  // The line visual and actual bounce test use the same raised PY height.
-  const paddleY=PY-VIEW_DELTA;
-  g.strokeStyle=swing>0?'#e5ff9e':'#c9ed9388';
-  g.lineWidth=swing>0?3:2;
-  g.beginPath();g.moveTo(car-hero().paddle,paddleY);
-  g.lineTo(car+hero().paddle,paddleY);g.stroke();
+  // The racket strike range is physics-only; hide the former horizontal guide.
   g.drawImage(sprite.image,n*192,selectedHero*192,192,192,
     car-w/2,579-h/2,w,h);
   g.restore();
   return;
  }
- let x=car;const h=hero(),win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';g.save();g.translate(0,VIEW_DELTA);if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);/* no baked vehicle ground shadow */rect(x-57,626,13,24,'#14251f');rect(x+44,626,13,24,'#14251f');cube(x-52,621,104,25,h.color,'#ffbc72','#54313a');rect(x-45,625,90,5,'#ff9c58');cube(x-27,612,53,18,'#182e2a','#3d5441','#18221d');heroSprite(x,600,1,win);rect(x-46,635,18,6,'#fff2b2');rect(x+29,635,18,6,'#fff2b2');rect(x-47,649,95,5,'#b1b59b');g.strokeStyle='#e6d399';g.lineWidth=6;g.beginPath();g.moveTo(x+14,611);g.lineTo(x+32,602);g.stroke();g.save();g.translate(x+34,604-5);g.rotate(swing>0?-.25:0);g.strokeStyle='#e7c696';g.lineWidth=5;g.beginPath();g.ellipse(0,0,24,13,0,0,Math.PI*2);g.stroke();g.lineWidth=.8;g.strokeStyle='#f7f4dbaa';for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-9);g.lineTo(i,9);g.stroke()}for(let i=-6;i<=6;i+=6){g.beginPath();g.moveTo(-19,i);g.lineTo(19,i);g.stroke()}g.restore();g.strokeStyle=swing>0?'#e5ff9e':'#c9ed9366';g.lineWidth=swing>0?4:2;g.beginPath();g.moveTo(x-h.paddle,PY-VIEW_DELTA);g.lineTo(x+h.paddle,PY-VIEW_DELTA);g.stroke();g.restore()}
+ let x=car;const h=hero(),win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';g.save();g.translate(0,VIEW_DELTA);if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);/* no baked vehicle ground shadow */rect(x-57,626,13,24,'#14251f');rect(x+44,626,13,24,'#14251f');cube(x-52,621,104,25,h.color,'#ffbc72','#54313a');rect(x-45,625,90,5,'#ff9c58');cube(x-27,612,53,18,'#182e2a','#3d5441','#18221d');heroSprite(x,600,1,win);rect(x-46,635,18,6,'#fff2b2');rect(x+29,635,18,6,'#fff2b2');rect(x-47,649,95,5,'#b1b59b');g.strokeStyle='#e6d399';g.lineWidth=6;g.beginPath();g.moveTo(x+14,611);g.lineTo(x+32,602);g.stroke();g.save();g.translate(x+34,604-5);g.rotate(swing>0?-.25:0);g.strokeStyle='#e7c696';g.lineWidth=5;g.beginPath();g.ellipse(0,0,24,13,0,0,Math.PI*2);g.stroke();g.lineWidth=.8;g.strokeStyle='#f7f4dbaa';for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-9);g.lineTo(i,9);g.stroke()}for(let i=-6;i<=6;i+=6){g.beginPath();g.moveTo(-19,i);g.lineTo(19,i);g.stroke()}g.restore();/* no visible racket hit-range guide in procedural fallback */g.restore()}
 // Cosmetic poses only: no pose or death fragment participates in physics.
 let enemyDeaths=[],enemyPieces=[],barrelBlasts=[],hitFlashes=[];
 const ENEMY_CLOTH=['#65535a','#242b39','#302139','#574b66','#68415a','#e4d6b0','#d49b39','#733e65'];
@@ -1271,7 +1268,8 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
  for(const z of foes)zombie(knockVisualPosition(z));drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
-drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('pierce')?'#ffe77b':has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('pierce')?25:has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(has('pierce')&&!b.held){g.strokeStyle='#fff8ae';g.lineWidth=2;g.strokeRect(b.x-r*.45,b.y-r*.45,r*.9,r*.9)}if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}drawBallVanish();if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffects(true);drawCriticalPopups();drawBubbles();drawActiveItemIcons();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
+drawKillCombo();drawBarrelBlasts();for(const b of balls){const r=has('power')?16:8,col=has('pierce')?'#ffe77b':has('fire')?'#ff985f':'#d5f45a';b.trail.forEach((p,i)=>{g.globalAlpha=(1-i/b.trail.length)*.35;g.fillStyle=col;g.beginPath();g.arc(p.x,p.y,Math.max(1,r-i*.5),0,Math.PI*2);g.fill()});g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=has('pierce')?25:has('fire')?25:15;g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();g.shadowBlur=0;g.strokeStyle='#ffffcf';g.lineWidth=1.5;g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();if(has('pierce')&&!b.held){g.strokeStyle='#fff8ae';g.lineWidth=2;g.strokeRect(b.x-r*.45,b.y-r*.45,r*.9,r*.9)}if(b.held&&mode==='playing'){g.setLineDash([4,6]);g.strokeStyle='#d8fa6370';g.beginPath();g.moveTo(b.x,b.y-22);g.lineTo(b.x+32,b.y-106);g.stroke();g.setLineDash([])}}drawBallVanish();if(particles.length)luminous(()=>{for(const p of particles){g.globalAlpha=Math.min(1,p.t*2);rect(p.x,p.y,p.size,p.size,p.color)}g.globalAlpha=1});drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
  const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null,ix=cast&&cast.heroIndex[selectedHero];
