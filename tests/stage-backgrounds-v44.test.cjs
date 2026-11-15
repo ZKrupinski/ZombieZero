@@ -4,11 +4,11 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const loader=fs.readFileSync('dist/assets/stages/stage-backgrounds-v57.js','utf8');
 const game=fs.readFileSync('dist/game.js','utf8');
-assert(html.includes('assets/stages/stage-backgrounds-v57.js?v=57-gameplay-camera'),
+assert(html.includes('assets/stages/stage-backgrounds-v57.js?v=66-exact-lanes'),
   'bitmap scene loader is included on the live page');
 assert(html.indexOf('stage-backgrounds-v57.js')<html.indexOf('game.js?v=65-subtle-bloom-larger-balls'),
   'backgrounds begin loading before gameplay code');
-assert(sw.includes('zombie-zero-shell-v65-subtle-bloom-larger-balls'),'offline cache invalidated');
+assert(sw.includes('zombie-zero-shell-v66-orthographic-stage09-15'),'offline cache invalidated');
 assert(!game.includes('setStageBackground();PY='),'stage transitions never modify ball collision Y');
 assert(game.includes('wave++;setStageBackground();'),'every advancing stage switches theme');
 assert(game.includes("setStageBackground(true);lives=hero().lives"),'new campaign and endless runs reset backdrop correctly');
@@ -70,6 +70,18 @@ assert.equal(count,10,'stage ZIP holds exactly ten new maps');
 assert.equal(names.size,18,'all eighteen backgrounds remain distinct');
 assert(addedBytes<2500000,'all ten high quality game scenes <2.5MB');
 assert(!loader.includes('.webp.b64'),'new runtime loader does not download old text images');
+for(const stage of ['09','15']){
+ const file='dist/assets/stages/bg-'+stage+'-v66-orthographic.webp';
+ const img=fs.readFileSync(file);
+ assert.equal(img.toString('ascii',0,4),'RIFF');
+ assert.equal(img.toString('ascii',8,12),'WEBP');
+ assert.equal(img.toString('ascii',12,16),'VP8 ');
+ assert.equal(img.readUInt16LE(26)&0x3fff,900);
+ assert.equal(img.readUInt16LE(28)&0x3fff,1420);
+ assert(img.length>60000&&img.length<200000);
+ assert(sw.includes("'./assets/stages/bg-"+stage+"-v66-orthographic.webp'"));
+}
+assert(loader.includes("const override={8:'bg-09-v66-orthographic.webp',14:'bg-15-v66-orthographic.webp'}"));
 assert(loader.includes("if(i<8)img.src="),'original 8 backgrounds retain their independent WebP source');
 assert(loader.includes("fetch(archive).then"),'stages 09–18 load from the one protected binary archive');
 

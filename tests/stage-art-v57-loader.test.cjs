@@ -8,10 +8,10 @@ const packed=fs.readFileSync('dist/assets/stages/bg-09-18-v57-stored.zip');
 assert(js.includes("fetch(archive).then"),'the game reads one verified packed WebP bundle');
 assert(!js.includes('.webp.b64')&&!js.includes('data:image/webp;base64'),
  'no legacy text image decoder may be used');
-assert(html.includes('stage-backgrounds-v57.js?v=57-gameplay-camera'));
+assert(html.includes('stage-backgrounds-v57.js?v=66-exact-lanes'));
 assert(sw.includes("'./assets/stages/stage-backgrounds-v57.js'"));
 assert(sw.includes("'./assets/stages/bg-09-18-v57-stored.zip'"));
-assert(sw.includes('zombie-zero-shell-v65-subtle-bloom-larger-balls'));
+assert(sw.includes('zombie-zero-shell-v66-orthographic-stage09-15'));
 assert(game.includes('const STAGE_ART_COUNT=18;'));
 assert(game.includes('const STAGE_FADE_SECONDS=.9;'));
 assert(game.includes('const ROAD_LEFT=36,ROAD_RIGHT=414'),
@@ -53,13 +53,17 @@ async function main(){
    '.webp?v=45-original-scenes','first eight scenes are not replaced');
   images[i].onload();assert.equal(art.ready[i],true);
  }
- assert.equal(created.length,10,'create exactly 10 separate WebP Blob image assets');
- assert.equal(revoked.length,10,'release blob URLs when image loading completes');
+ assert.equal(created.length,8,'only 8 remaining ZIP entries become blob images');
+ assert.equal(images[8].src,'assets/stages/bg-09-v66-orthographic.webp?v=66-exact-lanes');
+ assert.equal(images[14].src,'assets/stages/bg-15-v66-orthographic.webp?v=66-exact-lanes');
+ assert.equal(revoked.length,8,'release the eight remaining ZIP Blob URLs');
  assert(created.every(blob=>blob.type==='image/webp'&&blob.size>100000),
   'every stage uses the real original compressed WebP pixel data');
  for(let i=8;i<18;i++){
-  assert.equal(art.ready[i],true,'stage '+(i+1)+' is loaded and correctly sized');
-  assert.equal(images[i].src,'blob:stage-'+(i-7));
+  if(i===8||i===14)images[i].onload();
+  assert.equal(art.ready[i],true,'stage '+(i+1)+' loaded and correctly sized');
+  if(i!==8&&i!==14)
+   assert.equal(images[i].src,'blob:stage-'+(i-7-(i>8?1:0)-(i>14?1:0)));
  }
  images[8].naturalWidth=899;images[8].onload();
  assert.equal(art.ready[8],false,'wrong source width is rejected');
@@ -73,6 +77,6 @@ async function main(){
  await new Promise(resolve=>setImmediate(resolve));
  assert(failed.ZZStageArt.ready.slice(8).every(x=>x===false),
   'all ten new scenes fail safely if archive is missing');
- console.log('PASS: original 8 preserved, 10 byte-exact WebP blobs loaded from 2.1MB ZIP, ready/fallback, 18-wave loop and unchanged physics.');
+ console.log('PASS: original 8 and packed 8 preserved; orthographic stage 09 and 15, ready/fallback, 18-wave loop and unchanged physics.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
