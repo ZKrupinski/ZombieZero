@@ -37,6 +37,6 @@ assert(css.includes('#status,#toast{display:none!important'),
 assert(html.includes('<span id="status" hidden aria-hidden="true"></span>'),
  'empty status node retained invisibly for compatibility');
 assert(html.includes('game.js?v=79-speech-tail-skill-auras')&&
- sw.includes('zombie-zero-shell-v79-speech-tail-skill-auras'),
+ sw.includes('zombie-zero-shell-v80-scene-preload'),
  'new cache versions let mobile PWA show the actual cleanup');
 console.log('PASS: citizen dialogue above badges, no gameplay status text or racket guide, physics unchanged.');
