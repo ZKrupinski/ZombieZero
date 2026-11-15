@@ -1183,3 +1183,28 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
   font-size:14px!important;
  }
 }
+
+/* v78.1: minimum 34px tap targets cannot fit 40 scaled px apart on
+   narrow devices. Set the pause inset from the actual menu button footprint. */
+.portrait-play .machine>.hud>#pause,
+.landscape-game .machine>.hud>#pause{
+ right:calc(7px * var(--ui-scale,1) + max(34px,calc(36px * var(--ui-scale,1))) + max(5px,calc(6px * var(--ui-scale,1))))!important;
+}
+/* Use actual contained board width (not viewport width) for narrow landscape
+   and foldable screens; the app sets this class in fit(). */
+.portrait-play.zz-compact-hud .machine>.hud>.hud-hearts,
+.landscape-game.zz-compact-hud .machine>.hud>.hud-hearts{
+ width:24%!important;
+}
+.portrait-play.zz-compact-hud .machine>.hud>.hud-center-stats,
+.landscape-game.zz-compact-hud .machine>.hud>.hud-center-stats{
+ left:26.5%!important;width:44%!important;gap:3px!important;
+}
+.portrait-play.zz-compact-hud .machine>.hud .hud-center-stats .wave,
+.landscape-game.zz-compact-hud .machine>.hud .hud-center-stats .wave{
+ flex:0 0 39%!important;width:39%!important;
+}
+.portrait-play.zz-compact-hud .hud .score-compact strong,
+.landscape-game.zz-compact-hud .hud .score-compact strong{
+ font-size:14px!important;
+}

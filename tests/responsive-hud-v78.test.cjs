@@ -13,6 +13,8 @@ const rules=css.slice(at);
 assert(html.includes('style.css?v=78-responsive-layout'),'CSS cache busted');
 assert(html.includes('game.js?v=78-responsive-layout'),'game cache busted');
 assert(sw.includes('zombie-zero-shell-v78-responsive-layout'),'offline cache busted');
+assert(app.includes("root.classList.toggle('zz-compact-hud',boardWidth<=330)"), 'compact HUD depends on contained board, not viewport');
+assert(rules.includes('/* v78.1: minimum 34px'), 'button spacing is computed from physical hit target width');
 assert(app.includes('const scale=Math.min(width/450,height/710)'),
   'world canvas is always contained uniformly');
 assert(rules.includes('.machine>.hud'),'actual HUD anchored to the board');
@@ -31,8 +33,11 @@ function checkBoard(viewW,viewH){
  const compact=bw<=330;
  const heart={x:8*scale,w:compact?bw*.24:113*scale};
  const stats={x:compact?bw*.265:132*scale,w:compact?bw*.44:205*scale};
- const pause={x:bw-47*scale-Math.max(34,36*scale),w:Math.max(34,36*scale)};
- const menu={x:bw-7*scale-Math.max(34,36*scale),w:Math.max(34,36*scale)};
+ const controlWidth=Math.max(34,36*scale);
+ const controlGap=Math.max(5,6*scale);
+ const pauseRight=7*scale+controlWidth+controlGap;
+ const pause={x:bw-pauseRight-controlWidth,w:controlWidth};
+ const menu={x:bw-7*scale-controlWidth,w:controlWidth};
  const gap=(a,b)=>b.x-(a.x+a.w);
  const desc=viewW+'×'+viewH;
  assert(bw<=viewW+.01&&bh<=viewH+.01,'gameboard fits '+desc);

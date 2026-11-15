@@ -25,6 +25,7 @@ function fit(){
  // decorative letterboxing instead of stretching the physical arena.
  const scale=Math.min(width/450,height/710);
  const boardWidth=450*scale,boardHeight=710*scale;
+ root.classList.toggle('zz-compact-hud',boardWidth<=330);
  root.style.setProperty('--app-height',height+'px');
  root.style.setProperty('--board-width',boardWidth+'px');
  root.style.setProperty('--board-height',boardHeight+'px');
