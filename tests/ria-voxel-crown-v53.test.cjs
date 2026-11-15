@@ -40,14 +40,14 @@ for(let i=0;i<8;i++){
  const a=draw[i+1];assert.deepEqual(a.slice(1,5),[192*i,384,192,192]);
  assert.deepEqual(a.slice(5),[192*i+7,402,179,179],'integer scaling and car baseline stay unchanged');
  const f=facets.slice(i*4,i*4+4),v=voxels.slice(i*3,i*3+3);
- assert.deepEqual(f.map(x=>x.color),['#bd3541','#e65350','#f16b5b','#b62e3d']);
+ assert.deepEqual(f.map(x=>x.color),['#d54849','#f16b5b','#eb5e52','#b6323e']);
  for(const poly of f){
   assert(poly.points.length>=4);
-  for(const [x,y] of poly.points)assert(x>=i*192&&x<(i+1)*192&&y>=394&&y<=407,
-   'faceted Ria roof stays in its original frame with 10px blank top margin');
+  for(const [x,y] of poly.points)assert(x>=i*192&&x<(i+1)*192&&y>=399&&y<=415,
+   'faceted Ria roof stays in its original frame with 15px blank top margin');
  }
- for(const px of v)assert(px.x>=i*192&&px.x+px.w<(i+1)*192&&px.y>=394&&px.y+px.h<576);
+ for(const px of v)assert(px.x>=i*192&&px.x+px.w<(i+1)*192&&px.y>=399&&px.y+px.h<576);
 }
 assert.equal(writes['--zz-hero-car-frames'],'url("blob:ria-faceted-crown")',
  'title/results hero card uses exact same corrected atlas as actual gameplay');
-console.log('PASS: 8 original Ria frames get crisp cubic roof planes; no Ace/Ruby changes, no row bleed and stable wheel alignment.');
+console.log('PASS: 8 Ria frames have a wide faceted crown integrated into original hair, crisp corners, no row bleed and stable wheels.');
