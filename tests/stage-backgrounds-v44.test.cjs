@@ -6,7 +6,7 @@ const loader=fs.readFileSync('dist/assets/stages/stage-backgrounds-v57.js','utf8
 const game=fs.readFileSync('dist/game.js','utf8');
 assert(html.includes('assets/stages/stage-backgrounds-v57.js?v=66-exact-lanes'),
   'bitmap scene loader is included on the live page');
-assert(html.indexOf('stage-backgrounds-v57.js')<html.indexOf('game.js?v=65-subtle-bloom-larger-balls'),
+assert(html.indexOf('stage-backgrounds-v57.js')<html.indexOf('game.js?v=66-double-skill-trails'),
   'backgrounds begin loading before gameplay code');
 assert(sw.includes('zombie-zero-shell-v66-orthographic-stage09-15'),'offline cache invalidated');
 assert(!game.includes('setStageBackground();PY='),'stage transitions never modify ball collision Y');

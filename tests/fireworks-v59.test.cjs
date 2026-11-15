@@ -8,8 +8,8 @@ const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
 const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
-assert.match(html,/game\.js\?v=65-subtle-bloom-larger-balls/);
-assert.match(sw,/zombie-zero-shell-v65-subtle-bloom-larger-balls/);
+assert.match(html,/game\.js\?v=66-double-skill-trails/);
+assert.match(sw,/zombie-zero-shell-v66-orthographic-stage09-15/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
@@ -59,7 +59,10 @@ for(const names of [['fire'],['pierce'],['power'],['fire','pierce']]){
 assert.ok(drawCalls>90,'Expected rendered fireworks, sparks and energized ball state');
 // V63: no additive tile stacking. One tapered translucent ribbon follows the ball.
 assert.match(code,/function drawHeroBallTrail\(b,r,opacity=1\)/);
-assert.match(code,/const maxLength=86,spine=/);
+assert.match(code,/const maxLength=172\*\(r\/8\),spine=/);
+assert.match(code,/function drawBallSkillTrail\(b,r\)/);
+assert.match(code,/drawBallSkillTrail\(b,r\)/);
+assert.match(code,/if\(b\.trail\.length>56\)/);
 assert.match(code,/const size=r\*3\.40/);
 assert.match(code,/drawHeroBallTrail\(b,r,\.11\)/);
 assert.doesNotMatch(code,/const d=r\*\(\.95\+i\*\.35\)/);

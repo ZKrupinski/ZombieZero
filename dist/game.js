@@ -883,7 +883,7 @@ carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1);sfx('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
 if(b.y>H+20){lastLostBall={x:clamp(b.x,28,422),y:H-11};retireBall(b,'lost');balls.splice(balls.indexOf(b),1);hud();break}}
-b.trail.unshift({x:b.x,y:b.y});if(b.trail.length>16)b.trail.pop()}
+b.trail.unshift({x:b.x,y:b.y});if(b.trail.length>56)b.trail.pop()}
 if(!balls.length){lives--;effect(car,PY,'#ff7089',85,'MISS');sfx('miss');clearSkills();if(!lives){if(triggerLastStand()){lives=1;resetBalls();active.shield=4;hud();return}hud();end('마지막 공이 떨어져 하트가 모두 소진되었습니다.',{type:'ball',x:lastLostBall?.x||car,y:H-11});return}resetBalls();toast('공 낙하! · 하트 '+lives+'개 남음 · 탭해서 서브')}
 }
 function proceduralBackground(){// Readability-first road tones: brighter, largely neutral gray with a restrained
@@ -1384,7 +1384,7 @@ const HERO_BALL_TRAILS=[
 function drawHeroBallTrail(b,r,opacity=1){
  if(b.held||!b.trail||!b.trail.length)return;
  const p=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
- const maxLength=86,spine=[{x:b.x,y:b.y}];let travel=0;
+ const maxLength=172*(r/8),spine=[{x:b.x,y:b.y}];let travel=0;
  for(const pos of b.trail){
   const prev=spine[spine.length-1];
   const dx=pos.x-prev.x,dy=pos.y-prev.y,step=Math.hypot(dx,dy);
@@ -1418,6 +1418,37 @@ function drawHeroBallTrail(b,r,opacity=1){
  for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
  for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
  g.closePath();g.fill();
+ g.restore();
+}
+
+// V66: Skill colors travel the whole ribbon to its tip, scaled with power-ball size.
+function drawBallSkillTrail(b,r){
+ if(b.held||!b.trail?.length||!fxEnabled)return;
+ const fire=has('fire'),pierce=has('pierce'),power=has('power');
+ if(!fire&&!pierce&&!power)return;
+ const maxDistance=172*(r/8);
+ const colors=fire&&pierce?['#ffbf64','#8beafa','#fff4d7']:
+   fire?['#ffad52','#f46a31','#ffeb9b']:
+   pierce?['#7dd9f7','#b5f5ff','#ffffff']:['#fff1bc','#e2e99d','#ffffff'];
+ let x=b.x,y=b.y,distance=0;
+ g.save();g.shadowColor=colors[0];g.shadowBlur=3;
+ for(let i=0;i<b.trail.length;i++){
+  const p=b.trail[i],dx=p.x-x,dy=p.y-y,step=Math.hypot(dx,dy);
+  if(step<1)continue;
+  const walk=Math.min(step,maxDistance-distance);
+  if(walk<=0)break;
+  if(i%2===0){
+   const fraction=distance/maxDistance,fade=1-fraction;
+   const nx=-dy/step,ny=dx/step,sgn=i%4===0?1:-1;
+   const px=x+dx*.75*walk/step+sgn*nx*r*.57;
+   const py=y+dy*.75*walk/step+sgn*ny*r*.57;
+   const size=Math.max(2,Math.round(r*(.19+.19*fade)));
+   g.globalAlpha=.54*fade;g.fillStyle=colors[i%3];
+   g.fillRect(Math.round(px),Math.round(py),size,size);
+  }
+  x+=dx*walk/step;y+=dy*walk/step;distance+=walk;
+  if(distance>=maxDistance)break;
+ }
  g.restore();
 }
 
@@ -1465,6 +1496,7 @@ drawKillCombo();drawBarrelBlasts();
   const r=has('power')?16:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   drawHeroBallTrail(b,r);
+  drawBallSkillTrail(b,r);
   // A restrained secondary source-only pass; shader global strength stays unchanged.
   if(fxEnabled&&fxRenderer&&!b.held){
    const main=g;
