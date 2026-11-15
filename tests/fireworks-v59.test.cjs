@@ -25,7 +25,7 @@ const source=[
  section('function drawEffects(labels=false)','function icon(k)'),
  section('function drawImpactFlashes()','function drawBarrelBlasts()'),
  section('function drawBarrelBlasts()','// V60: Each empowered ball'),
- section('function drawBallStateAura(b,r)','/* V58: Render'),
+ section('function drawBallStateAura(b,r)','/* V72: Eight approved bitmaps'),
  section('function drawBazooka()','function drawJunk()')
 ].join('\n');
 
