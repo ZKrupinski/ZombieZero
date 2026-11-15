@@ -10,6 +10,7 @@
  let pending=2,failed=false;
  function load(name,file){
   const img=new Image();img.decoding='async';
+   cast[name]=img; // v80: expose in-flight sprite to scene preloader
   img.onload=()=>{
    if(img.naturalWidth!==1024||img.naturalHeight!==512)failed=true;
    cast[name]=img;

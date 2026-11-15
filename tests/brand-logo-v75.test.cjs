@@ -26,10 +26,10 @@ assert(html.includes('alt="ZOMBIE ZERO"'),'accessible logo label retained');
 assert(!html.includes('class="zero-title"'),'old text-based BI completely removed');
 assert(!html.includes('class="boot-logo"'),'old CSS-built first-screen BI completely removed');
 assert(html.includes('id="boot-start"')&&html.includes('GAME START'),'start UX unchanged');
-assert(html.includes('style.css?v=78-responsive-layout'),'updated title styles loaded');
+assert(html.includes('style.css?v=80-scene-preload'),'updated title styles loaded');
 assert(css.includes('.boot-content>.boot-logo-image')&&css.includes('image-rendering:auto!important'),
  'approved graphic is sharp and responsive without pixelation or glowing border');
 assert(css.includes('max-height:min(35svh,260px)'),'small mobile title view keeps game button visible');
-assert(sw.includes('zombie-zero-shell-v79-speech-tail-skill-auras'),'offline cache version refreshed');
+assert(sw.includes('zombie-zero-shell-v80-scene-preload'),'offline cache version refreshed');
 assert(sw.includes("'./"+file+"'"),'approved title asset precached');
 console.log('PASS: approved transparent Zombie Zero BI replaces desktop, hero selection and startup logo, alpha/pixels/size/PWA validated');
