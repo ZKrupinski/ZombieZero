@@ -121,16 +121,16 @@ function drawEffects(labels=false){
 function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0){
  if(t>=1)return;
  const fade=Math.pow(1-t,1.3),travel=Math.pow(t,.56);
- g.save();g.translate(x,y);g.shadowColor=palette[1]||'#fff';g.shadowBlur=7*fade;
+ g.save();g.translate(x,y);g.shadowColor=palette[1]||'#fff';g.shadowBlur=11*fade;
  for(let i=0;i<count;i++){
   const angle=i*2.39996323+seed,cos=Math.cos(angle),sin=Math.sin(angle);
   const jitter=.65+.43*(.5+.5*Math.sin(i*19.17+seed*7.3));
   const bias=1+.16*Math.cos(angle-heading);
   const distance=(3+radius*travel*jitter)*bias;
-  const box=Math.max(1,Math.round((i%5===0?6:i%3===0?4:3)*(1-t*.72)));
+  const box=Math.max(3,Math.round((i%5===0?10:i%3===0?8:6)*(1-t*.56)));
   const px=Math.round(cos*distance-box/2),py=Math.round(sin*distance-box/2);
   g.fillStyle=palette[i%palette.length];
-  g.globalAlpha=fade*(i%4===0?1:.72);
+  g.globalAlpha=fade*(i%4===0?1:.91);
   g.fillRect(px,py,box,box);
   if(i%3===0&&t<.77){
    const d=distance*.68;
@@ -138,7 +138,7 @@ function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0){
   }
  }
  if(t<.24){
-  const core=(t<.08?13:t<.15?8:4)*(1-Math.max(0,t-.15));
+  const core=(t<.08?20:t<.15?14:7)*(1-Math.max(0,t-.15));
   g.globalAlpha=(1-t/.24)*.92;g.fillStyle='#fffefa';
   g.fillRect(-core/2,-core/2,core,core);
  }
@@ -530,7 +530,7 @@ function burst(x,y,color,n=12){
   const velocity=340+Math.random()*340;
   const life=.14+Math.random()*.15;
   particles.push({x,y,vx:Math.cos(angle)*velocity,vy:Math.sin(angle)*velocity-30,
-    t:life,life,color,size:2+Math.random()*3});
+    t:life,life,color,size:4+Math.random()*4});
  }
  if(particles.length>260)particles.splice(0,particles.length-260);
 }
@@ -882,7 +882,7 @@ carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1);sfx('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
 if(b.y>H+20){lastLostBall={x:clamp(b.x,28,422),y:H-11};retireBall(b,'lost');balls.splice(balls.indexOf(b),1);hud();break}}
-b.trail.unshift({x:b.x,y:b.y});if(b.trail.length>13)b.trail.pop()}
+b.trail.unshift({x:b.x,y:b.y});if(b.trail.length>16)b.trail.pop()}
 if(!balls.length){lives--;effect(car,PY,'#ff7089',85,'MISS');sfx('miss');clearSkills();if(!lives){if(triggerLastStand()){lives=1;resetBalls();active.shield=4;hud();return}hud();end('마지막 공이 떨어져 하트가 모두 소진되었습니다.',{type:'ball',x:lastLostBall?.x||car,y:H-11});return}resetBalls();toast('공 낙하! · 하트 '+lives+'개 남음 · 탭해서 서브')}
 }
 function proceduralBackground(){// Readability-first road tones: brighter, largely neutral gray with a restrained
@@ -1296,10 +1296,10 @@ function drawCriticalPopups(){
 function drawImpactFlashes(){
  if(!fxEnabled||!hitFlashes.length)return;
  luminous(()=>{for(const f of hitFlashes){
-  const t=clamp(f.t/(f.critical?.19:.13),0,1);
+  const t=clamp(f.t/(f.critical?.23:.175),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  drawPixelBurst(f.x,f.y,t,f.critical?49:29,f.critical?25:16,
+  drawPixelBurst(f.x,f.y,t,f.critical?55:35,f.critical?32:22,
     (f.x*.17+f.y*.09)%6.28,palette,f.angle||0);
  }});
 }
@@ -1309,11 +1309,11 @@ function drawBarrelBlasts(){
  luminous(()=>{for(const b of barrelBlasts){
   const t=clamp(b.t/.34,0,1);
   if(t>=1)continue;
-  drawPixelBurst(b.x,b.y,t,RED_BARREL_RADIUS*1.08,46,b.seed,
+  drawPixelBurst(b.x,b.y,t,RED_BARREL_RADIUS*1.08,60,b.seed,
     ['#fffefa','#ffdc60','#ff9c31','#f04e24','#9b3831'],0);
   // Three fast, chunky fire-pixel clusters blast out, then disappear.
   g.save();g.globalAlpha=Math.max(0,(1-t*3)*.8);
-  const size=26+18*t;g.fillStyle='#fff5c7';
+  const size=40+24*t;g.fillStyle='#fff5c7';
   g.fillRect(b.x-size/2,b.y-size/2,size,size);g.restore();
  }});
 }
@@ -1334,7 +1334,7 @@ function drawBallStateAura(b,r){
    for(let i=0;i<12;i++){
     const progress=(phase*.13+i*.28)%1;
     const x=-r*(.65+progress*3),y=Math.sin(i*2.65+clock*9)*r*(.25+progress*.6);
-    const sz=Math.max(2,Math.round(r*(.28+.3*(1-progress))));
+    const sz=Math.max(4,Math.round(r*(.4+.34*(1-progress))));
     g.globalAlpha=(1-progress)*.9;g.fillStyle=i%4===0?'#fff0a5':i%2?'#ffb54b':'#ef592c';
     g.fillRect(Math.round(x),Math.round(y),sz,sz);
    }
@@ -1350,13 +1350,13 @@ function drawBallStateAura(b,r){
    for(let i=0;i<11;i++){
     const progress=(phase*.19+i*.23)%1;
     const x=-r*(.6+progress*3.1),y=(i%5-2)*r*.31;
-    const sz=Math.max(2,Math.round(r*(.23+.3*(1-progress))));
+    const sz=Math.max(4,Math.round(r*(.36+.34*(1-progress))));
     g.globalAlpha=(1-progress)*.86;g.fillStyle=i%3===0?'#f4feff':i%2?'#76cff4':'#3f9dcf';
     g.fillRect(Math.round(x),Math.round(y+Math.sin(i*3+clock*15)*r*.13),sz,sz);
    }
    // Two tiny forward pixel flashes indicate penetration direction.
    for(let i=0;i<3;i++){
-    const d=r*(.95+i*.35),z=Math.max(2,Math.round(r*.28));
+    const d=r*(.95+i*.35),z=Math.max(4,Math.round(r*.43));
     g.globalAlpha=.7-i*.18;g.fillStyle=i?'#77d8fb':'#f3ffff';
     g.fillRect(Math.round(d),Math.round((i-1)*r*.3),z,z);
    }
@@ -1364,7 +1364,7 @@ function drawBallStateAura(b,r){
   if(power&&!fire&&!pierce){
    for(let i=0;i<8;i++){
     const a=i*.785+clock*2,d=r*(1+.17*Math.sin(clock*16+i*3));
-    const sz=Math.max(2,Math.round(r*.29));
+    const sz=Math.max(4,Math.round(r*.38));
     g.globalAlpha=.72;g.fillStyle=i%2?'#fffbe3':'#e3edb0';
     g.fillRect(Math.round(Math.cos(a)*d),Math.round(Math.sin(a)*d),sz,sz);
    }
@@ -1385,12 +1385,12 @@ function drawHeroBallTrail(b,r){
  g.save();
  for(let i=0;i<b.trail.length;i++){
   const pos=b.trail[i],fade=1-i/b.trail.length;
-  const size=Math.max(1,Math.round(r*.81*Math.pow(fade,.68)));
-  g.globalAlpha=.47*fade;g.fillStyle=i%3===0?p.soft:p.main;
+  const size=Math.max(5,Math.round(r*1.15*Math.pow(fade,.58)));
+  g.globalAlpha=.83*fade;g.fillStyle=i%3===0?p.soft:p.main;
   g.fillRect(Math.round(pos.x-size/2),Math.round(pos.y-size/2),size,size);
   if(i%3===1){
-   const chip=Math.max(1,Math.round(size*.33));
-   g.globalAlpha=.52*fade;g.fillStyle=p.accent;
+   const chip=Math.max(3,Math.round(size*.48));
+   g.globalAlpha=.8*fade;g.fillStyle=p.accent;
    g.fillRect(Math.round(pos.x+size*.35),Math.round(pos.y-size*.7),chip,chip);
   }
  }
@@ -1452,9 +1452,9 @@ drawKillCombo();drawBarrelBlasts();
   g.save();
   for(const p of particles){
    const fade=clamp(p.t/(p.life||.25),0,1);
-   const size=Math.max(1,Math.round(p.size*(.4+.6*fade)));
-   g.globalAlpha=fade*.93;
-   g.fillStyle=p.color;g.shadowColor=p.color;g.shadowBlur=3*fade;
+   const size=Math.max(2,Math.round(p.size*(.6+.4*fade)));
+   g.globalAlpha=fade;
+   g.fillStyle=p.color;g.shadowColor=p.color;g.shadowBlur=6*fade;
    g.fillRect(Math.round(p.x-size/2),Math.round(p.y-size/2),size,size);
    if(fade>.65){g.fillStyle='#fffce7';g.fillRect(Math.round(p.x),Math.round(p.y),Math.max(1,size*.35),Math.max(1,size*.35));}
   }
@@ -1642,10 +1642,10 @@ function drawBazooka(){
  if(bazookaBlasts.length)luminous(()=>{for(const b of bazookaBlasts){
   const t=clamp(b.t/.39,0,1);
   if(t>=1)continue;
-  drawPixelBurst(b.x,b.y,t,BAZOOKA_RADIUS*.94,53,b.seed||0,
+  drawPixelBurst(b.x,b.y,t,BAZOOKA_RADIUS*.94,68,b.seed||0,
     ['#ffffff','#ffedb3','#ffcb5d','#ff9036','#e96733'],0);
   g.save();g.globalAlpha=Math.max(0,(1-t*4)*.88);
-  const box=34*(1-t*.45);
+  const box=50*(1-t*.42);
   g.fillStyle='#fff7c9';g.fillRect(b.x-box/2,b.y-box/2,box,box);g.restore();
  }});
 }
