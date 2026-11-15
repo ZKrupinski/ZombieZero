@@ -58,7 +58,7 @@ for(const names of [['fire'],['pierce'],['power'],['fire','pierce']]){
 }
 assert.ok(drawCalls>90,'Expected rendered fireworks, sparks and energized ball state');
 // V63: no additive tile stacking. One tapered translucent ribbon follows the ball.
-assert.match(code,/function drawHeroBallTrail\(b,r\)/);
+assert.match(code,/function drawHeroBallTrail\(b,r,opacity=1\)/);
 assert.match(code,/const maxLength=86,spine=/);
 assert.match(code,/const size=r\*3\.40/);
 assert.match(code,/drawHeroBallTrail\(b,r,\.11\)/);
@@ -78,7 +78,7 @@ assert.match(code,/const sz=Math.max\(4,Math.round\(r\*\(\.4/);
 assert.match(code,/drawPixelBurst\(b.x,b.y,t,BAZOOKA_RADIUS\*\.94,68/);
 console.log('V63 soft hero-ball ribbon and weighty cube impact smoke checks passed.');
 
-assert.match(code,/function drawHeroBallTrail\(b,r\)/);
+assert.match(code,/function drawHeroBallTrail\(b,r,opacity=1\)/);
 assert.match(code,/HERO_BALL_TRAILS=\[/);
 assert.match(code,/function drawPixelBurst\(/);
 assert.doesNotMatch(code,/const HELD_BALL_OFFSETS=\[\{x:38/);
