@@ -11,7 +11,7 @@ assert(!js.includes('.webp.b64')&&!js.includes('data:image/webp;base64'),
 assert(html.includes('stage-backgrounds-v57.js?v=66-exact-lanes'));
 assert(sw.includes("'./assets/stages/stage-backgrounds-v57.js'"));
 assert(sw.includes("'./assets/stages/bg-09-18-v57-stored.zip'"));
-assert(sw.includes('zombie-zero-shell-v71-boss-open-space'));
+assert(sw.includes('zombie-zero-shell-v72-elastic-ball-art'));
 assert(game.includes('const STAGE_ART_COUNT=18;'));
 assert(game.includes('const STAGE_FADE_SECONDS=.9;'));
 assert(game.includes('const ROAD_LEFT=36,ROAD_RIGHT=414'),
