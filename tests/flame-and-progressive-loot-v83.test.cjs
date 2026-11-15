@@ -28,7 +28,7 @@ function el(id){return elements[id]??={textContent:'',innerHTML:'',style:{},hidd
 const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  window:{addEventListener:noop},localStorage:{getItem:()=>0,setItem:noop},
  Path2D:class{},requestAnimationFrame:noop,setTimeout:noop,clearTimeout:noop,
- Math:Object.create(Math),console};
+ Math:Object.create(Math),console,drawCount};
 vm.createContext(sandbox);
 vm.runInContext(src+`
 function check(ok,msg){if(!ok)throw Error(msg)}
@@ -54,8 +54,8 @@ active.power=8;active.pierce=8;
 const fireWithSkills=drawCount.flame;
 drawBurningBallFlames(ball,12,false);drawBurningTrailFlames(ball,12,path);
 check(drawCount.flame>fireWithSkills,'combined power + pierce still renders fire');
-active={};drawBurningTrailFlames(ball,12,path);
-check(drawCount.flame===drawCount.flame,'fire has no continuous autonomous emissions');
+active={};const beforeOff=drawCount.flame;drawBurningTrailFlames(ball,12,path);
+check(drawCount.flame===beforeOff,'inactive fire draws no lingering flames');
 
 active={};start();serve();clock=100;
 wave=1;rack();check(stageLootLimit()===3&&lootVisibleLimit()===2,'early stage remains controlled');
