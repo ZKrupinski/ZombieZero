@@ -28,7 +28,10 @@ function check(cond,message){if(!cond)throw Error(message)}
  check(enemyDeaths.length===1&&enemyDeaths[0].critical&&enemyDeaths[0].spriteMode,'full-health one-strike critical triggers bitmap sequence');
  check(enemyDeaths[0].split>=.58&&enemyDeaths[0].split<.68,'critical 10-frame duration');
  drawEnemyDeaths();
- updateEnemyVisuals(.66);
+ // The impact freeze precedes the critical atlas; verify both stages.
+ updateEnemyVisuals(.08);drawEnemyDeaths();
+ check(draws.some(a=>a[2]===true),'critical atlas draws after the brief frozen flash');
+ updateEnemyVisuals(.59);
  check(enemyDeaths.length===0&&enemyPieces.length===0,'critical atlas already includes scatter, prevent double');
  const frames=draws.filter(a=>a[2]===true).length;check(frames>0,'critical atlas draw called');
  console.log('PASS: in-game green living sprite, normal and critical PNG death timings, draw calls, no duplicate debris, original scoring');
