@@ -45,9 +45,9 @@ check(a.x>old+30&&b.x>146&&thirdZombie.x>193,'actual 3-zombie force chain still 
 check(near(knockVisualPosition(a).x,old),'first rendered frame starts at old position, not final position '+JSON.stringify({old,x:a.x,from:a.knockFromX,time:a.knockTime,visual:knockVisualPosition(a).x}));
 updateEnemyVisuals(.08);
 const middle=knockVisualPosition(a).x;
-check(middle>old+2&&middle<a.x-0.1,'after five frames zombie has actually moved, but not teleported');
-updateEnemyVisuals(.12);
-check(near(knockVisualPosition(a).x,a.x),'sprite reaches collider in .20 seconds');
+check(middle>old+0.1&&middle<a.x-0.1,'after five frames zombie has actually moved, but not teleported');
+updateEnemyVisuals(.35);
+check(near(knockVisualPosition(a).x,a.x),'sprite reaches collider after brief freeze and staggered tween');
 updateEnemyVisuals(.13);
 check(near(knockVisualPosition(a).x,a.x),'no late visual snap after trail ends');
 // A second hit during tween continues from the already rendered point.

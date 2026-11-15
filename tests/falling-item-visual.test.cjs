@@ -4,8 +4,7 @@ const src=fs.readFileSync('dist/game.js','utf8');
 assert(!src.includes('rect(item.x-1,item.y-33'),'old floating crosshair vertical line removed');
 assert(!src.includes('rect(item.x-4,item.y-30'),'old floating crosshair horizontal line removed');
 assert(src.includes('const FALLING_ITEM_SIZE=46;'),'falling icon larger than previous 34px');
-assert(src.includes("g.globalCompositeOperation='lighter'"),'subtle additive icon halo present');
-assert(src.includes('g.globalAlpha=.16'),'additive bloom overlay is restrained');
+assert(src.includes("g.shadowColor='transparent';g.shadowBlur=0"),'bitmap icons have crisp clean borders');
 const noop=()=>{},elements={},images=[],rings=[],blends=[];
 const ctx=new Proxy({drawImage:(...args)=>images.push(args),arc:(...args)=>rings.push(args)},
  {get:(o,k)=>o[k]??noop,set:(o,k,v)=>{if(k==='globalCompositeOperation')blends.push(v);o[k]=v;return true}});
@@ -35,8 +34,8 @@ images.length=0;blends.length=0;fxEnabled=true;
 drawFallingItem(pickup);
 const sizes=images.map(a=>a[7]);
 check(sizes.includes(46),'normal falling bitmap grows from 34 to 46 logical pixels');
-check(sizes.includes(50),'a softly additive halo surrounds the falling PNG');
-check(blends.includes('lighter'),'falling icon really uses ADD blend');
+check(!sizes.includes(50),'no duplicate 50px halo bitmap');
+check(!blends.includes('lighter'),'falling icon avoids ADD haze');
 check(images.every(a=>a[0]===window.ZZItemIcons.image),'original transparent bitmap remains the source');
 const baseCount=images.length;
 images.length=0;active.pierce=10;
@@ -59,5 +58,5 @@ check(itemPickupFX.length===0,'pickup FX clears itself after ~0.62 seconds');
 // A new run must never carry stale pickup FX over.
 activate('dual',100,300);check(itemPickupFX.length===1,'secondary item also flashes');
 start();check(itemPickupFX.length===0,'new game clears lingering pickup effect');
-console.log('PASS: falling collectible 46px with restrained additive glow, no crosshair; real pickup image burst, 22px car status readable');
+console.log('PASS: falling collectible 46px with clean sharp alpha, no halo/crosshair; real pickup image burst, 22px car status readable');
 `,sandbox);

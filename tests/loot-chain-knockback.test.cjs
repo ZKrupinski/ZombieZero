@@ -69,8 +69,8 @@ check(!zombieBoxesOverlap(a,{x:a.x,y:a.y},b,{x:b.x,y:b.y},0),
  'contact chain cannot overlap neighbor');
 check(!zombieBoxesOverlap(b,{x:b.x,y:b.y},third,{x:third.x,y:third.y},0),
  'contact chain cannot overlap next neighbor');
-updateEnemyVisuals(.33);
-check([a,b,third].every(z=>!z.knockTime),'afterimage ends within .32 seconds');
+updateEnemyVisuals(.48);
+check([a,b,third].every(z=>!z.knockTime),'afterimage ends after ordered .45-second chain tween');
 // Outward zombie knockback reflects off the new collision wall, staying inside.
 a=foe(45,130);foes=[a];
 check(applyKnockback(a,{x:-300,y:0},1),'wall reflects a shove inward');
