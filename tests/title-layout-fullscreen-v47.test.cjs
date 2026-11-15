@@ -13,8 +13,8 @@ assert(html.includes('id="overlay" data-title="true" data-screen="selection"'),'
 assert(html.includes('id="overlay-fullscreen"'),'user can re-enter fullscreen on results');
 assert(html.indexOf('id="boot-screen"')<html.indexOf('</section><div class="desktop-note"'),'attract covers the game machine, not a separate browser page');
 assert(html.includes('game.js?v=51-bubble-foreground-clean-ui')&&html.includes('app.js?v=47-native-fullscreen'),'new game and fullscreen scripts loaded');
-assert(html.includes('style.css?v=47-title-ui-fullscreen'),'layout cache bypass');
-assert(sw.includes('zombie-zero-shell-v51-bubble-foreground-clean-ui'),'PWA cache invalidated');
+assert(html.includes('style.css?v=52-ria-headroom'),'layout cache bypass');
+assert(sw.includes('zombie-zero-shell-v52-ria-headroom'),'PWA cache invalidated');
 assert(css.includes('#overlay[data-screen="selection"] .hero-card')&&css.includes('#overlay[data-screen="results"] .hero-card'),'both screens use matching hero-card rules');
 assert(css.includes('height:auto!important;min-height:165px!important'),'old forced 112px portrait card height overridden');
 assert(css.includes('.boot-screen[hidden]{display:none!important}'),'first title is removed after start');
