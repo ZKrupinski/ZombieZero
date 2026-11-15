@@ -35,5 +35,5 @@ assert(game.includes("index=b.bounceAxis==='x'"));
 assert(game.includes('Math.abs(b.x-car)<hero().paddle+radius/2'),'collision unchanged');
 assert(html.indexOf('hero-balls-v58.js')<html.indexOf('game.js?v=73-obvious-elastic-ball'));
 for(const n of [...names,'hero-balls-v58.js'])assert(sw.includes("'./assets/ip/"+n+"'"));
-assert(sw.includes('zombie-zero-shell-v73-obvious-elastic-ball'));
+assert(sw.includes('zombie-zero-shell-v74-clean-trash-can-frames'));
 console.log('PASS: transparent tennis/baseball/toy PNG sheets, hero mapping, spin, squash/rebound, face-safe serve and PWA cache.');
