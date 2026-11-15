@@ -49,8 +49,8 @@ function updateLabels(){
  // Unsupported WebViews / iOS Safari keep the existing immersive CSS layout.
  const mobileDevice=()=>navigator.maxTouchPoints>0||
    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
- function enterMobileFullscreen(){
-  if(document.fullscreenElement||standalone())return;
+ function enterMobileFullscreen(force=false){
+  if((!mobileDevice()&&!force)||document.fullscreenElement||standalone())return;
   const fn=root.requestFullscreen||root.webkitRequestFullscreen;
   if(typeof fn!=='function')return;
   try{
@@ -60,14 +60,15 @@ function updateLabels(){
    try{const fallback=fn.call(root);fallback?.catch?.(()=>{})}catch{}
   }
  }
- for(const id of ['start','endless','overlay-fullscreen'])
-  button(id)?.addEventListener('click',enterMobileFullscreen,{capture:true});
+ for(const id of ['start','endless'])
+  button(id)?.addEventListener('click',()=>enterMobileFullscreen(),{capture:true});
+ button('overlay-fullscreen')?.addEventListener('click',()=>enterMobileFullscreen(true),{capture:true});
  // Dedicated first-launch attract screen. Native fullscreen is requested
  // in the *same click gesture*, before revealing the existing hero picker.
  const boot=button('boot-screen'),bootStart=button('boot-start');
  if(boot&&bootStart){
   bootStart.addEventListener('click',()=>{
-   enterMobileFullscreen();
+   enterMobileFullscreen(true);
    boot.hidden=true;
    root.classList.add('zz-boot-complete');
    updateLabels();fit();
