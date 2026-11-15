@@ -42,25 +42,30 @@
   const scale=size/CELL;
   const l=cellX+Math.round(insetX+sourceLeft*scale);
   const r=cellX+Math.round(insetX+(sourceRight+1)*scale);
-  const top=cellY+10,lip=cellY+23;
+  // A wide crown connects to the REAL red hair at y=20..31.
+  // A narrow extra cap looked like a separate hat in the pixel preview.
+  const top=cellY+15,lip=cellY+31;
   ctx.save();
   ctx.imageSmoothingEnabled=false;
-  // Angular outline and underside: four corners rather than a rounded dome.
-  facet(ctx,[[l+4,top],[r-7,top],[r+3,top+7],
-             [r+4,lip],[l-5,lip],[l-5,top+8]],'#bd3541');
-  // Broad front-facing red voxel plane; overlap the existing source roof.
-  facet(ctx,[[l-4,top+7],[r-1,top+7],[r+3,lip],
-             [l-5,lip]],'#e65350');
-  // Distinct lit upper face with bevel, retaining the original warm red tone.
-  facet(ctx,[[l+4,top],[r-7,top],[r-1,top+7],
-             [l-4,top+7]],'#f16b5b');
-  // Right side is a darker planar facet, not blurred round hair shading.
-  facet(ctx,[[r-7,top],[r+3,top+7],[r+4,lip],
-             [r-1,top+7]],'#b62e3d');
-  // Tiny square voxel details break up the large flat plane without smoothing.
-  ctx.fillStyle='#ff8265';ctx.fillRect(l+10,top+2,8,2);
-  ctx.fillStyle='#e85b4d';ctx.fillRect(l+21,top+4,7,2);
-  ctx.fillStyle='#d84947';ctx.fillRect(l+1,top+9,5,3);
+  // Restore the missing broad, angular crown volume; keep existing hair,
+  // glasses and side braids entirely intact below this 16px upper strip.
+  facet(ctx,[[l-8,top],[r+5,top],[r+13,top+8],
+             [r+14,lip-2],[r+10,lip],[l-12,lip],
+             [l-15,top+8]],'#d54849');
+  // Lit top surface: broad flat voxel top with deliberate 45-degree bevels.
+  facet(ctx,[[l-8,top],[r+5,top],[r+11,top+7],
+             [l-14,top+7]],'#f16b5b');
+  // The front rim fades into original textured hair rather than making a
+  // second rectangular cap perched on top.
+  facet(ctx,[[l-14,top+7],[r+11,top+7],[r+13,top+12],
+             [l-13,top+12]],'#eb5e52');
+  // Short shaded right facet separates cube top/front/side planar lighting.
+  facet(ctx,[[r+5,top],[r+13,top+8],[r+14,top+16],
+             [r+9,top+11]],'#b6323e');
+  // Small warm squares echo the original painted block/voxel surface.
+  ctx.fillStyle='#ff876c';ctx.fillRect(l-1,top+2,9,2);
+  ctx.fillStyle='#e75349';ctx.fillRect(r-13,top+5,7,2);
+  ctx.fillStyle='#d84a46';ctx.fillRect(l-10,top+9,5,2);
   ctx.restore();
  }
 
