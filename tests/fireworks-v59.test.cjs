@@ -8,12 +8,12 @@ const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
 const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
-assert.match(html,/game\.js\?v=59-weapon-fireworks/);
+assert.match(html,/game\.js\?v=60-cube-impact/);
 assert.match(sw,/zombie-zero-shell-v60-cube-impact/);
-assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:38,y:2\},\{x:36,y:3\},\{x:38,y:3\}\]/);
+assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
-assert.match(code,/drawBallStateAura\(b,r\);\s*drawHeroBallSprite\(b,r,col\)/);
+assert.match(code,/drawBallStateAura\(b,r\);\s*drawHeroBallSprite\(b,r,palette\.main\)/);
 assert.doesNotMatch(code,/g\.strokeRect\(b\.x-r\*\.45,b\.y-r\*\.45/);
 
 const section=(start,end)=>{
@@ -24,7 +24,7 @@ const section=(start,end)=>{
 const source=[
  section('function drawEffects(labels=false)','function icon(k)'),
  section('function drawImpactFlashes()','function drawBarrelBlasts()'),
- section('function drawBarrelBlasts()','// V59: Readable additive'),
+ section('function drawBarrelBlasts()','// V60: Each empowered ball'),
  section('function drawBallStateAura(b,r)','/* V58: Render'),
  section('function drawBazooka()','function drawJunk()')
 ].join('\n');
