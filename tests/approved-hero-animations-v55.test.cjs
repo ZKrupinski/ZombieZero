@@ -45,11 +45,11 @@ assert(game.includes('Math.min(7,Math.floor(t*8))'),'attack animates all 8 frame
 assert(game.includes('selectedHero*192'),'Ace, Ruby, and Ria share correct row mapping');
 assert(game.includes('const sprite=window.ZZHeroCarAttack;'),'fallback to previous sprite if loading fails');
 assert(game.includes('Math.abs(b.x-car)<hero().paddle+radius/2'),'real racket hitbox unchanged');
-assert(html.indexOf('hero-animations-v55.js')<html.indexOf('game.js?v=82-ball-fx-ripple'),
+assert(html.indexOf('hero-animations-v55.js')<html.indexOf('game.js?v=83-fire-trail-stage-loot'),
  'hero atlas loader starts before gameplay script');
 assert(css.includes('hero-idle-v55.png?v=55-approved-cast')&&css.includes('clip-path:none!important'),
  'title/game-over cards display new padded idle art without masking wheels');
 for(const name of ['hero-idle-v55.png','hero-attack-v55.png','hero-animations-v55.js'])
  assert(sw.includes("'./assets/ip/"+name+"'"),'PWA caches '+name);
-assert(sw.includes('zombie-zero-shell-v82-ball-fx-ripple'),'PWA cache bust');
+assert(sw.includes('zombie-zero-shell-v83-fire-trail-stage-loot'),'PWA cache bust');
 console.log('PASS: approved 3x8 RGBA idle/attack PNGs, exact checksums, correct animation and legacy fallback.');
