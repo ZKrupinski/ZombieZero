@@ -10,9 +10,9 @@ const mark='/* v78 · One 450×710 coordinate grid';
 const at=css.indexOf(mark);
 assert(at>0,'v78 responsive CSS overrides legacy fixed HUD at the end');
 const rules=css.slice(at);
-assert(html.includes('style.css?v=78-responsive-layout'),'CSS cache busted');
+assert(html.includes('style.css?v=80-scene-preload'),'CSS cache busted');
 assert(html.includes('game.js?v=79-speech-tail-skill-auras'),'game cache busted');
-assert(sw.includes('zombie-zero-shell-v79-speech-tail-skill-auras'),'offline cache busted');
+assert(sw.includes('zombie-zero-shell-v80-scene-preload'),'offline cache busted');
 assert(app.includes("root.classList.toggle('zz-compact-hud',boardWidth<=330)"), 'compact HUD depends on contained board, not viewport');
 assert(rules.includes('/* v78.1: minimum 34px'), 'button spacing is computed from physical hit target width');
 assert(app.includes('const scale=Math.min(width/450,height/710)'),
@@ -25,7 +25,7 @@ assert(rules.includes('.machine>.hud>.hud-center-stats'),'stage and score occupy
 assert(rules.includes('.machine>.hud>#pause'),'pause button placed separately');
 assert(rules.includes('.machine>.hud>#options-toggle'),'options button placed separately');
 assert(rules.includes('.stage>.zz-combo-overlay'),'combo anchored inside contained stage');
-assert(rules.includes('80px * var(--ui-scale'),'combo starts outside 61-unit top HUD');
+assert(rules.includes('53px * var(--ui-scale'),'combo sits directly below the score');
 assert(rules.includes('text-overflow:ellipsis!important'),'long values stay inside score box');
 function between(a,b){return Math.max(0,Math.min(a,b))}
 function checkBoard(viewW,viewH){
@@ -45,8 +45,8 @@ function checkBoard(viewW,viewH){
  assert(gap(stats,pause)>=-.3,'score and pause overlap '+desc+' '+gap(stats,pause));
  assert(gap(pause,menu)>=-.01,'pause and menu overlap '+desc+' '+gap(pause,menu));
  assert(menu.x+menu.w<=bw+.01,'options stays inside board '+desc);
- assert(80*scale>=61*scale+12*scale,'combo stays below HUD '+desc);
- assert(80*scale+44*scale<bh*.4,'combo stays in upper game quarter '+desc);
+ assert(53*scale>=40*scale+8*scale,'combo immediately follows score text '+desc);
+ assert(53*scale+44*scale<bh*.4,'combo stays in upper game quarter '+desc);
  const ox=(viewW-bw)/2,oy=(viewH-bh)/2;
  assert(ox>=0&&oy>=0,'letterboxing centered '+desc);
  console.log('UI_SAFE '+desc+' board='+Math.round(bw)+'×'+Math.round(bh)+

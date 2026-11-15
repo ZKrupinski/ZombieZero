@@ -18,6 +18,7 @@
  let loaded=0;
  for(const kind of ['idle','attack']){
   const im=new Image();im.decoding='async';
+   pack[kind]=im; // v80: expose in-flight image for scene loading/retries
   im.onload=()=>{
    if(im.naturalWidth!==1536||im.naturalHeight!==576){
     pack.errors.push(kind+':wrong-dimensions');return;

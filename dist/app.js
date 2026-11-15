@@ -66,23 +66,132 @@ function updateLabels(){
  button('overlay-fullscreen')?.addEventListener('click',()=>enterMobileFullscreen(true),{capture:true});
  // Dedicated first-launch attract screen. Native fullscreen is requested
  // in the *same click gesture*, before revealing the existing hero picker.
- const boot=button('boot-screen'),bootStart=button('boot-start');
- if(boot&&bootStart){
-  bootStart.addEventListener('click',()=>{
-   enterMobileFullscreen(true);
-   boot.hidden=true;
-   root.classList.add('zz-boot-complete');
-   updateLabels();fit();
+
+ // v80: A genuine standalone title scene. The game board remains visually
+ // hidden until every asset needed by the hero picker and first play frame is
+ // loaded and decoded; the user's click is still the native fullscreen gesture.
+ const boot=button('boot-screen'),bootScene=button('boot-scene');
+ const bootStart=button('boot-start'),bootStatus=button('boot-load-status'),
+       bootMeter=button('boot-load-meter'),bootFill=button('boot-load-fill');
+ let sceneLoading=false;
+ function collectInitialImages(){
+  const found=new Set(),images=[];
+  const add=img=>{
+   if(!img||!img.src||typeof img.addEventListener!=='function'||found.has(img))return;
+   found.add(img);images.push(img);
+  };
+  for(const img of Array.from(document.images||[]))add(img);
+  const hero=window.ZZHeroAnimationsV55;
+  add(hero?.idle);add(hero?.attack);
+  add(window.ZZHeroCarAttack?.image);
+  for(const img of window.ZZHeroBallsV58?.images||[])add(img);
+  add(window.ZZCitizenCast?.cheer);add(window.ZZCitizenCast?.attack);
+  add(window.ZZGreenWalk?.image);add(window.ZZGreenDeath?.image);
+  add(window.ZZItemIcons?.image);
+  for(const entry of Object.values(window.ZZObjectSprite?.images||{}))add(entry.image);
+  // Other stage backgrounds continue to load in their normal stage pipeline.
+  // Only the first frame's background must block hero selection.
+  add(window.ZZStageArt?.images?.[0]);
+  return images;
+ }
+ function awaitDecodedImage(img){
+  // Reload the SAME image object on failure so the original loader's onload
+  // handler updates its ready flags and restores approved sprite art.
+  const source=img.src;
+  const oneTry=()=>new Promise((resolve,reject)=>{
+   if(img.complete){
+    if(img.naturalWidth>0){resolve();return}
+    reject(new Error('이미지를 불러오지 못했습니다'));return;
+   }
+   let done=false,timer;
+   const cleanup=()=>{
+    img.removeEventListener('load',onLoad);
+    img.removeEventListener('error',onError);
+    if(timer)clearTimeout(timer);
+   };
+   const onLoad=()=>{if(done)return;done=true;cleanup();img.naturalWidth>0?resolve():reject(new Error('이미지 크기 오류'))};
+   const onError=()=>{if(done)return;done=true;cleanup();reject(new Error('이미지 요청 실패'))};
+   img.addEventListener('load',onLoad);
+   img.addEventListener('error',onError);
+   timer=setTimeout(onError,30000);
   });
-  // Do not allow underlying Space-to-start gameplay while attract is open.
+  return (async()=>{
+   for(let attempt=0;attempt<3;attempt++){
+    if(attempt){
+     img.src=source+(source.includes('?')?'&':'?')+'zz_scene_retry='+attempt+'_'+Date.now();
+    }
+    try{
+     await oneTry();
+     if(typeof img.decode==='function')await img.decode();
+     if(img.naturalWidth>0)return;
+    }catch(error){
+     if(attempt===2)throw new Error('리소스 로딩 실패: '+source.split('/').pop(),{cause:error});
+    }
+   }
+  })();
+ }
+ async function preloadInitialScene(){
+  const assets=collectInitialImages();
+  let loaded=0;
+  const progress=()=>{
+   const percent=assets.length?Math.round(100*loaded/assets.length):100;
+   if(bootStatus)bootStatus.textContent='이미지 준비 중 '+loaded+' / '+assets.length+' ('+percent+'%)';
+   if(bootFill)bootFill.style.width=percent+'%';
+  };
+  progress();
+  await Promise.all(assets.map(img=>awaitDecodedImage(img).then(()=>{loaded++;progress()})));
+  if(document.fonts?.ready)await document.fonts.ready;
+  // Image decode and original sprite onload handlers both complete before
+  // the selection cards become visible. Do not expose procedural placeholders.
+  const required=[
+   [window.ZZHeroAnimationsV55,'주인공 애니메이션'],
+   [window.ZZHeroCarAttack,'캐릭터 선택 이미지'],
+   [window.ZZCitizenCast,'시민 스프라이트'],
+   [window.ZZGreenWalk,'좀비 스프라이트'],
+   [window.ZZStageArt?.ready?.[0],'첫 스테이지 배경'],
+  ];
+  for(const [pack,name] of required){
+   if(pack&&((typeof pack==='boolean'&&!pack)||(typeof pack==='object'&&pack.ready===false)))
+    throw new Error(name+' 준비 실패');
+  }
+ }
+ if(boot&&bootStart){
+  bootStart.addEventListener('click',async()=>{
+   if(sceneLoading||boot.hidden)return;
+   sceneLoading=true;
+   enterMobileFullscreen(true); // Must happen before the first await.
+   root.classList.remove('zz-scene-title');
+   root.classList.add('zz-scene-loading');
+   bootStart.disabled=true;
+   bootStart.textContent='LOADING...';
+   if(bootStatus)bootStatus.hidden=false;
+   if(bootMeter)bootMeter.hidden=false;
+   try{
+    await preloadInitialScene();
+    // Commit the scene swap only when the first play-ready frame is complete.
+    boot.hidden=true;
+    if(bootScene)bootScene.hidden=true;
+    root.classList.remove('zz-scene-loading');
+    root.classList.add('zz-scene-selection','zz-boot-complete');
+    updateLabels();fit();
+   }catch(err){
+    if(bootStatus)bootStatus.textContent='이미지 로딩에 실패했습니다. 네트워크 확인 후 다시 시도하세요.';
+    root.classList.remove('zz-scene-loading');
+    root.classList.add('zz-scene-title');
+    bootStart.disabled=false;
+    bootStart.textContent='다시 시도';
+    console.warn('ZOMBIE ZERO scene preload:',err);
+   }finally{sceneLoading=false}
+  });
   window.addEventListener('keydown',e=>{
    if(!boot.hidden&&(e.code==='Space'||e.key==='Enter')){
     e.preventDefault();e.stopImmediatePropagation?.();
-    bootStart.click();
+    if(!e.repeat&&!sceneLoading)bootStart.click();
    }
   },true);
  }
  button('overlay-fullscreen')?.addEventListener('click',()=>{fit();updateLabels()});
+
 
 button('fullscreen').onclick=async()=>{try{if(document.fullscreenElement){await document.exitFullscreen()}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen({navigationUI:'hide'})}else{inform('주소창 없이 플레이','이 브라우저에서는 전체화면 버튼을 지원하지 않습니다. Safari는 공유 → 홈 화면에 추가, Android Chrome은 메뉴 → 앱 설치 또는 홈 화면에 추가를 사용해 주세요.')}}catch{inform('전체화면 실행 안내','현재 브라우저에서 전체화면 요청이 허용되지 않았습니다. Chrome 또는 Safari에서 이 링크를 직접 열고, 홈 화면에 추가한 아이콘으로 실행해 주세요.')}fit();updateLabels()};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;button('install').textContent='↓ 앱 설치'});
