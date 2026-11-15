@@ -1073,7 +1073,8 @@ function drawEnemyDeaths(){for(const d of enemyDeaths){
   const freezeT=d.t/Math.max(.001,d.freeze||.105);
   g.filter=freezeT<.68?'brightness(2.25) saturate(.52)':'brightness(1.64) saturate(.83)';
   // Hit tremble is tightly localized; death animation begins after this hold.
-  g.translate(Math.sin(d.t*178)*2.45,Math.cos(d.t*167)*1.65);
+  const jitter=hitShakeOffset(d.t,d.freeze||.105,!!d.z.boss);
+  g.translate(jitter.x,jitter.y);
   zombie(d.z);g.restore();continue;
  }
  const elapsed=Math.max(0,d.t-(d.freeze||0));
@@ -1495,6 +1496,15 @@ function drawHeroBallSprite(b,r,col){
  g.restore();
 }
 // Hit reaction stays attached to the actual zombie sprite, not a detached flash.
+// V70: 60fps phase-locked hit jitter stays on the enemy sprite only.
+// Alternating 4-6px displacement is conspicuous without moving collision boxes.
+function hitShakeOffset(t,duration,boss=false){
+ const frame=Math.max(0,Math.floor(t*60));
+ const phase=Math.max(0,Math.min(1,t/Math.max(.001,duration)));
+ const amplitude=(boss?5.6:4.4)*(1-.2*phase);
+ return {x:(frame%2?1:-1)*amplitude,
+   y:[-.42,.28,-.26,.38][frame%4]*amplitude};
+}
 function drawStruckZombie(z){
  const active=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
  if(!active){zombie(knockVisualPosition(z));return}
@@ -1503,8 +1513,8 @@ function drawStruckZombie(z){
  g.save();
  // First two-thirds are an unmistakable white contact flash. No blurry glow.
  g.filter=phase<.68?'brightness(2.25) saturate(.52)':'brightness(1.64) saturate(.83)';
- const amount=z.boss?3.0:2.45;
- g.translate(Math.sin(t*178)*amount,Math.cos(t*167)*amount*.7);
+ const jitter=hitShakeOffset(t,duration,!!z.boss);
+ g.translate(jitter.x,jitter.y);
  zombie(knockVisualPosition(z));g.restore();
 }
 function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();
