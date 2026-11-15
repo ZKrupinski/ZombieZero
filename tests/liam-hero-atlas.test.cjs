@@ -37,9 +37,9 @@ assert.equal(pack.image.naturalWidth,1536);
 pack.image.onload();
 assert.equal(pack.ready,true);
 assert.equal(pack.liamReframed,true);
-assert.equal(pack.riaHeadroomVersion,52);
+assert.equal(pack.riaHeadroomVersion,53);
 assert(source.includes('const insetY=18'),'the entire eight-cell row receives 18px top headroom');
-assert(source.includes('const size=CELL*.93'),'Ria uses the corrected 93% source scale');
+assert(source.includes('const size=Math.round(CELL*.93)'),'Ria uses the corrected 93% source scale');
 assert.equal(pack.image,out);
 assert.equal(out.width,1536);
 assert.equal(out.height,576);
@@ -53,13 +53,16 @@ for(let i=0;i<8;i++){
  assert.equal(call[3],384);   // Liam's own source row
  assert.equal(call[4],192);
  assert.equal(call[5],192);
- assert.ok(Math.abs(call[6]-(i*192+6.72))<0.0001); // 7% smaller than original bitmap
+ assert.ok(Math.abs(call[6]-(i*192+7))<0.0001); // 7px integer offset keeps sharp voxel edges
  assert.equal(call[7],402);   // Ria moved 4px down for visible headroom
- assert.ok(Math.abs(call[8]-178.56)<0.0001);
- assert.ok(Math.abs(call[9]-178.56)<0.0001);
+ assert.ok(Math.abs(call[8]-179)<0.0001);
+ assert.ok(Math.abs(call[9]-179)<0.0001);
 }
 assert.equal(vars['--zz-hero-car-frames'],'url("blob:corrected-liam")');
 assert.match(css,/background-image:var\(--zz-hero-car-frames,/);
 assert.match(css,/clip-path:inset\(0 0 5px 0\)/); // unchanged Ace/Ruby bleed mask
 assert.match(css,/row-2\{background-position:0 -192px;clip-path:none\}/); // Liam-only unmask
-console.log('PASS: Ria 8 frame cells re-cut with 18px top inset, 93% size, wheels unmasked.');
+assert(source.includes('ctx.imageSmoothingEnabled=false;'),'Ria edges are not blurred by interpolation');
+assert(source.includes('restoreRiaCrown(ctx,i,sx,sy,insetX,size);'),'all Ria frames get the voxel crown');
+assert(source.includes('const RIA_CROWN_EDGES=['),'crown uses measured per-frame source alpha bounds');
+console.log('PASS: Ria 8 frames: 18px headroom, 179px integer scale, faceted crown and sharp edges.');
