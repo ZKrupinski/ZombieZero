@@ -39,8 +39,10 @@ const path=[{x:210,y:255,s:0},{x:206,y:267,s:13},{x:202,y:279,s:26},
  {x:197,y:291,s:39},{x:191,y:305,s:54},{x:184,y:320,s:70},
  {x:177,y:338,s:89},{x:172,y:352,s:105}];
 active={};fxEnabled=true;clock=1.7;
+const inactiveFlames=drawCount.flame,inactiveFills=drawCount.fill;
 drawBurningBallFlames(ball,8,false);drawBurningTrailFlames(ball,8,path);
-check(drawCount.flame===0&&drawCount.fill===0,'fire disabled means no extra render work');
+check(drawCount.flame===inactiveFlames&&drawCount.fill===inactiveFills,
+ 'fire disabled means no extra render work');
 active.fire=8;
 drawBurningBallFlames(ball,8,false);
 check(drawCount.flame>=24&&drawCount.fill>=12,'ball rear draws independent moving tongues and bright cores');
