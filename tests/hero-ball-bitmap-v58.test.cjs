@@ -35,5 +35,5 @@ assert(game.includes('g.drawImage(img,0,0,frameW,frameH'));
 assert(game.includes('Math.abs(b.x-car)<hero().paddle+radius/2'),'collision unchanged');
 assert(html.indexOf('hero-balls-v58.js')<html.indexOf('game.js?v=79-speech-tail-skill-auras'));
 for(const n of [...names,'hero-balls-v58.js'])assert(sw.includes("'./assets/ip/"+n+"'"));
-assert(sw.includes('zombie-zero-shell-v79-speech-tail-skill-auras'));
+assert(sw.includes('zombie-zero-shell-v80-scene-preload'));
 console.log('PASS: transparent tennis/baseball/toy PNG sheets, hero mapping, spin, squash/rebound, face-safe serve and PWA cache.');
