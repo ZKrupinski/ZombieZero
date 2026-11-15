@@ -1342,7 +1342,9 @@ function drawKillCombo(){
  el.style.setProperty?.('--combo-quiet',String(Math.max(0,Math.min(1,(1.45-comboDisplayTime)/1.45))));
  el.style.setProperty?.('--combo-progress',String(Math.max(0,Math.min(1,killTimer/6))));
 }
-const citizens=Array.from({length:18},(_,i)=>({x:26+i*23.4,y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,phase:i*.9,alive:true,dying:0,supportTime:0}));
+// Keep all 18 original supporters and sprites, but bring their save hitboxes
+// inside the same side walls where the ball now legitimately travels.
+const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,phase:i*.9,alive:true,dying:0,supportTime:0}));
 function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0}bubbles=[];bubbleTimer=.25}
 function haptic(pattern){if(!fxEnabled||!touchUsed||typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return;const now=Date.now();if(now-lastBuzz<100)return;lastBuzz=now;try{navigator.vibrate(pattern)}catch{}}
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
