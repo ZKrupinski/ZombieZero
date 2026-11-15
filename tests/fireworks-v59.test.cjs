@@ -8,7 +8,7 @@ const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
 const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
-assert.match(html,/game\.js\?v=60-cube-impact/);
+assert.match(html,/game\.js\?v=61-visible-cube-fx/);
 assert.match(sw,/zombie-zero-shell-v61-visible-cube-fx/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
