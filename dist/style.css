@@ -1015,3 +1015,12 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
 /* v51: no redundant situational text in the lower-left stage/footer.
    Citizen speech bubbles are rendered separately in Canvas and preserved. */
 #status,#toast{display:none!important;visibility:hidden!important;pointer-events:none!important}
+
+
+/* v55: approved transparent RGBA 8-frame idle atlas for every selection and
+   game-over portrait. The old sprite preloader remains for gameplay fallback,
+   but must not replace these corrected, non-overlapping frame thumbnails. */
+.hero-card .hero-vehicle-portrait{
+ background-image:url('assets/ip/hero-idle-v55.png?v=55-approved-cast')!important;
+ clip-path:none!important;
+}
