@@ -1436,56 +1436,104 @@ function drawBarrelBlasts(){
 }
 
 // V60: Each empowered ball uses small fast pixel embers, never fixed green spikes.
+// V79: Full-sized, crisp elemental aura follows the actual ball, not just
+// the wake. The baseline ball art remains untouched; status colors distinguish
+// piercing (cyan), fire (orange) and large/power (gold).
 function drawBallStateAura(b,r){
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
- {
-  const dx=b.held?.2:(b.vx||0),dy=b.held?-1:(b.vy||-1);
-  const angle=Math.atan2(dy,dx);
-  const scale=b.held?.7:1;
-  g.save();g.translate(b.x,b.y);g.rotate(angle);g.scale(scale,scale);
-  const phase=clock*(b.held?7:24);
-  // Screen-size-aware: all dimensions scale from actual physical ball radius.
-  if(fire){
-   g.shadowColor='transparent';g.shadowBlur=0;
-   for(let i=0;i<12;i++){
-    const progress=(phase*.13+i*.28)%1;
-    const x=-r*(.65+progress*3),y=Math.sin(i*2.65+clock*9)*r*(.25+progress*.6);
-    const sz=Math.max(4,Math.round(r*(.4+.34*(1-progress))));
-    g.globalAlpha=(1-progress)*.9;g.fillStyle=i%4===0?'#fff0a5':i%2?'#ffb54b':'#ef592c';
-    g.fillRect(Math.round(x),Math.round(y),sz,sz);
-   }
-   // Animated embers stay behind the moving ball; no stuck specks on its nose.
-   for(let i=0;i<4;i++){
-    const age=(clock*9+i*.23)%1;
-    const x=-r*(.95+age*1.35),y=Math.sin(i*3.7+clock*13)*r*.43;
-    const sz=Math.max(2,Math.round(r*(.28-.12*age)));
-    g.globalAlpha=.65*(1-age);g.fillStyle=i%2?'#ffe28b':'#ff8b36';
-    g.fillRect(Math.round(x),Math.round(y),sz,sz);
-   }
+ const t=clock,phase=t*(b.held?3.2:6.4),pulse=.5+.5*Math.sin(t*12);
+ const radius=r*1.82;
+ g.save();g.translate(b.x,b.y);
+ g.shadowBlur=0;g.globalAlpha=1;g.globalCompositeOperation='lighter';
+ // Ring sits outside the actual 3.40r bitmap frame, never fogging its face.
+ if(pierce){
+  g.strokeStyle='#8beaff';g.lineWidth=Math.max(2.3,r*.27);
+  g.globalAlpha=.82+.15*pulse;
+  g.beginPath();g.arc(0,0,radius+.6*pulse,0,Math.PI*2);g.stroke();
+  for(let i=0;i<8;i++){
+   const a=phase*.33+i*Math.PI/4,dist=radius+2+((i%3)-1)*1.3;
+   const x=Math.cos(a)*dist,y=Math.sin(a)*dist;
+   const length=r*(.62+.25*pulse),width=Math.max(2.6,r*.28);
+   g.save();g.translate(x,y);g.rotate(a);
+   g.globalAlpha=i%2?.96:.86;g.fillStyle=i%3?'#70dafc':'#f2ffff';
+   g.beginPath();g.moveTo(-width,-width);g.lineTo(length,0);
+   g.lineTo(-width,width);g.closePath();g.fill();
+   g.restore();
   }
-  if(pierce){
-   g.shadowColor='transparent';g.shadowBlur=0;
-   for(let i=0;i<11;i++){
-    const progress=(phase*.19+i*.23)%1;
-    const x=-r*(.6+progress*3.1),y=(i%5-2)*r*.31;
-    const sz=Math.max(4,Math.round(r*(.36+.34*(1-progress))));
-    g.globalAlpha=(1-progress)*.86;g.fillStyle=i%3===0?'#f4feff':i%2?'#76cff4':'#3f9dcf';
-    g.fillRect(Math.round(x),Math.round(y+Math.sin(i*3+clock*15)*r*.13),sz,sz);
-   }
-   // Removed the stationary piercing nose squares; rear wake communicates the skill.
+  for(let i=0;i<5;i++){
+   const a=phase*1.2+i*2.39996,dist=radius+r*(.42+.3*Math.sin(phase+i*1.4));
+   const sz=Math.max(3,Math.round(r*.46));
+   g.globalAlpha=.72;g.fillStyle=i%2?'#e8ffff':'#56c4f8';
+   g.fillRect(Math.round(Math.cos(a)*dist-sz/2),Math.round(Math.sin(a)*dist-sz/2),sz,sz);
   }
-  if(power&&!fire&&!pierce){
-   for(let i=0;i<6;i++){
-    const age=(clock*7+i/6)%1;
-    const x=-r*(.65+age*2.1),y=Math.sin(clock*15+i*2.4)*r*.42;
-    const sz=Math.max(3,Math.round(r*(.33-.12*age)));
-    g.globalAlpha=.65*(1-age);g.fillStyle=i%2?'#fffbe3':'#e3edb0';
-    g.fillRect(Math.round(x),Math.round(y),sz,sz);
-   }
-  }
-  g.restore();
  }
+ if(fire){
+  for(let i=0;i<9;i++){
+   const a=i*Math.PI*2/9+Math.sin(phase+i)*.13;
+   const d=radius-.5+Math.sin(phase*1.8+i*2.1)*1.5;
+   const x=Math.cos(a)*d,y=Math.sin(a)*d;
+   const len=r*(.75+.45*(.5+.5*Math.sin(phase*2+i*1.9)));
+   g.save();g.translate(x,y);g.rotate(a);
+   g.globalAlpha=.83;g.fillStyle=i%3===0?'#fff4a5':i%2?'#ffb248':'#ff5f2b';
+   g.beginPath();g.moveTo(-r*.36,-r*.27);g.lineTo(len,.05*r);
+   g.lineTo(-r*.36,r*.27);g.closePath();g.fill();
+   g.restore();
+  }
+  for(let i=0;i<8;i++){
+   const a=(phase*.85+i*2.1),age=(phase*.16+i/8)%1;
+   const dist=radius+r*(.4+1.1*age);
+   const sz=Math.max(3,Math.round(r*(.50-.22*age)));
+   g.globalAlpha=.88*(1-age*.7);g.fillStyle=i%3===0?'#fff4b2':i%2?'#ff9236':'#f76136';
+   g.fillRect(Math.round(Math.cos(a)*dist-sz/2),Math.round(Math.sin(a)*dist-sz/2),sz,sz);
+  }
+ }
+ if(power){
+  const glowR=radius+r*(fire||pierce?.24:.14);
+  g.strokeStyle='#f9e18a';g.lineWidth=Math.max(2.5,r*.27);g.globalAlpha=.78+.17*pulse;
+  for(let i=0;i<4;i++){
+   const a=phase*.22+i*Math.PI/2;
+   g.beginPath();g.arc(0,0,glowR,a,a+Math.PI*.23);g.stroke();
+  }
+  for(let i=0;i<4;i++){
+   const a=i*Math.PI/2-phase*.32,d=glowR+r*.12,sz=Math.max(4,Math.round(r*.45));
+   g.fillStyle=i%2?'#fff4bd':'#ffce61';g.globalAlpha=.82;
+   g.save();g.translate(Math.cos(a)*d,Math.sin(a)*d);g.rotate(a);
+   g.fillRect(-sz/2,-sz/2,sz,sz);g.restore();
+  }
+ }
+ g.restore();
+}
+// A few bright shards are drawn AFTER the opaque ball sprite so the state
+// remains readable on white baseballs and pale green tennis balls.
+function drawBallStatusForeground(b,r){
+ const fire=has('fire'),pierce=has('pierce'),power=has('power');
+ if(!fxEnabled||!(fire||pierce||power))return;
+ const t=clock;
+ g.save();g.translate(b.x,b.y);g.shadowBlur=0;
+ g.globalCompositeOperation='lighter';
+ const radius=r*1.83;
+ if(pierce){
+  for(let i=0;i<4;i++){
+   const a=t*1.7+i*Math.PI/2;
+   const x=Math.cos(a)*radius,y=Math.sin(a)*radius,sz=Math.max(3,Math.round(r*.33));
+   g.globalAlpha=.9;g.fillStyle='#e8ffff';
+   g.fillRect(Math.round(x-sz/2),Math.round(y-sz/2),sz,sz);
+  }
+ }
+ if(fire){
+  for(let i=0;i<4;i++){
+   const a=t*1.3+i*Math.PI/2,dist=radius+r*.24;
+   const sz=Math.max(4,Math.round(r*.37));
+   g.globalAlpha=.92;g.fillStyle=i%2?'#ffe086':'#ff853c';
+   g.fillRect(Math.round(Math.cos(a)*dist-sz/2),Math.round(Math.sin(a)*dist-sz/2),sz,sz);
+  }
+ }
+ if(power&&!fire&&!pierce){
+  g.strokeStyle='#fff3b1';g.lineWidth=Math.max(2,r*.22);g.globalAlpha=.8;
+  g.beginPath();g.arc(0,0,radius,Math.PI*.1,Math.PI*.8);g.stroke();
+ }
+ g.restore();
 }
 
 // Physical tennis, baseball and toy-ball sprite colors, not one shared lime beam.
@@ -1559,10 +1607,23 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  const colors=fire&&pierce?['#ffbf64','#8beafa','#fff4d7']:fire?['#ffad52','#f46a31','#ffeb9b']:pierce?['#7dd9f7','#b5f5ff','#ffffff']:['#fff1bc','#e2e99d','#ffffff'];
  const len=path[path.length-1].s;
  g.save();g.shadowBlur=0;
- for(let d=10,i=0;d<len-4;d+=r>8?15:12,i++){
-  const p=sampleBallTrail(path,d);if(!p)continue;const size=Math.max(2,Math.round(r*.22));
-  g.globalAlpha=.5*(1-.63*d/Math.max(1,len));g.fillStyle=colors[i%3];
+ for(let d=10,i=0;d<len-4;d+=r>8?13:11,i++){
+  const p=sampleBallTrail(path,d),next=sampleBallTrail(path,Math.min(len,d+5));
+  if(!p||!next)continue;
+  const dx=next.x-p.x,dy=next.y-p.y,mag=Math.hypot(dx,dy)||1;
+  const nx=-dy/mag,ny=dx/mag;
+  const fade=1-.63*d/Math.max(1,len);
+  const size=Math.max(3,Math.round(r*.36));
+  g.globalAlpha=.76*fade;g.fillStyle=colors[i%3];
   g.fillRect(Math.round(p.x-size/2),Math.round(p.y-size/2),size,size);
+  if(i%2===0){
+   const lateral=r*.72,chip=Math.max(2,Math.round(size*.75));
+   for(const side of [-1,1]){
+    g.globalAlpha=.58*fade;g.fillStyle=colors[(i+1)%3];
+    g.fillRect(Math.round(p.x+nx*side*lateral-chip/2),
+               Math.round(p.y+ny*side*lateral-chip/2),chip,chip);
+   }
+  }
  }
  g.restore();
 }
@@ -1676,6 +1737,7 @@ drawKillCombo();drawBarrelBlasts();
   drawBallSkillTrail(b,r,trailPath);
   drawBallStateAura(b,r);
   drawHeroBallSprite(b,r,palette.main);
+  drawBallStatusForeground(b,r);
  }
  drawBallVanish();
  if(particles.length)luminous(()=>{
@@ -1776,26 +1838,34 @@ function citizenCue(p,back,text=null){
  const w=112,x=clamp(p.x-w/2,22,W-22-w);
  bubbles=bubbles.filter(q=>q.citizen!==p&&(q.x+(q.w||80)+8<=x||q.x>=x+w+8)).slice(-1);
  const lines=back?['다시 왔어!','나만 믿어!','한 번 더!']:['내가 막을게!','뒤를 부탁해!','으악! 막았다!'];
- bubbles.push({citizen:p,x,y:p.y-100,w,event:text?'bazooka':back?'return':'save',t:0,life:2.1,text:text||lines[Math.floor(Math.random()*lines.length)]});bubbleTimer=1;
+ bubbles.push({citizen:p,x,y:p.y-100,w,carAtBirth:car,event:text?'bazooka':back?'return':'save',t:0,life:2.1,text:text||lines[Math.floor(Math.random()*lines.length)]});bubbleTimer=1;
 }
 const CHEERS=['파이팅!','막아줘!','멋져!','최고야!','조심해!','가자!'];
-function updateBubbles(dt){bubbles=bubbles.filter(q=>(q.t+=dt)<q.life&&(q.event||q.citizen.alive));bubbleTimer-=dt;if(bubbleTimer>0||bubbles.length>=2)return;bubbleTimer=.7+Math.random()*.4;const options=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>85).map(p=>({p,x:clamp(p.x-40,22,348)})).filter(o=>bubbles.every(q=>o.x+88<=q.x||o.x>=q.x+(q.w||80)+8));if(!options.length)return;const o=options[Math.floor(Math.random()*options.length)];bubbles.push({citizen:o.p,x:o.x,y:o.p.y-75,t:0,life:1.6,text:mode==='clearing'?'고마워!':CHEERS[Math.floor(Math.random()*CHEERS.length)]});cheerTime=Math.max(cheerTime,1)}
-// Recalculate speech positions in the same 450×710 logical board as the car.
+function updateBubbles(dt){bubbles=bubbles.filter(q=>(q.t+=dt)<q.life&&(q.event||q.citizen.alive));bubbleTimer-=dt;if(bubbleTimer>0||bubbles.length>=2)return;bubbleTimer=.7+Math.random()*.4;const options=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>85).map(p=>({p,x:clamp(p.x-40,22,348)})).filter(o=>bubbles.every(q=>o.x+88<=q.x||o.x>=q.x+(q.w||80)+8));if(!options.length)return;const o=options[Math.floor(Math.random()*options.length)];bubbles.push({citizen:o.p,x:o.x,y:o.p.y-75,carAtBirth:car,t:0,life:1.6,text:mode==='clearing'?'고마워!':CHEERS[Math.floor(Math.random()*CHEERS.length)]});cheerTime=Math.max(cheerTime,1)}
+// V79: speech placement depends on the car position ONLY when the bubble
+// is created. Moving the car cannot drag the bubble or stretch its pointer.
 function citizenBubbleLayout(q,carX=car){
  const w=q.w||80,h=q.event?46:29;
- let x=clamp(q.x,22,W-22-w);
- let y=clamp(q.y,100,H-75-h);
- // Avoid covering the player when a saved/returning citizen is beside it.
- if(x<carX+56&&x+w>carX-56&&y+h>PY-66&&y<PY+42){
-  const left=carX-w-67,right=carX+67;
+ const initialCar=Number.isFinite(q.carAtBirth)?q.carAtBirth:carX;
+ let x=clamp(q.x,22,W-22-w),y=clamp(q.y,100,H-75-h);
+ if(x<initialCar+56&&x+w>initialCar-56&&y+h>PY-66&&y<PY+42){
+  const left=initialCar-w-67,right=initialCar+67;
   const candidates=[left,right].filter(v=>v>=22&&v+w<=W-22);
   if(candidates.length)x=candidates.sort((a,b)=>Math.abs(a-x)-Math.abs(b-x))[0];
   else y=Math.max(108,PY-h-69);
  }
  return {x,y,w,h};
 }
+// A deliberately SHORT pointer is attached to the balloon itself, not to
+// a moving car or a remote citizen center. No stretched kite-like polygon.
+function citizenBubblePointer(q,place){
+ const baseX=clamp(q.citizen.x,place.x+12,place.x+place.w-12);
+ return {baseX,tipX:baseX+clamp(q.citizen.x-baseX,-8,8),
+         tipY:place.y+place.h+16};
+}
 function drawBubbles(){for(const q of bubbles){const a=Math.min(1,q.t/.12,(q.life-q.t)/.3);
- const place=citizenBubbleLayout(q),x=place.x,y=place.y-(q.event?Math.sin(Math.min(1,q.t/.3)*Math.PI)*5:0),w=place.w,h=place.h,tail=clamp(q.citizen.x,x+10,x+w-10);g.save();g.globalAlpha=Math.max(0,a);g.fillStyle=q.event==='return'?'#c5ffe5':q.event?'#ffe2ae':'#fff6d8';g.strokeStyle=q.event==='return'?'#287760':q.event?'#974c35':'#28374b';g.lineWidth=q.event?3:2;g.beginPath();g.moveTo(x,y);g.lineTo(x+w,y);g.lineTo(x+w,y+h);g.lineTo(tail+6,y+h);g.lineTo(q.citizen.x,q.citizen.y-19);g.lineTo(tail-4,y+h);g.lineTo(x,y+h);g.closePath();g.fill();g.stroke();g.fillStyle='#263449';g.font='bold 15px Arial, sans-serif';g.textAlign='center';g.fillText(q.text,x+w/2,y+20);if(q.event){g.font='bold 11px Arial, sans-serif';g.fillText(q.event==='return'?'시민 +1 복귀!':q.event==='bazooka'?'광역 지원 사격!':'공을 지켜냈다!',x+w/2,y+37)}g.restore()}}
+ const place=citizenBubbleLayout(q),x=place.x,y=place.y-(q.event?Math.sin(Math.min(1,q.t/.3)*Math.PI)*5:0),w=place.w,h=place.h;
+ const tail=citizenBubblePointer(q,{x,y,w,h});g.save();g.globalAlpha=Math.max(0,a);g.fillStyle=q.event==='return'?'#c5ffe5':q.event?'#ffe2ae':'#fff6d8';g.strokeStyle=q.event==='return'?'#287760':q.event?'#974c35':'#28374b';g.lineWidth=q.event?3:2;g.beginPath();g.moveTo(x,y);g.lineTo(x+w,y);g.lineTo(x+w,y+h);g.lineTo(tail.baseX+6,y+h);g.lineTo(tail.tipX,tail.tipY);g.lineTo(tail.baseX-6,y+h);g.lineTo(x,y+h);g.closePath();g.fill();g.stroke();g.fillStyle='#263449';g.font='bold 15px Arial, sans-serif';g.textAlign='center';g.fillText(q.text,x+w/2,y+20);if(q.event){g.font='bold 11px Arial, sans-serif';g.fillText(q.event==='return'?'시민 +1 복귀!':q.event==='bazooka'?'광역 지원 사격!':'공을 지켜냈다!',x+w/2,y+37)}g.restore()}}
 function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(const j of [...junk]){j.t+=dt;if(j.t>=j.duration){junk.splice(junk.indexOf(j),1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){damage(j.target,.25,true);if(mode!=='playing')return}}}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:Math.floor(Math.random()*4)});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
 // 8 distinct approved citizens × 4 frames each. Two separate alpha PNG
 // atlases share a fixed 128×128 cell grid: cheer vs counterattack/sacrifice.
