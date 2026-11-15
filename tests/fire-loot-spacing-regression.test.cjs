@@ -44,7 +44,7 @@ const before=[second.x,third.x,fourth.x];
 damage(second,1,false,{x:360,y:0});
 check(second.x>before[0]+30&&third.x>before[1]&&fourth.x>before[2],
  'chain impulse displaces struck and neighboring zombies');
-check(second.knockTime===KNOCK_TRAIL_LIFE&&fourth.knockChain,
+check(second.knockTime===second.knockDuration&&fourth.knockChain,
  'impact trails identify primary and secondary collision');
 for(let i=0;i<foes.length;i++)for(let j=i+1;j<foes.length;j++)
  check(!zombieBoxesOverlap(foes[i],foes[i],foes[j],foes[j],0),

@@ -850,7 +850,8 @@ function applyKnockback(z,impact,n=1){
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockChain=actor!==z;
-   actor.knockDelay=(pos.chainDepth||0)*CHAIN_KNOCK_STEP;
+   actor.knockDelay=(pos.chainDepth||0)>0
+     ?HIT_FREEZE_NORMAL+((pos.chainDepth||0)-1)*CHAIN_KNOCK_STEP:0;
    if(actor===z){
     // Keep contact stun from enemyReaction; collision-only pushes stun too.
     if((actor.hitShakeUntil||0)<=clock){
