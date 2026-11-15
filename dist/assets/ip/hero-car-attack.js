@@ -1,9 +1,9 @@
 /* ZOMBIE ZERO · three 8-frame player vehicle animations (1536×576 PNG).
  * Each cell is 192×192; rows 0/1 are preserved byte-for-byte at render time.
- * Liam (row 2) had almost no top padding and a high-floating car baseline.
+ * Ria (internally liam, row 2) needs more top margin so every hair pixel is visible.
  * Reframe ONLY those eight original bitmap frames into fresh 192px cells:
- * - 95% original content size, horizontal centering.
- * - 14px top inset, giving full hair clearance and matching wheel baseline.
+ * - 93% original content size, horizontal centering (old 95%).
+ * - 18px top inset (old 14px), giving extra hair clearance with a stable wheel baseline.
  * The source art, other heroes, combat physics, and hitboxes stay untouched.
  */
 (function(){
@@ -11,7 +11,7 @@
  if(typeof window==='undefined'||typeof Image==='undefined')return;
  const atlas=new Image();atlas.decoding='async';
  const CELL=192, COLUMNS=8, ROWS=3, LIAM_ROW=2;
- const pack={image:atlas,ready:false,cell:CELL,columns:COLUMNS,rows:ROWS,liamReframed:false};
+ const pack={image:atlas,ready:false,cell:CELL,columns:COLUMNS,rows:ROWS,liamReframed:false,riaHeadroomVersion:52};
  window.ZZHeroCarAttack=pack;
 
  function makeCorrectedAtlas(){
@@ -24,9 +24,9 @@
   if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
   ctx.drawImage(atlas,0,0);
   ctx.clearRect(0,LIAM_ROW*CELL,canvas.width,CELL);
-  const size=CELL*.95;
+  const size=CELL*.93;
   const insetX=(CELL-size)/2; // keep the car horizontally centered
-  const insetY=14;           // preserve hair and lower the tires to Ace/Ruby baseline
+  const insetY=18;           // extra headroom; size reduction keeps tires at the same baseline
   for(let i=0;i<COLUMNS;i++){
    const sx=i*CELL, sy=LIAM_ROW*CELL;
    ctx.drawImage(atlas,sx,sy,CELL,CELL,sx+insetX,sy+insetY,size,size);
@@ -68,5 +68,5 @@
   if(typeof document!=='undefined'&&document.documentElement)
    document.documentElement.dataset.zzHeroAtlas='load-error';
  };
- atlas.src='assets/ip/hero-car-attack.png?v=40-aligned-heroes';
+ atlas.src='assets/ip/hero-car-attack.png?v=52-ria-headroom';
 })();
