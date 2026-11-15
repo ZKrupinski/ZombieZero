@@ -880,6 +880,21 @@ function background(){
  g.restore();
 }
 function player(){
+ const approved=window.ZZHeroAnimationsV55;
+ if(approved&&approved.ready&&approved.idle&&approved.attack){
+  const attacking=heroAttackTime>0;
+  const t=attacking?Math.max(0,Math.min(1,1-heroAttackTime/HERO_ATTACK_DURATION)):0;
+  const n=attacking?Math.min(7,Math.floor(t*8)):(Math.floor(clock*8)%8);
+  const atlas=attacking?approved.attack:approved.idle;
+  const w=108,h=108;
+  const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
+  g.save();g.translate(0,VIEW_DELTA);
+  if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
+  g.drawImage(atlas,n*192,selectedHero*192,192,192,car-w/2,579-h/2,w,h);
+  g.restore();
+  return;
+ }
+ // Legacy author-approved asset fallback if the new sprite PNGs cannot load.
  const sprite=window.ZZHeroCarAttack;
  if(sprite&&sprite.ready&&sprite.image){
   // 70% of the original onscreen car/hero size. Re-center on the OLD 154px
