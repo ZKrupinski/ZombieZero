@@ -60,9 +60,10 @@ for(let frame=0;frame<8;frame++){
 const css=fs.readFileSync('dist/style.css','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const loader=fs.readFileSync('dist/assets/ip/hero-car-attack.js','utf8');
-assert(css.includes('clip-path:inset(0 0 5px 0)'),'selection portrait crops away neighbor interpolation');
+assert(css.includes('clip-path:inset(0 0 5px 0)'),'Ace/Ruby selection portraits keep original neighbor bleed mask');
+assert(css.includes('.hero-vehicle-portrait.row-2{background-position:0 -192px;clip-path:none}'),'only corrected Liam row removes mask to reveal full wheels');
 assert(css.includes('hero-car-attack.png?v=40-aligned-heroes'),'selection card requests new clean atlas');
 assert(loader.includes('hero-car-attack.png?v=40-aligned-heroes'),'actual gameplay requests same clean atlas');
-assert(html.includes('hero-car-attack.js?v=40-aligned-heroes'),'new loader bypasses old cache');
-assert(html.includes('style.css?v=40-voxel-heart-hud'),'new selection styles bypass old cache');
+assert(html.includes('hero-car-attack.js?v=46-liam-frame-fix'),'new loader bypasses old cache');
+assert(html.includes('style.css?v=46-liam-car-crop'),'new selection styles bypass old cache');
 console.log('PASS: all 24 hero/vehicle/attack frames preserved, zero cross-row hair bleed, clean portrait and gameplay cache');
