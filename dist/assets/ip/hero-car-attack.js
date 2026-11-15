@@ -28,7 +28,7 @@
  ];
  function restoreRiaCrown(ctx,frameIndex,cellX,cellY,insetX,size){
   const [left,right]=RIA_CROWN_EDGES[frameIndex];
-  const minX=Math.max(0,left-36),maxX=Math.min(CELL,right+38);
+  const minX=Math.max(0,left-32),maxX=Math.min(CELL,right+32);
   const sourceWidth=maxX-minX,mid=(left+right)/2;
   const scale=size/CELL;
   const centerX=cellX+insetX+mid*scale;
