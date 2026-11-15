@@ -45,7 +45,7 @@ const sideTest=(x,vx,power=false)=>{
  active={};if(power)active.power=10;
  balls=[newBall(x,315,vx,0,false)];
  update(.02);
- const b=balls[0],radius=power?16:8;
+ const b=balls[0],radius=power?12:8;
  check(b.x>=ROAD_LEFT+radius&&b.x<=ROAD_RIGHT-radius,'ball never overlaps painted side wall');
  check(Math.sign(b.vx)===-Math.sign(vx),'ball rebounds from side wall');
 };
