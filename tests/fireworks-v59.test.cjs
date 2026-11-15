@@ -9,7 +9,7 @@ const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
 assert.match(html,/game\.js\?v=60-cube-impact/);
-assert.match(sw,/zombie-zero-shell-v60-cube-impact/);
+assert.match(sw,/zombie-zero-shell-v61-visible-cube-fx/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
@@ -57,7 +57,12 @@ for(const names of [['fire'],['pierce'],['power'],['fire','pierce']]){
  vm.runInContext('drawBallStateAura({x:180,y:560,vx:130,vy:-380,held:false},8);drawBallStateAura({x:225,y:585,vx:0,vy:0,held:true},8);',ctx,{timeout:1000});
 }
 assert.ok(drawCalls>90,'Expected rendered fireworks, sparks and energized ball state');
-console.log('V60 pixel FX and weapon ball rest smoke checks passed.');
+// V61 requires legible mobile dots while preserving the per-hero art identity.
+assert.match(code,/const size=Math.max\(5,Math.round\(r\*1\.15/);
+assert.match(code,/const box=Math.max\(3,Math.round/);
+assert.match(code,/const sz=Math.max\(4,Math.round\(r\*\(\.4/);
+assert.match(code,/drawPixelBurst\(b.x,b.y,t,BAZOOKA_RADIUS\*\.94,68/);
+console.log('V61 visible ball trails and cube FX smoke checks passed.');
 
 assert.match(code,/function drawHeroBallTrail\(b,r\)/);
 assert.match(code,/HERO_BALL_TRAILS=\[/);
