@@ -688,7 +688,7 @@ function stageLootQuota(){
 }
 function lootDropChance(){
  const stage=clamp((wave-1)/35,0,1);
- return Math.min(.64,LOOT_DROP_CHANCE+.22*stage+.17*lootStageProgress());
+ return Math.min(.64,LOOT_DROP_CHANCE+.26*stage+.19*lootStageProgress());
 }
 function lootVisibleLimit(){return wave>=15?3:LOOT_MAX_VISIBLE}
 function fireDropChance(){return Math.min(.36,FIRE_DROP_CHANCE+.15*clamp((wave-3)/32,0,1))}
