@@ -118,9 +118,9 @@ function drawEffects(labels=false){
  }
 }
 // Shared self-contained square-particle pattern, deterministic within each impact.
-function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0,particleScale=1){
+function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0,particleScale=1,motionPower=.56,fadePower=1.3){
  if(t>=1)return;
- const fade=Math.pow(1-t,1.3),travel=Math.pow(t,.56);
+ const fade=Math.pow(1-t,fadePower),travel=Math.pow(t,motionPower);
  g.save();g.translate(x,y);g.shadowColor=palette[1]||'#fff';g.shadowBlur=11*fade;
  for(let i=0;i<count;i++){
   const angle=i*2.39996323+seed,cos=Math.cos(angle),sin=Math.sin(angle);
@@ -757,7 +757,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  z.flash=burning?.12:.22;
  enemyReaction(z,amount,impact);
  if(!burning){
-  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.32:.27,critical,piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
+  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.32:.39,critical,piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
   cameraKick=fxEnabled?Math.max(cameraKick,critical?7.5:z.boss?6:4.7):0;
   haptic(critical?[25,18,25]:z.boss?20:16);
@@ -1296,11 +1296,12 @@ function drawCriticalPopups(){
 function drawImpactFlashes(){
  if(!fxEnabled||!hitFlashes.length)return;
  luminous(()=>{for(const f of hitFlashes){
-  const t=clamp(f.t/(f.critical?.23:.215),0,1);
+  const t=clamp(f.t/(f.critical?.23:.35),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  drawPixelBurst(f.x,f.y,t,f.critical?55:31,f.critical?32:22,
-    (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.32);
+  drawPixelBurst(f.x,f.y,t,f.critical?55:20,f.critical?32:16,
+    (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.75,
+    f.critical?.56:1.45,f.critical?1.3:.78);
  }});
 }
 
@@ -1379,27 +1380,47 @@ const HERO_BALL_TRAILS=[
  {main:'#f2e9dd',soft:'#c9bdaf',accent:'#c86e6b'}, // baseball leather + stitches
  {main:'#f5be76',soft:'#78c2d9',accent:'#e995c2'}  // colorful toy ball
 ];
+// V63: one translucent connected bitmap-colored ribbon; never stack opaque tiles.
 function drawHeroBallTrail(b,r){
  if(b.held||!b.trail||!b.trail.length)return;
  const p=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
- // Match the actual 3D bitmap width; taper just 27% from front to back.
- const ballDiameter=r*3.05;
- g.save();
- // Back-to-front layering keeps the most recent ball-colored segment clean.
- for(let i=b.trail.length-1;i>=0;i--){
-  const pos=b.trail[i],tail=i/Math.max(1,b.trail.length-1);
-  const size=Math.max(6,Math.round(ballDiameter*(1-.27*tail)));
-  const alpha=.78*(1-.48*tail);
-  g.globalAlpha=alpha;g.fillStyle=i%3===0?p.soft:p.main;
-  g.fillRect(Math.round(pos.x-size/2),Math.round(pos.y-size/2),size,size);
-  if(i%3===1){
-   const chip=Math.max(3,Math.round(size*.26));
-   g.globalAlpha=alpha*.88;g.fillStyle=p.accent;
-   g.fillRect(Math.round(pos.x+size*.2),Math.round(pos.y-size*.34),chip,chip);
+ const maxLength=58,spine=[{x:b.x,y:b.y}];let travel=0;
+ for(const pos of b.trail){
+  const prev=spine[spine.length-1];
+  const dx=pos.x-prev.x,dy=pos.y-prev.y,step=Math.hypot(dx,dy);
+  if(step<3)continue;
+  if(travel+step>=maxLength){
+   const part=(maxLength-travel)/step;
+   spine.push({x:prev.x+dx*part,y:prev.y+dy*part});
+   break;
   }
+  spine.push({x:pos.x,y:pos.y});travel+=step;
  }
+ if(spine.length<2)return;
+ const left=[],right=[],total=spine.length-1;
+ for(let i=0;i<spine.length;i++){
+  const point=spine[i],before=spine[Math.max(0,i-1)],after=spine[Math.min(total,i+1)];
+  const dx=before.x-after.x,dy=before.y-after.y,mag=Math.hypot(dx,dy)||1;
+  // The visible ball is smaller than the transparent 3.05r source frame.
+  const halfWidth=r*(.96-.19*i/total);
+  const normalX=-dy/mag,normalY=dx/mag;
+  left.push({x:Math.round(point.x+normalX*halfWidth),y:Math.round(point.y+normalY*halfWidth)});
+  right.push({x:Math.round(point.x-normalX*halfWidth),y:Math.round(point.y-normalY*halfWidth)});
+ }
+ const tip=spine[total];
+ const gradient=g.createLinearGradient(tip.x,tip.y,b.x,b.y);
+ gradient.addColorStop(0,p.soft+'00');
+ gradient.addColorStop(.35,p.main+'35');
+ gradient.addColorStop(.72,p.main+'83');
+ gradient.addColorStop(1,p.main+'b4');
+ g.save();g.globalAlpha=1;g.fillStyle=gradient;
+ g.beginPath();g.moveTo(left[0].x,left[0].y);
+ for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
+ for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
+ g.closePath();g.fill();
  g.restore();
 }
+
 /* V58: Render approved 3D-shaded PNGs. Keep the old circle as network-failure fallback. */
 function drawHeroBallSprite(b,r,col){
  const sprites=window.ZZHeroBallsV58;
