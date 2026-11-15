@@ -32,6 +32,8 @@ check(ENEMY_COLUMNS===9&&ENEMY_LEFT_X===45&&ENEMY_PITCH===40.875,'dense nine-lan
 start();hud();
 check($('status').textContent==='','no TAP TO SERVE before initial service');
 check($('hud-heart-count').textContent==='×3','remaining life count unchanged');
+check(citizens.length===18&&citizens.every(p=>p.x-10>=ROAD_LEFT&&p.x+10<=ROAD_RIGHT),
+ 'all original citizen save hitboxes remain reachable within the new corridor');
 for(const n of [1,2,3,7,20,50]){
  wave=n;rack();
  const normal=foes.filter(z=>!z.boss);
