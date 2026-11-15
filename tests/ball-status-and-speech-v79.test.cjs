@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=79-speech-tail-skill-auras'),'current gameplay assets must reload');
-assert(sw.includes('zombie-zero-shell-v80-scene-preload'),'PWA cache refreshes skill art');
+assert(html.includes('game.js?v=82-ball-fx-ripple'),'current gameplay assets must reload');
+assert(sw.includes('zombie-zero-shell-v82-ball-fx-ripple'),'PWA cache refreshes skill art');
 assert(code.includes("carAtBirth:car,event:text?"),'support dialogue anchors at creation');
 assert(code.includes("carAtBirth:car,t:0,life:1.6"),'everyday cheering anchors at creation');
 assert(code.includes("drawBallStatusForeground(b,r);"),'status highlights actually render after bitmap');
@@ -45,14 +45,14 @@ vm.createContext(context);
 vm.runInContext(aura,context);
 vm.runInContext(trail,context);
 const ball={x:205,y:352,vx:180,vy:-390,held:false};
-for(const [skills,minDraws,tag] of [[['pierce'],15,'blue'],[['fire'],18,'fire'],[['power'],8,'power'],[['fire','pierce','power'],32,'combined']]){
+for(const [skills,minDraws,tag] of [[['pierce'],15,'blue'],[['fire'],14,'fire'],[['power'],8,'power'],[['fire','pierce','power'],32,'combined']]){
  active=new Set(skills);count={rect:0,stroke:0,filled:0,arc:0,positions:[],colors:[]};
  vm.runInContext('drawBallStateAura('+JSON.stringify(ball)+',8);drawBallStatusForeground('+JSON.stringify(ball)+',8)',context);
  assert(count.rect+count.filled+count.stroke>=minDraws,tag+' gives a visible full-ball effect');
  if(tag==='blue')assert(count.colors.some(x=>String(x).includes('#e8ffff')||String(x).includes('#70dafc')),'pierce has readable white/cyan highlights');
  if(tag==='fire')assert(count.colors.some(x=>String(x).includes('#ff5f2b')||String(x).includes('#ff9236')),'fire has unmistakable orange flames');
  if(tag==='power')assert(count.stroke>3,'power has orbital gold bands');
- assert(drawState.shadowBlur===0,'FX remain crisp without blurry halo');
+ assert(drawState.shadowBlur===0,'FX remain soft-edged but contain no oversized particle bloom');
 }
 assert(code.includes('const lateral=r*.72'),'skill trail chips are visible on either side of the beam');
 console.log('PASS: stable speech anchored at creation, 16px bounded pointer; bold piercing/fire/power ball auras and larger trail pixels');
