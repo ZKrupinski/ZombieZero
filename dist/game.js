@@ -467,6 +467,8 @@ function bossPatrolCorridor(z,x,y){
 function bossSelectPatrol(z){
  // Near the defense line the boss must continue advancing, not orbit forever.
  if(z.bossHomeY+z.h>DEFENSE_Y-60)return false;
+ // Alternate a small forward/back step across successive wide sweeps.
+ const depthChoice=[BOSS_DEPTH_SWAY,-BOSS_DEPTH_SWAY,0][(z.bossSweepCount||0)%3];
  const options=[];
  for(const direction of [-1,1]){
   for(const span of [BOSS_SWEEP_MAX,160,125,90]){
@@ -477,7 +479,7 @@ function bossSelectPatrol(z){
     const y=clamp(z.bossHomeY+offsetY,ENEMY_TOP_Y,DEFENSE_Y-z.h-38);
     if(!bossPatrolCorridor(z,x,y))continue;
     options.push({x,y,direction,
-     score:travel+(direction===-z.bossLastDir?28:0)+Math.random()*12-Math.abs(offsetY)*.35});
+     score:travel+(direction===-z.bossLastDir?28:0)+(offsetY===depthChoice?19:0)+Math.random()*10-Math.abs(offsetY)*.25});
    }
   }
  }
@@ -486,6 +488,7 @@ function bossSelectPatrol(z){
  const goal=options[0];
  z.bossGoalX=goal.x;z.bossGoalY=goal.y;
  z.bossGoalTime=clock+3.5;z.bossLastDir=goal.direction;
+ z.bossSweepCount=(z.bossSweepCount||0)+1;
  return true;
 }
 function bossPatrolStep(z,dt){
