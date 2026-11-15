@@ -30,8 +30,8 @@ assert(game.includes('const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25
 assert(game.includes('balls[0].x=car+o.x;balls[0].y=PY+o.y;return'));
 assert(game.includes("ballImpact(b,'x'")&&game.includes("ballImpact(b,'y'"));
 assert(game.includes('drawHeroBallSprite(b,r,col)'));
-assert(game.includes('const spin=0'));
-assert(game.includes("index=b.bounceAxis==='x'"));
+assert(game.includes('const index=0,spin=b.spinAngle||0'));
+assert(game.includes('g.drawImage(img,0,0,frameW,frameH'));
 assert(game.includes('Math.abs(b.x-car)<hero().paddle+radius/2'),'collision unchanged');
 assert(html.indexOf('hero-balls-v58.js')<html.indexOf('game.js?v=76-smooth-ball-spin'));
 for(const n of [...names,'hero-balls-v58.js'])assert(sw.includes("'./assets/ip/"+n+"'"));

@@ -46,7 +46,7 @@ for(const s of sources)vm.runInContext(s,ctx);
 const art=ctx.window.ZZObjectSprite,trash={boss:true,bossForm:1,x:170,y:80,w:66,h:88,seed:.3,flash:0,recoil:0,moveDir:0};
 const img=art.activeImage(trash);
 assert(img.src.endsWith('trash_can_hd.png'),'still using approved source image');
-assert.equal(cleaned.length,4,'only affected HD frames isolated');
+assert.equal(cleaned.length,6,'only four trash frames and two blue boss frames isolated');
 const bad=[19,22,24,25];
 for(const frame of bad){
  const source=art.frameImage(trash,frame,img);
@@ -71,9 +71,20 @@ for(const frame of bad){
 for(const frame of [0,7,12,18,20,23,26,28,29])
  assert.equal(art.frameImage(trash,frame,img),img,'clean-up does not alter good frame '+frame);
 const big={...trash,bossForm:0},bigImg=art.activeImage(big);
-assert.equal(art.frameImage(big,19,bigImg),bigImg,'big zombie atlas never modified');
+for(const frame of [10,19]){
+ const isolated=art.frameImage(big,frame,bigImg);
+ assert(isolated instanceof CanvasMock,'blue boss diagonal frame '+frame+' isolated');
+ const pixels=isolated._pixels;
+ assert.equal(pixels[(120*256+110)*4+3],255,'blue giant body preserved');
+ assert.equal(pixels[(110*256+16)*4+3],0,'disconnected left fragment removed');
+ const calls=[],mock={globalAlpha:1,save(){},restore(){},drawImage(...args){calls.push(args)}};
+ art.drawFrame(mock,bigImg,big,frame);
+ assert.equal(calls[0][0],isolated,'actual gameplay uses corrected blue boss frame');
+}
+for(const frame of [0,1,8,9,11,16,18,20,23,24,28,29])
+ assert.equal(art.frameImage(big,frame,bigImg),bigImg,'other blue boss frame '+frame+' unchanged');
 const game=fs.readFileSync('dist/game.js','utf8');
 assert(game.includes('originalObject?.draw(g,z,clock)'),'production renderer preserved');
 const demo=fs.readFileSync(base+'cast-demo.js','utf8');
 assert(demo.includes('pack.frameImage(actor,frame,img)'),'animation gallery uses the same isolated frames');
-console.log('PASS: trash-can HD 19/22/24/25 remove disconnected alpha islands, preserve body/pivot, other frames and big boss unaffected');
+console.log('PASS: trash-can HD 19/22/24/25 remove disconnected alpha islands, preserve body/pivot, other frames and blue boss diagonal 10/19 corrected');

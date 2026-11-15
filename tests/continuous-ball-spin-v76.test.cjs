@@ -10,7 +10,7 @@ assert(source.includes('for(const b of [...balls]){updateBallSpin(b,dt);'),'spin
 const take=(start,end)=>{const i=source.indexOf(start),j=source.indexOf(end,i+start.length);assert(i>=0&&j>i,'source boundary '+start);return source.slice(i,j)};
 const helpers=take('function newBall(','function resetBalls()')
  +take('function ballImpact(','// Nine nearly touching lanes')
- +take('const HERO_BALL_SPIN_FACTORS=','/* V72: Eight approved bitmaps')
+ +take('const HERO_BALL_SPIN_FACTORS=','/* V77: Single original base bitmap')
  +take('const BALL_MATERIAL_SPRING=','function drawHeroBallSprite(');
 const context={Math,Set,car:225,PY:584,heldBallOffset:()=>({x:0,y:-20}),selectedHero:0,clock:0,
  clamp:(x,lo,hi)=>Math.min(hi,Math.max(lo,x))};
