@@ -36,7 +36,7 @@ assert(css.includes('#status,#toast{display:none!important'),
  'bottom status and toast surfaces hidden even during transient updates');
 assert(html.includes('<span id="status" hidden aria-hidden="true"></span>'),
  'empty status node retained invisibly for compatibility');
-assert(html.includes('game.js?v=64-zombie-sized-impact')&&
- sw.includes('zombie-zero-shell-v64-zombie-sized-impact'),
+assert(html.includes('game.js?v=65-subtle-bloom-larger-balls')&&
+ sw.includes('zombie-zero-shell-v65-subtle-bloom-larger-balls'),
  'new cache versions let mobile PWA show the actual cleanup');
 console.log('PASS: citizen dialogue above badges, no gameplay status text or racket guide, physics unchanged.');
