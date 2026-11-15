@@ -35,7 +35,14 @@ function fit(){
  root.style.setProperty('--ui-scale',String(scale));
  resizeCanvas();
 }
-function updateLabels(){button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':'⛶ 전체화면';button('install').textContent=standalone()?'✓ 설치 실행 중':'↓ 앱 설치'}
+function updateLabels(){
+ button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':'⛶ 전체화면';
+ button('install').textContent=standalone()?'✓ 설치 실행 중':'↓ 앱 설치';
+ // Android in-app browsers can revoke native fullscreen on game end.
+ // Offer a visible one-tap, user-gesture retry rather than claiming success.
+ const retry=button('overlay-fullscreen');
+ if(retry)retry.hidden=!!document.fullscreenElement||standalone();
+}
 
  // Native mobile fullscreen requires a real user gesture. The game-start
  // button supplies that gesture; never try to request fullscreen on load.
@@ -43,7 +50,7 @@ function updateLabels(){button('fullscreen').textContent=document.fullscreenElem
  const mobileDevice=()=>navigator.maxTouchPoints>0||
    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
  function enterMobileFullscreen(){
-  if(!mobileDevice()||document.fullscreenElement||standalone())return;
+  if(document.fullscreenElement||standalone())return;
   const fn=root.requestFullscreen||root.webkitRequestFullscreen;
   if(typeof fn!=='function')return;
   try{
@@ -53,8 +60,27 @@ function updateLabels(){button('fullscreen').textContent=document.fullscreenElem
    try{const fallback=fn.call(root);fallback?.catch?.(()=>{})}catch{}
   }
  }
- for(const id of ['start','endless'])
+ for(const id of ['start','endless','overlay-fullscreen'])
   button(id)?.addEventListener('click',enterMobileFullscreen,{capture:true});
+ // Dedicated first-launch attract screen. Native fullscreen is requested
+ // in the *same click gesture*, before revealing the existing hero picker.
+ const boot=button('boot-screen'),bootStart=button('boot-start');
+ if(boot&&bootStart){
+  bootStart.addEventListener('click',()=>{
+   enterMobileFullscreen();
+   boot.hidden=true;
+   root.classList.add('zz-boot-complete');
+   updateLabels();fit();
+  });
+  // Do not allow underlying Space-to-start gameplay while attract is open.
+  window.addEventListener('keydown',e=>{
+   if(!boot.hidden&&(e.code==='Space'||e.key==='Enter')){
+    e.preventDefault();e.stopImmediatePropagation?.();
+    bootStart.click();
+   }
+  },true);
+ }
+ button('overlay-fullscreen')?.addEventListener('click',()=>{fit();updateLabels()});
 
 button('fullscreen').onclick=async()=>{try{if(document.fullscreenElement){await document.exitFullscreen()}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen({navigationUI:'hide'})}else{inform('주소창 없이 플레이','이 브라우저에서는 전체화면 버튼을 지원하지 않습니다. Safari는 공유 → 홈 화면에 추가, Android Chrome은 메뉴 → 앱 설치 또는 홈 화면에 추가를 사용해 주세요.')}}catch{inform('전체화면 실행 안내','현재 브라우저에서 전체화면 요청이 허용되지 않았습니다. Chrome 또는 Safari에서 이 링크를 직접 열고, 홈 화면에 추가한 아이콘으로 실행해 주세요.')}fit();updateLabels()};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;button('install').textContent='↓ 앱 설치'});
@@ -87,7 +113,7 @@ button('collection-shortcut').onclick=()=>{
 button('help-close').onclick=()=>button('help-dialog').close();button('app-close').onclick=()=>button('app-dialog').close();
 // Prevent vertical browser gestures on the play surface; modal contents keep their own scroll.
 document.addEventListener('touchmove',e=>{if(root.classList.contains('compact-app')&&!e.target.closest('dialog,.overlay'))e.preventDefault()},{passive:false});
-window.addEventListener('resize',fit);window.visualViewport?.addEventListener('resize',fit);document.addEventListener('fullscreenchange',()=>{fit();updateLabels()});
+window.addEventListener('resize',fit);window.visualViewport?.addEventListener('resize',fit);document.addEventListener('fullscreenchange',()=>{fit();updateLabels()});window.addEventListener('pageshow',()=>{fit();updateLabels()});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});}
 fit();updateLabels();requestAnimationFrame(fit);
 })();
