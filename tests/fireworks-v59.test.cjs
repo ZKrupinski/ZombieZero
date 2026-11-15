@@ -71,7 +71,7 @@ assert.match(code,/recordBallTrail\(b,b\.x,b\.y,!!b\._trailCorner\)/);
 assert.match(code,/b\._trailCorner=true/);
 assert.match(code,/g\.shadowColor='transparent';g\.shadowBlur=0/);
 assert.doesNotMatch(code,/drawHeroBallTrail\(b,r,\.11\)/);
-assert.match(code,/KNOCK_TRAIL_LIFE=\.45,KNOCK_TWEEN_LIFE=\.22/);
+assert.match(code,/KNOCK_TWEEN_LIFE=\.27/);assert.match(code,/CHAIN_HIT_FREEZE=\.125/);
 assert.match(code,/HIT_FREEZE_NORMAL=\.105,HIT_FREEZE_BOSS=\.135/);
 assert.match(code,/brightness\(2\.25\) saturate\(\.52\)/);
 assert.match(code,/actor\.knockDelay=Math\.min\(\.135/);
