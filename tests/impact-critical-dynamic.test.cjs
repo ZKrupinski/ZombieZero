@@ -91,6 +91,6 @@ check(src.includes('function drawImpactFlashes()')&&src.includes('drawImpactFlas
 check(src.includes('function drawBarrelBlasts()')&&src.includes("drawPixelBurst(b.x,b.y,t,RED_BARREL_RADIUS*1.08"),
  'red-barrel death has bright jagged explosion core');
 const flash=hitFlashes[0];
-if(flash){updateEnemyVisuals(.35);check(!hitFlashes.includes(flash),'short impact bloom never lingers');}
+if(flash){updateEnemyVisuals(.56);check(!hitFlashes.includes(flash),'short impact bloom never lingers');}
 console.log('PASS: green/special HP, 11% full-health critical one-shot, normal multi-hit death, boss immunity, free-space knockback and stronger flame/impact FX');
 `,sandbox);

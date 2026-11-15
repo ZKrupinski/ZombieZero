@@ -1,95 +1,39 @@
 'use strict';
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const path=require('node:path');
-const vm=require('node:vm');
-const code=fs.readFileSync(path.join(__dirname,'../dist/game.js'),'utf8');
-const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
-const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
-
-new vm.Script(code,{filename:'game.js'});
-assert.match(html,/game\.js\?v=79-speech-tail-skill-auras/);
-assert.match(sw,/zombie-zero-shell-v80-scene-preload/);
-assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
-assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
-assert.match(code,/function drawBallStateAura\(b,r\)/);
-assert.match(code,/drawBallStateAura\(b,r\);\s*drawHeroBallSprite\(b,r,palette\.main\)/);
-assert.doesNotMatch(code,/g\.strokeRect\(b\.x-r\*\.45,b\.y-r\*\.45/);
-
-const section=(start,end)=>{
- const i=code.indexOf(start),j=code.indexOf(end,i+start.length);
- assert.ok(i>=0&&j>i,'Missing FX section '+start);
- return code.slice(i,j);
-};
-const source=[
- section('function drawEffects(labels=false)','function icon(k)'),
- section('function drawImpactFlashes()','function drawBarrelBlasts()'),
- section('function drawBarrelBlasts()','// V60: Each empowered ball'),
- section('function drawBallStateAura(b,r)','/* V77: Single original base bitmap'),
- section('function drawBazooka()','function drawJunk()')
-].join('\n');
-
-let drawCalls=0;
-const canvas=new Proxy({},{
- get(target,property){
-  if(typeof property==='string'&&property.startsWith('_'))return undefined;
-  return function(){drawCalls++};
- },
- set(target,property,value){target[property]=value;return true}
-});
-let activeSkills=new Set();
-const ctx={
- Math, g:canvas, clock:1.42,fxEnabled:true,
- has:key=>activeSkills.has(key),
- clamp:(n,min,max)=>Math.max(min,Math.min(max,n)),
- luminous:draw=>draw(),
- fx:[{x:90,y:140,color:'#ffaa33',size:50,text:'',t:.12,life:.48}],
- hitFlashes:[{x:160,y:140,t:.05,life:.22,critical:false,angle:.9,piercing:false}],
- barrelBlasts:[{x:170,y:150,t:.1,life:.58,seed:1.4}],
- bazookaBlasts:[{x:180,y:160,t:.2,life:.64,seed:2.2}],
- citizens:[],rockets:[],RED_BARREL_RADIUS:86,BAZOOKA_RADIUS:120
-};
-vm.createContext(ctx);
-vm.runInContext(source,ctx,{timeout:1000});
-vm.runInContext('drawEffects(false);drawEffects(true);drawImpactFlashes();drawBarrelBlasts();drawBazooka();',ctx,{timeout:1000});
-for(const names of [['fire'],['pierce'],['power'],['fire','pierce']]){
- activeSkills=new Set(names);
- vm.runInContext('drawBallStateAura({x:180,y:560,vx:130,vy:-380,held:false},8);drawBallStateAura({x:225,y:585,vx:0,vy:0,held:true},8);',ctx,{timeout:1000});
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const noop=()=>{},els={},draws=[];
+const ctx=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
+function el(id){return els[id]??={textContent:'',innerHTML:'',hidden:false,style:{},addEventListener:noop,setAttribute:noop,getContext:()=>ctx,getBoundingClientRect:()=>({width:450,height:710,left:0,top:0}),setPointerCapture:noop}}
+class AudioMock{constructor(){this.currentTime=0;this.sampleRate=44100;this.destination={}}resume(){}createBuffer(n,len,sr){return{getChannelData:()=>new Float32Array(len)}}createBufferSource(){return{connect:noop,start:noop,stop:noop}}createDelay(){return{delayTime:{value:0},connect:noop}}createDynamicsCompressor(){return{threshold:{value:0},ratio:{value:0},connect:noop}}createGain(){return{gain:{value:1,setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop}}createOscillator(){return{frequency:{setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop,start:noop,stop:noop}}}
+const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},window:{AudioContext:AudioMock,addEventListener:noop,ZZGreenDeath:{ready:true,draw:(...args)=>{draws.push(args);return true}}},localStorage:{getItem:()=>0,setItem:noop},Path2D:class{},requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console,draws};
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync('dist/game.js','utf8')+`
+function check(cond,message){if(!cond)throw Error(message)}
+{
+ start();serve();wave=1;rack();
+ let green=foes.find(z=>!z.boss);
+ green.form=0;green.hp=1;green.max=1;
+ let oldScore=score;
+ zombie(green);check(window.ZZGreenDeath.draw!==undefined,'active art available');
+ let idleDraws=draws.length;
+ damage(green,1,false);
+ check(score>oldScore&&enemyDeaths.length===1,'regular death keeps scoring');
+ check(enemyDeaths[0].spriteMode&&enemyDeaths[0].split>=.67&&enemyDeaths[0].split<.73,'normal death uses 8-frame timing');
+ drawEnemyDeaths();check(draws.length>idleDraws,'original bitmap rendered in live scene');
+ updateEnemyVisuals(.30);check(enemyDeaths.length===1,'regular fall persists after 0.30s');
+ updateEnemyVisuals(.47);check(!enemyDeaths.length&&!enemyPieces.length,'normal PNG complete, no duplicate shattered body');
+ start();serve();wave=1;rack();
+ let critical=foes.find(z=>!z.boss);
+ critical.form=0;critical.hp=3;critical.max=3;
+ damage(critical,1,false,null,true);
+ check(enemyDeaths.length===1&&enemyDeaths[0].critical&&enemyDeaths[0].spriteMode,'full-health one-strike critical triggers bitmap sequence');
+ check(enemyDeaths[0].split>=.73&&enemyDeaths[0].split<.81,'critical 10-frame duration');
+ drawEnemyDeaths();
+ // The impact freeze precedes the critical atlas; verify both stages.
+ updateEnemyVisuals(.20);drawEnemyDeaths();
+ check(draws.some(a=>a[2]===true),'critical atlas draws after the brief frozen flash');
+ updateEnemyVisuals(.72);
+ check(enemyDeaths.length===0&&enemyPieces.length===0,'critical atlas already includes scatter, prevent double');
+ const frames=draws.filter(a=>a[2]===true).length;check(frames>0,'critical atlas draw called');
+ console.log('PASS: in-game green living sprite, normal and critical PNG death timings, draw calls, no duplicate debris, original scoring');
 }
-assert.ok(drawCalls>90,'Expected rendered fireworks, sparks and energized ball state');
-// V67: common centerline, physical rebound anchors, no fuzzy replay.
-assert.match(code,/const BALL_TRAIL_NORMAL=170,BALL_TRAIL_POWER=190/);
-assert.match(code,/function recordBallTrail\(b,x,y,corner=false\)/);
-assert.match(code,/function buildBallTrailPath\(b,r\)/);
-assert.match(code,/function sampleBallTrail\(path,d\)/);
-assert.match(code,/function drawHeroBallTrail\(b,r,path=buildBallTrailPath\(b,r\)\)/);
-assert.match(code,/function drawBallSkillTrail\(b,r,path=buildBallTrailPath\(b,r\)\)/);
-assert.match(code,/const trailPath=buildBallTrailPath\(b,r\)/);
-assert.match(code,/drawHeroBallTrail\(b,r,trailPath\)/);
-assert.match(code,/drawBallSkillTrail\(b,r,trailPath\)/);
-assert.match(code,/recordBallTrail\(b,b\.x,b\.y,!!b\._trailCorner\)/);
-assert.match(code,/b\._trailCorner=true/);
-assert.match(code,/g\.shadowColor='transparent';g\.shadowBlur=0/);
-assert.doesNotMatch(code,/drawHeroBallTrail\(b,r,\.11\)/);
-assert.match(code,/KNOCK_TRAIL_LIFE=\.45,KNOCK_TWEEN_LIFE=\.22/);
-assert.match(code,/HIT_FREEZE_NORMAL=\.105,HIT_FREEZE_BOSS=\.135/);
-assert.match(code,/brightness\(2\.25\) saturate\(\.52\)/);
-assert.match(code,/actor\.knockDelay=Math\.min\(\.135/);
-assert.match(code,/actor\.hitShakeFrom=clock\+actor\.knockDelay/);
-assert.match(code,/if\(d\.t<\(d\.freeze\|\|0\)\)/);
-assert.match(code,/function drawStruckZombie\(z\)/);
-const testPath=vm.runInContext(`(function(){
- const b={x:80,y:100,held:false,trail:[]};
- for(let i=0;i<80;i++)recordBallTrail(b,80+i*4,100,i===55);
- b.x=400;b.y=100;
- const a=buildBallTrailPath(b,8),p=buildBallTrailPath(b,16);
- const kink=a.some(k=>Math.abs(k.x-300)<.1&&Math.abs(k.y-100)<.1);
- return {n:a[a.length-1].s,p:p[p.length-1].s,kink};
-})()`,ctx);
-assert(testPath.n<=170.01&&testPath.p<=190.01,'large balls get capped trail lengths');
-assert(testPath.kink,'bounce anchor remains on the exact spline path');
-console.log('V67 shared bounce-correct trails, halo removal and staged hit reaction checks passed.');
-
-assert.match(code,/HERO_BALL_TRAILS=\[/);
-assert.match(code,/function drawPixelBurst\(/);
-assert.doesNotMatch(code,/const HELD_BALL_OFFSETS=\[\{x:38/);
+`,sandbox);

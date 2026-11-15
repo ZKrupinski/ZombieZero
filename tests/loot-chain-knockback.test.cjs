@@ -63,15 +63,16 @@ check(a.x>=oldA+24,'the struck zombie visibly slides more than before');
 check(b.x>oldB&&third.x>oldC,'collision transfer ripples through two bystanders');
 check(a.knockTime>0&&b.knockTime>0&&third.knockTime>0,
  'each displaced zombie gets a temporary motion echo');
-check(b.flinch>0&&third.flinch>0,'pushed bystanders react despite taking no damage');
+check(b.chainReactAt>clock&&third.chainReactAt>b.chainReactAt,
+ 'pushed bystanders wait for their own hit reaction rather than reacting instantly');
 check(a.knockDelay<b.knockDelay&&b.knockDelay<third.knockDelay,'chain stagger progresses target to second to third zombie');
 check(b.hp===9&&third.hp===9,'collision propagation is force only, not extra damage');
 check(!zombieBoxesOverlap(a,{x:a.x,y:a.y},b,{x:b.x,y:b.y},0),
  'contact chain cannot overlap neighbor');
 check(!zombieBoxesOverlap(b,{x:b.x,y:b.y},third,{x:third.x,y:third.y},0),
  'contact chain cannot overlap next neighbor');
-updateEnemyVisuals(.48);
-check([a,b,third].every(z=>!z.knockTime),'afterimage ends after ordered .45-second chain tween');
+clock+=1.25;updateEnemyVisuals(1.25);
+check([a,b,third].every(z=>!z.knockTime),'staggered chain and longer tween finish cleanly');
 // Outward zombie knockback reflects off the new collision wall, staying inside.
 a=foe(45,130);foes=[a];
 check(applyKnockback(a,{x:-300,y:0},1),'wall reflects a shove inward');
