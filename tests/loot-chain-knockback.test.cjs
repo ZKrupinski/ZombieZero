@@ -37,7 +37,9 @@ check(Math.hypot(items[0].x-items[1].x,items[0].y-items[1].y)>=LOOT_SPACING,
       'pickup icons do not overlap despite identical spawn points');
 pick();check(items.length===2,'maximum two simultaneous items');
 for(const item of items){check(item.x>=40&&item.x<=410,'loot stays inside visible roadway')}
-const saved=items[0].k;active[saved]=10;items=[];pick();
+const saved=items[0].k;active[saved]=10;items=[];
+// Newly reserved late-stage quota opens only after meaningful stage progress.
+foes=foes.slice(-2);pick();
 check(items[0].k!==saved,'no active-skill duplicate pickup');
 active={};items=[];
 for(let j=0;j<10;j++){items=[];pick()}
