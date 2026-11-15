@@ -118,10 +118,10 @@ function drawEffects(labels=false){
  }
 }
 // Shared self-contained square-particle pattern, deterministic within each impact.
-function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0,particleScale=1,motionPower=.56,fadePower=1.3){
+function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0,particleScale=1,motionPower=.56,fadePower=1.3,glowScale=1){
  if(t>=1)return;
  const fade=Math.pow(1-t,fadePower),travel=Math.pow(t,motionPower);
- g.save();g.translate(x,y);g.shadowColor=palette[1]||'#fff';g.shadowBlur=11*fade;
+ g.save();g.translate(x,y);g.shadowColor=palette[1]||'#fff';g.shadowBlur=11*fade*glowScale;
  for(let i=0;i<count;i++){
   const angle=i*2.39996323+seed,cos=Math.cos(angle),sin=Math.sin(angle);
   const jitter=.65+.43*(.5+.5*Math.sin(i*19.17+seed*7.3));
@@ -1296,16 +1296,17 @@ function drawCriticalPopups(){
 }
 function drawImpactFlashes(){
  if(!fxEnabled||!hitFlashes.length)return;
- luminous(()=>{for(const f of hitFlashes){
+ for(const f of hitFlashes){
   const t=clamp(f.t/(f.critical?.23:.35),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  drawPixelBurst(f.x,f.y,t,f.critical?55:(f.spread||44),f.critical?32:16,
+  const drawHit=()=>drawPixelBurst(f.x,f.y,t,f.critical?55:(f.spread||44),f.critical?32:16,
     (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.75,
-    f.critical?.56:1.45,f.critical?1.3:.78);
- }});
+    f.critical?.56:1.45,f.critical?1.3:.78,f.critical?1:.35);
+  // Critical hits retain full shader; ordinary hits get only subtle local glow.
+  if(f.critical)luminous(drawHit);else drawHit();
+ }
 }
-
 function drawBarrelBlasts(){
  if(!fxEnabled||!barrelBlasts.length)return;
  luminous(()=>{for(const b of barrelBlasts){
@@ -1340,11 +1341,13 @@ function drawBallStateAura(b,r){
     g.globalAlpha=(1-progress)*.9;g.fillStyle=i%4===0?'#fff0a5':i%2?'#ffb54b':'#ef592c';
     g.fillRect(Math.round(x),Math.round(y),sz,sz);
    }
-   for(let i=0;i<5;i++){
-    const a=i*1.257+clock*2.1;
-    const x=Math.cos(a)*r*.97,y=Math.sin(a)*r*.97;
-    g.globalAlpha=.7;g.fillStyle=i%2?'#ffe28b':'#ff8b36';
-    g.fillRect(Math.round(x),Math.round(y),Math.max(2,Math.round(r*.4)),Math.max(2,Math.round(r*.4)));
+   // Animated embers stay behind the moving ball; no stuck specks on its nose.
+   for(let i=0;i<4;i++){
+    const age=(clock*9+i*.23)%1;
+    const x=-r*(.95+age*1.35),y=Math.sin(i*3.7+clock*13)*r*.43;
+    const sz=Math.max(2,Math.round(r*(.28-.12*age)));
+    g.globalAlpha=.65*(1-age);g.fillStyle=i%2?'#ffe28b':'#ff8b36';
+    g.fillRect(Math.round(x),Math.round(y),sz,sz);
    }
   }
   if(pierce){
@@ -1356,19 +1359,15 @@ function drawBallStateAura(b,r){
     g.globalAlpha=(1-progress)*.86;g.fillStyle=i%3===0?'#f4feff':i%2?'#76cff4':'#3f9dcf';
     g.fillRect(Math.round(x),Math.round(y+Math.sin(i*3+clock*15)*r*.13),sz,sz);
    }
-   // Two tiny forward pixel flashes indicate penetration direction.
-   for(let i=0;i<3;i++){
-    const d=r*(.95+i*.35),z=Math.max(4,Math.round(r*.43));
-    g.globalAlpha=.7-i*.18;g.fillStyle=i?'#77d8fb':'#f3ffff';
-    g.fillRect(Math.round(d),Math.round((i-1)*r*.3),z,z);
-   }
+   // Removed the stationary piercing nose squares; rear wake communicates the skill.
   }
   if(power&&!fire&&!pierce){
-   for(let i=0;i<8;i++){
-    const a=i*.785+clock*2,d=r*(1+.17*Math.sin(clock*16+i*3));
-    const sz=Math.max(4,Math.round(r*.38));
-    g.globalAlpha=.72;g.fillStyle=i%2?'#fffbe3':'#e3edb0';
-    g.fillRect(Math.round(Math.cos(a)*d),Math.round(Math.sin(a)*d),sz,sz);
+   for(let i=0;i<6;i++){
+    const age=(clock*7+i/6)%1;
+    const x=-r*(.65+age*2.1),y=Math.sin(clock*15+i*2.4)*r*.42;
+    const sz=Math.max(3,Math.round(r*(.33-.12*age)));
+    g.globalAlpha=.65*(1-age);g.fillStyle=i%2?'#fffbe3':'#e3edb0';
+    g.fillRect(Math.round(x),Math.round(y),sz,sz);
    }
   }
   g.restore();
@@ -1382,10 +1381,10 @@ const HERO_BALL_TRAILS=[
  {main:'#f5be76',soft:'#78c2d9',accent:'#e995c2'}  // colorful toy ball
 ];
 // V63: one translucent connected bitmap-colored ribbon; never stack opaque tiles.
-function drawHeroBallTrail(b,r){
+function drawHeroBallTrail(b,r,opacity=1){
  if(b.held||!b.trail||!b.trail.length)return;
  const p=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
- const maxLength=58,spine=[{x:b.x,y:b.y}];let travel=0;
+ const maxLength=86,spine=[{x:b.x,y:b.y}];let travel=0;
  for(const pos of b.trail){
   const prev=spine[spine.length-1];
   const dx=pos.x-prev.x,dy=pos.y-prev.y,step=Math.hypot(dx,dy);
@@ -1414,7 +1413,7 @@ function drawHeroBallTrail(b,r){
  gradient.addColorStop(.35,p.main+'35');
  gradient.addColorStop(.72,p.main+'83');
  gradient.addColorStop(1,p.main+'b4');
- g.save();g.globalAlpha=1;g.fillStyle=gradient;
+ g.save();g.globalAlpha=opacity;g.fillStyle=gradient;
  g.beginPath();g.moveTo(left[0].x,left[0].y);
  for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
  for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
@@ -1437,11 +1436,11 @@ function drawHeroBallSprite(b,r,col){
    index=b.bounceAxis==='x'?(b.bounceDir<0?4:5):(elapsed<.075?2:3);
   }
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
-  const size=r*3.05;
+  const size=r*3.40;
   g.drawImage(img,(index%4)*frameW,Math.floor(index/4)*frameH,frameW,frameH,
    b.x-size/2,b.y-size/2,size,size);
  }else{
-  g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r,0,Math.PI*2);g.fill();
+  g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r*1.11,0,Math.PI*2);g.fill();
   g.strokeStyle='#ffffcf';g.lineWidth=1.5;
   g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();
   g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();
@@ -1466,6 +1465,13 @@ drawKillCombo();drawBarrelBlasts();
   const r=has('power')?16:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   drawHeroBallTrail(b,r);
+  // A restrained secondary source-only pass; shader global strength stays unchanged.
+  if(fxEnabled&&fxRenderer&&!b.held){
+   const main=g;
+   fxRenderer.capture(main,context=>{
+    g=context;try{drawHeroBallTrail(b,r,.11)}finally{g=main}
+   });
+  }
   drawBallStateAura(b,r);
   drawHeroBallSprite(b,r,palette.main);
   if(b.held&&mode==='playing'){
