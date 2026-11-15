@@ -632,7 +632,15 @@ function applyKnockback(z,impact,n=1){
  const dirX=vx/mag,dirY=vy/mag;
  for(const factor of [1,.85,.7,.55,.4,.25,.12]){
   const plans=new Map();
-  if(!planKnockPush(z,dirX*distance*factor,dirY*distance*factor,plans))continue;
+  // Reflect lateral impact at the painted side walls instead of embedding a
+  // knocked zombie in a wall. Full chains remain collision-checked as before.
+  const proposedX=z.x+dirX*distance*factor;
+  const low=zombieMinX(),high=zombieMaxX(z);
+  const reflectedX=proposedX<low?2*low-proposedX:
+                   proposedX>high?2*high-proposedX:proposedX;
+  const pushX=reflectedX-z.x;
+  const pushY=dirY*distance*factor;
+  if(!planKnockPush(z,pushX,pushY,plans))continue;
   let valid=true;
   for(const [a,pa] of plans)
    for(const other of foes){
