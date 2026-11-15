@@ -1024,3 +1024,12 @@ html.portrait-play body,html.landscape-game body{overflow:hidden!important}
  background-image:url('assets/ip/hero-idle-v55.png?v=55-approved-cast')!important;
  clip-path:none!important;
 }
+
+/* v75: approved original transparent PNG brand identity. Zero CSS-built text art. */
+.zz-brand-image{display:block;height:auto;object-fit:contain;object-position:center;image-rendering:auto!important;filter:none!important}
+.logo-heading>.game-logo{width:100%;max-width:395px;max-height:280px;margin:0;object-fit:contain}
+.overlay[data-title="true"]>.overlay-logo{width:min(88%,390px);height:auto;max-height:max(0px,calc(100% - 270px));object-fit:contain;object-position:center top;margin:0 auto 3px}
+.boot-content>.boot-logo-image{display:block;width:min(96%,420px);height:auto;max-height:min(35svh,260px);min-height:0;object-fit:contain;object-position:center}
+@media(max-height:620px){.boot-content{gap:8px}.boot-content>.boot-logo-image{max-height:min(31svh,195px)}.boot-tagline{margin-bottom:4px!important}}
+@media(max-height:460px){.boot-screen{padding:9px 12px}.boot-content{gap:4px}.boot-content>.boot-logo-image{max-height:28svh}.boot-tagline{font-size:9px!important;margin:0!important}.boot-start{min-height:43px;font-size:18px}}
+@media(min-width:761px){.logo-heading>.game-logo{max-width:395px}}
