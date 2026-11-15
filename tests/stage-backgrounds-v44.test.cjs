@@ -8,7 +8,7 @@ assert(html.includes('assets/stages/stage-backgrounds-v45.js?v=45-eighteen-scene
   'bitmap scene loader is included on the live page');
 assert(html.indexOf('stage-backgrounds-v45.js')<html.indexOf('game.js?v=51-bubble-foreground-clean-ui'),
   'backgrounds begin loading before gameplay code');
-assert(sw.includes('zombie-zero-shell-v53-voxel-crown'),'offline cache invalidated');
+assert(sw.includes('zombie-zero-shell-v54-original-hair'),'offline cache invalidated');
 assert(!game.includes('setStageBackground();PY='),'stage transitions never modify ball collision Y');
 assert(game.includes('wave++;setStageBackground();'),'every advancing stage switches theme');
 assert(game.includes("setStageBackground(true);lives=hero().lives"),'new campaign and endless runs reset backdrop correctly');
