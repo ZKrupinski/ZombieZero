@@ -266,7 +266,7 @@ html.landscape-game,html.landscape-game body{
 /* High-resolution 192px authored PNG frames: 96px preview per character. */
 .hero-card .hero-vehicle-portrait{
  display:block;flex:none;width:96px;height:96px;
- background-image:var(--zz-hero-car-frames, url('assets/ip/hero-car-attack.png?v=53-voxel-crown'));
+ background-image:var(--zz-hero-car-frames, url('assets/ip/hero-car-attack.png?v=54-original-hair'));
  background-repeat:no-repeat;background-size:768px 288px;
  image-rendering:auto;overflow:hidden;
  /* Keep original Ace/Ruby row bleed mask; Ria's rebuilt row needs no mask. */
