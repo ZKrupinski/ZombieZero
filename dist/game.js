@@ -757,7 +757,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  z.flash=burning?.12:.22;
  enemyReaction(z,amount,impact);
  if(!burning){
-  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.32:.39,critical,piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
+  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.32:.39,critical,spread:Math.max(z.w,z.h),piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
   cameraKick=fxEnabled?Math.max(cameraKick,critical?7.5:z.boss?6:4.7):0;
   haptic(critical?[25,18,25]:z.boss?20:16);
@@ -1300,7 +1300,7 @@ function drawImpactFlashes(){
   const t=clamp(f.t/(f.critical?.23:.35),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  drawPixelBurst(f.x,f.y,t,f.critical?55:20,f.critical?32:16,
+  drawPixelBurst(f.x,f.y,t,f.critical?55:(f.spread||44),f.critical?32:16,
     (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.75,
     f.critical?.56:1.45,f.critical?1.3:.78);
  }});
