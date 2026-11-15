@@ -285,7 +285,7 @@ function setStageForms(regulars,stage){
  for(const z of regulars)z.hp=z.max=zombieHP(z.form,z.kind,stage);
 }
 function rack(){
- foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;supportDropsThisWave=0;
+ foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];supportDropsThisWave=0;
  const rows=wave===1&&runMode==='campaign'?2:Math.min(4,Math.max(2,Math.min(
   Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
   Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
@@ -665,16 +665,37 @@ let lastSupportAt=-60,supportDangerTime=0,supportDropsThisWave=0;
 function supportRisk(){if(!foes.length)return 0;const bottom=Math.max(...foes.map(z=>z.y+z.h)),alive=citizens.filter(p=>p.alive).length;return bottom>=475||(bottom>=380&&(lives===1||alive<=5))?2:bottom>=390||lives===1||alive<=8?1:0}
 function supportAvailable(){return wave>=3&&supportDropsThisWave<1&&citizens.some(p=>p.alive)&&clock-lastSupportAt>=45&&!has('bazooka')&&!items.some(i=>i.k==='bazooka')&&!rockets.length}
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
-function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3||items.length>=LOOT_MAX_VISIBLE)return;const pos=pickupLocation(car,PY-119);if(!pos)return;items.push({...pos,k:'bazooka',phase:0});lastSupportAt=clock;supportDropsThisWave++;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
+function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3||items.length>=lootVisibleLimit())return;const pos=pickupLocation(car,PY-119);if(!pos)return;items.push({...pos,k:'bazooka',phase:0});lastSupportAt=clock;supportDropsThisWave++;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
 // Controlled loot: a few meaningful, non-duplicate pickups per wave.
 // Fire is recoverably rare (guaranteed after a dry streak of stages), not absent.
 const LOOT_DROP_CHANCE=.19,LOOT_MAX_VISIBLE=2,LOOT_MAX_STAGE=3,LOOT_SPACING=72;
 const FIRE_DROP_CHANCE=.20,FIRE_DROP_COOLDOWN=24,FIRE_DROP_STAGE_GAP=2,FIRE_PITY_STAGES=3;
 let fireDropsThisWave=0,lastFireDropAt=-1e6,lastFireDropWave=0;
-let stageLootCount=0,recentLootKinds=[];
+let stageLootCount=0,recentLootKinds=[],stageLootKinds=[];
+function stageLootLimit(){
+ // Stage 1–3 retain the original cap; later stages get more opportunities.
+ return LOOT_MAX_STAGE+(wave>=5)+(wave>=12)+(wave>=24)+(wave>=40);
+}
+function lootStageProgress(){
+ // Count enemies still standing so the last ranks have a better drop rate.
+ if(waveInitialRegulars<=0)return 0;
+ const remaining=Math.min(waveInitialRegulars,foes.filter(z=>!z.boss).length);
+ return clamp((waveInitialRegulars-remaining)/waveInitialRegulars,0,1);
+}
+function stageLootQuota(){
+ // Preserve slots for the latter half instead of exhausting all drops early.
+ return Math.ceil(stageLootLimit()*(.45+.55*lootStageProgress()));
+}
+function lootDropChance(){
+ const stage=clamp((wave-1)/35,0,1);
+ return Math.min(.64,LOOT_DROP_CHANCE+.22*stage+.17*lootStageProgress());
+}
+function lootVisibleLimit(){return wave>=15?3:LOOT_MAX_VISIBLE}
+function fireDropChance(){return Math.min(.36,FIRE_DROP_CHANCE+.15*clamp((wave-3)/32,0,1))}
 function fireCanDrop(){
- return fireDropsThisWave===0&&wave-lastFireDropWave>=FIRE_DROP_STAGE_GAP&&
-   clock-lastFireDropAt>=FIRE_DROP_COOLDOWN&&!has('fire')&&
+ const gap=wave>=12?1:FIRE_DROP_STAGE_GAP,cooldown=wave>=12?16:FIRE_DROP_COOLDOWN;
+ return fireDropsThisWave===0&&wave-lastFireDropWave>=gap&&
+   clock-lastFireDropAt>=cooldown&&!has('fire')&&
    !items.some(item=>item.k==='fire');
 }
 function pickupLocation(x,y){
@@ -691,28 +712,32 @@ function pickupLocation(x,y){
 function drop(z){
  if(z.max<2&&!z.boss)return;
  const boss=!!z.boss,fireReady=fireCanDrop();
- const pity=fireReady&&wave>=3&&wave-lastFireDropWave>=FIRE_PITY_STAGES;
- // An overdue fire reward takes priority over ordinary random drops.
- if(!boss&&stageLootCount>=LOOT_MAX_STAGE)return;
- if(!boss&&!pity&&Math.random()>=LOOT_DROP_CHANCE)return;
+ const pity=fireReady&&wave>=3&&wave-lastFireDropWave>=(wave>=12?2:FIRE_PITY_STAGES);
+ // Hard cap is stage-scaled; soft quota reserves part of the loot for late kills.
+ if(!boss&&stageLootCount>=stageLootLimit())return;
+ if(!boss&&!pity&&stageLootCount>=stageLootQuota())return;
+ if(!boss&&!pity&&Math.random()>=lootDropChance())return;
  // Fire pity and boss rewards can replace one uncollected regular pickup.
- if(items.length>=LOOT_MAX_VISIBLE){
+ if(items.length>=lootVisibleLimit()){
   if(!boss&&!pity)return;
   const replaceIndex=items.findIndex(item=>item.k!=='fire');
   if(replaceIndex<0)return;
   items.splice(replaceIndex,1);
  }
  let k=null;
- if(fireReady&&(pity||Math.random()<FIRE_DROP_CHANCE)){
+ if(fireReady&&(pity||Math.random()<fireDropChance())){
   k='fire';
  }else if(supportAvailable()&&Math.random()<supportChance()){
   k='bazooka';
  }else{
   const choices=Object.keys(SKILLS).filter(key=>key!=='fire'&&key!=='bazooka'&&
    !has(key)&&!items.some(item=>item.k===key));
-  const fresh=choices.filter(key=>!recentLootKinds.includes(key));
-  const oldest=Math.min(...choices.map(key=>recentLootKinds.lastIndexOf(key)));
-  const pool=fresh.length?fresh:choices.filter(key=>recentLootKinds.lastIndexOf(key)===oldest);
+  // Prefer a skill not yet seen in THIS stage, then avoid recent-stage repeats.
+  const neverThisStage=choices.filter(key=>!stageLootKinds.includes(key));
+  const candidatePool=neverThisStage.length?neverThisStage:choices;
+  const fresh=candidatePool.filter(key=>!recentLootKinds.includes(key));
+  const oldest=Math.min(...candidatePool.map(key=>recentLootKinds.lastIndexOf(key)));
+  const pool=fresh.length?fresh:candidatePool.filter(key=>recentLootKinds.lastIndexOf(key)===oldest);
   if(!pool.length)return;
   k=pool[Math.floor(Math.random()*pool.length)];
  }
@@ -721,6 +746,7 @@ function drop(z){
  if(!pos)return;
  items.push({...pos,k,phase:Math.random()*6});
  stageLootCount++;
+ if(!stageLootKinds.includes(k))stageLootKinds.push(k);
  recentLootKinds.push(k);
  if(recentLootKinds.length>4)recentLootKinds.shift();
  if(k==='fire'){
@@ -1669,6 +1695,112 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  }
  g.restore();
 }
+// V83: fire is a living secondary layer, never a replacement for the ball bitmap.
+// Tapered cubic tongues, warm inner cores and a backward-flowing ember ribbon.
+function flameTongue(x,y,dx,dy,width,outer,alpha=1){
+ const mag=Math.hypot(dx,dy)||1,nx=-dy/mag,ny=dx/mag;
+ const len=mag,root=width*.64;
+ g.save();g.globalAlpha=alpha;g.fillStyle=outer;
+ g.beginPath();g.moveTo(x+nx*root,y+ny*root);
+ g.bezierCurveTo(x+dx*.33+nx*width*.9,y+dy*.33+ny*width*.9,
+  x+dx*.72+nx*width*.34,y+dy*.72+ny*width*.34,x+dx,y+dy);
+ g.bezierCurveTo(x+dx*.64-nx*width*.36,y+dy*.64-ny*width*.36,
+  x+dx*.25-nx*width*.9,y+dy*.25-ny*width*.9,
+  x-nx*root,y-ny*root);g.closePath();g.fill();
+ g.restore();
+}
+function drawBurningBallFlames(b,r,front=false){
+ if(!fxEnabled||!has('fire'))return;
+ const t=clock,velocity=Math.hypot(b.vx||0,b.vy||0);
+ const windX=velocity>1?-(b.vx||0)/velocity:0,windY=velocity>1?-(b.vy||0)/velocity:-1;
+ g.save();g.translate(b.x,b.y);g.globalCompositeOperation='lighter';
+ if(!front){
+  const glow=g.createRadialGradient?.(0,0,r*.65,0,0,r*2.05);
+  if(glow&&typeof glow.addColorStop==='function'){
+   glow.addColorStop(0,'rgba(255,238,155,0)');
+   glow.addColorStop(.47,'rgba(255,146,47,.18)');
+   glow.addColorStop(.78,'rgba(255,86,27,.14)');
+   glow.addColorStop(1,'rgba(255,86,27,0)');
+   g.fillStyle=glow;g.globalAlpha=.87;g.beginPath();g.arc(0,0,r*2.05,0,Math.PI*2);g.fill();
+  }
+ }
+ const count=front?6:12;
+ g.shadowColor=front?'transparent':'#ff7b2a';g.shadowBlur=front?0:4;
+ for(let i=0;i<count;i++){
+  const angle=i*Math.PI*2/count+.06*Math.sin(t*7+i*2.3);
+  const ax=Math.cos(angle),ay=Math.sin(angle);
+  const wave=.5+.5*Math.sin(t*(front?13:10)+i*2.4);
+  const bx=ax*r*(front?1.25:1.43),by=ay*r*(front?1.25:1.43);
+  const length=r*(front?.18+.18*wave:.25+.23*wave);
+  const dx=ax*length*.75+windX*length*.46;
+  const dy=ay*length*.75+windY*length*.46;
+  const width=r*(front?.085:.14)*(1+.2*wave);
+  const alpha=front?.47:.73;
+  flameTongue(bx,by,dx,dy,width,i%3===0?'#ffe393':i%2?'#ffad48':'#ff6428',alpha);
+  if(!front)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
+ }
+ if(front){
+  // Surface heat should glimmer over, but not obscure, the three ball designs.
+  g.globalAlpha=.22;g.strokeStyle='#ffd88a';g.lineWidth=Math.max(1,r*.07);
+  for(let i=0;i<4;i++){
+   const a=t*.85+i*Math.PI/2;
+   g.beginPath();g.arc(0,0,r*1.22,a,a+.37);g.stroke();
+  }
+ }
+ g.restore();
+}
+function drawBurningTrailFlames(b,r,path){
+ if(!fxEnabled||!has('fire')||!path||path.length<2)return;
+ const t=clock,maxLen=Math.min(path[path.length-1].s,170);
+ if(maxLen<4)return;
+ const ribbons=[
+  {scale:1,color:'rgba(255,88,29,.59)',drift:.44},
+  {scale:.55,color:'rgba(255,159,52,.64)',drift:.24},
+  {scale:.25,color:'rgba(255,240,167,.71)',drift:.09}
+ ];
+ g.save();g.lineCap='round';g.globalCompositeOperation='lighter';g.shadowBlur=0;
+ for(const layer of ribbons){
+  const left=[],right=[];
+  for(let d=0;d<=maxLen;d+=6){
+   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+3));
+   if(!p||!q)continue;
+   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1;
+   const nx=-dy/m,ny=dx/m;
+   const fade=Math.pow(Math.max(0,1-d/Math.max(1,maxLen)),.78);
+   const flicker=.8+.2*Math.sin(t*18+d*.19);
+   const width=r*layer.scale*fade*flicker;
+   const drift=Math.sin(t*11+d*.12)*r*layer.drift*fade;
+   left.push({x:p.x+nx*(width+drift),y:p.y+ny*(width+drift)});
+   right.push({x:p.x+nx*(-width+drift),y:p.y+ny*(-width+drift)});
+  }
+  if(left.length<2)continue;
+  g.fillStyle=layer.color;g.beginPath();g.moveTo(left[0].x,left[0].y);
+  for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
+  for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
+  g.closePath();g.fill();
+ }
+ // Tongues curl and detach from the outer edge of the moving trail,
+ // staggered in time instead of one rigid straight beam.
+ for(let d=9,i=0;d<maxLen-5;d+=14,i++){
+  const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
+  if(!p||!q)continue;
+  const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
+  const nx=-dy/mag,ny=dx/mag;
+  const fade=Math.pow(1-d/maxLen,1.25);
+  for(const side of [-1,1]){
+   const oscillation=Math.sin(t*13+i*2.2+side*1.5);
+   const base=r*(.45+.25*oscillation);
+   const x=p.x+nx*side*base,y=p.y+ny*side*base;
+   const reach=(8+5*(.5+.5*oscillation))*fade;
+   const tx=dx/mag*reach+nx*side*reach*.65;
+   const ty=dy/mag*reach+ny*side*reach*.65;
+   flameTongue(x,y,tx,ty,Math.max(.7,r*.17*fade),
+     (i+side)%3===0?'#fff1b5':i%2?'#ff9e41':'#f75c2c',.78*fade);
+  }
+ }
+ g.restore();
+}
+
 // V76: per-ball rotational inertia updated ONCE per game tick, not per frame
 // cell or direction change. Squash/stretch uses its own transform axes.
 const HERO_BALL_SPIN_FACTORS=[1,.82,1.13]; // tennis / baseball / toy
@@ -1780,9 +1912,12 @@ drawKillCombo();drawBarrelBlasts();
   const trailPath=buildBallTrailPath(b,r);
   drawHeroBallTrail(b,r,trailPath);
   drawBallSkillTrail(b,r,trailPath);
+  drawBurningTrailFlames(b,r,trailPath);
   drawBallStateAura(b,r);
+  drawBurningBallFlames(b,r,false);
   drawHeroBallSprite(b,r,palette.main);
   drawBallStatusForeground(b,r);
+  drawBurningBallFlames(b,r,true);
  }
  drawBallVanish();
  if(particles.length)luminous(()=>{
