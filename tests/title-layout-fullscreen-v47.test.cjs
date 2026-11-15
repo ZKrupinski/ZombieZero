@@ -40,6 +40,7 @@ const styleVars={};
 const root={
  classList:{
   add(k){classes.add(k);},
+  remove(k){classes.delete(k);},
   toggle(k,v){if(v)classes.add(k);else classes.delete(k);},
   contains(k){return classes.has(k);}
  },
@@ -73,7 +74,7 @@ assert.equal(requests,0,'fullscreen not requested before user input');
 node('boot-start').click();
 assert.equal(requests,1,'GAME START requests fullscreen in the original gesture');
 assert.equal(node('boot-screen').hidden,false,'title remains until decoding finishes');
-Promise.resolve().then(()=>Promise.resolve()).then(()=>Promise.resolve()).then(()=>{
+new Promise(resolve=>setImmediate(resolve)).then(()=>{
  assert.equal(node('boot-screen').hidden,true,'selection appears after preload resolves');
  assert.equal(node('boot-scene').hidden,true,'standalone title scene closes');
  assert.equal(node('overlay-fullscreen').hidden,true,'native fullscreen needs no retry');
