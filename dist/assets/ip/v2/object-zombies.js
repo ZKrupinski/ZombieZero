@@ -129,6 +129,11 @@ function sourceRect(z,frame,img=null){
  const b=geom?.[group]||[0,0,cell,cell];
  return [(frame%8)*cell+b[0],Math.floor(frame/8)*cell+b[1],b[2],b[3]];
 }
+function frameImage(z,frame,img=null){
+ const image=img||activeImage(z);
+ if(keyFor(z)!=='trash_can'||!image||image.naturalWidth!==2048)return image;
+ return images.trash_can?.hd?.cleanFrames?.[frame]||image;
+}
 function drawFrame(ctx,img,z,frame,opacity=1){
  const {cell,geom}=imageGeometry(z,img),id=keyFor(z);
  const rect=sourceRect(z,frame,img),walk=geom?.walkUnion||[0,0,cell,cell];
@@ -145,10 +150,10 @@ function drawFrame(ctx,img,z,frame,opacity=1){
  if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
  // The corrected 256px frame has the same local source bounds and world pivot.
  // Only HD trash-can frame indices 19/22/24/25 use isolated alpha images.
- const isolated=id==='trash_can'&&cell===256?images.trash_can?.hd?.cleanFrames?.[frame]:null;
- if(isolated){
+ const frameArt=frameImage(z,frame,img);
+ if(frameArt!==img){
   const localRect=[rect[0]%cell,rect[1]%cell,rect[2],rect[3]];
-  ctx.drawImage(isolated,...localRect,x,y,rect[2]*scale,rect[3]*scale);
+  ctx.drawImage(frameArt,...localRect,x,y,rect[2]*scale,rect[3]*scale);
  }else ctx.drawImage(img,...rect,x,y,rect[2]*scale,rect[3]*scale);
  ctx.restore();
 }
@@ -161,5 +166,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(
  if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage};
 })();

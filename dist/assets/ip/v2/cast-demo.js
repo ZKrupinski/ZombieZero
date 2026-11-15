@@ -60,6 +60,13 @@ function setup(){
       pack.getFrame(actor,seconds);
     rect=isGreen?pack.sourceRect(frame):pack.sourceRect(actor,frame,img);
    }
+   if(!isGreen&&pack.frameImage){
+    const cleaned=pack.frameImage(actor,frame,img);
+    if(cleaned&&cleaned!==img){
+     source=cleaned;
+     rect=[rect[0]%256,rect[1]%256,rect[2],rect[3]];
+    }
+   }
    const [sx,sy,sw,sh]=rect;
    const scale=Math.min((c.width-12)/sw,(c.height-12)/sh);
    const w=sw*scale,h=sh*scale,x=(c.width-w)/2,y=(c.height-h)/2;
