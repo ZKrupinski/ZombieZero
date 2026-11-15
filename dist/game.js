@@ -27,7 +27,7 @@ const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25,y:-30}];
 const heldBallOffset=()=>HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
 function ballImpact(b,axis,dir=1){
  if(!b||b.held)return;
- b.bounceTime=.14;b.bounceAxis=axis;b.bounceDir=dir;
+ b.bounceTime=.14;b.bounceAxis=axis;b.bounceDir=dir;b._trailCorner=true;
 }
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
 // Shared interior lane for the painted walls in all 18 portrait scenes.
@@ -882,8 +882,10 @@ if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1);sfx('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
-if(b.y>H+20){lastLostBall={x:clamp(b.x,28,422),y:H-11};retireBall(b,'lost');balls.splice(balls.indexOf(b),1);hud();break}}
-b.trail.unshift({x:b.x,y:b.y});if(b.trail.length>56)b.trail.pop()}
+if(b.y>H+20){lastLostBall={x:clamp(b.x,28,422),y:H-11};retireBall(b,'lost');balls.splice(balls.indexOf(b),1);hud();break}
+  recordBallTrail(b,b.x,b.y,!!b._trailCorner);b._trailCorner=false;
+ }
+}
 if(!balls.length){lives--;effect(car,PY,'#ff7089',85,'MISS');sfx('miss');clearSkills();if(!lives){if(triggerLastStand()){lives=1;resetBalls();active.shield=4;hud();return}hud();end('마지막 공이 떨어져 하트가 모두 소진되었습니다.',{type:'ball',x:lastLostBall?.x||car,y:H-11});return}resetBalls();toast('공 낙하! · 하트 '+lives+'개 남음 · 탭해서 서브')}
 }
 function proceduralBackground(){// Readability-first road tones: brighter, largely neutral gray with a restrained
@@ -1154,27 +1156,13 @@ function drawItemArtwork(k,x,y,size=24){
 // Small power-up symbols, not a toolbar: no timer text, solid panels or
 // changing screen anchors. The faint ring alone indicates duration remaining.
 // Falling pickups are collectibles, NOT the 17px equipped status symbols.
-// A restrained ADD pass and a soft shadow brighten the alpha-transparent
-// 128px voxel loot-box art without adding any vector crosshairs or redundant boxes.
-const FALLING_ITEM_SIZE=46; // collectible crate stays large; active badges 22px for clarity.
+// Render approved item bitmap without a fuzzy duplicated additive border.
+const FALLING_ITEM_SIZE=46;
 function drawFallingItem(item){
- const color=SKILLS[item.k].color;
- g.save();
- g.translate(item.x,item.y);
+ g.save();g.translate(item.x,item.y);
  g.rotate(Math.sin(clock*3+item.phase)*.055);
- if(fxEnabled){
-  g.save();
-  g.globalCompositeOperation='lighter';
-  g.globalAlpha=.16; // modest additive bloom, NOT a washed-out icon
-  g.shadowColor=color;
-  g.shadowBlur=11;
-  drawItemArtwork(item.k,0,0,FALLING_ITEM_SIZE+4);
-  g.restore();
- }
- g.shadowColor=fxEnabled?color:'transparent';
- g.shadowBlur=fxEnabled?8:0;
- drawItemArtwork(item.k,0,0,FALLING_ITEM_SIZE);
- g.restore();
+ g.shadowColor='transparent';g.shadowBlur=0;
+ drawItemArtwork(item.k,0,0,FALLING_ITEM_SIZE);g.restore();
 }
 // At collection, a larger copy of the ITEM art pops outward briefly,
 // surrounded by six fading square sparks. No item-name/description text.
@@ -1186,7 +1174,7 @@ function drawItemPickupFX(){
   if(fxEnabled){
    g.globalCompositeOperation='lighter';
    g.globalAlpha=.5*fade;
-   g.shadowColor=color;g.shadowBlur=12;
+   g.shadowColor='transparent';g.shadowBlur=0;
    g.strokeStyle=color;g.lineWidth=2.4*(1-t)+.6;
    g.beginPath();g.arc(0,0,12+28*t,0,Math.PI*2);g.stroke();
    g.shadowBlur=0;
@@ -1217,8 +1205,8 @@ function drawActiveItemIcons(){
   const key=keys[i],x=first+i*step;
   const skill=SKILLS[key],ratio=clamp(active[key]/(skill.duration*hero().duration),0,1);
   g.save();g.globalAlpha=.95;
-  g.shadowColor=skill.color;g.shadowBlur=3;
-  drawItemArtwork(key,x,y,size);g.shadowBlur=0;
+  g.shadowColor='transparent';g.shadowBlur=0;
+  drawItemArtwork(key,x,y,size);
   // A fine radial remaining-time indicator; intentionally no numbers.
   g.lineWidth=1.4;g.strokeStyle='#1b283a99';
   g.beginPath();g.arc(x,y,12.2,-Math.PI/2,Math.PI*1.5);g.stroke();
@@ -1325,7 +1313,7 @@ function drawBarrelBlasts(){
 function drawBallStateAura(b,r){
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
- luminous(()=>{
+ {
   const dx=b.held?.2:(b.vx||0),dy=b.held?-1:(b.vy||-1);
   const angle=Math.atan2(dy,dx);
   const scale=b.held?.7:1;
@@ -1333,7 +1321,7 @@ function drawBallStateAura(b,r){
   const phase=clock*(b.held?7:24);
   // Screen-size-aware: all dimensions scale from actual physical ball radius.
   if(fire){
-   g.shadowColor='#ff7c30';g.shadowBlur=9;
+   g.shadowColor='transparent';g.shadowBlur=0;
    for(let i=0;i<12;i++){
     const progress=(phase*.13+i*.28)%1;
     const x=-r*(.65+progress*3),y=Math.sin(i*2.65+clock*9)*r*(.25+progress*.6);
@@ -1351,7 +1339,7 @@ function drawBallStateAura(b,r){
    }
   }
   if(pierce){
-   g.shadowColor='#8bdeff';g.shadowBlur=8;
+   g.shadowColor='transparent';g.shadowBlur=0;
    for(let i=0;i<11;i++){
     const progress=(phase*.19+i*.23)%1;
     const x=-r*(.6+progress*3.1),y=(i%5-2)*r*.31;
@@ -1371,7 +1359,7 @@ function drawBallStateAura(b,r){
    }
   }
   g.restore();
- });
+ }
 }
 
 // Physical tennis, baseball and toy-ball sprite colors, not one shared lime beam.
@@ -1380,85 +1368,83 @@ const HERO_BALL_TRAILS=[
  {main:'#f2e9dd',soft:'#c9bdaf',accent:'#c86e6b'}, // baseball leather + stitches
  {main:'#f5be76',soft:'#78c2d9',accent:'#e995c2'}  // colorful toy ball
 ];
-// V63: one translucent connected bitmap-colored ribbon; never stack opaque tiles.
-function drawHeroBallTrail(b,r,opacity=1){
- if(b.held||!b.trail||!b.trail.length)return;
- const p=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
- const maxLength=172*(r/8),spine=[{x:b.x,y:b.y}];let travel=0;
- for(const pos of b.trail){
-  const prev=spine[spine.length-1];
-  const dx=pos.x-prev.x,dy=pos.y-prev.y,step=Math.hypot(dx,dy);
-  if(step<3)continue;
-  if(travel+step>=maxLength){
-   const part=(maxLength-travel)/step;
-   spine.push({x:prev.x+dx*part,y:prev.y+dy*part});
-   break;
+// V67 physical substep history: one shared centerline for ribbon and skill chips.
+const BALL_TRAIL_NORMAL=170,BALL_TRAIL_POWER=190;
+function recordBallTrail(b,x,y,corner=false){
+ if(b.held)return;
+ const last=b.trail[0];
+ if(last&&Math.hypot(last.x-x,last.y-y)<.7){if(corner)last.corner=true;return}
+ b.trail.unshift({x,y,corner:!!corner});
+ if(b.trail.length>96)b.trail.length=96;
+}
+function buildBallTrailPath(b,r){
+ if(b.held||!b.trail?.length)return [];
+ const raw=[{x:b.x,y:b.y},...b.trail],limit=r>8?BALL_TRAIL_POWER:BALL_TRAIL_NORMAL;
+ let total=0;const path=[{x:b.x,y:b.y,s:0}];
+ for(let i=0;i<raw.length-1&&total<limit;i++){
+  const p=raw[i],q=raw[i+1],prev=raw[Math.max(0,i-1)],next=raw[Math.min(raw.length-1,i+2)];
+  const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy);if(len<.6)continue;
+  const count=Math.ceil(len/2.6);
+  for(let n=1;n<=count;n++){
+   const t=n/count,t2=t*t,t3=t2*t,corner=p.corner||q.corner;
+   const m0x=corner?dx:(q.x-prev.x)*.5,m0y=corner?dy:(q.y-prev.y)*.5;
+   const m1x=corner?dx:(next.x-p.x)*.5,m1y=corner?dy:(next.y-p.y)*.5;
+   const x=clamp(corner?p.x+dx*t:(2*t3-3*t2+1)*p.x+(t3-2*t2+t)*m0x+(-2*t3+3*t2)*q.x+(t3-t2)*m1x,Math.min(p.x,q.x),Math.max(p.x,q.x));
+   const y=clamp(corner?p.y+dy*t:(2*t3-3*t2+1)*p.y+(t3-2*t2+t)*m0y+(-2*t3+3*t2)*q.y+(t3-t2)*m1y,Math.min(p.y,q.y),Math.max(p.y,q.y));
+   const last=path[path.length-1],step=Math.hypot(x-last.x,y-last.y);if(step<.04)continue;
+   if(total+step>=limit){const z=(limit-total)/step;path.push({x:last.x+(x-last.x)*z,y:last.y+(y-last.y)*z,s:limit});return path}
+   total+=step;path.push({x,y,s:total});
   }
-  spine.push({x:pos.x,y:pos.y});travel+=step;
  }
- if(spine.length<2)return;
- const left=[],right=[],total=spine.length-1;
- for(let i=0;i<spine.length;i++){
-  const point=spine[i],before=spine[Math.max(0,i-1)],after=spine[Math.min(total,i+1)];
-  const dx=before.x-after.x,dy=before.y-after.y,mag=Math.hypot(dx,dy)||1;
-  // The visible ball is smaller than the transparent 3.05r source frame.
-  const halfWidth=r*(.96-.19*i/total);
-  const normalX=-dy/mag,normalY=dx/mag;
-  left.push({x:Math.round(point.x+normalX*halfWidth),y:Math.round(point.y+normalY*halfWidth)});
-  right.push({x:Math.round(point.x-normalX*halfWidth),y:Math.round(point.y-normalY*halfWidth)});
+ return path;
+}
+function sampleBallTrail(path,d){
+ for(let i=1;i<path.length;i++){
+  const a=path[i-1],b=path[i];if(b.s<d)continue;
+  const t=clamp((d-a.s)/Math.max(.001,b.s-a.s),0,1);
+  return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
  }
- const tip=spine[total];
- const gradient=g.createLinearGradient(tip.x,tip.y,b.x,b.y);
- gradient.addColorStop(0,p.soft+'00');
- gradient.addColorStop(.35,p.main+'35');
- gradient.addColorStop(.72,p.main+'83');
- gradient.addColorStop(1,p.main+'b4');
- g.save();g.globalAlpha=opacity;g.fillStyle=gradient;
- g.beginPath();g.moveTo(left[0].x,left[0].y);
+ return path[path.length-1]||null;
+}
+function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
+ if(path.length<2)return;
+ const col=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
+ const left=[],right=[],n=path.length-1,len=Math.max(1,path[n].s);
+ for(let i=0;i<=n;i++){
+  const p=path[i],a=path[Math.max(0,i-1)],z=path[Math.min(n,i+1)];
+  const dx=a.x-z.x,dy=a.y-z.y,m=Math.hypot(dx,dy)||1;
+  const taper=clamp((len-p.s)/Math.min(17,len*.3),0,1);
+  const half=r*.94*(1-.2*p.s/len)*(.2+.8*taper);
+  left.push({x:p.x-dy/m*half,y:p.y+dx/m*half});
+  right.push({x:p.x+dy/m*half,y:p.y-dx/m*half});
+ }
+ const tip=path[n],grad=g.createLinearGradient(tip.x,tip.y,b.x,b.y);
+ grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,col.main+'b0');
+ g.save();g.fillStyle=grad;g.beginPath();g.moveTo(left[0].x,left[0].y);
  for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
  for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
- g.closePath();g.fill();
- g.restore();
+ g.closePath();g.fill();g.restore();
 }
-
-// V66: Skill colors travel the whole ribbon to its tip, scaled with power-ball size.
-function drawBallSkillTrail(b,r){
- if(b.held||!b.trail?.length||!fxEnabled)return;
- const fire=has('fire'),pierce=has('pierce'),power=has('power');
- if(!fire&&!pierce&&!power)return;
- const maxDistance=172*(r/8);
- const colors=fire&&pierce?['#ffbf64','#8beafa','#fff4d7']:
-   fire?['#ffad52','#f46a31','#ffeb9b']:
-   pierce?['#7dd9f7','#b5f5ff','#ffffff']:['#fff1bc','#e2e99d','#ffffff'];
- let x=b.x,y=b.y,distance=0;
- g.save();g.shadowColor=colors[0];g.shadowBlur=3;
- for(let i=0;i<b.trail.length;i++){
-  const p=b.trail[i],dx=p.x-x,dy=p.y-y,step=Math.hypot(dx,dy);
-  if(step<1)continue;
-  const walk=Math.min(step,maxDistance-distance);
-  if(walk<=0)break;
-  if(i%2===0){
-   const fraction=distance/maxDistance,fade=1-fraction;
-   const nx=-dy/step,ny=dx/step,sgn=i%4===0?1:-1;
-   const px=x+dx*.75*walk/step+sgn*nx*r*.57;
-   const py=y+dy*.75*walk/step+sgn*ny*r*.57;
-   const size=Math.max(2,Math.round(r*(.19+.19*fade)));
-   g.globalAlpha=.54*fade;g.fillStyle=colors[i%3];
-   g.fillRect(Math.round(px),Math.round(py),size,size);
-  }
-  x+=dx*walk/step;y+=dy*walk/step;distance+=walk;
-  if(distance>=maxDistance)break;
+function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
+ if(!fxEnabled||path.length<2)return;
+ const fire=has('fire'),pierce=has('pierce'),power=has('power');if(!fire&&!pierce&&!power)return;
+ const colors=fire&&pierce?['#ffbf64','#8beafa','#fff4d7']:fire?['#ffad52','#f46a31','#ffeb9b']:pierce?['#7dd9f7','#b5f5ff','#ffffff']:['#fff1bc','#e2e99d','#ffffff'];
+ const len=path[path.length-1].s;
+ g.save();g.shadowBlur=0;
+ for(let d=10,i=0;d<len-4;d+=r>8?15:12,i++){
+  const p=sampleBallTrail(path,d);if(!p)continue;const size=Math.max(2,Math.round(r*.22));
+  g.globalAlpha=.5*(1-.63*d/Math.max(1,len));g.fillStyle=colors[i%3];
+  g.fillRect(Math.round(p.x-size/2),Math.round(p.y-size/2),size,size);
  }
  g.restore();
 }
-
 /* V58: Render approved 3D-shaded PNGs. Keep the old circle as network-failure fallback. */
 function drawHeroBallSprite(b,r,col){
  const sprites=window.ZZHeroBallsV58;
  const img=sprites?.images?.[selectedHero];
  const ready=!!sprites?.ready?.[selectedHero]&&img&&img.naturalWidth===1774&&img.naturalHeight===887;
  g.save();
- g.shadowColor=col;g.shadowBlur=b.held?3:has('pierce')||has('fire')?24:10;
+ g.shadowColor='transparent';g.shadowBlur=0;
  if(ready){
   const spin=[0,1,6,7][Math.floor(clock*(b.held?5:13))%4];
   let index=spin;
@@ -1495,15 +1481,9 @@ drawKillCombo();drawBarrelBlasts();
  for(const b of balls){
   const r=has('power')?16:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
-  drawHeroBallTrail(b,r);
-  drawBallSkillTrail(b,r);
-  // A restrained secondary source-only pass; shader global strength stays unchanged.
-  if(fxEnabled&&fxRenderer&&!b.held){
-   const main=g;
-   fxRenderer.capture(main,context=>{
-    g=context;try{drawHeroBallTrail(b,r,.11)}finally{g=main}
-   });
-  }
+  const trailPath=buildBallTrailPath(b,r);
+  drawHeroBallTrail(b,r,trailPath);
+  drawBallSkillTrail(b,r,trailPath);
   drawBallStateAura(b,r);
   drawHeroBallSprite(b,r,palette.main);
   if(b.held&&mode==='playing'){
