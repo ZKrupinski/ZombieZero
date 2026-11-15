@@ -646,7 +646,7 @@ function criticalEligible(z){return !z.boss&&Number.isInteger(z.form)&&z.hp>=z.m
 // destinations first, so no zombie moves if a wall, boss or crowded rank blocks
 // the chain. This keeps collision rectangles separate and prevents phantom hits.
 const KNOCK_CHAIN_LIMIT=8,KNOCK_TRAIL_LIFE=.45,KNOCK_TWEEN_LIFE=.22;
-const HIT_FREEZE_NORMAL=.055,HIT_FREEZE_BOSS=.083,CHAIN_KNOCK_STEP=.045;
+const HIT_FREEZE_NORMAL=.105,HIT_FREEZE_BOSS=.135,CHAIN_KNOCK_STEP=.045;
 // Safe collider destinations are committed immediately; the animated sprite
 // travels there over ~12 frames rather than visibly teleporting in one frame.
 function knockVisualPosition(z){
@@ -1062,8 +1062,11 @@ function drawCriticalGreenDeath(d){
 }
 function drawEnemyDeaths(){for(const d of enemyDeaths){
  if(d.t<(d.freeze||0)){
-  g.save();g.filter='brightness(1.72)';
-  g.translate(Math.sin(d.t*185)*1.6,Math.cos(d.t*173)*1.1);
+  g.save();
+  const freezeT=d.t/Math.max(.001,d.freeze||.105);
+  g.filter=freezeT<.68?'brightness(2.25) saturate(.52)':'brightness(1.64) saturate(.83)';
+  // Hit tremble is tightly localized; death animation begins after this hold.
+  g.translate(Math.sin(d.t*178)*2.45,Math.cos(d.t*167)*1.65);
   zombie(d.z);g.restore();continue;
  }
  const elapsed=Math.max(0,d.t-(d.freeze||0));
@@ -1488,9 +1491,13 @@ function drawHeroBallSprite(b,r,col){
 function drawStruckZombie(z){
  const active=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
  if(!active){zombie(knockVisualPosition(z));return}
- const t=clock-(z.hitShakeFrom||clock);
- g.save();g.filter='brightness(1.68)';
- g.translate(Math.sin(t*185)*1.7,Math.cos(t*159)*1.1);
+ const t=clock-(z.hitShakeFrom||clock),duration=Math.max(.001,(z.hitShakeUntil||clock)-(z.hitShakeFrom||clock));
+ const phase=t/duration;
+ g.save();
+ // First two-thirds are an unmistakable white contact flash. No blurry glow.
+ g.filter=phase<.68?'brightness(2.25) saturate(.52)':'brightness(1.64) saturate(.83)';
+ const amount=z.boss?3.0:2.45;
+ g.translate(Math.sin(t*178)*amount,Math.cos(t*167)*amount*.7);
  zombie(knockVisualPosition(z));g.restore();
 }
 function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();
