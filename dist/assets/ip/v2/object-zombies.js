@@ -13,6 +13,60 @@ const artHeight={red_barrel:100.5,black_barrel:100,red_brain_cube:103,
  cardboard_box:92,wooden_crate:102,black_brain_cube:101,
  yellow_brain_cube:103,big_zombie:105,trash_can:102.5};
 const images={},highResBosses=new Set(['big_zombie','trash_can']);
+// V74: Actual HD trash-can atlas QA revealed detached neighbor fragments
+// in frames 19, 22, 24, 25 (not mere linear-filter bleeding).
+// Clean ONLY these four 256px cells, preserving the source atlas and all
+// other bosses/death debris. The dominant 8-connected alpha island is the
+// character; isolated extraneous fragments do not belong to it.
+const TRASH_CAN_BLEED_FRAMES=[19,22,24,25];
+function cleanTrashCanHDFrame(atlas,frame){
+ if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
+ try{
+  const canvas=document.createElement('canvas');
+  canvas.width=canvas.height=256;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(!ctx||typeof ctx.getImageData!=='function'||typeof ctx.putImageData!=='function')return null;
+  ctx.clearRect?.(0,0,256,256);
+  ctx.drawImage(atlas,(frame%8)*256,Math.floor(frame/8)*256,256,256,0,0,256,256);
+  const image=ctx.getImageData(0,0,256,256),rgba=image.data;
+  const labels=new Uint16Array(65536),queue=new Uint32Array(65536);
+  let count=0,largestLabel=0,largestSize=0,component=0;
+  for(let y=0;y<256;y++)for(let x=0;x<256;x++){
+   const start=y*256+x;
+   if(rgba[start*4+3]<24||labels[start])continue;
+   component++;let head=0,tail=1,size=0;
+   labels[start]=component;queue[0]=start;
+   while(head<tail){
+    const pixel=queue[head++],px=pixel%256,py=pixel>>>8;
+    size++;
+    for(let yy=Math.max(0,py-1);yy<=Math.min(255,py+1);yy++)
+     for(let xx=Math.max(0,px-1);xx<=Math.min(255,px+1);xx++){
+      const index=yy*256+xx;
+      if(!labels[index]&&rgba[index*4+3]>=24){
+       labels[index]=component;queue[tail++]=index;
+      }
+     }
+   }
+   if(size>largestSize){largestSize=size;largestLabel=component;}
+  }
+  // Do not risk dropping a damaged/empty asset or an unusual frame.
+  if(largestSize<4000||!largestLabel)return null;
+  for(let y=0;y<256;y++)for(let x=0;x<256;x++){
+   const i=y*256+x,p=i*4;
+   if(!rgba[p+3]||labels[i]===largestLabel)continue;
+   // Preserve anti-aliased fringes up to 2px around the main character,
+   // but remove every disconnected alpha island (including its fringe).
+   let touchesMain=false;
+   for(let yy=Math.max(0,y-2);yy<=Math.min(255,y+2)&&!touchesMain;yy++)
+    for(let xx=Math.max(0,x-2);xx<=Math.min(255,x+2);xx++)
+     if(labels[yy*256+xx]===largestLabel){touchesMain=true;break;}
+   if(!touchesMain){rgba[p]=0;rgba[p+1]=0;rgba[p+2]=0;rgba[p+3]=0;count++;}
+  }
+  if(!count)return null;
+  ctx.putImageData(image,0,0);
+  return canvas;
+ }catch{return null;} // Strict fallback to untouched approved HD image.
+}
 for(const key of Object.keys(names)){
  const image=new Image(),entry=images[key]={image,ready:false,failed:false,hd:null};
  image.decoding='async';
@@ -24,7 +78,15 @@ for(const key of Object.keys(names)){
  if(highResBosses.has(key)){
   const hiImage=new Image(),hd=entry.hd={image:hiImage,ready:false,failed:false};
   hiImage.decoding='async';
-  hiImage.onload=()=>{hd.ready=hiImage.naturalWidth===2048&&hiImage.naturalHeight===1024;hd.failed=!hd.ready};
+  hiImage.onload=()=>{hd.ready=hiImage.naturalWidth===2048&&hiImage.naturalHeight===1024;hd.failed=!hd.ready;
+   if(hd.ready&&key==='trash_can'){
+    hd.cleanFrames={};
+    for(const frame of TRASH_CAN_BLEED_FRAMES){
+     const isolated=cleanTrashCanHDFrame(hiImage,frame);
+     if(isolated)hd.cleanFrames[frame]=isolated;
+    }
+   }
+  };
   hiImage.onerror=()=>{hd.failed=true};
   hiImage.src=root+key+'_hd.png';
  }
@@ -81,7 +143,13 @@ function drawFrame(ctx,img,z,frame,opacity=1){
  const y=z.y+z.h+2-rect[3]*scale;
  ctx.save();ctx.globalAlpha*=opacity;
  if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
- ctx.drawImage(img,...rect,x,y,rect[2]*scale,rect[3]*scale);
+ // The corrected 256px frame has the same local source bounds and world pivot.
+ // Only HD trash-can frame indices 19/22/24/25 use isolated alpha images.
+ const isolated=id==='trash_can'&&cell===256?images.trash_can?.hd?.cleanFrames?.[frame]:null;
+ if(isolated){
+  const localRect=[rect[0]%cell,rect[1]%cell,rect[2],rect[3]];
+  ctx.drawImage(isolated,...localRect,x,y,rect[2]*scale,rect[3]*scale);
+ }else ctx.drawImage(img,...rect,x,y,rect[2]*scale,rect[3]*scale);
  ctx.restore();
 }
 function draw(ctx,z,seconds){const img=activeImage(z);if(!img)return false;drawFrame(ctx,img,z,getFrame(z,seconds));return true}
