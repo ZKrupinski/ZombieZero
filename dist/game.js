@@ -118,7 +118,7 @@ function drawEffects(labels=false){
  }
 }
 // Shared self-contained square-particle pattern, deterministic within each impact.
-function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0){
+function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0,particleScale=1){
  if(t>=1)return;
  const fade=Math.pow(1-t,1.3),travel=Math.pow(t,.56);
  g.save();g.translate(x,y);g.shadowColor=palette[1]||'#fff';g.shadowBlur=11*fade;
@@ -127,7 +127,7 @@ function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0){
   const jitter=.65+.43*(.5+.5*Math.sin(i*19.17+seed*7.3));
   const bias=1+.16*Math.cos(angle-heading);
   const distance=(3+radius*travel*jitter)*bias;
-  const box=Math.max(3,Math.round((i%5===0?10:i%3===0?8:6)*(1-t*.56)));
+  const box=Math.max(3,Math.round((i%5===0?10:i%3===0?8:6)*(1-t*.56)*particleScale));
   const px=Math.round(cos*distance-box/2),py=Math.round(sin*distance-box/2);
   g.fillStyle=palette[i%palette.length];
   g.globalAlpha=fade*(i%4===0?1:.91);
@@ -757,7 +757,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  z.flash=burning?.12:.22;
  enemyReaction(z,amount,impact);
  if(!burning){
-  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.32:.22,critical,piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
+  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.32:.27,critical,piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
   cameraKick=fxEnabled?Math.max(cameraKick,critical?7.5:z.boss?6:4.7):0;
   haptic(critical?[25,18,25]:z.boss?20:16);
@@ -1296,11 +1296,11 @@ function drawCriticalPopups(){
 function drawImpactFlashes(){
  if(!fxEnabled||!hitFlashes.length)return;
  luminous(()=>{for(const f of hitFlashes){
-  const t=clamp(f.t/(f.critical?.23:.175),0,1);
+  const t=clamp(f.t/(f.critical?.23:.215),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  drawPixelBurst(f.x,f.y,t,f.critical?55:35,f.critical?32:22,
-    (f.x*.17+f.y*.09)%6.28,palette,f.angle||0);
+  drawPixelBurst(f.x,f.y,t,f.critical?55:31,f.critical?32:22,
+    (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.32);
  }});
 }
 
@@ -1382,16 +1382,20 @@ const HERO_BALL_TRAILS=[
 function drawHeroBallTrail(b,r){
  if(b.held||!b.trail||!b.trail.length)return;
  const p=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
+ // Match the actual 3D bitmap width; taper just 27% from front to back.
+ const ballDiameter=r*3.05;
  g.save();
- for(let i=0;i<b.trail.length;i++){
-  const pos=b.trail[i],fade=1-i/b.trail.length;
-  const size=Math.max(5,Math.round(r*1.15*Math.pow(fade,.58)));
-  g.globalAlpha=.83*fade;g.fillStyle=i%3===0?p.soft:p.main;
+ // Back-to-front layering keeps the most recent ball-colored segment clean.
+ for(let i=b.trail.length-1;i>=0;i--){
+  const pos=b.trail[i],tail=i/Math.max(1,b.trail.length-1);
+  const size=Math.max(6,Math.round(ballDiameter*(1-.27*tail)));
+  const alpha=.78*(1-.48*tail);
+  g.globalAlpha=alpha;g.fillStyle=i%3===0?p.soft:p.main;
   g.fillRect(Math.round(pos.x-size/2),Math.round(pos.y-size/2),size,size);
   if(i%3===1){
-   const chip=Math.max(3,Math.round(size*.48));
-   g.globalAlpha=.8*fade;g.fillStyle=p.accent;
-   g.fillRect(Math.round(pos.x+size*.35),Math.round(pos.y-size*.7),chip,chip);
+   const chip=Math.max(3,Math.round(size*.26));
+   g.globalAlpha=alpha*.88;g.fillStyle=p.accent;
+   g.fillRect(Math.round(pos.x+size*.2),Math.round(pos.y-size*.34),chip,chip);
   }
  }
  g.restore();

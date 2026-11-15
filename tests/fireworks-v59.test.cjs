@@ -8,8 +8,8 @@ const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
 const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
-assert.match(html,/game\.js\?v=61-visible-cube-fx/);
-assert.match(sw,/zombie-zero-shell-v61-visible-cube-fx/);
+assert.match(html,/game\.js\?v=62-thick-trail-impact/);
+assert.match(sw,/zombie-zero-shell-v62-thick-trail-impact/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
@@ -58,7 +58,11 @@ for(const names of [['fire'],['pierce'],['power'],['fire','pierce']]){
 }
 assert.ok(drawCalls>90,'Expected rendered fireworks, sparks and energized ball state');
 // V61 requires legible mobile dots while preserving the per-hero art identity.
-assert.match(code,/const size=Math.max\(5,Math.round\(r\*1\.15/);
+assert.match(code,/const ballDiameter=r\*3\.05/);
+assert.match(code,/Math\.round\(ballDiameter\*\(1-\.27\*tail\)\)/);
+assert.match(code,/const t=clamp\(f\.t\/\(f\.critical\?\.23:\.215\)/);
+assert.match(code,/f\.critical\?55:31,f\.critical\?32:22/);
+assert.match(code,/f\.critical\?1:1\.32/);
 assert.match(code,/const box=Math.max\(3,Math.round/);
 assert.match(code,/const sz=Math.max\(4,Math.round\(r\*\(\.4/);
 assert.match(code,/drawPixelBurst\(b.x,b.y,t,BAZOOKA_RADIUS\*\.94,68/);
