@@ -21,9 +21,13 @@ const HERO_ATTACK_DURATION=.42;let heroAttackTime=0;
 let selectedHero=0,clearTime=0,clearBurst=0,resumeMode='playing',crowdTimer=3.5,junk=[],cheerTime=0;
 const hero=()=>HEROES[selectedHero];
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
-// 9 tightly packed columns span the full road, from x=23 to x=394.
-// The 33px colliders stay unchanged; only their formation positions move.
-const ENEMY_COLUMNS=9,ENEMY_PITCH=46.375,ENEMY_LEFT_X=23,ENEMY_ROW_PITCH=58;
+// Shared interior lane for the painted walls in all 18 portrait scenes.
+// Center a nine-column horde inside the scenery instead of clipping side walls.
+// Keep the 33px colliders and 58px row spacing unchanged.
+const ROAD_LEFT=36,ROAD_RIGHT=414,ZOMBIE_WALL_MARGIN=6,ENEMY_TOP_Y=70;
+const ENEMY_COLUMNS=9,ENEMY_PITCH=40.875,ENEMY_LEFT_X=45,ENEMY_ROW_PITCH=58;
+const zombieMinX=()=>ROAD_LEFT+ZOMBIE_WALL_MARGIN;
+const zombieMaxX=z=>ROAD_RIGHT-ZOMBIE_WALL_MARGIN-z.w;
 const ZOMBIE_FORMS=[{name:'그린 좀비',unlock:1},{name:'드럼통 좀비 · 레드',unlock:6},{name:'드럼통 좀비 · 블랙',unlock:32},{name:'브레인 큐브 · 레드',unlock:9},{name:'일회용 포장 박스 좀비',unlock:24},{name:'나무 상자 좀비',unlock:28},{name:'브레인 큐브 · 블랙',unlock:16},{name:'브레인 큐브 · 옐로',unlock:4}];
 const BOSS_FORMS=['빅 좀비','쓰레기통 좀비','빅 좀비','쓰레기통 좀비'];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -99,7 +103,7 @@ try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
 function endlessUI(){const el=$('endless');el.hidden=!endlessUnlocked||!['menu','over'].includes(mode);el.textContent='∞ 무한 모드 시작';el.onclick=()=>start('endless')}
 function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=1.4;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
- for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(36,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.min(old,y);z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
+ for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
  // Crowded late-stage boss formations may hit the upper packing boundary and
  // leave a front enemy too close after the first push. Translate the entire
  // already-spaced formation to guarantee a visible 125px recovery window,
@@ -107,7 +111,11 @@ function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed
  if(foes.length){
   const furthest=Math.max(...foes.map(z=>z.y+z.h));
   const extra=Math.max(0,furthest-(DEFENSE_Y-125));
-  if(extra>0)for(const z of foes)z.y-=extra;
+  // Never pull the highest zombie above its original first-spawn line.
+  // Compress the formation as far as possible without floating over the scenery.
+  const available=Math.max(0,Math.min(...foes.map(z=>z.y-ENEMY_TOP_Y)));
+  const retreat=Math.min(extra,available);
+  if(retreat>0)for(const z of foes)z.y-=retreat;
  }
  effect(225,DEFENSE_Y,'#b3fff0',140,'LAST STAND!');sfx('bosskill');haptic([20,30,20]);toast('최후의 저항! · 좀비 전원 밀쳐내기 · 이번 판 1회');return true}
 function finishCampaign(){endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 무한 모드가 해금되었습니다.','일반 모드 다시 시작','VICTORY');endlessUI();sfx('wave')}
@@ -129,9 +137,9 @@ function hud(){
  // Keep the historical node for script/test compatibility, but it is hidden
  // so lives never render twice in the footer.
  $('lives').textContent='';
- // Keep the serve hint; ball counts are deliberately absent because hearts
- // at the top already communicate remaining lives (extra balls stay in play).
- $('status').textContent=balls[0]?.held?'TAP TO SERVE':'';
+ // The on-board service hint and ball text are both removed: the touch input
+ // still launches the held ball and the top heart HUD still shows lives.
+ $('status').textContent='';
  skillUI();
 }
 function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity=0,1400)}
@@ -287,7 +295,7 @@ function tryStartBreakouts(){
       if(occupied.has(z.row+':'+(z.col+dir*step)))free=false;
      if(!free)continue;
      const dest=ENEMY_LEFT_X+ENEMY_PITCH*destCol;
-     if(dest<20||dest+z.w>W-20)continue;
+     if(dest<zombieMinX()||dest>zombieMaxX(z))continue;
      if(foes.some(other=>other!==z&&(
        other.boss&&Math.abs(other.x+other.w/2-(dest+z.w/2))<70&&
                      Math.abs(other.y+other.h/2-(z.y+z.h/2+25))<110
@@ -352,9 +360,9 @@ function tryStartBreakouts(){
      }
      const magnitude=4+shortStepNoise(z,3)*2;
      const sign=shortStepNoise(z,4)<.5?-1:1;
-     let dest=clamp(home+sign*magnitude,20,W-20-z.w);
+     let dest=clamp(home+sign*magnitude,zombieMinX(),zombieMaxX(z));
      if(Math.abs(dest-z.x)<3)
-       dest=clamp(home-sign*magnitude,20,W-20-z.w);
+       dest=clamp(home-sign*magnitude,zombieMinX(),zombieMaxX(z));
      if(Math.abs(dest-z.x)<2||!canKnockback(z,dest,z.y)){
        z.shortStepNext=clock+.24+shortStepNoise(z,5)*.38;
        return;
@@ -390,7 +398,7 @@ function march(dt){
    const timeStep=Math.max(0,Math.min(dt*(has('slow')?.4:1),
      z.breakoutDuration-z.breakoutTime));
    const previousX=z.x;
-   const proposedX=clamp(z.x+z.breakoutVX*timeStep,20,W-20-z.w);
+   const proposedX=clamp(z.x+z.breakoutVX*timeStep,zombieMinX(),zombieMaxX(z));
    // An adjacent lane may have closed after an ally was knocked into it.
    // Stop the dash rather than ghosting through a zombie then teleporting.
    if(canKnockback(z,proposedX,z.y)){
@@ -578,7 +586,8 @@ function zombieBoxesOverlap(a,pa,b,pb,gap=.5){
         pa.y<pb.y+b.h+gap&&pa.y+a.h+gap>pb.y;
 }
 function insideZombieRoad(z,p){
- return p.x>=20&&p.x+z.w<=430&&p.y>=18&&p.y+z.h<=DEFENSE_Y-16;
+ return p.x>=zombieMinX()&&p.x<=zombieMaxX(z)&&
+        p.y>=ENEMY_TOP_Y&&p.y+z.h<=DEFENSE_Y-16;
 }
 function canKnockback(z,x,y){
  const pos={x,y};
@@ -623,7 +632,15 @@ function applyKnockback(z,impact,n=1){
  const dirX=vx/mag,dirY=vy/mag;
  for(const factor of [1,.85,.7,.55,.4,.25,.12]){
   const plans=new Map();
-  if(!planKnockPush(z,dirX*distance*factor,dirY*distance*factor,plans))continue;
+  // Reflect lateral impact at the painted side walls instead of embedding a
+  // knocked zombie in a wall. Full chains remain collision-checked as before.
+  const proposedX=z.x+dirX*distance*factor;
+  const low=zombieMinX(),high=zombieMaxX(z);
+  const reflectedX=proposedX<low?2*low-proposedX:
+                   proposedX>high?2*high-proposedX:proposedX;
+  const pushX=reflectedX-z.x;
+  const pushY=dirY*distance*factor;
+  if(!planKnockPush(z,pushX,pushY,plans))continue;
   let valid=true;
   for(const [a,pa] of plans)
    for(const other of foes){
@@ -764,7 +781,7 @@ march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
  }
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 for(const b of [...balls]){const radius=has('power')?16:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
-for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<20+radius){b.x=20+radius;b.vx=Math.abs(b.vx);sfx('wall')}if(b.x>430-radius){b.x=430-radius;b.vx=-Math.abs(b.vx);sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);sfx('wall')}
+for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);sfx('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
  // Once it fully exits that enemy, the contact can be struck on a later pass.
@@ -1325,7 +1342,9 @@ function drawKillCombo(){
  el.style.setProperty?.('--combo-quiet',String(Math.max(0,Math.min(1,(1.45-comboDisplayTime)/1.45))));
  el.style.setProperty?.('--combo-progress',String(Math.max(0,Math.min(1,killTimer/6))));
 }
-const citizens=Array.from({length:18},(_,i)=>({x:26+i*23.4,y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,phase:i*.9,alive:true,dying:0,supportTime:0}));
+// Keep all 18 original supporters and sprites, but bring their save hitboxes
+// inside the same side walls where the ball now legitimately travels.
+const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,phase:i*.9,alive:true,dying:0,supportTime:0}));
 function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0}bubbles=[];bubbleTimer=.25}
 function haptic(pattern){if(!fxEnabled||!touchUsed||typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return;const now=Date.now();if(now-lastBuzz<100)return;lastBuzz=now;try{navigator.vibrate(pattern)}catch{}}
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}

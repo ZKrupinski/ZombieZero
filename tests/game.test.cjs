@@ -28,9 +28,9 @@ $('bgm').onclick();music();check(musicBus.gain.value===0,'BGM off');$('bgm').onc
 // All hero stat choices must affect real gameplay, including touch movement.
 for(let i=0;i<3;i++){mode='menu';$('hero-'+i).onclick();check(selectedHero===i,'hero selection');start();check(lives===HEROES[i].lives,'hero life count');serve();let x0=car;target=400;update(.1);check(Math.abs(car-x0-HEROES[i].speed*.1)<.01,'hero movement speed');activate('fire');check(active.fire===10*hero().duration,'hero duration bonus');clearSkills();let targetZ={x:100,y:100,w:33,h:44,hp:8,max:8,kind:4};foes=[targetZ];hit(targetZ);check(targetZ.hp===8-hero().damage,'hero damage')}
 selectedHero=0;start();serve();let lastEnemy=foes[0];foes=[lastEnemy];items=[{x:20,y:70,k:'dual',phase:0}];damage(lastEnemy,100);check(mode==='clearing'&&items.length===0&&balls.length===0,'last hit clears immediately');let bonusScore=score;beginClear();check(score===bonusScore,'single clear reward');update(.1);pause();let clearT=clearTime;update(1);check(clearTime===clearT,'ceremony pause');pause();for(let i=0;i<90;i++)update(.033);check(wave===2&&mode==='playing','ceremony resumes and advances');
-// Nine close-packed lanes visually cover the road from left to right.
+// Nine close-packed lanes stay safely inside the new illustrated walls.
 {
- check(ENEMY_COLUMNS===9&&ENEMY_PITCH===46.375&&ENEMY_LEFT_X===23,'nine edge-packed lanes at 46.375px pitch');
+ check(ENEMY_COLUMNS===9&&ENEMY_PITCH===40.875&&ENEMY_LEFT_X===45,'nine wall-safe lanes at 40.875px pitch');
  for(const [w,total] of [[1,18],[2,27],[3,22],[4,36],[6,31]]){
   wave=w;rack();
   check(foes.length===total,'stage '+w+' crowded without runaway enemy counts');
@@ -39,7 +39,7 @@ selectedHero=0;start();serve();let lastEnemy=foes[0];foes=[lastEnemy];items=[{x:
   check(first.length===(w%3===0?6:9),'row 0 fills nine lanes except boss clearance');
   check(Math.min(...normals.map(z=>z.x))===ENEMY_LEFT_X,'left side populated');
   check(Math.max(...normals.map(z=>z.x))===ENEMY_LEFT_X+8*ENEMY_PITCH,'right side populated');
-  check(normals.every(z=>z.x>=20&&z.x+z.w<=430),'collision bounds remain inside road');
+  check(normals.every(z=>z.x>=zombieMinX()&&z.x<=zombieMaxX(z)),'collision bounds remain inside illustrated walls');
   const positions=normals.map(z=>({z,y:z.y}));
   for(let i=0;i<10;i++)march(.033);
   check(positions.every(v=>v.z.y>v.y),'same-row neighbors do not block forward march');

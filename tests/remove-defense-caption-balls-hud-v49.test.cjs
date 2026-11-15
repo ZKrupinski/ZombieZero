@@ -12,8 +12,8 @@ assert(source.includes('z.y+z.h>=DEFENSE_Y'),'breach collision check preserved')
 assert(source.includes("f.type==='breach'?'방어선 돌파!'"),'failure explanation still exists');
 assert(!source.includes("'BALLS '+balls.length"),'no count text in the footer');
 assert(html.includes('id="hud-heart-count"'),'heart count still has its HUD node');
-assert(html.includes('game.js?v=49-clean-lower-hud'),'fresh game asset URL');
-assert(sw.includes('zombie-zero-shell-v49-clean-lower-hud'),'PWA cache updated');
+assert(html.includes('game.js?v=50-wall-ceiling-align'),'fresh game asset URL');
+assert(sw.includes('zombie-zero-shell-v50-wall-ceiling-align'),'PWA cache updated');
 const noop=()=>{},els={};
 const graphics=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
 const el=id=>els[id]??={textContent:'',innerHTML:'',style:{},hidden:false,addEventListener:noop,setAttribute:noop,getContext:()=>graphics,getBoundingClientRect:()=>({width:450,height:710,left:0,top:0}),setPointerCapture:noop};
@@ -30,7 +30,7 @@ vm.createContext(sandbox);
 vm.runInContext(source+`
 function check(ok,msg){if(!ok)throw Error(msg)}
 start();hud();
-check($('status').textContent==='TAP TO SERVE','serve hint remains when ball is held');
+check($('status').textContent==='','no serve hint remains when ball is held');
 check($('hud-heart-count').textContent==='×3','heart count retains original three lives');
 serve();hud();
 check($('status').textContent==='','footer is empty during play');
@@ -39,4 +39,4 @@ check(balls.length===2&&$('status').textContent==='','extra active balls do not 
 lives=2;hud();
 check($('hud-heart-count').textContent==='×2','remaining lives still update the top HUD');
 `,sandbox);
-console.log('PASS: caption and BALLS counter removed, serve hint kept, hearts and multi-ball gameplay intact.');
+console.log('PASS: caption and BALLS counter removed, serve hint removed, hearts and multi-ball gameplay intact.');

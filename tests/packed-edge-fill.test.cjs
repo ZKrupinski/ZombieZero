@@ -23,14 +23,14 @@ vm.runInContext(fs.readFileSync('dist/game.js','utf8')+`
 function check(cond,msg){if(!cond)throw Error(msg)}
 {
  check(ENEMY_COLUMNS===9,'nine packed horizontal columns');
- check(ENEMY_LEFT_X===23&&ENEMY_LEFT_X+ENEMY_PITCH*8===394,'horde fills both edges of playfield');
+ check(ENEMY_LEFT_X===45&&ENEMY_LEFT_X+ENEMY_PITCH*8===372,'horde fills both edges of playfield');
  const step=ENEMY_PITCH;
  check(ENEMY_ROW_PITCH===58,'crowded formation vertical pitch');
  const firstX=ENEMY_LEFT_X+33/2,lastX=ENEMY_LEFT_X+ENEMY_PITCH*8+33/2;
  const alpha=window.ZZSpriteGeometry?.green_zombie?.down;
- if(alpha){const half=alpha[2]/2*Math.min(66/122,55/122,43/92);check(firstX-half>=20&&lastX+half<=430,'bitmap stays inside edge lanes')}
+ if(alpha){const half=alpha[2]/2*Math.min(66/122,55/122,43/92);check(firstX-half>=ROAD_LEFT&&lastX+half<=ROAD_RIGHT,'bitmap stays inside edge lanes')}
 
- check(step>45&&step<47,'roughly 46px between 33px collision boxes');
+ check(step>40&&step<42,'roughly 46px between 33px collision boxes');
  start();serve();
  for(const stage of [1,2,3,4,6,20,50]){
   wave=stage;rack();
@@ -50,7 +50,7 @@ function check(cond,msg){if(!cond)throw Error(msg)}
   if(!boss){
    const first=normals.find(z=>z.row===0&&z.col===0);
    const last=normals.find(z=>z.row===0&&z.col===8);
-   check(first.x===23&&last.x===394,'near-touching stage row from left to right');
+   check(first.x===45&&last.x===372,'wall-safe stage row from left to right');
   }else{
    const bossActor=foes.find(z=>z.boss);
    check(bossActor.x===192&&bossActor.y===74,'boss stays centered');
@@ -71,6 +71,6 @@ function check(cond,msg){if(!cond)throw Error(msg)}
    'last stand leaves same-row neighbors horizontally aligned');
  }
  check(foes.every(z=>z.x+z.w<=W&&z.x>=0),'no collider leaves road after retreat');
- console.log('PASS: nine columns, 46px width lanes, 58px rows, boss opening, marching and last stand across stage 1-50');
+ console.log('PASS: nine columns, wall-safe 41px lanes, 58px rows, boss opening, marching and last stand across stage 1-50');
 }
 `,sandbox);

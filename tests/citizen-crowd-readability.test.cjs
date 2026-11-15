@@ -56,7 +56,7 @@ for(let i=0;i<crowd.length;i++){
  check(Math.abs((d[6]+46)-(p.y+21))<.01,'feet still align with original collision box bottom');
  if(i){
   const prev=crowd[i-1];
-  check(Math.abs((d[5]-prev[5])-23.4)<.01,'citizen positions unchanged, deliberately denser at larger scale');
+  check(Math.abs((d[5]-prev[5])-(354/17))<.01,'citizen spacing matches the revised safe corridor; approved large sprites unchanged');
  }
 }
 const longStripes=rects.filter(a=>a[2]>=400);

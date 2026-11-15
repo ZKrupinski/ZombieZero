@@ -71,10 +71,10 @@ check(!zombieBoxesOverlap(b,{x:b.x,y:b.y},third,{x:third.x,y:third.y},0),
  'contact chain cannot overlap next neighbor');
 updateEnemyVisuals(.33);
 check([a,b,third].every(z=>!z.knockTime),'afterimage ends within .32 seconds');
-// Bounding-box limits block a shove against the roadway wall.
-a=foe(20,130);foes=[a];
-check(!applyKnockback(a,{x:-300,y:0},1),'wall safely blocks outward knockback');
-check(a.x===20,'wall collision cannot move outside roadway');
+// Outward zombie knockback reflects off the new collision wall, staying inside.
+a=foe(45,130);foes=[a];
+check(applyKnockback(a,{x:-300,y:0},1),'wall reflects a shove inward');
+check(a.x>45&&insideZombieRoad(a,a),'wall rebound cannot place a zombie in wall scenery');
 // Boss cannot be pushed; wall cannot get shoved through.
 let boss={...foe(137,140,60),w:66,h:88,boss:true,bossForm:0};
 a=foe(100,140);foes=[a,boss];
