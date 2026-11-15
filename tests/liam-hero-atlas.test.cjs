@@ -17,6 +17,7 @@ const out={
  getContext:()=>({
   drawImage:(...args)=>ops.push(['drawImage',...args]),
   clearRect:(...args)=>ops.push(['clearRect',...args]),
+  save:()=>{},restore:()=>{}, // real Canvas contexts support scanline crown transforms
   imageSmoothingEnabled:false,
   imageSmoothingQuality:'low',
  }),
