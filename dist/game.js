@@ -29,12 +29,12 @@ const heldBallOffset=()=>HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
 function ballImpact(b,axis,dir=1,kind='wall'){
  if(!b||b.held)return;
  const normalSpeed=Math.abs(axis==='x'?b.vx:b.vy);
- const duration=kind==='paddle'?.235:kind==='enemy'?.205:
-   kind==='shield'?.215:kind==='ceiling'?.175:.19;
+ const duration=kind==='paddle'?.27:kind==='enemy'?.245:
+   kind==='shield'?.26:kind==='ceiling'?.22:.245;
  b.bounceDuration=duration;b.bounceTime=duration;
  b.bounceAxis=axis;b.bounceDir=dir;
  b.impactKind=kind;
- b.impactStrength=clamp((normalSpeed-100)/450,.38,1);
+ b.impactStrength=clamp((normalSpeed-80)/380,.64,1.12);
  b._trailCorner=true;
 }
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
@@ -1568,7 +1568,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
 /* V72: Eight approved bitmaps now react to motion and impact like soft objects.
    Rest frames 0/1/6/7; vertical compression/recoil 2/3;
    left/right compression/recoil 4/5. Every pose is purely visual. */
-const BALL_MATERIAL_SPRING=[1,.67,1.22]; // tennis, baseball, rubber toy
+const BALL_MATERIAL_SPRING=[1,.78,1.22]; // tennis, baseball, rubber toy
 function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
  const spin=[0,1,6,7][Math.floor(now*(b.held?5:13))%4];
  let index=spin,sx=1,sy=1,rotation=0;
@@ -1581,37 +1581,39 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
   const force=(b.impactStrength||.5)*material*(r>8?.82:1);
   if(b.impactKind==='serve'){
    // In the first few flight frames the ball lengthens along its velocity.
-   const pull=Math.sin(Math.PI*phase)*.16*force;
-   sx=1+pull;sy=1-pull*.48;
+   const pull=Math.sin(Math.PI*phase)*.30*force;
+   sx=1+pull;sy=1-pull*.62;
    rotation=Math.atan2(b.vy,b.vx);
-   index=phase<.7?3:spin;
+   index=phase<.82?3:spin;
   }else{
-   // Incoming kinetic energy is visibly squashed at the contact normal,
-   // followed by an overshoot stretch and a return to a spherical rest pose.
+   // Compress on the very FIRST rendered collision frame (v72 started round).
+   // Hold compression for 2-3 frames, overshoot into 5-6 stretch frames,
+   // then relax. Shapes stay attached to the physical centerline.
    const smooth=t=>{const q=clamp(t,0,1);return q*q*(3-2*q)};
-   const magnitude=clamp(.23*force,.075,.28);
+   const magnitude=clamp(.42*force,.18,.48);
    let deformation;
-   if(phase<.20)deformation=-magnitude*smooth(phase/.20);
-   else if(phase<.54)deformation=-magnitude+
-     (magnitude+ magnitude*.83)*smooth((phase-.20)/.34);
-   else deformation=magnitude*.83*(1-smooth((phase-.54)/.46));
+   if(phase<.17)deformation=-magnitude;
+   else if(phase<.49)deformation=-magnitude+
+     magnitude*1.90*smooth((phase-.17)/.32);
+   else if(phase<.72)deformation=magnitude*.90;
+   else deformation=magnitude*.90*(1-smooth((phase-.72)/.28));
    if(b.bounceAxis==='x'){
     sx=1+deformation;sy=1-deformation*.76;
    }else{
     sy=1+deformation;sx=1-deformation*.76;
    }
-   // The dedicated squash/stretch source frames are keyed to each phase.
-   if(phase<.36){
+   // The approved 8-frame sheet switches at the actual pose beats.
+   if(phase<.34){
     index=b.bounceAxis==='x'?(b.bounceDir<0?4:5):2;
-   }else if(phase<.79){
+   }else if(phase<.84){
     index=b.bounceAxis==='x'?(b.bounceDir<0?5:4):3;
    }
-   rotation=Math.sin(phase*Math.PI)*.035*force*(b.bounceDir<0?-1:1);
+   rotation=Math.sin(phase*Math.PI)*.02*force*(b.bounceDir<0?-1:1);
   }
  }else{
   // A restrained velocity-based stretch makes fast flight read as elastic.
-  const lengthening=clamp((speed-260)/480,0,.052)*material;
-  sx=1+lengthening;sy=1-lengthening*.48;
+  const lengthening=clamp((speed-260)/430,0,.105)*material;
+  sx=1+lengthening;sy=1-lengthening*.50;
   rotation=Math.atan2(b.vy||-1,b.vx||0);
  }
  return {index,sx,sy,rotation};
