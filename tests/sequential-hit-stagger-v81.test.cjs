@@ -32,6 +32,8 @@ check(close(b.hitShakeFrom,a.hitShakeUntil)&&third.hitShakeFrom>b.hitShakeFrom,
  'each subsequent contact starts after primary launched and with separate cadence');
 check(!b.recoil&&!third.recoil,'no premature bystander recoil before their actual contact');
 check(b.hp===20&&third.hp===20,'chain collision does not apply bonus HP damage');
+check(hitFlashes.some(f=>f.delay>0&&f.life-f.delay>=.4),
+ 'secondary hit effects wait for their own contact and play slower');
 clock+=.08;updateEnemyVisuals(.08);
 check(close(knockVisualPosition(a).x,100)&&close(knockVisualPosition(b).x,146),
  'initial freeze displays without moving anyone');
@@ -52,7 +54,6 @@ check([a,b,third].every(z=>!z.knockTime),'all delayed tweens terminate');
 check([a,b,third].every(z=>close(knockVisualPosition(z).x,z.x)),
  'animated sprite endpoints meet physics colliders');
 check([a,b,third].every(z=>insideZombieRoad(z,z)),'no impact violates road boundaries');
-check(hitFlashes.some(f=>f.delay>0&&f.life-f.delay>=.4),
- 'secondary hit effects wait for their own contact and play slower');
+
 console.log('PASS: centered combo; contact, shake, sequential launch; no overlap or HP damage.');
 `,sandbox);
