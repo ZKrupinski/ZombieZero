@@ -45,7 +45,7 @@ assert(finished&&hasTransparency&&off===png.length,'complete transparent atlas')
 for(const s of parts){
  assert(html.includes('src="assets/ip/'+s+'"'),s+' is on page');
  assert(sw.includes('./assets/ip/'+s),s+' is precached');
- assert(html.indexOf('src="assets/ip/'+s+'"')<html.indexOf('src="game.js?v=45-eighteen-scenes"'),'art loads before game');
+ assert(html.indexOf('src="assets/ip/'+s+'"')<html.indexOf('src="game.js?v=47-ria-attract"'),'art loads before game');
 }
 assert(game.includes('cast.bossIndex[z.bossForm??0]'),'boss art mapping');
 assert(game.includes('cast.enemyIndex[z.form??0]'),'regular art mapping');
@@ -60,5 +60,5 @@ assert(game.includes('/* no baked character ground shadow'),'Canvas shadow is re
 assert(game.includes('enemyHead(z,f,p,skin,a)'),'procedural front-oriented fallback retained');
 for(const name of ['그린 좀비','드럼통 좀비 · 레드','일회용 포장 박스 좀비','빅 좀비','쓰레기통 좀비'])assert(game.includes(name),name+' present in game');
 for(const name of ['생존자 소년','금발 소녀','빨간 안경 소녀'])assert(loader.includes(name),name+' preserved in original gallery');
-for(const name of ['에이스','루비','리암'])assert(game.includes("name:'"+name+"'"),name+' displayed as the playable character name');
+for(const name of ['에이스','루비','리아'])assert(game.includes("name:'"+name+"'"),name+' displayed as the playable character name');
 console.log('PASS: 13 canon gallery sprites, PNG integrity, camera gate, no baked shadows, PWA fallback');
