@@ -19,7 +19,8 @@ const images={},highResBosses=new Set(['big_zombie','trash_can']);
 // other bosses/death debris. The dominant 8-connected alpha island is the
 // character; isolated extraneous fragments do not belong to it.
 const TRASH_CAN_BLEED_FRAMES=[19,22,24,25];
-function cleanTrashCanHDFrame(atlas,frame){
+const BLUE_BOSS_BLEED_FRAMES=[10,19]; // Side fragments during diagonal walk.
+function cleanBossHDFrame(atlas,frame){
  if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
  try{
   const canvas=document.createElement('canvas');
@@ -79,10 +80,11 @@ for(const key of Object.keys(names)){
   const hiImage=new Image(),hd=entry.hd={image:hiImage,ready:false,failed:false};
   hiImage.decoding='async';
   hiImage.onload=()=>{hd.ready=hiImage.naturalWidth===2048&&hiImage.naturalHeight===1024;hd.failed=!hd.ready;
-   if(hd.ready&&key==='trash_can'){
+   if(hd.ready&&(key==='trash_can'||key==='big_zombie')){
     hd.cleanFrames={};
-    for(const frame of TRASH_CAN_BLEED_FRAMES){
-     const isolated=cleanTrashCanHDFrame(hiImage,frame);
+    const damaged=key==='trash_can'?TRASH_CAN_BLEED_FRAMES:BLUE_BOSS_BLEED_FRAMES;
+    for(const frame of damaged){
+     const isolated=cleanBossHDFrame(hiImage,frame);
      if(isolated)hd.cleanFrames[frame]=isolated;
     }
    }
@@ -131,8 +133,9 @@ function sourceRect(z,frame,img=null){
 }
 function frameImage(z,frame,img=null){
  const image=img||activeImage(z);
- if(keyFor(z)!=='trash_can'||!image||image.naturalWidth!==2048)return image;
- return images.trash_can?.hd?.cleanFrames?.[frame]||image;
+ const id=keyFor(z);
+ if(!highResBosses.has(id)||!image||image.naturalWidth!==2048)return image;
+ return images[id]?.hd?.cleanFrames?.[frame]||image;
 }
 function drawFrame(ctx,img,z,frame,opacity=1){
  const {cell,geom}=imageGeometry(z,img),id=keyFor(z);
@@ -149,7 +152,7 @@ function drawFrame(ctx,img,z,frame,opacity=1){
  ctx.save();ctx.globalAlpha*=opacity;
  if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
  // The corrected 256px frame has the same local source bounds and world pivot.
- // Only HD trash-can frame indices 19/22/24/25 use isolated alpha images.
+ // Trash-can 19/22/24/25 and blue giant 10/19 use isolated alpha cells.
  const frameArt=frameImage(z,frame,img);
  if(frameArt!==img){
   const localRect=[rect[0]%cell,rect[1]%cell,rect[2],rect[3]];
