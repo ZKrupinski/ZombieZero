@@ -991,7 +991,7 @@ march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
   if(mode!=='playing')return;
  }
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
-for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?16:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
+for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');sfx('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
@@ -1711,8 +1711,9 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
    rotation=b.bounceAxis==='x'?0:Math.PI/2;
   }
  }
- // Powered bitmap stays near 2x the base ball even while rebounding.
- if(r>8){sx=clamp(sx,.92,1.06);sy=clamp(sy,.92,1.06)}
+ // Power-up is exactly 1.5x the regular 8px radius; rebound may squash
+ // inward but never stretch past the powered silhouette's intended diameter.
+ if(r>8){sx=clamp(sx,.94,1);sy=clamp(sy,.94,1)}
  return {index,sx,sy,rotation,spin};
 }
 function drawHeroBallSprite(b,r,col){
@@ -1774,7 +1775,7 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
  for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  for(const b of balls){
-  const r=has('power')?16:8;
+  const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   const trailPath=buildBallTrailPath(b,r);
   drawHeroBallTrail(b,r,trailPath);
