@@ -25,9 +25,17 @@ const hero=()=>HEROES[selectedHero];
 // Balls sit on the UPWARD rim (face-safe), not in the character's hand or face.
 const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25,y:-30}];
 const heldBallOffset=()=>HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
-function ballImpact(b,axis,dir=1){
+// Impact pose is cosmetic only; physics uses the unchanged 8/16px ball radius.
+function ballImpact(b,axis,dir=1,kind='wall'){
  if(!b||b.held)return;
- b.bounceTime=.14;b.bounceAxis=axis;b.bounceDir=dir;b._trailCorner=true;
+ const normalSpeed=Math.abs(axis==='x'?b.vx:b.vy);
+ const duration=kind==='paddle'?.235:kind==='enemy'?.205:
+   kind==='shield'?.215:kind==='ceiling'?.175:.19;
+ b.bounceDuration=duration;b.bounceTime=duration;
+ b.bounceAxis=axis;b.bounceDir=dir;
+ b.impactKind=kind;
+ b.impactStrength=clamp((normalSpeed-100)/450,.38,1);
+ b._trailCorner=true;
 }
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
 // Shared interior lane for the painted walls in all 18 portrait scenes.
@@ -592,7 +600,7 @@ function march(dt){
 }
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];for(const b of balls)retireBall(b,'clear');balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent=''}
 function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;setStageBackground();if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+stageRosterLabel(wave))}
-function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceAxis:'y',bounceDir:1}}
+function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
@@ -600,7 +608,11 @@ function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnl
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  const speed=Math.hypot(125,365);
  const angle=(.16+Math.random()*.52)*(Math.random()<.5?-1:1);
- balls[0].held=false;balls[0].bounceTime=0;
+ balls[0].held=false;
+ // Launch stretch is the opening elastic phase, not a physical wall bounce.
+ balls[0].bounceDuration=.17;balls[0].bounceTime=.17;
+ balls[0].bounceAxis='y';balls[0].bounceDir=-1;
+ balls[0].impactKind='serve';balls[0].impactStrength=.7;
  balls[0].vx=Math.sin(angle)*speed;balls[0].vy=-Math.cos(angle)*speed;
  syncMulti();sfx('serve');hud();
 }}
@@ -953,7 +965,7 @@ march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
  }
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 for(const b of [...balls]){b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?16:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
-for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1);sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1);sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1);sfx('wall')}
+for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');sfx('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
  // Once it fully exits that enemy, the contact can be struck on a later pass.
@@ -971,16 +983,16 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    if(piercing){
     b.pierceContacts.add(z);
     // Keep both vx and vy: three or more packed zombies can be pierced.
-   }else if(ox+radius<=z.x||ox-radius>=z.x+z.w){b.vx*=-1;b.x=ox;ballImpact(b,'x',b.vx)}
-   else{b.vy*=-1;b.y=oy;ballImpact(b,'y',b.vy)}
+   }else if(ox+radius<=z.x||ox-radius>=z.x+z.w){b.vx*=-1;b.x=ox;ballImpact(b,'x',b.vx,'enemy')}
+   else{b.vy*=-1;b.y=oy;ballImpact(b,'y',b.vy,'enemy')}
    b.lastHit=z;b.hitLock=.1;hit(z,impact,piercing);
    if(mode!=='playing')return;
    break;
   }
  }
-if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1);swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');haptic(8)}
+if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');haptic(8)}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
-if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1);sfx('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
+if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1,'shield');sfx('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
 if(b.y>H+20){lastLostBall={x:clamp(b.x,28,422),y:H-11};retireBall(b,'lost');balls.splice(balls.indexOf(b),1);hud();break}
   recordBallTrail(b,b.x,b.y,!!b._trailCorner);b._trailCorner=false;
@@ -1553,29 +1565,74 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  }
  g.restore();
 }
-/* V58: Render approved 3D-shaded PNGs. Keep the old circle as network-failure fallback. */
+/* V72: Eight approved bitmaps now react to motion and impact like soft objects.
+   Rest frames 0/1/6/7; vertical compression/recoil 2/3;
+   left/right compression/recoil 4/5. Every pose is purely visual. */
+const BALL_MATERIAL_SPRING=[1,.67,1.22]; // tennis, baseball, rubber toy
+function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
+ const spin=[0,1,6,7][Math.floor(now*(b.held?5:13))%4];
+ let index=spin,sx=1,sy=1,rotation=0;
+ if(b.held)return {index,sx,sy,rotation};
+ const speed=Math.hypot(b.vx||0,b.vy||0);
+ const material=BALL_MATERIAL_SPRING[heroIndex]||1;
+ if((b.bounceTime||0)>0){
+  const duration=b.bounceDuration||.19;
+  const phase=clamp(1-b.bounceTime/duration,0,1);
+  const force=(b.impactStrength||.5)*material*(r>8?.82:1);
+  if(b.impactKind==='serve'){
+   // In the first few flight frames the ball lengthens along its velocity.
+   const pull=Math.sin(Math.PI*phase)*.16*force;
+   sx=1+pull;sy=1-pull*.48;
+   rotation=Math.atan2(b.vy,b.vx);
+   index=phase<.7?3:spin;
+  }else{
+   // Incoming kinetic energy is visibly squashed at the contact normal,
+   // followed by an overshoot stretch and a return to a spherical rest pose.
+   const smooth=t=>{const q=clamp(t,0,1);return q*q*(3-2*q)};
+   const magnitude=clamp(.23*force,.075,.28);
+   let deformation;
+   if(phase<.20)deformation=-magnitude*smooth(phase/.20);
+   else if(phase<.54)deformation=-magnitude+
+     (magnitude+ magnitude*.83)*smooth((phase-.20)/.34);
+   else deformation=magnitude*.83*(1-smooth((phase-.54)/.46));
+   if(b.bounceAxis==='x'){
+    sx=1+deformation;sy=1-deformation*.76;
+   }else{
+    sy=1+deformation;sx=1-deformation*.76;
+   }
+   // The dedicated squash/stretch source frames are keyed to each phase.
+   if(phase<.36){
+    index=b.bounceAxis==='x'?(b.bounceDir<0?4:5):2;
+   }else if(phase<.79){
+    index=b.bounceAxis==='x'?(b.bounceDir<0?5:4):3;
+   }
+   rotation=Math.sin(phase*Math.PI)*.035*force*(b.bounceDir<0?-1:1);
+  }
+ }else{
+  // A restrained velocity-based stretch makes fast flight read as elastic.
+  const lengthening=clamp((speed-260)/480,0,.052)*material;
+  sx=1+lengthening;sy=1-lengthening*.48;
+  rotation=Math.atan2(b.vy||-1,b.vx||0);
+ }
+ return {index,sx,sy,rotation};
+}
 function drawHeroBallSprite(b,r,col){
  const sprites=window.ZZHeroBallsV58;
  const img=sprites?.images?.[selectedHero];
  const ready=!!sprites?.ready?.[selectedHero]&&img&&img.naturalWidth===1774&&img.naturalHeight===887;
- g.save();
- g.shadowColor='transparent';g.shadowBlur=0;
+ const pose=ballSpritePose(b,r),index=pose.index;
+ g.save();g.shadowColor='transparent';g.shadowBlur=0;
+ g.translate(b.x,b.y);g.rotate(pose.rotation);g.scale(pose.sx,pose.sy);
  if(ready){
-  const spin=[0,1,6,7][Math.floor(clock*(b.held?5:13))%4];
-  let index=spin;
-  if(!b.held&&(b.bounceTime||0)>0){
-   const elapsed=.14-b.bounceTime;
-   index=b.bounceAxis==='x'?(b.bounceDir<0?4:5):(elapsed<.075?2:3);
-  }
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
   const size=r*3.40;
   g.drawImage(img,(index%4)*frameW,Math.floor(index/4)*frameH,frameW,frameH,
-   b.x-size/2,b.y-size/2,size,size);
+   -size/2,-size/2,size,size);
  }else{
-  g.fillStyle=col;g.beginPath();g.arc(b.x,b.y,r*1.11,0,Math.PI*2);g.fill();
+  g.fillStyle=col;g.beginPath();g.arc(0,0,r*1.11,0,Math.PI*2);g.fill();
   g.strokeStyle='#ffffcf';g.lineWidth=1.5;
-  g.beginPath();g.arc(b.x-r*.7,b.y,r*.85,-1.1,1.1);g.stroke();
-  g.beginPath();g.arc(b.x+r*.7,b.y,r*.85,2,4.3);g.stroke();
+  g.beginPath();g.arc(-r*.7,0,r*.85,-1.1,1.1);g.stroke();
+  g.beginPath();g.arc(r*.7,0,r*.85,2,4.3);g.stroke();
  }
  g.restore();
 }
@@ -1716,7 +1773,7 @@ const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+
 function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0}bubbles=[];bubbleTimer=.25}
 function haptic(pattern){if(!fxEnabled||!touchUsed||typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return;const now=Date.now();if(now-lastBuzz<100)return;lastBuzz=now;try{navigator.vibrate(pattern)}catch{}}
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
-function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1)}
+function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
 function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');haptic(10);return true}
 function citizenCollision(b,r){if(b.vy<=0)return false;for(const p of citizens){if(!p.alive)continue;const box={x:p.x-10,y:p.y-13,w:20,h:34};if(!circleRect(b.x,b.y,r,box))continue;p.alive=false;p.dying=.8;p.returning=0;p.absent=0;bubbles=bubbles.filter(q=>q.citizen!==p);upwardBounce(b,p.x,16,box.y,r);citizenCue(p,false);effect(p.x,box.y,'#ffb16f',65);burst(p.x,p.y-10,'#ffda86',22);sfx('citizen');haptic(14);return true}return false}
 function citizenCue(p,back,text=null){
