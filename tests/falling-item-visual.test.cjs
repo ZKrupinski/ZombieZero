@@ -41,7 +41,7 @@ check(images.every(a=>a[0]===window.ZZItemIcons.image),'original transparent bit
 const baseCount=images.length;
 images.length=0;active.pierce=10;
 drawActiveItemIcons();
-check(images.length===1&&images[0][7]===17,'equipped icon below car stays 17px unchanged');
+check(images.length===1&&images[0][7]===22,'equipped premium icon is larger and readable below car');
 images.length=0;itemPickupFX=[];const capturedX=car;items=[{k:'pierce',x:capturedX,y:PY+3,phase:0}];
 update(.016);
 check(items.length===0,'real falling loot is collected by the moving car');
@@ -59,5 +59,5 @@ check(itemPickupFX.length===0,'pickup FX clears itself after ~0.62 seconds');
 // A new run must never carry stale pickup FX over.
 activate('dual',100,300);check(itemPickupFX.length===1,'secondary item also flashes');
 start();check(itemPickupFX.length===0,'new game clears lingering pickup effect');
-console.log('PASS: falling collectible 46px with restrained additive glow, no crosshair; real pickup image burst, 17px car status unchanged');
+console.log('PASS: falling collectible 46px with restrained additive glow, no crosshair; real pickup image burst, 22px car status readable');
 `,sandbox);

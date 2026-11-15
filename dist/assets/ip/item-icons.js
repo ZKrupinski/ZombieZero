@@ -1,6 +1,6 @@
-/* ZOMBIE ZERO – approved voxel bitmap item art. 8 × 128px RGBA cells.
+/* ZOMBIE ZERO – refined premium loot chest bitmap items v56. 8 × 128px RGBA cells.
    bazooka, dual, triple, power, fire, slow, pierce, shield
-   The pierce tile uses the approved golden bullet punching through a cube.
+   Symbols: rocket / two balls / three balls / powered ball / fire / ice / pierce / shield.
    Nonvisual fallback remains available while the PNG loads/offline. */
 (function(){
  'use strict';
@@ -10,5 +10,5 @@
  window.ZZItemIcons=atlas;
  image.onload=()=>{atlas.ready=image.naturalWidth===1024&&image.naturalHeight===128;};
  image.onerror=()=>{atlas.ready=false;};
- image.src='assets/ip/item-icons-v37.png?v=37-tiny-items';
+ image.src='assets/ip/item-icons-v56.png?v=56-clean-alpha-crates';
 })();

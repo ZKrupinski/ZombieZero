@@ -1085,8 +1085,8 @@ function drawItemArtwork(k,x,y,size=24){
 // changing screen anchors. The faint ring alone indicates duration remaining.
 // Falling pickups are collectibles, NOT the 17px equipped status symbols.
 // A restrained ADD pass and a soft shadow brighten the alpha-transparent
-// 128px voxel art without adding any vector crosshairs or background boxes.
-const FALLING_ITEM_SIZE=46; // previously 34; car status icons remain 17.
+// 128px voxel loot-box art without adding any vector crosshairs or redundant boxes.
+const FALLING_ITEM_SIZE=46; // collectible crate stays large; active badges 22px for clarity.
 function drawFallingItem(item){
  const color=SKILLS[item.k].color;
  g.save();
@@ -1136,12 +1136,12 @@ function drawItemPickupFX(){
 function drawActiveItemIcons(){
  const keys=ITEM_ICON_KEYS.filter(has);
  if(!keys.length||!['playing','clearing','paused'].includes(mode))return;
- const size=17,step=20;
+ const size=22,step=24; // increase 17px badges so the front-facing box emblem reads at mobile size
  const total=(keys.length-1)*step+size;
  const center=clamp(car,total/2+8,W-total/2-8);
  const first=center-(keys.length-1)*step/2;
  // 15px above the shield beam: sits directly beneath the vehicle wheels.
- // 17px artwork and 10.5px timer arc both finish before the line at Y=652.
+ // 22px artwork and 12.2px duration ring both finish before shield Y=652.
  const y=SHIELD_LINE_Y-15+VIEW_DELTA;
  for(let i=0;i<keys.length;i++){
   const key=keys[i],x=first+i*step;
@@ -1151,9 +1151,9 @@ function drawActiveItemIcons(){
   drawItemArtwork(key,x,y,size);g.shadowBlur=0;
   // A fine radial remaining-time indicator; intentionally no numbers.
   g.lineWidth=1.4;g.strokeStyle='#1b283a99';
-  g.beginPath();g.arc(x,y,10.5,-Math.PI/2,Math.PI*1.5);g.stroke();
+  g.beginPath();g.arc(x,y,12.2,-Math.PI/2,Math.PI*1.5);g.stroke();
   g.strokeStyle=skill.color;
-  g.beginPath();g.arc(x,y,10.5,-Math.PI/2,-Math.PI/2+Math.PI*2*ratio);g.stroke();
+  g.beginPath();g.arc(x,y,12.2,-Math.PI/2,-Math.PI/2+Math.PI*2*ratio);g.stroke();
   g.restore();
  }
 }
