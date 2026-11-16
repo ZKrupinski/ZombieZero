@@ -4,7 +4,7 @@ const source=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('game.js?v=92-trail-bloom-softened'),'new game JS cache key');
-assert(sw.includes('zombie-zero-shell-v92-trail-bloom-softened'),'new offline cache key');
+assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'new offline cache key');
 assert(source.includes('g.rotate(pose.spin-pose.rotation)'),'bitmap spin counter-rotates pose squash axes');
 assert(source.includes('for(const b of [...balls]){updateBallSpin(b,dt);'),'spin updated once per ball each simulation step');
 const take=(start,end)=>{const i=source.indexOf(start),j=source.indexOf(end,i+start.length);assert(i>=0&&j>i,'source boundary '+start);return source.slice(i,j)};

@@ -51,5 +51,5 @@ assert(css.includes('hero-idle-v55.png?v=55-approved-cast')&&css.includes('clip-
  'title/game-over cards display new padded idle art without masking wheels');
 for(const name of ['hero-idle-v55.png','hero-attack-v55.png','hero-animations-v55.js'])
  assert(sw.includes("'./assets/ip/"+name+"'"),'PWA caches '+name);
-assert(sw.includes('zombie-zero-shell-v92-trail-bloom-softened'),'PWA cache bust');
+assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'PWA cache bust');
 console.log('PASS: approved 3x8 RGBA idle/attack PNGs, exact checksums, correct animation and legacy fallback.');
