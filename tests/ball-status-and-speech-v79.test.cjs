@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=86-visible-ball-shadow-vfx-light'),'current gameplay assets must reload');
-assert(sw.includes('zombie-zero-shell-v86-visible-ball-shadow-vfx-light'),'PWA cache refreshes skill art');
+assert(html.includes('game.js?v=87-projected-ground-reflection'),'current gameplay assets must reload');
+assert(sw.includes('zombie-zero-shell-v87-projected-ground-reflection'),'PWA cache refreshes skill art');
 assert(code.includes("carAtBirth:car,event:text?"),'support dialogue anchors at creation');
 assert(code.includes("carAtBirth:car,t:0,life:1.6"),'everyday cheering anchors at creation');
 assert(code.includes("drawBallStatusForeground(b,r);"),'status highlights actually render after bitmap');
