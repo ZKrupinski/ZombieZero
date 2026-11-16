@@ -2089,7 +2089,7 @@ function flameTongue(x,y,dx,dy,width,outer,alpha=1){
   x-nx*root,y-ny*root);g.closePath();g.fill();
  g.restore();
 }
-function drawBurningBallFlames(b,r,front=false){
+function drawBurningBallFlames(b,r,front=false,fast=false){
  if(!fxEnabled||!has('fire'))return;
  const t=clock,velocity=Math.hypot(b.vx||0,b.vy||0);
  const windX=velocity>1?-(b.vx||0)/velocity:0,windY=velocity>1?-(b.vy||0)/velocity:-1;
@@ -2104,8 +2104,8 @@ function drawBurningBallFlames(b,r,front=false){
    g.fillStyle=glow;g.globalAlpha=.87;g.beginPath();g.arc(0,0,r*2.05,0,Math.PI*2);g.fill();
   }
  }
- const count=front?6:12;
- g.shadowColor=front?'transparent':'#ff7b2a';g.shadowBlur=front?0:4;
+ const count=fast?(front?3:5):(front?6:12);
+ g.shadowColor=fast||front?'transparent':'#ff7b2a';g.shadowBlur=fast||front?0:4;
  for(let i=0;i<count;i++){
   const angle=i*Math.PI*2/count+.06*Math.sin(t*7+i*2.3);
   const ax=Math.cos(angle),ay=Math.sin(angle);
@@ -2117,7 +2117,7 @@ function drawBurningBallFlames(b,r,front=false){
   const width=r*(front?.085:.14)*(1+.2*wave);
   const alpha=front?.47:.73;
   flameTongue(bx,by,dx,dy,width,i%3===0?'#ffe393':i%2?'#ffad48':'#ff6428',alpha);
-  if(!front)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
+  if(!front&&!fast)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
  }
  if(front){
   // Surface heat should glimmer over, but not obscure, the three ball designs.
@@ -2129,10 +2129,33 @@ function drawBurningBallFlames(b,r,front=false){
  }
  g.restore();
 }
-function drawBurningTrailFlames(b,r,path){
+function drawBurningTrailFlames(b,r,path,fast=false){
  if(!fxEnabled||!has('fire')||!path||path.length<2)return;
  const t=clock,maxLen=path[path.length-1].s;
  if(maxLen<4)return;
+ if(fast){
+  // Fast multi-ball path: one continuous heated wake and a handful of
+  // flame tongues. No three polygon ribbons or per-vertex temporary arrays.
+  g.save();g.globalCompositeOperation='lighter';g.lineCap='round';
+  const head=path[0],tail=path[path.length-1];
+  g.lineWidth=r*1.32;g.strokeStyle='rgba(255,116,44,.46)';
+  g.beginPath();g.moveTo(head.x,head.y);
+  for(let d=13;d<maxLen;d+=14){
+   const p=sampleBallTrail(path,d);if(p)g.lineTo(p.x,p.y);
+  }
+  g.lineTo(tail.x,tail.y);g.stroke();
+  for(let d=13,i=0;d<maxLen-8;d+=27,i++){
+   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
+   if(!p||!q)continue;
+   const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
+   const nx=-dy/mag,ny=dx/mag,side=i%2?-1:1;
+   const fade=1-d/maxLen,reach=(9+2*Math.sin(t*11+i*2))*fade;
+   flameTongue(p.x+nx*side*r*.42,p.y+ny*side*r*.42,
+    dx/mag*reach+nx*side*reach*.5,dy/mag*reach+ny*side*reach*.5,
+    Math.max(.6,r*.14*fade),i%3?'#ff8d36':'#ffe0a1',.63*fade);
+  }
+  g.restore();return;
+ }
  const ribbons=[
   {scale:1,color:'rgba(255,88,29,.59)',drift:.44},
   {scale:.55,color:'rgba(255,159,52,.64)',drift:.24},
@@ -2183,12 +2206,17 @@ function drawBurningTrailFlames(b,r,path){
 
 // V84: clearly readable cyan-white lightning for piercing shots.
 // Each arc receives a blurred additive outer glow and crisp inner filament.
-function drawElectricArc(points,alpha=1,scale=1){
+function drawElectricArc(points,alpha=1,scale=1,fast=false){
  if(!points||points.length<2)return;
  g.save();g.lineCap='round';g.lineJoin='miter';
  g.globalCompositeOperation='lighter';g.beginPath();
  g.moveTo(points[0].x,points[0].y);
  for(let i=1;i<points.length;i++)g.lineTo(points[i].x,points[i].y);
+ if(fast){
+  // Omit two shadow-blurred outer strokes for every fast-mode lightning arc.
+  g.shadowBlur=0;g.strokeStyle='#a9f4ff';g.lineWidth=2.15*scale;
+  g.globalAlpha=.81*alpha;g.stroke();g.restore();return;
+ }
  g.shadowColor='#69dfff';g.shadowBlur=9*scale;
  g.strokeStyle='#45c8ff';g.lineWidth=3.5*scale;g.globalAlpha=.39*alpha;g.stroke();
  g.shadowBlur=3.5*scale;g.strokeStyle='#a3efff';
@@ -2197,9 +2225,9 @@ function drawElectricArc(points,alpha=1,scale=1){
  g.lineWidth=Math.max(.75,.86*scale);g.globalAlpha=.94*alpha;g.stroke();
  g.restore();
 }
-function drawPierceBallLightning(b,r,front=false){
+function drawPierceBallLightning(b,r,front=false,fast=false){
  if(!fxEnabled||!has('pierce'))return;
- const beat=Math.floor(clock*25),count=front?3:4;
+ const beat=Math.floor(clock*25),count=fast?2:(front?3:4);
  const bright=has('fire')?.68:1;
  g.save();g.translate(b.x,b.y);
  for(let i=0;i<count;i++){
@@ -2213,14 +2241,44 @@ function drawPierceBallLightning(b,r,front=false){
    {x:Math.cos(a-.13*sign)*r*1.49,y:Math.sin(a-.13*sign)*r*1.49},
    {x:Math.cos(a+.07*sign)*end,y:Math.sin(a+.07*sign)*end}
   ];
-  drawElectricArc(points,bright*(.64+.22*Math.sin(beat+i*2.1)**2),front?.68:.77);
+  drawElectricArc(points,bright*(.64+.22*Math.sin(beat+i*2.1)**2),front?.68:.77,fast);
  }
  g.restore();
 }
-function drawPierceTrailLightning(b,r,path){
+function drawPierceTrailLightning(b,r,path,fast=false){
  if(!fxEnabled||!has('pierce')||!path||path.length<2)return;
  const maxLen=path[path.length-1].s;
  if(maxLen<15)return;
+ if(fast){
+  // One jagged lightning filament plus 3-4 compact side forks. Full wake
+  // length and visible electric hue are retained, without blur on every fork.
+  const beat=Math.floor(clock*24),brightness=has('fire')?.64:1;
+  const head=path[0],tail=path[path.length-1];
+  g.save();g.globalCompositeOperation='lighter';
+  g.lineCap='round';g.lineJoin='round';g.shadowBlur=0;
+  g.strokeStyle='#a2f3ff';g.lineWidth=Math.max(1.45,r*.20);
+  g.globalAlpha=.75*brightness;g.beginPath();g.moveTo(head.x,head.y);
+  for(let d=14,i=0;d<maxLen;d+=15,i++){
+   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+5));
+   if(!p||!q)continue;
+   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1;
+   const side=Math.sin(beat*1.7+i*2.91)*r*.39*(1-d/maxLen*.45);
+   g.lineTo(p.x-dy/m*side,p.y+dx/m*side);
+  }
+  g.lineTo(tail.x,tail.y);g.stroke();
+  g.strokeStyle='#ebffff';g.lineWidth=Math.max(.7,r*.09);
+  g.globalAlpha=.54*brightness;g.stroke();
+  g.strokeStyle='#91e8ff';g.lineWidth=Math.max(1,r*.11);
+  g.globalAlpha=.56*brightness;
+  for(let d=29,i=0;d<maxLen;d+=51,i++){
+   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+6));
+   if(!p||!q)continue;
+   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1,sign=i%2?-1:1;
+   g.beginPath();g.moveTo(p.x,p.y);
+   g.lineTo(p.x-dy/m*sign*r*.65,p.y+dx/m*sign*r*.65);g.stroke();
+  }
+  g.restore();return;
+ }
  const beat=Math.floor(clock*24),verts=[],bright=has('fire')?.66:1;
  for(let d=2,i=0;d<maxLen;d+=7.5,i++){
   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+4));
