@@ -130,10 +130,9 @@ def pieces_from_source(src, key, kind):
  # Validate losslessness at key pose before introducing any motion.
  reconstruction=Image.new('RGBA',(256,256),(0,0,0,0))
  for piece in result.values():reconstruction.alpha_composite(piece)
- import numpy as np
- err=np.abs(np.asarray(reconstruction,dtype=np.int16)-np.asarray(src,dtype=np.int16))
- if err.max()>1:
-  raise AssertionError(f'Source pixels changed for {key}/{kind}: {err.max()}')
+ err=ImageChops.difference(reconstruction,src)
+ if err.getbbox():
+  raise AssertionError(f'Source pixels changed for {key}/{kind}')
  return result
 
 def curve(points,t):
