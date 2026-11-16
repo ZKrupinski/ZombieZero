@@ -238,7 +238,46 @@ function drawP1BrainDeath(ctx,img,z,critical,elapsed,duration){
  ctx.restore();
  return true;
 }
+// V97 P1: use six 8x256 transparent PNG atlas strips, not a green-tinted
+// cube or v96's temporary pixel disassembly. Store per-file image once.
+const P1_FINISHED_DEATH_KEYS=['yellow_brain_cube','red_brain_cube','red_barrel'];
+const P1_FINISHED_DEATH_CELL=256;
+const p1FinishedDeaths={};
+for(const id of P1_FINISHED_DEATH_KEYS){
+ const pair=p1FinishedDeaths[id]={};
+ for(const kind of ['normal','critical']){
+  const img=new Image(),asset=pair[kind]={image:img,ready:false,failed:false};
+  img.decoding='async';
+  img.onload=()=>{
+   asset.ready=img.naturalWidth===2048&&img.naturalHeight===256;
+   asset.failed=!asset.ready;
+  };
+  img.onerror=()=>{asset.failed=true;asset.ready=false};
+  img.src='assets/ip/v2/p1-deaths/'+id+'-'+kind+'-v97.png';
+ }
+}
+function drawP1FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
+ const id=keyFor(z);
+ const clip=p1FinishedDeaths[id]?.[critical?'critical':'normal'];
+ if(!clip?.ready)return false;
+ const t=Math.max(0,Math.min(1,elapsed/Math.max(.001,duration)));
+ const f=Math.min(7,Math.floor(t*8));
+ const size=88+(critical?33:19)*Math.pow(t,1.3);
+ const dx=z.x+z.w/2-size/2;
+ const dy=z.y+z.h+2-size*(215/256);
+ const blend=Math.max(0,Math.min(1,elapsed/.055));
+ if(blend<1&&livingAtlas)
+  drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-blend);
+ if(blend>0){
+  ctx.save();ctx.globalAlpha*=blend;
+  ctx.drawImage(clip.image,f*P1_FINISHED_DEATH_CELL,0,256,256,
+   dx,dy,size,size);
+  ctx.restore();
+ }
+ return true;
+}
 function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(!img)return false;
+ if(drawP1FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP1BrainDeath(ctx,img,z,critical,elapsed,duration))return true;
  const t=Math.min(1,Math.max(0,elapsed/Math.max(.001,duration)));
  const first=critical?28:26,second=first+1;
@@ -247,5 +286,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(
  if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath};
 })();
