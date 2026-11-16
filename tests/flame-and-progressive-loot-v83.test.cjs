@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const src=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=92-trail-bloom-softened'),'game script cache version');
+assert(html.includes('game.js?v=93-multiball-light-cache'),'game script cache version');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'offline cache version');
 assert(src.includes('drawBurningBallFlames(b,r,false);\n  drawPierceBallLightning(b,r,false);\n  drawHeroBallSprite(b,r,palette.main);'),
  'rear fire layer is underneath unchanged physical ball');
