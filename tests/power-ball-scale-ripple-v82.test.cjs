@@ -33,6 +33,6 @@ assert(aura.includes('createRadialGradient'),'soft, close-range layered aura');
 assert(!aura.includes('fillRect(')&&!trail.includes('fillRect('),
  'coarse rectangle particles no longer enlarge the ball silhouette');
 assert(trail.includes('g.arc('),'small light motes instead of large square chips');
-assert(html.includes('game.js?v=87-projected-ground-reflection'),'new gameplay cache bypass');
-assert(sw.includes('zombie-zero-shell-v87-projected-ground-reflection'),'new PWA cache bypass');
+assert(html.includes('game.js?v=88-trail-hit-floor-light'),'new gameplay cache bypass');
+assert(sw.includes('zombie-zero-shell-v88-trail-hit-floor-light'),'new PWA cache bypass');
 console.log('PASS: bitmap exactly 1.5x, physics 1.5x, no outward stretch, refined FX, slower chain ripple.');
