@@ -26,14 +26,14 @@ TRACKS={
  "normal":[
   (0,0,0,0),(24,0,-5,0),(25,2,-7,4),
   (26,0,-6,-5),(26,-3,-4,-13),(26,-7,0,-22),
-  (26,-12,7,-30),(27,-9,11,-12),(27,-16,17,-27),
-  (27,-23,23,-42),(27,-28,29,-57),(27,-30,30,-65)
+  (26,-12,4,-27),(27,-7,2,-4),(27,-11,2,-10),
+  (27,-17,3,-19),(27,-21,3,-27),(27,-22,2,-25)
  ],
  "critical":[
   (0,0,0,0),(24,0,-6,0),(28,1,-12,0),
   (28,3,-17,7),(28,-2,-19,-8),(28,-5,-14,-18),
-  (29,-6,-11,-4),(29,-12,-5,-16),(29,-18,6,-30),
-  (29,-24,15,-46),(29,-29,24,-62),(29,-32,29,-72)
+  (29,-6,-9,-4),(29,-11,-3,-13),(29,-17,2,-25),
+  (29,-22,4,-36),(29,-27,5,-46),(29,-28,3,-43)
  ]
 }
 
@@ -62,7 +62,7 @@ def render_cell(source_bitmap,dx,dy,rotation):
  else:
   # Use a single affine rotation on the full original pose; no fragmentation.
   transformed=source_bitmap.rotate(
-   -rotation,resample=Image.Resampling.BICUBIC,center=(PIVOT_X,FOOT_Y-96)
+   -rotation,resample=Image.Resampling.BICUBIC,center=(PIVOT_X,FOOT_Y-8)
   )
  result=Image.new("RGBA",(CELL,CELL),(0,0,0,0))
  result.alpha_composite(transformed,(round(dx),round(dy)))
