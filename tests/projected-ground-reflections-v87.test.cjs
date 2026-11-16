@@ -13,9 +13,10 @@ const fireStart=src.indexOf('function drawBurningBallFlames(');
 const fireEnd=src.indexOf('function drawBurningTrailFlames(',fireStart);
 assert(fireStart>=0&&fireEnd>fireStart,'flame source still exists');
 assert(!src.slice(fireStart,fireEnd).includes('ballProjectionDrop'),
- 'the flame-covered ball is NOT displaced with its ground shadow');
+ 'the flame-covered ball is NOT displaced with its colored ground glow');
 const a=src.indexOf('const BALL_PROJECTION_GAP=24'),b=src.indexOf('function rect(',a);
-assert(a>=0&&b>a,'complete v87 shadow and light implementations');
+assert(a>=0&&b>a,'complete v87 colored projection implementations');
+assert(!src.includes('drawBallSoftShadow('),'dark ball shadow was fully removed');
 const draws={gradients:[],fills:[],translations:[],stacks:[]};
 const state={x:0,y:0,scaleY:1};
 const g=new Proxy({}, {get(target,k){
@@ -38,20 +39,12 @@ const stateContext={g,Math,Number,Map,WeakMap,clock:1.5,fxEnabled:true,VIEW_DELT
 vm.createContext(stateContext);
 vm.runInContext(src.slice(a,b),stateContext);
 assert(vm.runInContext('ballProjectionDrop(8)',stateContext)===34,
- 'normal ball shadow center is offset 34px below ball');
+ 'normal ball colored light remains offset 34px below ball');
 assert(vm.runInContext('ballProjectionDrop(12)',stateContext)===39,
- 'larger power ball stays vertically separated');
+ 'larger power ball colored light stays vertically separated');
 const ball={x:220,y:280,held:false};
-vm.runInContext('drawBallSoftShadow('+JSON.stringify(ball)+',8)',stateContext);
-assert(draws.gradients.length===1,'free ball casts an independent soft shadow');
-assert(draws.gradients[0].y===314,'shadow is centered on projected floor position');
-assert(draws.gradients[0].sy===.53,'ball shadow stays softly elliptical');
-assert(draws.gradients[0].stops.some(([t,c])=>t===0&&c.includes('.50')),
- 'dark center remains readable');
 const afterFlying=draws.gradients.length;
-vm.runInContext('drawBallSoftShadow({x:220,y:280,held:true},8)',stateContext);
-assert(draws.gradients.length===afterFlying,
- 'held ball does not project a ghost shadow onto the car body');
+assert(afterFlying===0,'no dark ball projection emitted');
 stateContext.balls=[ball];
 stateContext.active=new Set(['pierce']);
 stateContext.hitFlashes=[{x:160,y:166,t:.01,life:.20,piercing:true,critical:false}];
@@ -80,4 +73,4 @@ stateContext.foes=[{x:90,y:120,w:33,h:44,burn:1}];
 vm.runInContext('drawEffectLightSpills()',stateContext);
 assert(draws.gradients.length===beforeBurn+1,'burning zombie glow stays attached instead of projected');
 assert(draws.gradients.at(-1).y===144,'flame light still follows zombie itself');
-console.log('PASS: clearly separated ball shadows and colored floor reflections; attached fire preserved.');
+console.log('PASS: dark ball shadow removed; colored ground reflections and attached fire preserved.');

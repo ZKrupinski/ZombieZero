@@ -12,8 +12,7 @@ function section(a,b){
  assert(i>=0&&j>i,'missing source section '+a);
  return code.slice(i,j);
 }
-const shadowSrc=section('function drawHardGroundShadow(','function drawBallSoftShadow(');
-const ballShadowSrc=section('function drawBallSoftShadow(','// Bright "shadows" are light spill');
+const shadowSrc=section('function drawHardGroundShadow(','// v94: no dark ball shadow');
 const lightSrc=section('function drawSoftLightSpill(','function rect(');
 const render=section('function draw(){','function frame(');
 assert(shadowSrc.includes('z.y+z.h-3'),'zombie shadow moved up 5px from original contact');
@@ -21,7 +20,8 @@ assert(shadowSrc.includes('z.boss?15:9.5'),'zombie shadow is taller');
 assert(shadowSrc.includes('foot-4.5,84,11.5'),'car shadow moved up and grows vertically');
 assert(shadowSrc.includes('g.moveTo(cx-w*.77,y-d*.53)'),'contact extends up instead of only down');
 assert(render.includes('drawWorldGroundShadows();drawCrowd()'),'zombie shadows on background');
-assert(render.includes('drawBallSoftShadow(b,r)'),'all balls receive independent shadow');
+assert(!render.includes('drawBallSoftShadow('),'no dark ball shadow draw call');
+assert(!code.includes('function drawBallSoftShadow('),'dark ball-shadow renderer removed');
 const glowPosition=render.indexOf('drawEffectLightSpills()');
 assert(glowPosition>render.indexOf('drawPierceBallLightning(b,r,true)'),
  'light emitted after ball bitmap and electric effects, not underneath them');
@@ -30,8 +30,7 @@ assert(glowPosition>render.indexOf('fxRenderer.composite(g)'),
 assert(glowPosition<render.indexOf('drawActiveItemIcons()'),'HUD remains unaffected');
 assert(!render.includes('drawEnemyDeaths();drawEffectLightSpills()'),
  'the old occluded early pass is gone');
-assert(ballShadowSrc.includes('g.scale(1,.53)'),'actual elliptical gradient geometry');
-assert(ballShadowSrc.includes('if(b.held)return'),'car-held ball cannot cast a false ground shadow over the car');
+assert(code.includes('drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius))'),'colored trail reflections remain');
 assert(lightSrc.includes('for(let i=Math.max(0,fx.length-12);i<fx.length;i++)'),'generic hit/catch effects still project light without array copying');
 assert(lightSrc.includes('itemPickupFX'),'pickup effects project light');
 assert(lightSrc.includes('actor.burn>0'),'burning enemies project warm light');
@@ -59,7 +58,7 @@ const ctx={g,Math,Map,WeakMap,Number,fxEnabled:true,selectedHero:0,VIEW_DELTA:0,
  SKILLS:{fire:{color:'#ff813e'},pierce:{color:'#79d8f6'}},
  has:k=>ctx.active.has(k),active:new Set()};
 vm.createContext(ctx);
-vm.runInContext(shadowSrc+ballShadowSrc+lightSrc,ctx);
+vm.runInContext(shadowSrc+lightSrc,ctx);
 vm.runInContext('drawHardGroundShadow(100,200,33,9.5,true,.31)',ctx);
 assert(draws.paths.length===2,'physical polygon shadow has cast and contact layers');
 assert(draws.paths.every(path=>path.length>=5),'all physical layers are angular');
@@ -67,15 +66,9 @@ assert(draws.paths[1].some(([x,y])=>y<196),
  'contact shadow penetrates under the feet, now shifted upwards');
 assert(draws.paths[1].some(([x,y])=>y>209),
  'contact shadow still appears beyond foot even after upward shift');
+// v94: no dark gradients are generated just by rendering a free ball.
 draws.translates.length=0;draws.scales.length=0;draws.gradients.length=0;
 const ball={x:195,y:260,held:false};
-vm.runInContext('drawBallSoftShadow('+JSON.stringify(ball)+',8)',ctx);
-assert(draws.translates.length===1&&draws.translates[0][1]>ball.y+12,
- 'ball shadow sits beyond the opaque bitmap');
-assert(draws.scales.some(([sx,sy])=>sx===1&&sy===.53),
- 'ball gradient is compressed vertically, not clipped');
-assert(draws.gradients[0].stops.some(([t,c])=>t===0&&c.includes('.50')),
- 'ball dark core is visibly stronger than prior 0.14');
 const before=draws.gradients.length;
 ctx.active.add('pierce');
 ctx.balls=[ball];
@@ -92,4 +85,4 @@ ctx.fxEnabled=false;
 const off=draws.gradients.length;
 vm.runInContext('drawEffectLightSpills()',ctx);
 assert(draws.gradients.length===off,'FX enable control remains respected');
-console.log('PASS: higher taller polygon shadows, projected elliptical ball shadow, strong post-sprite VFX lights.');
+console.log('PASS: zombie/car shadows remain; dark ball shadows removed; colored FX lights preserved.');
