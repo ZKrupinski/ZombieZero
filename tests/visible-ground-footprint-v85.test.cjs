@@ -37,7 +37,7 @@ const doc={createElement(){
    return {data:pixels};
   }
  }}}}
-}};
+};
 const ctx={g,window:{ZZHeroAnimationsV55:{ready:true,idle:atlas}},
  document:doc,Math,Map,WeakMap,Number,selectedHero:0,VIEW_DELTA:0,
  clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
