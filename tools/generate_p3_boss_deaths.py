@@ -92,7 +92,7 @@ def pieces_from_source(src, key, kind):
  reconstruction=Image.new('RGBA',(256,256),(0,0,0,0))
  for piece in result.values():reconstruction.alpha_composite(piece)
  err=ImageChops.difference(reconstruction,src)
- if err.getbbox():
+ if err.convert('RGB').getbbox() or err.getchannel('A').getbbox():
   raise AssertionError(f'Source pixels changed for {key}/{kind}')
  return result
 
@@ -182,8 +182,10 @@ def main():
    with Image.open(dst) as check:
     if check.size!=(6144,512) or check.mode!='RGBA':
      raise ValueError(f'Invalid sprite sheet: {dst}')
-    if args.verify and ImageChops.difference(composed,check.convert('RGBA')).getbbox():
-     raise ValueError(f'Committed art changed or no longer matches original: {dst}')
+    if args.verify:
+     diff=ImageChops.difference(composed,check.convert('RGBA'))
+     if diff.convert('RGB').getbbox() or diff.getchannel('A').getbbox():
+      raise ValueError(f'Committed art changed or no longer matches original: {dst}')
    print(f'PASS {dst.relative_to(ROOT)} bytes={dst.stat().st_size}')
    animations[kind]=composed
   if not args.verify:make_preview(key,animations)
