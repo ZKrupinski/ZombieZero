@@ -1,0 +1,30 @@
+name: P3 anatomy sprite build preview
+on:
+  push:
+    branches: [art/p3-anatomical-boss-deaths-v104]
+    paths:
+      - tools/p3_debug_portraits.py
+      - tools/generate_p3_boss_deaths.py
+      - .github/workflows/p3-preview.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "Pillow>=10,<12"
+      - run: python tools/p3_debug_portraits.py
+      - name: Save preview files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f docs/p3-portraits-debug.jpg
+          if ! git diff --cached --quiet; then
+            git commit -m "qa(p3): generate original HD boss reference poses"
+            git push origin HEAD:art/p3-anatomical-boss-deaths-v104
+          fi
