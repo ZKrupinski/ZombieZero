@@ -66,7 +66,7 @@ clock=.09;damage(boss,1,false,{x:30,y:120});
 verify(Math.abs(boss.hitShakeUntil-firstShakeEnd)<.00001,
  'rapid second boss hit does not restart the stun timer');
 // Clear approach lane and set an explicit safe movement destination.
-boss.bossGoalX=305;boss.bossGoalY=120;boss.bossHomeY=120;
+boss.bossGoalX=305;boss.bossGoalY=120;boss.bossHomeY=120;boss.bossGoalTime=clock+3.5;
 const initialX=boss.x;
 for(let i=0;i<95;i++){
  clock+=.016;
