@@ -51,36 +51,98 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const has=k=>(active[k]||0)>0;
 // V84: hard-edge, low-poly contact shadows. All ground actors use polygon
 // footprints; no blur, texture outlines, or baked shadows on approved sprites.
-function drawHardGroundShadow(cx,foot,width,depth=6,cast=false,alpha=.19){
- if(!Number.isFinite(cx)||!Number.isFinite(foot)||width<=0)return;
- g.save();g.shadowBlur=0;g.shadowColor='transparent';g.globalCompositeOperation='source-over';
- const w=width*.5, y=foot, d=depth;
+// V85: visible, pixel-sharp low-poly shadows with a shared upper-left light.
+// Previous v84 polygons ended under each sprite's opaque feet and disappeared.
+// These extend just below the real footprint, without separating the actor.
+function drawHardGroundShadow(cx,foot,width,depth=6,cast=true,alpha=.30){
+ if(!Number.isFinite(cx)||!Number.isFinite(foot)||!Number.isFinite(width)||width<=0)return;
+ const y=foot,w=width*.5,d=Math.max(3,depth);
+ g.save();g.globalCompositeOperation='source-over';
+ g.shadowColor='transparent';g.shadowBlur=0;
  if(cast){
-  // One fixed upper-left key light: short hard projection to lower-right.
-  g.fillStyle='rgba(13,21,26,'+(alpha*.57)+')';
-  g.beginPath();g.moveTo(cx-w*.9,y-d*.42);g.lineTo(cx+w*.9,y-d*.42);
-  g.lineTo(cx+w*.9+d*1.7,y+d*1.4);g.lineTo(cx-w*.32+d*1.7,y+d*1.4);
+  // A small angular projection remains visible to the lower-right of a cube.
+  const dx=Math.min(17,d*.95+4),dy=Math.min(14,d*.72+4);
+  g.fillStyle='rgba(10,17,23,'+(alpha*.73).toFixed(3)+')';
+  g.beginPath();
+  g.moveTo(cx-w*.80,y-1.7);
+  g.lineTo(cx+w*.64,y-1.7);
+  g.lineTo(cx+w*.78+dx,y+dy*.75);
+  g.lineTo(cx-w*.26+dx,y+dy);
+  g.lineTo(cx-w*.80,y+1);
   g.closePath();g.fill();
  }
- g.fillStyle='rgba(12,19,25,'+alpha+')';
- // Slightly perspective-trimmed six-point contact plane, no ellipse.
- g.beginPath();g.moveTo(cx-w*.78,y-d*.58);g.lineTo(cx+w*.70,y-d*.58);
- g.lineTo(cx+w,y-d*.10);g.lineTo(cx+w*.79,y+d*.46);
- g.lineTo(cx-w*.72,y+d*.46);g.lineTo(cx-w,y-d*.05);
- g.closePath();g.fill();g.restore();
+ // The contact plane overlaps feet by 1–2px and extends 6–13px beyond them.
+ // Keep corners hard: no ellipse, blur, alpha gradient or softened mask.
+ g.fillStyle='rgba(12,20,26,'+alpha.toFixed(3)+')';
+ g.beginPath();
+ g.moveTo(cx-w*.77,y-2.0);
+ g.lineTo(cx+w*.68,y-2.0);
+ g.lineTo(cx+w,y+1.2);
+ g.lineTo(cx+w*.74,y+d*.84+1.5);
+ g.lineTo(cx-w*.75,y+d*.84+1.5);
+ g.lineTo(cx-w,y+.75);
+ g.closePath();g.fill();
+ g.restore();
 }
 function drawWorldGroundShadows(){
  for(const actor of foes){
-  const z=knockVisualPosition(actor),width=z.w*(z.boss?.93:.84);
-  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-2,width,z.boss?12:6,
-    !!z.boss,z.boss?.27:.18);
+  // ObjectZombie and GreenWalk use bottom pivot z.y+z.h+2.
+  // Knockback shadows follow their displayed sprites, not future colliders.
+  const z=knockVisualPosition(actor);
+  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h+2,
+    z.w*(z.boss?.93:.88),z.boss?12:6.5,true,z.boss?.34:.31);
  }
  for(const d of enemyDeaths){
   if((d.t||0)>=d.split)continue;
   const z=d.z,fade=Math.max(0,1-d.t/d.split);
-  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-2,z.w*.78,z.boss?11:5,
-    !!z.boss,(z.boss?.23:.16)*fade);
+  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h+2,z.w*.83,
+    z.boss?11:5.5,true,(z.boss?.28:.27)*fade);
  }
+}
+// The real 192px car atlas has transparent bottom padding that differs by
+// hero. Sample idle frame zero ONCE per hero, then cache the visible wheel
+// baseline; never guess from the 108px sprite destination rectangle.
+const heroGroundFootCache=new WeakMap();
+function sampleHeroCarFoot(img,heroIndex){
+ if(!img||typeof document==='undefined'||typeof document.createElement!=='function')return null;
+ let cache=heroGroundFootCache.get(img);
+ if(!cache){cache=new Map();heroGroundFootCache.set(img,cache)}
+ const row=clamp(heroIndex|0,0,2);
+ if(cache.has(row))return cache.get(row);
+ let baseline=null;
+ try{
+  const canvas=document.createElement('canvas');
+  canvas.width=canvas.height=64;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(ctx&&typeof ctx.drawImage==='function'&&typeof ctx.getImageData==='function'){
+   ctx.clearRect?.(0,0,64,64);
+   ctx.drawImage(img,0,row*192,192,192,0,0,64,64);
+   const pixels=ctx.getImageData(0,0,64,64).data;
+   let last=-1;
+   // Restrict to the underside of the vehicle, not the racket or hair.
+   for(let y=63;y>=24&&last<0;y--)for(let x=7;x<57;x++){
+    if(pixels[(y*64+x)*4+3]>=78){last=y;break}
+   }
+   if(last>=0)baseline=clamp(579-54+(last+1)*108/64,596,633);
+  }
+ }catch{/* fallback when canvas readback is unsupported */}
+ cache.set(row,baseline);
+ return baseline;
+}
+function heroCarShadowFoot(){
+ const approved=window.ZZHeroAnimationsV55;
+ const source=approved?.ready&&approved.idle?approved.idle:
+   window.ZZHeroCarAttack?.ready?window.ZZHeroCarAttack.image:null;
+ const sampled=source?sampleHeroCarFoot(source,selectedHero):null;
+ // Source art usually ends near y627; this fallback cannot sink to old y636.
+ const bounce=mode==='clearing'||mode==='paused'&&resumeMode==='clearing'?
+   Math.abs(Math.sin(clearTime*7))*4:0;
+ return (sampled??627)+VIEW_DELTA-bounce;
+}
+function drawCarGroundShadow(){
+ // A compact 2-layer silhouette hugs the rear and front wheel contact zones.
+ const foot=heroCarShadowFoot();
+ drawHardGroundShadow(car,foot,84,8.5,true,.33);
 }
 function drawBallSoftShadow(b,r){
  if(b.held)return;
@@ -1426,7 +1488,7 @@ function drawItemArtwork(k,x,y,size=24){
 // Render approved item bitmap without a fuzzy duplicated additive border.
 const FALLING_ITEM_SIZE=46;
 function drawFallingItem(item){
- drawHardGroundShadow(item.x+4,item.y+23,27,5,false,.115);
+ drawHardGroundShadow(item.x+2,item.y+FALLING_ITEM_SIZE*.48,30,6,true,.27);
  g.save();g.translate(item.x,item.y);
  g.rotate(Math.sin(clock*3+item.phase)*.055);
  g.shadowColor='transparent';g.shadowBlur=0;
@@ -2049,7 +2111,7 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawEffectLightSpills();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHardGroundShadow(car,636+VIEW_DELTA,99,13,true,.23);player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawEffectLightSpills();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  for(const b of balls){
   const r=has('power')?12:8;
@@ -2228,7 +2290,7 @@ function drawCitizenBitmap(p,x,y,cheering){
 // clear of civilian heads. The same Y is used for the ball rebound and
 // its hit sparkle; the bounce rule and skill duration do not change.
 const SHIELD_LINE_Y=H-58;
-function drawCrowd(){rect(20,H-51,410,4,'#7189a2');rect(20,H-47,410,3,'#182d40');for(const p of citizens){if(!p.alive&&p.dying<=0)continue;g.save();drawHardGroundShadow(p.x,p.y+19,26,5,false,.17);if(p.returning>0){const t=1-p.returning/1.1;g.globalAlpha=Math.min(1,t*5);if(fxEnabled){g.strokeStyle='#91f4d0';g.lineWidth=3;g.beginPath();g.ellipse(p.x,p.y+12,12+t*24,5+t*8,0,0,Math.PI*2);g.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+t*4;rect(p.x+Math.cos(a)*25,p.y-15+Math.sin(a)*23,4,4,'#ffed9b')}}g.translate(0,-Math.sin(t*Math.PI)*22)}if(!p.alive){const t=1-p.dying/.8;g.globalAlpha=Math.min(1,p.dying/.35);g.translate(p.x,p.y);g.rotate(Math.sin(t*13)*.22);g.scale(1+t*.15,1-t*.15);g.translate(-p.x,-p.y-30*Math.sin(t*Math.PI/2))}let cheer=mode==='clearing'||cheerTime>0||Math.sin(clock*1.5+p.phase)>.82,bob=cheer?Math.abs(Math.sin(clock*7+p.phase))*3:0,x=p.x,y=p.y-bob;if(drawCitizenBitmap(p,x,y,cheer)){g.restore();continue}rect(x-9,y+4,18,17,p.shirt);rect(x-8,y-10,16,16,p.skin);rect(x-9,y-13,18,5,p.hair);if(p.style===0){rect(x-11,y-15,22,4,p.shirt);rect(x-7,y-20,15,6,p.shirt)}if(p.style===1){rect(x-10,y-8,4,17,p.hair);rect(x+7,y-8,4,17,p.hair)}if(p.style===2){rect(x-8,y-7,16,2,'#263441');rect(x-7,y-5,5,4,'#d3ece1');rect(x+3,y-5,5,4,'#d3ece1')}else{rect(x-5,y-5,2,3,'#394149');rect(x+3,y-5,2,3,'#394149')}rect(x-3,y+1,6,2,'#984f4d');if(p.style===3){rect(x-6,y+12,13,3,'#f0e9c9');rect(x-2,y+4,4,14,'#f0e9c9')}if(p.style===4)rect(x-7,y,14,4,'#d3d4c0');if(cheer){rect(x-13,y-4,5,14,p.skin);rect(x+10,y-8,5,17,p.skin);rect(x-14,y-7,6,5,p.skin);rect(x+9,y-11,6,5,p.skin)}else{rect(x-12,y+7,4,12,p.skin);rect(x+9,y+7,4,12,p.skin)}g.restore()}}
+function drawCrowd(){rect(20,H-51,410,4,'#7189a2');rect(20,H-47,410,3,'#182d40');for(const p of citizens){if(!p.alive&&p.dying<=0)continue;g.save();drawHardGroundShadow(p.x,p.y+21,25,6,true,.28);if(p.returning>0){const t=1-p.returning/1.1;g.globalAlpha=Math.min(1,t*5);if(fxEnabled){g.strokeStyle='#91f4d0';g.lineWidth=3;g.beginPath();g.ellipse(p.x,p.y+12,12+t*24,5+t*8,0,0,Math.PI*2);g.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+t*4;rect(p.x+Math.cos(a)*25,p.y-15+Math.sin(a)*23,4,4,'#ffed9b')}}g.translate(0,-Math.sin(t*Math.PI)*22)}if(!p.alive){const t=1-p.dying/.8;g.globalAlpha=Math.min(1,p.dying/.35);g.translate(p.x,p.y);g.rotate(Math.sin(t*13)*.22);g.scale(1+t*.15,1-t*.15);g.translate(-p.x,-p.y-30*Math.sin(t*Math.PI/2))}let cheer=mode==='clearing'||cheerTime>0||Math.sin(clock*1.5+p.phase)>.82,bob=cheer?Math.abs(Math.sin(clock*7+p.phase))*3:0,x=p.x,y=p.y-bob;if(drawCitizenBitmap(p,x,y,cheer)){g.restore();continue}rect(x-9,y+4,18,17,p.shirt);rect(x-8,y-10,16,16,p.skin);rect(x-9,y-13,18,5,p.hair);if(p.style===0){rect(x-11,y-15,22,4,p.shirt);rect(x-7,y-20,15,6,p.shirt)}if(p.style===1){rect(x-10,y-8,4,17,p.hair);rect(x+7,y-8,4,17,p.hair)}if(p.style===2){rect(x-8,y-7,16,2,'#263441');rect(x-7,y-5,5,4,'#d3ece1');rect(x+3,y-5,5,4,'#d3ece1')}else{rect(x-5,y-5,2,3,'#394149');rect(x+3,y-5,2,3,'#394149')}rect(x-3,y+1,6,2,'#984f4d');if(p.style===3){rect(x-6,y+12,13,3,'#f0e9c9');rect(x-2,y+4,4,14,'#f0e9c9')}if(p.style===4)rect(x-7,y,14,4,'#d3d4c0');if(cheer){rect(x-13,y-4,5,14,p.skin);rect(x+10,y-8,5,17,p.skin);rect(x-14,y-7,6,5,p.skin);rect(x+9,y-11,6,5,p.skin)}else{rect(x-12,y+7,4,12,p.skin);rect(x+9,y+7,4,12,p.skin)}g.restore()}}
 // Citizen support uses its own projectiles; tennis ball physics stays unchanged.
 const BAZOOKA_RADIUS=120,BAZOOKA_DAMAGE=8;
 let rockets=[],bazookaTimer=0,bazookaBlasts=[];
