@@ -30,7 +30,9 @@ class FXRenderer {
       const p=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(p);gl.vertexAttribPointer(p,2,gl.FLOAT,false,0,0);
       this.step=gl.getUniformLocation(program,'stepSize');gl.uniform1i(gl.getUniformLocation(program,'source'),0);
       this.textures=[];this.targets=[];
-      for(let i=0;i<2;i++) {const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,this.output.width,this.output.height,0,gl.RGBA,gl.UNSIGNED_BYTE,null);this.textures.push(tex);
+      for(let i=0;i<2;i++) {const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);// Source must be allocated at native world resolution ONCE. The
+        // second texture remains half-size as the blur intermediate.
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,i===0?this.width:this.output.width,i===0?this.height:this.output.height,0,gl.RGBA,gl.UNSIGNED_BYTE,null);this.textures.push(tex);
         if(i>0){const fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw Error('FX framebuffer');this.targets.push(fb)}
       }
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);this.gl=gl;
@@ -48,7 +50,9 @@ class FXRenderer {
     const gl=this.gl;
     if(gl&&!gl.isContextLost()){
       try {
-        gl.bindTexture(gl.TEXTURE_2D,this.textures[0]);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,this.source);
+        // Never reallocate the source GL texture per frame. It is already
+        // allocated at native size in init(); upload only the new pixels.
+        gl.bindTexture(gl.TEXTURE_2D,this.textures[0]);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,this.source);
         gl.viewport(0,0,this.output.width,this.output.height);
         const pass=(input,fb,x,y)=>{gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.bindTexture(gl.TEXTURE_2D,input);gl.uniform2f(this.step,x,y);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)};
         for(const [radius,gain] of [[this.settings.radius,.65],[this.settings.radius*2,.75]]){
