@@ -146,19 +146,24 @@ function drawCarGroundShadow(){
 // V86: shadow is projected BEYOND the 3.4*r bitmap circle instead of
 // hiding under the ball. Transform the gradient itself, not merely its clipping
 // path, so the falloff remains elliptical and readable on mobile.
+// V87: the sprite occupies roughly +/-1.7*r; the projection must have
+// a genuinely empty gap below that image, rather than disappearing under it.
+const BALL_PROJECTION_GAP=24;
+function ballProjectionDrop(r){return BALL_PROJECTION_GAP+r*1.25}
 function drawBallSoftShadow(b,r){
- const held=!!b.held;
- const radius=r*(held?1.42:1.75),x=b.x+r*.56,y=b.y+r*(held?1.47:1.72);
+ // A held ball is on the car; its old projected patch landed on the vehicle.
+ if(b.held)return;
+ const radius=r*1.90,x=b.x+r*.42,y=b.y+ballProjectionDrop(r);
  g.save();g.translate(x,y);g.scale(1,.53);
  const grad=g.createRadialGradient?.(0,0,0,0,0,radius);
  if(grad&&typeof grad.addColorStop==='function'){
-  grad.addColorStop(0,held?'rgba(10,18,27,.31)':'rgba(10,18,27,.50)');
-  grad.addColorStop(.34,held?'rgba(10,18,27,.20)':'rgba(10,18,27,.32)');
-  grad.addColorStop(.67,held?'rgba(10,18,27,.08)':'rgba(10,18,27,.13)');
+  grad.addColorStop(0,'rgba(10,18,27,.50)');
+  grad.addColorStop(.35,'rgba(10,18,27,.34)');
+  grad.addColorStop(.68,'rgba(10,18,27,.14)');
   grad.addColorStop(1,'rgba(10,18,27,0)');
   g.fillStyle=grad;
  }else{
-  g.fillStyle='rgba(10,18,27,.2)';
+  g.fillStyle='rgba(10,18,27,.27)';
  }
  g.beginPath();g.arc(0,0,radius,0,Math.PI*2);g.fill();g.restore();
 }
@@ -183,6 +188,19 @@ function drawSoftLightSpill(x,y,r,rgb,alpha=.35){
  g.shadowColor='transparent';g.shadowBlur=0;
  g.fillStyle=grad;g.beginPath();g.arc(x,y,radius,0,Math.PI*2);g.fill();g.restore();
 }
+// Projected reflections sit below the effect, while the original flame
+// filaments, electric arcs and hit flashes stay attached to their sources.
+// Transforming BOTH the gradient and its path gives a soft elliptical pool.
+function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28){
+ if(!fxEnabled||alpha<=0)return;
+ g.save();
+ g.translate(x+4,y+drop);
+ g.scale(1,.48);
+ drawSoftLightSpill(0,0,r,rgb,alpha);
+ // Compact luminous center keeps colored reflections legible on bright roads.
+ drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37);
+ g.restore();
+}
 function effectLightRGB(hex){
  const m=typeof hex==='string'?/^#([0-9a-f]{6})$/i.exec(hex):null;
  return m?[parseInt(m[1].slice(0,2),16),parseInt(m[1].slice(2,4),16),
@@ -190,57 +208,56 @@ function effectLightRGB(hex){
 }
 function drawEffectLightSpills(){
  if(!fxEnabled)return;
- // The short, high-energy light is separate from the pixelated contact shape.
+ // V87: these reflections live BELOW their effect positions; the rendered
+ // sparks, flames and electric bolts remain at their original sprite anchors.
  for(const f of hitFlashes){
   if(f.t<(f.delay||0)||f.t>=f.life)continue;
   const u=(f.t-(f.delay||0))/Math.max(.01,f.life-(f.delay||0));
-  drawSoftLightSpill(f.x,f.y,f.critical?68:45,
-    f.piercing?[87,213,255]:[255,189,96],(f.critical?.58:.43)*(1-u));
+  drawProjectedLightSpill(f.x,f.y,f.critical?68:48,
+    f.piercing?[87,213,255]:[255,189,96],(f.critical?.59:.46)*(1-u),29);
  }
  for(const b of barrelBlasts){
   const u=b.t/Math.max(.01,b.life||.34);
-  if(u<1)drawSoftLightSpill(b.x,b.y,82,[255,125,39],.57*(1-u));
+  if(u<1)drawProjectedLightSpill(b.x,b.y,83,[255,125,39],.59*(1-u),34);
  }
  for(const b of bazookaBlasts){
   const u=b.t/Math.max(.01,b.life||.39);
-  if(u<1)drawSoftLightSpill(b.x,b.y,96,[255,174,70],.63*(1-u));
+  if(u<1)drawProjectedLightSpill(b.x,b.y,96,[255,174,70],.65*(1-u),38);
  }
- // Ordinary particles, pickup bursts and zombie flames also project light.
  for(const f of fx.slice(-12)){
   const u=f.t/Math.max(.01,f.visualLife||.21);
   if(u>=1||f.standardHit)continue;
-  drawSoftLightSpill(f.x,f.y,Math.min(74,Math.max(26,f.size*.64)),
-    effectLightRGB(f.color),(.28+.0016*Math.min(120,f.size))*(1-u));
+  drawProjectedLightSpill(f.x,f.y,Math.min(74,Math.max(26,f.size*.64)),
+    effectLightRGB(f.color),(.29+.0016*Math.min(120,f.size))*(1-u),27);
  }
  for(const f of itemPickupFX){
   const u=f.t/Math.max(.01,f.life||.62);
   if(u>=1)continue;
-  drawSoftLightSpill(f.x,f.y-18*u,32,effectLightRGB(SKILLS[f.k]?.color),
-    .25*(1-u));
+  drawProjectedLightSpill(f.x,f.y-18*u,34,effectLightRGB(SKILLS[f.k]?.color),
+    .29*(1-u),27);
  }
+ // Exception: burning zombies keep their light attached to their flames.
  for(const actor of foes){
   if(!(actor.burn>0))continue;
   const z=knockVisualPosition(actor);
   drawSoftLightSpill(z.x+z.w*.5,z.y+z.h-20,z.boss?48:29,
     [255,130,41],.23*Math.min(1,actor.burn/.3));
  }
- // Ball status spill occupies both the nearby floor and its outside rim.
- // Overlay runs after ball bitmap so light cannot be completely occluded.
+ // Ball reflections have the SAME vertically separated center as their
+ // soft shadow. The active fire/flame artwork above is not repositioned.
  for(const b of balls){
+  if(b.held)continue;
+  const r=has('power')?12:8,drop=ballProjectionDrop(r);
   if(has('pierce')){
-   drawSoftLightSpill(b.x,b.y,has('power')?44:34,[81,204,255],
-     has('fire')?.29:.46);
-   drawSoftLightSpill(b.x+4,b.y+8,has('power')?40:31,
-     [94,218,255],.25);
+   drawProjectedLightSpill(b.x,b.y,has('power')?41:34,
+     [81,204,255],has('fire')?.26:.47,drop);
   }
   if(has('fire')){
-   drawSoftLightSpill(b.x,b.y,has('power')?48:38,[255,133,47],
-     has('pierce')?.26:.44);
-   drawSoftLightSpill(b.x+4,b.y+10,has('power')?42:33,
-     [255,185,72],.25);
+   drawProjectedLightSpill(b.x,b.y,has('power')?43:37,
+     [255,133,47],has('pierce')?.26:.45,drop);
   }
   if(has('power')&&!has('fire')&&!has('pierce'))
-   drawSoftLightSpill(b.x,b.y,38,[255,219,111],.34);
+   drawProjectedLightSpill(b.x,b.y,38,[255,219,111],.36,drop);
  }
 }
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
