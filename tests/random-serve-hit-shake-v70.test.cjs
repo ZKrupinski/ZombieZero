@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const source=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert.match(html,/game\.js\?v=90-continuous-soft-trails/);
-assert.match(sw,/zombie-zero-shell-v90-continuous-soft-trails/);
+assert.match(html,/game\.js\?v=91-render-performance-preserve-visuals/);
+assert.match(sw,/zombie-zero-shell-v91-render-performance-preserve-visuals/);
 assert.doesNotMatch(source,/setLineDash\(\[4,6\]\)/,'old predicted trajectory must not appear');
 assert.match(source,/const angle=\(\.16\+Math\.random\(\)\*\.52\)/);
 const shot=source.match(/function serve\(\)\{[\s\S]*?\n\}\}/);
