@@ -8,8 +8,9 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 const design=fs.readFileSync('tools/generate_p3_boss_deaths.py','utf8');
 assert(html.includes('v104-anatomical-boss-deaths'));
 assert(sw.includes('v104-original-anatomy'));
-assert(design.includes("MASKS['big_zombie']['normal']={}"),'normal giant keeps entire body');
-assert(design.includes("MASKS['big_zombie']['critical']={"),'only whole face/head separates');
+assert(design.includes('"normal": {}'),'normal giant keeps entire body');
+assert(design.includes('"critical":{"head"'),'only whole face/head separates');
+assert(!design.includes('REGIONS ='),'no grid partition data');
 assert(!src.includes('P3_DEATH_FRAMES=12'),'rejected v103 grid split is absent');
 for(const key of keys){
  const pair=[];
