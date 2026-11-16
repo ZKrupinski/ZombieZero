@@ -13,7 +13,7 @@ assert(html.includes('id="overlay" data-title="true" data-screen="selection"'),'
 assert(html.includes('id="overlay-fullscreen"'),'user can re-enter fullscreen on results');
 assert(html.includes('id="boot-scene" class="zz-boot-scene"'),'title is an independent scene');
 assert(html.includes('game.js?v=90-continuous-soft-trails')&&html.includes('app.js?v=80-scene-preload'),'new game and fullscreen scripts loaded');
-assert(html.includes('style.css?v=80-scene-preload'),'layout cache bypass');
+assert(html.includes('style.css?v=90-reduced-title-logo'),'layout cache bypass');
 assert(sw.includes('zombie-zero-shell-v90-continuous-soft-trails'),'PWA cache invalidated');
 assert(css.includes('#overlay[data-screen="selection"] .hero-card')&&css.includes('#overlay[data-screen="results"] .hero-card'),'both screens use matching hero-card rules');
 assert(css.includes('height:auto!important;min-height:165px!important'),'old forced 112px portrait card height overridden');
