@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=90-continuous-soft-trails'),'new assets bypass stale caches');
-assert(sw.includes('zombie-zero-shell-v90-continuous-soft-trails'),'offline assets refresh');
+assert(html.includes('game.js?v=91-render-performance-preserve-visuals'),'new assets bypass stale caches');
+assert(sw.includes('zombie-zero-shell-v91-render-performance-preserve-visuals'),'offline assets refresh');
 function section(a,b){
  const start=code.indexOf(a),end=code.indexOf(b,start+a.length);
  assert(start>=0&&end>start,'missing source boundary '+a);
