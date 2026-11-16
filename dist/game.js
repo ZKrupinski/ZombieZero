@@ -1929,6 +1929,8 @@ function sampleBallTrail(path,d){
  // spline vertices for EACH flame, electric spark and floor reflection.
  const n=path.length;
  if(n<2)return path[0]||null;
+ // Preserve the original sample contract for positions beyond the tail.
+ if(d>path[n-1].s)return path[n-1];
  let low=1,high=n-1;
  while(low<high){
   const mid=(low+high)>>1;
