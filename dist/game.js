@@ -218,7 +218,7 @@ function getBallRenderTrailPath(b,r){
 // Projected reflections sit below the effect, while the original flame
 // filaments, electric arcs and hit flashes stay attached to their sources.
 // Transforming BOTH the gradient and its path gives a soft elliptical pool.
-function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=false){
+function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=false,drawCore=true){
  if(!fxEnabled||alpha<=0)return;
  g.save();
  g.translate(x+4,y+drop);
@@ -227,7 +227,7 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTra
  g.scale(1,Math.max(.72,Math.min(1,vertical)));
  drawSoftLightSpill(0,0,r,rgb,alpha,useTrailStamp);
  // Compact luminous center keeps colored reflections legible on bright roads.
- drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
+ if(drawCore)drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
  g.restore();
 }
 // V88: reflected light is a separate projected wake, NOT a glow pasted onto
@@ -251,8 +251,14 @@ function drawTrailGroundReflections(b,r,path){
  const radius=fire||pierce?(power?34:28):power?28:24;
  // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
  // both ends present. At most 20 two-layer pools per ball for mobile GPUs.
+ // 3+ simultaneous fire/pierce balls already have a bright elemental ribbon.
+ // Project fewer soft pools and omit the duplicate inner core. The outer
+ // stamp stays large enough for the pools to overlap without dotted gaps.
+ const multiSkillFast=balls.length>=3&&(fire||pierce);
  const start=4;
- const samples=Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1));
+ const samples=multiSkillFast?
+  Math.min(10,Math.max(2,Math.ceil((length-start)/21)+1)):
+  Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1));
  for(let i=0;i<samples;i++){
   const d=start+(length-start)*i/(samples-1);
   const p=sampleBallTrail(path,d);
@@ -261,8 +267,12 @@ function drawTrailGroundReflections(b,r,path){
   const variation=.94+.06*Math.sin(clock*12+i*1.1);
   const rgb=(!fire&&!pierce&&!power)?(defaultColors[selectedHero]||defaultColors[0]):colors[i%colors.length];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
-  drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
-    baseAlpha*.68*fade*variation,30,.82,true);
+  if(multiSkillFast)
+   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
+     baseAlpha*.88*fade*variation,30,.82,true,false);
+  else
+   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
+     baseAlpha*.68*fade*variation,30,.82,true);
  }
 }
 // V89: the former single-pixel horizontal stroke read as a loose line,
@@ -2016,14 +2026,14 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
 // A softly feathered path is captured into the existing FX-only bloom
 // surface, not the background or the original ball sprite.
 // V82: fine comet streaks / light motes. No wide blocky particle chips.
-function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
+function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r),fast=false){
  if(!fxEnabled||path.length<2)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fire&&!pierce&&!power)return;
  const colors=fire&&pierce?['#ffd49b','#91e6fd','#fff8de']:fire?['#ffba77','#ff813e','#fff0c5']:
    pierce?['#79d8f6','#d9faff','#a3e7ff']:['#ffe8a0','#fff5d5','#e5c573'];
  const len=path[path.length-1].s;
- const step=r>8?6.5:5.5;
+ const step=fast?(r>8?14.5:13.5):(r>8?6.5:5.5);
  g.save();g.lineCap='round';g.lineJoin='round';
  g.globalCompositeOperation='lighter';
  // A single continuous, slightly feathered energy core stops individual
@@ -2055,7 +2065,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   const width=Math.min(2.3,Math.max(1,r*.14));
   g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*fade;
   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(next.x,next.y);g.stroke();
-  if(i%3===0){
+  if(!fast&&i%3===0){
    const lateral=r*.72,chip=Math.max(.8,width*.48);
    for(const side of [-1,1]){
     g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*fade;
