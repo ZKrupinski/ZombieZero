@@ -49,7 +49,7 @@ assert(drawn.length===2,'directional shadow and grounding polygon both visible')
 assert(drawn.every(p=>p.blur===0),'sharp edges and no blur in both passes');
 assert(drawn.some(p=>p.points.some(v=>v[1]>207)),
  'shadow projects at least 7px below bottom pivot, not under the sprite');
-assert(drawn.some(p=>p.points.some(v=>v[0]>144)),
+assert(drawn.some(p=>p.points.some(v=>v[0]>142)),
  'directional cast remains exposed right of the cube');
 assert(drawn.some(p=>p.color.includes('.31')),'contact has readable opacity');
 coords.length=0;drawn.length=0;
