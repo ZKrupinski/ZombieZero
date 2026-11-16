@@ -2026,7 +2026,8 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
 // A softly feathered path is captured into the existing FX-only bloom
 // surface, not the background or the original ball sprite.
 // V82: fine comet streaks / light motes. No wide blocky particle chips.
-function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r),fast=false){
+function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||path.length<2)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fire&&!pierce&&!power)return;
@@ -2076,6 +2077,9 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r),fast=false){
  g.restore();
 }
 // V83: fire is a living secondary layer, never a replacement for the ball bitmap.
+// v101: scope-limited multi-ball fast mode. Ordinary 1/2 ball effects keep
+// every original render call and visual characteristic intact.
+let multiSkillFastRender=false;
 // Tapered cubic tongues, warm inner cores and a backward-flowing ember ribbon.
 function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  const mag=Math.hypot(dx,dy)||1,nx=-dy/mag,ny=dx/mag;
@@ -2089,7 +2093,8 @@ function flameTongue(x,y,dx,dy,width,outer,alpha=1){
   x-nx*root,y-ny*root);g.closePath();g.fill();
  g.restore();
 }
-function drawBurningBallFlames(b,r,front=false,fast=false){
+function drawBurningBallFlames(b,r,front=false){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('fire'))return;
  const t=clock,velocity=Math.hypot(b.vx||0,b.vy||0);
  const windX=velocity>1?-(b.vx||0)/velocity:0,windY=velocity>1?-(b.vy||0)/velocity:-1;
@@ -2129,7 +2134,8 @@ function drawBurningBallFlames(b,r,front=false,fast=false){
  }
  g.restore();
 }
-function drawBurningTrailFlames(b,r,path,fast=false){
+function drawBurningTrailFlames(b,r,path){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('fire')||!path||path.length<2)return;
  const t=clock,maxLen=path[path.length-1].s;
  if(maxLen<4)return;
@@ -2206,7 +2212,8 @@ function drawBurningTrailFlames(b,r,path,fast=false){
 
 // V84: clearly readable cyan-white lightning for piercing shots.
 // Each arc receives a blurred additive outer glow and crisp inner filament.
-function drawElectricArc(points,alpha=1,scale=1,fast=false){
+function drawElectricArc(points,alpha=1,scale=1){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!points||points.length<2)return;
  g.save();g.lineCap='round';g.lineJoin='miter';
  g.globalCompositeOperation='lighter';g.beginPath();
@@ -2225,7 +2232,8 @@ function drawElectricArc(points,alpha=1,scale=1,fast=false){
  g.lineWidth=Math.max(.75,.86*scale);g.globalAlpha=.94*alpha;g.stroke();
  g.restore();
 }
-function drawPierceBallLightning(b,r,front=false,fast=false){
+function drawPierceBallLightning(b,r,front=false){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('pierce'))return;
  const beat=Math.floor(clock*25),count=fast?2:(front?3:4);
  const bright=has('fire')?.68:1;
@@ -2241,11 +2249,12 @@ function drawPierceBallLightning(b,r,front=false,fast=false){
    {x:Math.cos(a-.13*sign)*r*1.49,y:Math.sin(a-.13*sign)*r*1.49},
    {x:Math.cos(a+.07*sign)*end,y:Math.sin(a+.07*sign)*end}
   ];
-  drawElectricArc(points,bright*(.64+.22*Math.sin(beat+i*2.1)**2),front?.68:.77,fast);
+  drawElectricArc(points,bright*(.64+.22*Math.sin(beat+i*2.1)**2),front?.68:.77);
  }
  g.restore();
 }
-function drawPierceTrailLightning(b,r,path,fast=false){
+function drawPierceTrailLightning(b,r,path){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('pierce')||!path||path.length<2)return;
  const maxLen=path[path.length-1].s;
  if(maxLen<15)return;
@@ -2410,10 +2419,13 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
  }
  for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
+ // v101: This is set once per render to avoid extra has()/ball-count checks
+ // inside each spark and flame loop; standalone legacy tests default to false.
+ multiSkillFastRender=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'));
  // v101: Only the THREE+ elemental ball case replaces the redundant
  // BASE hero ribbon and its two halo draws with the skill's own continuous
  // gradient core. This never affects physics, FX-off, single/dual-ball output.
- const skillMultiFast=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'));
+ const skillMultiFast=multiSkillFastRender;
  for(const b of balls){
   const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
@@ -2423,16 +2435,16 @@ drawKillCombo();drawBarrelBlasts();
    if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
      ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
   }
-  drawBallSkillTrail(b,r,trailPath,skillMultiFast);
-  drawBurningTrailFlames(b,r,trailPath,skillMultiFast);
-  drawPierceTrailLightning(b,r,trailPath,skillMultiFast);
+  drawBallSkillTrail(b,r,trailPath);
+  drawBurningTrailFlames(b,r,trailPath);
+  drawPierceTrailLightning(b,r,trailPath);
   drawBallStateAura(b,r);
-  drawBurningBallFlames(b,r,false,skillMultiFast);
-  drawPierceBallLightning(b,r,false,skillMultiFast);
+  drawBurningBallFlames(b,r,false);
+  drawPierceBallLightning(b,r,false);
   drawHeroBallSprite(b,r,palette.main);
   drawBallStatusForeground(b,r);
-  drawBurningBallFlames(b,r,true,skillMultiFast);
-  drawPierceBallLightning(b,r,true,skillMultiFast);
+  drawBurningBallFlames(b,r,true);
+  drawPierceBallLightning(b,r,true);
  }
  drawBallVanish();
  if(particles.length)luminous(()=>{
