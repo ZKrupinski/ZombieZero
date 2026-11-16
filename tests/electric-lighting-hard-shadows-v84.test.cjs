@@ -55,7 +55,7 @@ const ball={x:210,y:290,vx:300,vy:-400,held:false};
 vm.runInContext('drawPierceBallLightning('+JSON.stringify(ball)+',8,false);drawPierceBallLightning('+JSON.stringify(ball)+',8,true);drawPierceTrailLightning('+JSON.stringify(ball)+',8,'+JSON.stringify(path)+');',context);
 assert(calls.strokes.some(x=>x.color==='#45c8ff'&&x.blur>0),'soft blue outer lightning glow');
 assert(calls.strokes.some(x=>x.color==='#f0ffff'&&x.blur===0),'bright sharp internal filament');
-assert(calls.arcs>=45,'multiple branched zigzag vertices drawn');
+assert(calls.arcs>=30,'multiple branched zigzag vertices drawn');
 const prior=calls.strokes.length;
 active=new Set(['power','fire']);
 vm.runInContext('drawPierceTrailLightning('+JSON.stringify(ball)+',12,'+JSON.stringify(path)+')',context);

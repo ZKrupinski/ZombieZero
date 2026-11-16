@@ -6,9 +6,9 @@ const src=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('game.js?v=84-electric-hard-shadows'),'game script cache version');
 assert(sw.includes('zombie-zero-shell-v84-electric-hard-shadows'),'offline cache version');
-assert(src.includes('drawBurningBallFlames(b,r,false);\n  drawHeroBallSprite(b,r,palette.main);'),
+assert(src.includes('drawBurningBallFlames(b,r,false);\n  drawPierceBallLightning(b,r,false);\n  drawHeroBallSprite(b,r,palette.main);'),
  'rear fire layer is underneath unchanged physical ball');
-assert(src.includes('drawBallStatusForeground(b,r);\n  drawBurningBallFlames(b,r,true);'),
+assert(src.includes('drawBallStatusForeground(b,r);\n  drawBurningBallFlames(b,r,true);\n  drawPierceBallLightning(b,r,true);'),
  'fire highlights are above physical ball');
 assert(src.includes('drawBurningTrailFlames(b,r,trailPath);'),'fire follows sampled trailing centerline');
 
