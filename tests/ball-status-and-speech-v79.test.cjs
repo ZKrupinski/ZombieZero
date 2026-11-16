@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=84-electric-hard-shadows'),'current gameplay assets must reload');
-assert(sw.includes('zombie-zero-shell-v84-electric-hard-shadows'),'PWA cache refreshes skill art');
+assert(html.includes('game.js?v=85-visible-contact-shadows'),'current gameplay assets must reload');
+assert(sw.includes('zombie-zero-shell-v85-visible-contact-shadows'),'PWA cache refreshes skill art');
 assert(code.includes("carAtBirth:car,event:text?"),'support dialogue anchors at creation');
 assert(code.includes("carAtBirth:car,t:0,life:1.6"),'everyday cheering anchors at creation');
 assert(code.includes("drawBallStatusForeground(b,r);"),'status highlights actually render after bitmap');

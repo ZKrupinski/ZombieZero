@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=84-electric-hard-shadows'),'new assets bypass stale caches');
-assert(sw.includes('zombie-zero-shell-v84-electric-hard-shadows'),'offline assets refresh');
+assert(html.includes('game.js?v=85-visible-contact-shadows'),'new assets bypass stale caches');
+assert(sw.includes('zombie-zero-shell-v85-visible-contact-shadows'),'offline assets refresh');
 function section(a,b){
  const start=code.indexOf(a),end=code.indexOf(b,start+a.length);
  assert(start>=0&&end>start,'missing source boundary '+a);
@@ -19,8 +19,8 @@ assert(shadow.includes('drawWorldGroundShadows')&&shadow.includes('drawBallSoftS
 const render=section('function draw(){','function frame(');
 assert(render.includes('background();drawWorldGroundShadows();drawCrowd()'),
  'world polygons drawn above terrain and below characters');
-assert(render.includes('drawHardGroundShadow(car,636+VIEW_DELTA'),
- 'car uses a large hard, directional shadow');
+assert(render.includes('drawCarGroundShadow();player()'),
+ 'car shadow uses measured wheel contact before body render');
 assert(render.includes('drawEffectLightSpills();drawImpactFlashes()'),
  'smooth light spill appears on top of characters and below sharp hits');
 assert(render.includes('drawPierceTrailLightning(b,r,trailPath)'),
@@ -29,9 +29,9 @@ assert(render.includes('drawPierceBallLightning(b,r,false);\n  drawHeroBallSprit
  'rear arcs behind unchanged ball bitmap');
 assert(render.includes('drawPierceBallLightning(b,r,true)'),
  'foreground arcs wrap over unchanged ball bitmap');
-assert(code.includes('drawHardGroundShadow(p.x,p.y+19'),
+assert(code.includes('drawHardGroundShadow(p.x,p.y+21'),
  'citizen shadows retain foot anchors');
-assert(code.includes('drawHardGroundShadow(item.x+4,item.y+23'),
+assert(code.includes('drawHardGroundShadow(item.x+2,item.y+FALLING_ITEM_SIZE*.48'),
  'power-up pickups cast small polygon shadows');
 assert(code.includes("has('power')?12:8"),'powered ball radius remains 1.5x normal');
 assert(code.includes('const CHAIN_KNOCK_STEP=.14'),'hit ripple timing preserved');
