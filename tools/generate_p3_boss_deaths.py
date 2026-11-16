@@ -182,6 +182,8 @@ def main():
    with Image.open(dst) as check:
     if check.size!=(6144,512) or check.mode!='RGBA':
      raise ValueError(f'Invalid sprite sheet: {dst}')
+    if args.verify and ImageChops.difference(composed,check.convert('RGBA')).getbbox():
+     raise ValueError(f'Committed art changed or no longer matches original: {dst}')
    print(f'PASS {dst.relative_to(ROOT)} bytes={dst.stat().st_size}')
    animations[kind]=composed
   if not args.verify:make_preview(key,animations)
