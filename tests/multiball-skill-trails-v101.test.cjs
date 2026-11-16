@@ -8,12 +8,12 @@ assert(sw.includes('v101-multiskill-lod'));
 const section=(a,b)=>{const i=src.indexOf(a),j=src.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'source section '+a);return src.slice(i,j)};
 const draw=section('function draw(){','function frame(');
-assert(draw.includes("const skillMultiFast=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'))"));
+assert(draw.includes("multiSkillFastRender=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'))"));
 assert(draw.includes('if(!skillMultiFast){\n   drawHeroBallTrail(b,r,trailPath);'),
  'skip duplicate hero ribbon only with 3+ skill balls');
-assert(draw.includes('drawBallSkillTrail(b,r,trailPath,skillMultiFast)'));
-assert(draw.includes('drawBurningTrailFlames(b,r,trailPath,skillMultiFast)'));
-assert(draw.includes('drawPierceTrailLightning(b,r,trailPath,skillMultiFast)'));
+assert(draw.includes('drawBallSkillTrail(b,r,trailPath)'));
+assert(draw.includes('drawBurningTrailFlames(b,r,trailPath)'));
+assert(draw.includes('drawPierceTrailLightning(b,r,trailPath)'));
 assert(draw.includes('drawHeroBallSprite(b,r,palette.main)'),'ball sprite still painted');
 assert(draw.includes('drawBallStatusForeground(b,r)'),'surface state still readable');
 assert(draw.includes('drawTrailEdgeHalo(b,r,trailPath,.72)'),'unchanged 1/2-ball halo');
@@ -28,7 +28,7 @@ const g={save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},
  arc(){gStats.arcs++},createLinearGradient(){return{addColorStop(){}}},
  createRadialGradient(){return{addColorStop(){}}},
  drawImage(){gStats.images++}};
-const env={Math,g,fxEnabled:true,clock:2.2,balls:[{},{},{}],selectedHero:0,
+const env={Math,g,fxEnabled:true,clock:2.2,multiSkillFastRender:false,balls:[{},{},{}],selectedHero:0,
  HERO_BALL_TRAILS:[{main:'#d8efa1',soft:'#95b96e'}],
  has(k){return k==='fire'||k==='pierce';},
  sampleBallTrail(p,d){return{x:300-d,y:140}},
@@ -37,12 +37,12 @@ const env={Math,g,fxEnabled:true,clock:2.2,balls:[{},{},{}],selectedHero:0,
  b:{x:300,y:140,vx:280,vy:160},path,
  clamp:(v,a,b)=>Math.max(a,Math.min(b,v))};
 vm.createContext(env);
-vm.runInContext(section('function drawBallSkillTrail(','// V83: fire is a living secondary layer.'),env);
+vm.runInContext(section('function drawBallSkillTrail(','// V83: fire is a living secondary layer'),env);
 vm.runInContext(section('function drawBurningTrailFlames(','// V84: clearly readable cyan-white lightning'),env);
 vm.runInContext(section('function drawPierceTrailLightning(','// V76: per-ball rotational inertia'),env);
 function measure(fn,fast){
  for(const k of Object.keys(gStats))gStats[k]=0;
- tongues=0;arcs=0;vm.runInContext(fn+'(b,8,path,'+fast+')',env);
+ tongues=0;arcs=0;env.multiSkillFastRender=fast;vm.runInContext(fn+'(b,8,path)',env);
  return {...gStats,tongues,arcs};
 }
 const normalSkill=measure('drawBallSkillTrail',false);

@@ -2433,7 +2433,7 @@ drawKillCombo();drawBarrelBlasts();
   if(!skillMultiFast){
    drawHeroBallTrail(b,r,trailPath);
    if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
-     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
+    ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
   }
   drawBallSkillTrail(b,r,trailPath);
   drawBurningTrailFlames(b,r,trailPath);
