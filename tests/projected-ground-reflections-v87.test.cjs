@@ -24,7 +24,7 @@ const g=new Proxy({}, {get(target,k){
  if(k==='translate')return(x,y)=>{state.x+=x;state.y+=y*state.scaleY;draws.translations.push([state.x,state.y])};
  if(k==='scale')return(x,y)=>{state.scaleY*=y};
  if(k==='createRadialGradient')return(...args)=>{
-  const gradient={x:state.x,y:state.y,sy:state.scaleY,args,stops:[],
+  const gradient={x:state.x+args[0],y:state.y+args[1]*state.scaleY,sy:state.scaleY,args,stops:[],
    addColorStop(t,color){this.stops.push([t,color])}};
   draws.gradients.push(gradient);return gradient;
  };
