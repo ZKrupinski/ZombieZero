@@ -1,0 +1,29 @@
+name: Inspect and render v105 original trash boss
+on:
+  push:
+    branches: [art/p3-trash-original-fidelity-v105]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: v105-preview
+  cancel-in-progress: true
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install "Pillow>=10,<12"
+      - run: python tools/p3_v105_inspect.py
+      - name: Commit original-HD analysis preview
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f docs/p3-v105-*.jpg docs/p3-v105-*.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "qa(v105): inspect original trash HD alpha components"
+            git push origin HEAD:art/p3-trash-original-fidelity-v105
+          fi
