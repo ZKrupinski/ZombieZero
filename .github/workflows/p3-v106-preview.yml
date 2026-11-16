@@ -36,5 +36,7 @@ jobs:
           git add -f docs/p3-v106-trash-can-preview.jpg dist/assets/ip/v2/p3-deaths/trash_can-normal-v106.png dist/assets/ip/v2/p3-deaths/trash_can-critical-v106.png
           if ! git diff --cached --quiet; then
             git commit -m "assets(p3-v106): clean original HD trash-can frames, zero spin"
+            git fetch origin fix/p3-trash-v106-clean-crops-no-spin
+            git rebase origin/fix/p3-trash-v106-clean-crops-no-spin
             git push origin HEAD:fix/p3-trash-v106-clean-crops-no-spin
           fi
