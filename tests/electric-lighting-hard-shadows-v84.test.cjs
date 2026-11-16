@@ -6,7 +6,7 @@ const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('game.js?v=92-trail-bloom-softened'),'new assets bypass stale caches');
-assert(sw.includes('zombie-zero-shell-v92-trail-bloom-softened'),'offline assets refresh');
+assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'offline assets refresh');
 function section(a,b){
  const start=code.indexOf(a),end=code.indexOf(b,start+a.length);
  assert(start>=0&&end>start,'missing source boundary '+a);
