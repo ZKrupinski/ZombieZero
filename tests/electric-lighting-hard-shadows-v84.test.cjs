@@ -5,7 +5,7 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=93-multiball-light-cache'),'new assets bypass stale caches');
+assert(html.includes('game.js?v=93-multiball-light-cache-v94-no-dark-shadow'),'new assets bypass stale caches');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'offline assets refresh');
 function section(a,b){
  const start=code.indexOf(a),end=code.indexOf(b,start+a.length);
@@ -14,8 +14,8 @@ function section(a,b){
 }
 const shadow=section('function drawHardGroundShadow(','function rect(');
 assert(!shadow.includes('blur(')&&shadow.includes('g.lineTo('),'hard-edged polygons, no blur');
-assert(shadow.includes('drawWorldGroundShadows')&&shadow.includes('drawBallSoftShadow'),
- 'zombies and ball use distinct shadow shapes');
+assert(shadow.includes('drawWorldGroundShadows')&&shadow.includes('drawCarGroundShadow')&&!shadow.includes('drawBallSoftShadow('),
+ 'zombie and car use hard shadows; the ball no longer has a dark shadow');
 const render=section('function draw(){','function frame(');
 assert(render.includes('background();drawWorldGroundShadows();drawCrowd()'),
  'world polygons drawn above terrain and below characters');
