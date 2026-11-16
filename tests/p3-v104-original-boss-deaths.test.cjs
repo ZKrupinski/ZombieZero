@@ -15,7 +15,7 @@ assert(!src.includes('P3_DEATH_FRAMES=12'),'rejected v103 grid split is absent')
 for(const key of keys){
  const pair=[];
  for(const mode of modes){
-  const name=key+'-'+mode+'-v104.png';
+  const name=key+'-'+mode+(key==='trash_can'?'-v105.png':'-v104.png');
   const p=base+name,bytes=fs.readFileSync(p);
   assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10],'PNG '+name);
   assert.equal(bytes.readUInt32BE(16),6144,'12 frames');
@@ -58,7 +58,7 @@ for(let slot=0;slot<4;slot++){
    draws.length=0;
    assert(sprite.drawDeath(ctx,z,critical,(frame+.5)*duration/12,duration));
    assert.equal(draws.length,1,'one image draw per cached death frame');
-   assert(draws[0].url.endsWith('/'+id+'-'+kind+'-v104.png'));
+   assert(draws[0].url.endsWith('/'+id+'-'+kind+(id==='trash_can'?'-v105.png':'-v104.png')));
    assert.equal(draws[0].args[0],512*frame);
    assert.equal(draws[0].args[2],512);
    assert.equal(draws[0].args[3],512);
@@ -75,4 +75,4 @@ assert.equal(Object.keys(sprite.p2FinishedDeaths).length,4,'keep P2');
 assert(fs.readFileSync('dist/game.js','utf8').includes(
  'ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split)'),
  'unchanged gameplay death path');
-console.log('PASS P3-v104: original-HD full-face death, 4 distinct RGBA strips, 4 boss slots, one draw, safe fallback.');
+console.log('PASS P3-v104/v105: approved big unchanged; trash original-HD updated, 4 slots, single draw, safe fallback.');

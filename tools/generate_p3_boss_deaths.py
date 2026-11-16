@@ -169,7 +169,7 @@ def main():
  parser.add_argument('--verify',action='store_true')
  args=parser.parse_args()
  OUT.mkdir(parents=True,exist_ok=True)
- for key in ['big_zombie','trash_can']:
+ for key in ['big_zombie']:
   src=ASSETS/f'{key}_hd.png'
   with Image.open(src) as img:
    if img.size!=(2048,1024):raise ValueError(f'Invalid HD atlas: {src}')
@@ -189,7 +189,7 @@ def main():
    print(f'PASS {dst.relative_to(ROOT)} bytes={dst.stat().st_size}')
    animations[kind]=composed
   if not args.verify:make_preview(key,animations)
- print('All 4 P3 v104 original-HD anatomy-based sprite strips generated.')
+ print('Both approved Big Zombie v104 original-HD strips generated.')
 
 if __name__=='__main__':
  main()

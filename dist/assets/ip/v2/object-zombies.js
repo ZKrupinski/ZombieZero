@@ -315,9 +315,9 @@ function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
  }
  return true;
 }
-// P3 v104: original HD anatomical poses, not grid-cut debris.
-// Big: the authored face/head lifts intact; trash can: the original lid opens.
-// 12 precomposed RGBA frames, one texture draw per death frame, with fallback.
+// P3: preserve approved v104 Big Zombie exactly. Trash Can v105 uses only
+// complete ORIGINAL-HD frames transformed rigidly, never cut into pieces.
+// 12 precomposed RGBA frames, one bitmap draw per death frame, legacy fallback.
 const P3_DEATH_NAMES=['big_zombie','trash_can'];
 const P3_DEATH_CELL=512,P3_DEATH_COUNT=12,P3_DEATH_ORIGIN_Y=104;
 const p3AnatomicalDeaths={};
@@ -333,7 +333,7 @@ for(const id of P3_DEATH_NAMES){
    entry.failed=!entry.ready;
   };
   image.onerror=()=>{entry.failed=true;entry.ready=false};
-  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+'-v104.png';
+  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+(id==='trash_can'?'-v105.png':'-v104.png');
  }
 }
 function drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,livingAtlas){
@@ -349,7 +349,7 @@ function drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,livingAtlas){
  // Original HD art lives inside each 512px cell at source y+104.
  // Match the source death-pose bottom, not the frame's 512px bottom.
  const pose=geom?.[critical?'critical':'normal']||[0,0,256,220];
- const feetY=P3_DEATH_ORIGIN_Y+pose[1]+pose[3];
+ const feetY=id==='trash_can'?360:P3_DEATH_ORIGIN_Y+pose[1]+pose[3];
  const side=P3_DEATH_CELL*(desiredHeight/walkHeight);
  const x=z.x+z.w/2-side/2;
  const y=z.y+z.h+2-feetY*(desiredHeight/walkHeight);
