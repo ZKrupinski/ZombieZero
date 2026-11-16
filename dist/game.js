@@ -230,7 +230,7 @@ function drawTrailGroundReflections(b,r,path){
 }
 // V89: the former single-pixel horizontal stroke read as a loose line,
 // not a floor reflection. Replace it with a filled, softly diffused oval.
-function drawHitGroundGlint(f,t,drop,rgb){
+function drawHitGroundGlint(f,t,drop){
  const fade=Math.pow(Math.max(0,1-t),1.5);
  if(fade<=0)return;
  const core=f.critical?36:27;
@@ -256,7 +256,7 @@ function drawEffectLightSpills(){
   const rgb=f.piercing?[87,213,255]:f.critical?[255,226,142]:[255,194,105];
   const alpha=(f.critical?.79:.64)*Math.pow(1-u,1.25);
   drawProjectedLightSpill(f.x,f.y,f.critical?74:54,rgb,alpha,drop,.94);
-  drawHitGroundGlint(f,u,drop,rgb);
+  drawHitGroundGlint(f,u,drop);
  }
  for(const b of barrelBlasts){
   const u=b.t/Math.max(.01,b.life||.34);
