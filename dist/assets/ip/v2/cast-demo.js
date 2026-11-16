@@ -7,7 +7,7 @@ function setup(){
  const atlas=window.ZZObjectSprite;
  if(!trigger||!atlas)return;
  const dialog=document.createElement('dialog');dialog.id='object-cast-demo-dialog';dialog.className='object-cast-demo';
- dialog.innerHTML='<button type="button" class="dialog-close" id="object-cast-demo-close">닫기 ✕</button><h2>ZOMBIE ZERO 원작 좀비 10종</h2><p>실제 게임이 로드하는 128px 투명 PNG 아틀라스의 이동·피격·사망 애니메이션입니다.</p><div class="object-cast-controls" role="group" aria-label="애니메이션 선택"></div><div class="object-cast-grid" role="list"></div>';
+ dialog.innerHTML='<button type="button" class="dialog-close" id="object-cast-demo-close">닫기 ✕</button><h2>ZOMBIE ZERO 원작 좀비 10종</h2><p>이동·피격은 기본 원화, 사망은 실제 게임에 적용된 일반/크리티컬 PNG 애니메이션을 재생합니다.</p><div class="object-cast-controls" role="group" aria-label="애니메이션 선택"></div><div class="object-cast-grid" role="list"></div>';
  document.body.appendChild(dialog);
  const grid=dialog.querySelector('.object-cast-grid'),controls=dialog.querySelector('.object-cast-controls');
  const keys=['green_zombie',...Object.keys(atlas.names)],canvases=[];
@@ -41,6 +41,15 @@ function setup(){
    if(!(isGreen?pack?.ready:pack.available(actor))||!img)continue;
    let frame=0,rect,source=img;
    if(mode==='normal'||mode==='critical'){
+    // Match the gameplay render path, not old raw atlas indices 26~29.
+    // P1/P2 finished PNGs appear here immediately after they load.
+    if(!isGreen){
+     const critical=mode==='critical',duration=actor.boss?(critical?.94:.78):(critical?.58:.52);
+     const w=actor.boss?66:33,h=actor.boss?88:44;
+     const preview={...actor,x:(c.width-w)/2,y:c.height-h-16,w,h,flash:0};
+     pack.drawDeath(ctx,preview,critical,seconds%duration,duration);
+     continue;
+    }
     if(isGreen){
      const death=window.ZZGreenDeath;
      if(!death?.ready)continue;
