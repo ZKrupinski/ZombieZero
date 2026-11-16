@@ -86,6 +86,53 @@ MASKS['trash_can']['critical']['right_arm']=[
  (207,130),(256,128),(256,228),(208,222)
 ]
 
+# Precise cutline refinements, verified against 32px-grid original HD source.
+# Restrict the arm masks to ONLY the protruding fists. This avoids taking
+# vertical strips from the torso and therefore never cuts across the face.
+MASKS['big_zombie']['normal']['cap']=[
+ (115,68),(146,68),(182,74),(184,99),(118,100)
+]
+MASKS['big_zombie']['critical']['cap']=[
+ (114,56),(141,55),(185,62),(192,91),(182,99),(113,103)
+]
+MASKS['big_zombie']['normal']['left_arm']=[
+ (15,127),(57,125),(73,147),(70,188),(25,189),(10,165)
+]
+MASKS['big_zombie']['normal']['right_arm']=[
+ (177,135),(211,136),(231,170),(218,204),(178,199)
+]
+MASKS['big_zombie']['critical']['left_arm']=[
+ (8,128),(59,131),(74,158),(67,198),(18,195)
+]
+MASKS['big_zombie']['critical']['right_arm']=[
+ (194,132),(233,136),(255,161),(254,223),(192,218)
+]
+MASKS['trash_can']['normal']['lid']=[
+ (58,72),(96,70),(167,72),(181,96),(180,139),(155,150),(72,150),(57,124)
+]
+MASKS['trash_can']['critical']['lid']=[
+ (57,61),(96,57),(156,60),(180,79),(181,113),(153,127),(80,116),(56,97)
+]
+MASKS['trash_can']['normal']['left_arm']=[
+ (23,143),(56,143),(70,158),(67,189),(20,184)
+]
+MASKS['trash_can']['normal']['right_arm']=[
+ (180,143),(214,147),(227,173),(213,195),(181,190)
+]
+MASKS['trash_can']['critical']['left_arm']=[
+ (24,144),(57,145),(73,162),(69,194),(24,190)
+]
+MASKS['trash_can']['critical']['right_arm']=[
+ (179,143),(218,143),(229,162),(216,190),(178,193)
+]
+# Original CRITICAL exposed soda and waste objects. Keep their exact pixels.
+MASKS['trash_can']['critical']['soda']=[
+ (89,115),(103,110),(126,115),(127,157),(88,159)
+]
+MASKS['trash_can']['critical']['waste']=[
+ (127,113),(153,111),(171,122),(171,157),(127,160)
+]
+
 # Explicit motion paths, not scatter directions or a fragment grid.
 # Each point is (x-offset, y-offset, rotation degrees) sampled at 5 beats.
 # The main facial and body pixels stay intact throughout.
@@ -126,7 +173,9 @@ MOTION = {
    "left_arm": [(0,0,0),(-12,-6,-19),(-34,-23,-59),(-59,-27,-108),(-78,4,-156)],
    "right_arm": [(0,0,0),(14,-8,16),(35,-30,52),(58,-24,104),(73,9,155)],
    "left_boot": [(0,0,0),(-7,0,-9),(-19,-12,-33),(-40,2,-78),(-51,25,-122)],
-   "right_boot": [(0,0,0),(7,0,9),(20,-13,35),(42,5,78),(55,30,117)]
+   "right_boot": [(0,0,0),(7,0,9),(20,-13,35),(42,5,78),(55,30,117)],
+   "soda": [(0,0,0),(-4,-8,-8),(-11,-21,-30),(-23,-40,-77),(-33,-49,-128)],
+   "waste": [(0,0,0),(5,-9,9),(17,-27,32),(34,-44,81),(49,-41,136)]
   }
  }
 }
@@ -204,7 +253,7 @@ def compose(atlas,key,kind):
    t=(f-split_start)/(COUNT-1-split_start)
    paths=MOTION[key][kind]
    # In front-to-back order, source artwork stays source-accurate.
-   for name in ['left_boot','right_boot','torso','contents','left_arm','right_arm','head','lid','cap']:
+   for name in ['torso','soda','waste','left_arm','right_arm','head','lid','cap']:
     if name not in parts:continue
     dx,dy,rotation=curve(paths.get(name,[(0,0,0)]*5),t)
     transform_part(parts[name],frame,dx,dy,rotation)
@@ -222,7 +271,7 @@ def make_preview(key,animations):
   strip=animations[kind]
   for i in range(COUNT):
    tile=strip.crop((CELL*i,0,CELL*(i+1),CELL))
-   thumb=tile.resize((250,250),Image.Resampling.LANCZOS)
+   thumb=tile.crop((48,30,464,446)).resize((250,250),Image.Resampling.LANCZOS)
    bg=Image.new('RGBA',(250,250),'#e7edef')
    bg.alpha_composite(thumb)
    x,y=(i%4)*260, (idx*3+i//4)*290+22
