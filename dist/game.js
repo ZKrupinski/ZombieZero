@@ -1844,29 +1844,8 @@ function compactBallFX(){
  return fxEnabled&&(has('fire')||has('pierce'))&&
   (has('power')||(has('fire')&&has('pierce'))||balls.length>=3);
 }
-function drawCompactBallAura(b,r){
- g.save();g.translate(b.x,b.y);g.globalCompositeOperation='lighter';
- g.shadowBlur=0;g.lineCap='round';g.globalAlpha=.8;g.lineWidth=2;
- // Orange flame tips + cyan angular brackets distinguish both active skills.
- if(has('fire')){
-  g.strokeStyle='#ff973f';g.beginPath();
-  for(const side of [-1,1]){
-   g.moveTo(side*r*1.1,-r*.3);g.lineTo(side*r*1.4,-r*.9);
-   g.lineTo(side*r*.85,-r*.65);
-  }g.stroke();
- }
- if(has('pierce')){
-  g.strokeStyle='#91edff';g.beginPath();
-  for(const side of [-1,1]){
-   g.moveTo(side*r*1.05,r*.2);g.lineTo(side*r*1.45,r*.5);
-   g.lineTo(side*r*1.1,r*.8);
-  }g.stroke();
- }
- // Power is already communicated by the larger physical ball.
- g.restore();
-}
 function drawBallStateAura(b,r){
- if(typeof compactBallFX==='function'&&compactBallFX()){ drawCompactBallAura(b,r);return; }
+ if(typeof compactBallFX==='function'&&compactBallFX()){ return; }
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
  const phase=clock*(b.held?2.4:4.2),pulse=.5+.5*Math.sin(clock*9.5);
@@ -2167,13 +2146,14 @@ function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  g.restore();
 }
 function drawBurningBallFlames(b,r,front=false){
- if(typeof compactBallFX==='function'&&compactBallFX()){ return; }
- const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
+ if(front&&typeof compactBallFX==='function'&&compactBallFX())return;
+ const fast=(typeof compactBallFX==='function'&&compactBallFX())||
+  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('fire'))return;
  const t=clock,velocity=Math.hypot(b.vx||0,b.vy||0);
  const windX=velocity>1?-(b.vx||0)/velocity:0,windY=velocity>1?-(b.vy||0)/velocity:-1;
  g.save();g.translate(b.x,b.y);g.globalCompositeOperation='lighter';
- if(!front){
+ if(!front&&!fast){
   const glow=g.createRadialGradient?.(0,0,r*.65,0,0,r*2.05);
   if(glow&&typeof glow.addColorStop==='function'){
    glow.addColorStop(0,'rgba(255,238,155,0)');
@@ -2183,17 +2163,17 @@ function drawBurningBallFlames(b,r,front=false){
    g.fillStyle=glow;g.globalAlpha=.87;g.beginPath();g.arc(0,0,r*2.05,0,Math.PI*2);g.fill();
   }
  }
- const count=fast?(front?3:5):(front?6:12);
+ const count=fast?(front?3:6):(front?6:12);
  g.shadowColor=fast||front?'transparent':'#ff7b2a';g.shadowBlur=fast||front?0:4;
  for(let i=0;i<count;i++){
   const angle=i*Math.PI*2/count+.06*Math.sin(t*7+i*2.3);
   const ax=Math.cos(angle),ay=Math.sin(angle);
   const wave=.5+.5*Math.sin(t*(front?13:10)+i*2.4);
   const bx=ax*r*(front?1.25:1.43),by=ay*r*(front?1.25:1.43);
-  const length=r*(front?.18+.18*wave:.25+.23*wave);
+  const length=r*(front?.18+.18*wave:fast?.38+.28*wave:.25+.23*wave);
   const dx=ax*length*.75+windX*length*.46;
   const dy=ay*length*.75+windY*length*.46;
-  const width=r*(front?.085:.14)*(1+.2*wave);
+  const width=r*(front?.085:fast?.20:.14)*(1+.2*wave);
   const alpha=front?.47:.73;
   flameTongue(bx,by,dx,dy,width,i%3===0?'#ffe393':i%2?'#ffad48':'#ff6428',alpha);
   if(!front&&!fast)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
@@ -2209,22 +2189,22 @@ function drawBurningBallFlames(b,r,front=false){
  g.restore();
 }
 function drawBurningTrailFlames(b,r,path){
- if(typeof compactBallFX==='function'&&compactBallFX()){ return; }
- const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
+ const fast=(typeof compactBallFX==='function'&&compactBallFX())||
+  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('fire')||!path||path.length<2)return;
  const t=clock,maxLen=path[path.length-1].s;
  if(maxLen<4)return;
  if(fast){
   g.save();g.globalCompositeOperation='lighter';
-  for(let d=13,i=0;d<maxLen-8;d+=27,i++){
+  for(let d=13,i=0;d<maxLen-8;d+=20,i++){
    const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
    if(!p||!q)continue;
    const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
    const nx=-dy/mag,ny=dx/mag,side=i%2?-1:1;
-   const fade=1-d/maxLen,reach=(9+2*Math.sin(t*11+i*2))*fade;
+   const fade=1-d/maxLen,reach=(14+4*Math.sin(t*11+i*2))*fade;
    flameTongue(p.x+nx*side*r*.42,p.y+ny*side*r*.42,
     dx/mag*reach+nx*side*reach*.5,dy/mag*reach+ny*side*reach*.5,
-    Math.max(.6,r*.14*fade),i%3?'#ff8d36':'#ffe0a1',.63*fade);
+    Math.max(.8,r*.22*fade),i%3?'#ff8d36':'#ffe0a1',.63*fade);
   }
   g.restore();return;
  }
@@ -2254,7 +2234,8 @@ function drawBurningTrailFlames(b,r,path){
 // V84: clearly readable cyan-white lightning for piercing shots.
 // Each arc receives a blurred additive outer glow and crisp inner filament.
 function drawElectricArc(points,alpha=1,scale=1){
- const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
+ const fast=(typeof compactBallFX==='function'&&compactBallFX())||
+  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!points||points.length<2)return;
  g.save();g.lineCap='round';g.lineJoin='miter';
  g.globalCompositeOperation='lighter';g.beginPath();
@@ -2274,8 +2255,9 @@ function drawElectricArc(points,alpha=1,scale=1){
  g.restore();
 }
 function drawPierceBallLightning(b,r,front=false){
- if(typeof compactBallFX==='function'&&compactBallFX()){ return; }
- const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
+ if(front&&typeof compactBallFX==='function'&&compactBallFX())return;
+ const fast=(typeof compactBallFX==='function'&&compactBallFX())||
+  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('pierce'))return;
  const beat=Math.floor(clock*25),count=fast?2:(front?3:4);
  const bright=has('fire')?.68:1;
@@ -2296,17 +2278,9 @@ function drawPierceBallLightning(b,r,front=false){
  g.restore();
 }
 function drawPierceTrailLightning(b,r,path){
- const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
+ const fast=(typeof compactBallFX==='function'&&compactBallFX())||
+  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('pierce')||!path||path.length<2)return;
- if(typeof compactBallFX==='function'&&compactBallFX()){
-  // One cyan filament, no forks, blur, or separately drawn highlights.
-  g.save();g.shadowBlur=0;g.lineCap='round';g.lineJoin='round';
-  g.globalCompositeOperation='lighter';g.globalAlpha=.75;
-  g.strokeStyle='#a8f3ff';g.lineWidth=1.5;
-  g.beginPath();g.moveTo(path[0].x,path[0].y);
-  for(let i=1;i<path.length;i++)g.lineTo(path[i].x,path[i].y);
-  g.stroke();g.restore();return;
- }
  const maxLen=path[path.length-1].s;
  if(maxLen<15)return;
  if(fast){
