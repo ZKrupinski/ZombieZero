@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const code=fs.readFileSync('dist/game.js','utf8'),html=fs.readFileSync('dist/index.html','utf8'),
  sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=88-trail-hit-floor-light'),'fresh game URL');
-assert(sw.includes('zombie-zero-shell-v88-trail-hit-floor-light'),'new offline cache');
+assert(html.includes('game.js?v=89-thick-soft-ground-reflections'),'fresh game URL');
+assert(sw.includes('zombie-zero-shell-v89-thick-soft-ground-reflections'),'new offline cache');
 assert(code.includes("has('power')?12:8"),'power ball game size unchanged');
 const render=code.slice(code.indexOf('function draw(){'),code.indexOf('function frame('));
 assert(render.includes('drawImpactFlashes()'),'hit flashes remain independent');
@@ -58,7 +58,7 @@ vm.createContext(context);
 vm.runInContext(interpolation+light,context);
 vm.runInContext('drawTrailGroundReflections('+JSON.stringify(ball)+',8,'+JSON.stringify(path)+')',context);
 assert(gradients.length===16,'eight trail floor samples have soft diffused + bright core layers');
-assert(gradients.every(x=>x.sy===.48),'trails project as flattened ellipses, not light around ball');
+assert(gradients.every(x=>x.sy===.82),'trails project as flattened ellipses, not light around ball');
 assert(gradients.some(x=>x.stops[0][1].startsWith('rgba(192,234,112,')),
  'plain tennis trail produces visible lime-tinted reflection without skill');
 assert(gradients.every(x=>x.y>=210),'each reflection sits at least 30px below its trail sample');
@@ -84,19 +84,20 @@ assert(gradients.length===early&&strokes.length===0,
  'chain hit reflection waits until the individual hit delay');
 context.hitFlashes[0].t=.17;
 vm.runInContext('drawEffectLightSpills()',context);
-assert(gradients.length===early+2,'delayed chain hit emits a two-layer ground flash');
-assert(strokes.length===1,'a focused floor glint reinforces each delayed hit');
-assert(gradients.at(-2).y===207,'hit flash projection uses actual enemy feet +6');
-assert(strokes[0].y===207&&strokes[0].color==='#a6eaff',
- 'electric chain hit glint stays detached on the ground');
+assert(gradients.length===early+4,'delayed chain hit emits a broad floor reflection and soft center');
+assert(strokes.length===0,'no line stroke replaces the broad ground glint');
+assert(gradients.at(-4).y===207,'hit flash projection uses actual enemy feet +6');
+assert(gradients.at(-2).y===207&&gradients.at(-2).sy===.98&&
+ gradients.at(-2).stops[0][1].startsWith('rgba(169,239,255,'),
+ 'electric chain hit core remains a broad cyan ground pool');
 context.hitFlashes=[{x:146,y:140,groundY:204,t:.02,delay:0,life:.39,critical:true,piercing:false}];
 const old=gradients.length;
 vm.runInContext('drawEffectLightSpills()',context);
-assert(gradients.length===old+2,'critical hit projects an additional high-energy floor pool');
-assert(gradients.at(-2).radius===74,'critical hit reflection is larger');
-assert(gradients.at(-2).stops[0][1].startsWith('rgba(255,226,142,'),
+assert(gradients.length===old+4,'critical hit projects a wide reflection and bright soft center');
+assert(gradients.at(-4).radius===74,'critical hit reflection is larger');
+assert(gradients.at(-4).stops[0][1].startsWith('rgba(255,226,142,'),
  'critical floor reflection is warm-white, not generic pale orange');
-assert(strokes.at(-1).blur===9,'critical ground glint has softened bloom-like edge');
+assert(gradients.at(-2).sy===.98&&strokes.length===0,'critical core is filled and soft, never a line');
 context.hitFlashes=[];
 context.balls=[ball];skills=new Set();
 const integrated=gradients.length;

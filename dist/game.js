@@ -191,11 +191,13 @@ function drawSoftLightSpill(x,y,r,rgb,alpha=.35){
 // Projected reflections sit below the effect, while the original flame
 // filaments, electric arcs and hit flashes stay attached to their sources.
 // Transforming BOTH the gradient and its path gives a soft elliptical pool.
-function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28){
+function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82){
  if(!fxEnabled||alpha<=0)return;
  g.save();
  g.translate(x+4,y+drop);
- g.scale(1,.48);
+ // V89: the old 0.48 scale made falloff cores look like razor-thin lines.
+ // Use a fuller oval; caller can give a rounder .94 for impact flashes.
+ g.scale(1,Math.max(.72,Math.min(1,vertical)));
  drawSoftLightSpill(0,0,r,rgb,alpha);
  // Compact luminous center keeps colored reflections legible on bright roads.
  drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37);
@@ -223,21 +225,17 @@ function drawTrailGroundReflections(b,r,path){
   // The 30px downward gap remains independent of the ball silhouette.
   // Use existing two-tier gradient (outer diffusion + small bright center).
   drawProjectedLightSpill(p.x,p.y,radius*(.74+.26*fade),rgb,
-    baseAlpha*fade*variation,30);
+    baseAlpha*fade*variation,30,.82);
  }
 }
-// One short glowing line catches the eye in the middle of an otherwise
-// completely soft floor pool. Its alpha fades per collision: chain impacts
-// use their own delayed flash timestamps and never light up all at once.
-function drawHitGroundGlint(f,t,drop,color){
- const power=Math.pow(Math.max(0,1-t),1.45);
- if(power<=0)return;
- const span=(f.critical?47:30)*(.77+.35*t);
- g.save();g.translate(f.x+4,f.y+drop);g.globalCompositeOperation='lighter';
- g.globalAlpha=(f.critical?.72:.50)*power;
- g.strokeStyle=color;g.lineWidth=f.critical?2.2:1.5;
- g.shadowColor=color;g.shadowBlur=f.critical?9:6;
- g.beginPath();g.moveTo(-span,0);g.lineTo(span,0);g.stroke();g.restore();
+// V89: the former single-pixel horizontal stroke read as a loose line,
+// not a floor reflection. Replace it with a filled, softly diffused oval.
+function drawHitGroundGlint(f,t,drop){
+ const fade=Math.pow(Math.max(0,1-t),1.5);
+ if(fade<=0)return;
+ const core=f.critical?36:27;
+ const tint=f.piercing?[169,239,255]:f.critical?[255,248,197]:[255,231,169];
+ drawProjectedLightSpill(f.x,f.y,core,tint,(f.critical?.62:.47)*fade,drop,.98);
 }
 function effectLightRGB(hex){
  const m=typeof hex==='string'?/^#([0-9a-f]{6})$/i.exec(hex):null;
@@ -257,8 +255,8 @@ function drawEffectLightSpills(){
     clamp(f.groundY-f.y+6,26,105):29;
   const rgb=f.piercing?[87,213,255]:f.critical?[255,226,142]:[255,194,105];
   const alpha=(f.critical?.79:.64)*Math.pow(1-u,1.25);
-  drawProjectedLightSpill(f.x,f.y,f.critical?74:54,rgb,alpha,drop);
-  drawHitGroundGlint(f,u,drop,f.piercing?'#a6eaff':f.critical?'#fff5b6':'#ffdf9c');
+  drawProjectedLightSpill(f.x,f.y,f.critical?74:54,rgb,alpha,drop,.94);
+  drawHitGroundGlint(f,u,drop);
  }
  for(const b of barrelBlasts){
   const u=b.t/Math.max(.01,b.life||.34);
