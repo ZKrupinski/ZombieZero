@@ -49,6 +49,87 @@ const ZOMBIE_FORMS=[{name:'그린 좀비',unlock:1},{name:'드럼통 좀비 · �
 const BOSS_FORMS=['빅 좀비','쓰레기통 좀비','빅 좀비','쓰레기통 좀비'];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const has=k=>(active[k]||0)>0;
+// V84: hard-edge, low-poly contact shadows. All ground actors use polygon
+// footprints; no blur, texture outlines, or baked shadows on approved sprites.
+function drawHardGroundShadow(cx,foot,width,depth=6,cast=false,alpha=.19){
+ if(!Number.isFinite(cx)||!Number.isFinite(foot)||width<=0)return;
+ g.save();g.shadowBlur=0;g.shadowColor='transparent';g.globalCompositeOperation='source-over';
+ const w=width*.5, y=foot, d=depth;
+ if(cast){
+  // One fixed upper-left key light: short hard projection to lower-right.
+  g.fillStyle='rgba(13,21,26,'+(alpha*.57)+')';
+  g.beginPath();g.moveTo(cx-w*.9,y-d*.42);g.lineTo(cx+w*.9,y-d*.42);
+  g.lineTo(cx+w*.9+d*1.7,y+d*1.4);g.lineTo(cx-w*.32+d*1.7,y+d*1.4);
+  g.closePath();g.fill();
+ }
+ g.fillStyle='rgba(12,19,25,'+alpha+')';
+ // Slightly perspective-trimmed six-point contact plane, no ellipse.
+ g.beginPath();g.moveTo(cx-w*.78,y-d*.58);g.lineTo(cx+w*.70,y-d*.58);
+ g.lineTo(cx+w,y-d*.10);g.lineTo(cx+w*.79,y+d*.46);
+ g.lineTo(cx-w*.72,y+d*.46);g.lineTo(cx-w,y-d*.05);
+ g.closePath();g.fill();g.restore();
+}
+function drawWorldGroundShadows(){
+ for(const actor of foes){
+  const z=knockVisualPosition(actor),width=z.w*(z.boss?.93:.84);
+  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-2,width,z.boss?12:6,
+    !!z.boss,z.boss?.27:.18);
+ }
+ for(const d of enemyDeaths){
+  if((d.t||0)>=d.split)continue;
+  const z=d.z,fade=Math.max(0,1-d.t/d.split);
+  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-2,z.w*.78,z.boss?11:5,
+    !!z.boss,(z.boss?.23:.16)*fade);
+ }
+}
+function drawBallSoftShadow(b,r){
+ if(b.held)return;
+ const x=b.x+2,y=b.y+r*1.18,outer=r*1.25;
+ const grad=g.createRadialGradient?.(x,y,0,x,y,outer);
+ if(!grad||typeof grad.addColorStop!=='function')return;
+ grad.addColorStop(0,'rgba(10,17,22,.14)');
+ grad.addColorStop(.45,'rgba(10,17,22,.065)');
+ grad.addColorStop(1,'rgba(10,17,22,0)');
+ g.save();g.fillStyle=grad;g.beginPath();g.ellipse(x,y,outer,Math.max(2,r*.43),0,0,Math.PI*2);
+ g.fill();g.restore();
+}
+// Bright "shadows" are light spill, not dark silhouettes. This layer uses
+// smooth falloff; hard edges are reserved for physical actors and pickups.
+function drawSoftLightSpill(x,y,r,rgb,alpha=.2){
+ if(!fxEnabled||!Number.isFinite(x)||!Number.isFinite(y)||alpha<=0)return;
+ const radius=Math.min(90,Math.max(9,r)),grad=g.createRadialGradient?.(x,y,1,x,y,radius);
+ if(!grad||typeof grad.addColorStop!=='function')return;
+ const color=(a)=>'rgba('+rgb.join(',')+','+(a*alpha).toFixed(4)+')';
+ grad.addColorStop(0,color(.92));grad.addColorStop(.28,color(.43));
+ grad.addColorStop(.68,color(.12));grad.addColorStop(1,color(0));
+ g.save();g.globalCompositeOperation='lighter';g.shadowBlur=0;g.fillStyle=grad;
+ g.beginPath();g.arc(x,y,radius,0,Math.PI*2);g.fill();g.restore();
+}
+function drawEffectLightSpills(){
+ if(!fxEnabled)return;
+ for(const f of hitFlashes){
+  if(f.t<(f.delay||0)||f.t>=f.life)continue;
+  const u=(f.t-(f.delay||0))/Math.max(.01,f.life-(f.delay||0));
+  drawSoftLightSpill(f.x,f.y,f.critical?56:39,
+    f.piercing?[104,224,255]:[255,188,92],(.18+.12*Number(!!f.critical))*(1-u));
+ }
+ for(const b of barrelBlasts){
+  const u=b.t/Math.max(.01,b.life||.34);
+  if(u<1)drawSoftLightSpill(b.x,b.y,75,[255,127,48],.27*(1-u));
+ }
+ for(const b of bazookaBlasts){
+  const u=b.t/Math.max(.01,b.life||.39);
+  if(u<1)drawSoftLightSpill(b.x,b.y,82,[255,175,80],.29*(1-u));
+ }
+ for(const b of balls){
+  if(has('pierce'))drawSoftLightSpill(b.x,b.y,has('power')?30:24,
+    [80,197,255],has('fire')?.12:.18);
+  if(has('fire'))drawSoftLightSpill(b.x,b.y,has('power')?35:28,
+    [255,123,42],.18);
+  if(!has('fire')&&!has('pierce')&&has('power'))
+   drawSoftLightSpill(b.x,b.y,26,[255,220,121],.10);
+ }
+}
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
 function poly(p,color){g.fillStyle=color;g.beginPath();p.forEach((v,i)=>i?g.lineTo(...v):g.moveTo(...v));g.closePath();g.fill()}
 function cube(x,y,w,h,front,top,side){rect(x-2,y-1,w+4,h+3,'#111724');rect(x,y,w,h,front);poly([[x,y],[x+6,y-6],[x+w+6,y-6],[x+w,y]],top);poly([[x+w,y],[x+w+6,y-6],[x+w+6,y+h-6],[x+w,y+h]],side)}
@@ -1345,6 +1426,7 @@ function drawItemArtwork(k,x,y,size=24){
 // Render approved item bitmap without a fuzzy duplicated additive border.
 const FALLING_ITEM_SIZE=46;
 function drawFallingItem(item){
+ drawHardGroundShadow(item.x+4,item.y+23,27,5,false,.115);
  g.save();g.translate(item.x,item.y);
  g.rotate(Math.sin(clock*3+item.phase)*.055);
  g.shadowColor='transparent';g.shadowBlur=0;
@@ -1801,6 +1883,69 @@ function drawBurningTrailFlames(b,r,path){
  g.restore();
 }
 
+// V84: clearly readable cyan-white lightning for piercing shots.
+// Each arc receives a blurred additive outer glow and crisp inner filament.
+function drawElectricArc(points,alpha=1,scale=1){
+ if(!points||points.length<2)return;
+ g.save();g.lineCap='round';g.lineJoin='miter';
+ g.globalCompositeOperation='lighter';g.beginPath();
+ g.moveTo(points[0].x,points[0].y);
+ for(let i=1;i<points.length;i++)g.lineTo(points[i].x,points[i].y);
+ g.shadowColor='#69dfff';g.shadowBlur=9*scale;
+ g.strokeStyle='#45c8ff';g.lineWidth=3.5*scale;g.globalAlpha=.39*alpha;g.stroke();
+ g.shadowBlur=3.5*scale;g.strokeStyle='#a3efff';
+ g.lineWidth=1.85*scale;g.globalAlpha=.85*alpha;g.stroke();
+ g.shadowBlur=0;g.strokeStyle='#f0ffff';
+ g.lineWidth=Math.max(.75,.86*scale);g.globalAlpha=.94*alpha;g.stroke();
+ g.restore();
+}
+function drawPierceBallLightning(b,r,front=false){
+ if(!fxEnabled||!has('pierce'))return;
+ const beat=Math.floor(clock*25),count=front?3:4;
+ const bright=has('fire')?.68:1;
+ g.save();g.translate(b.x,b.y);
+ for(let i=0;i<count;i++){
+  const a=i*Math.PI*2/count+beat*.43+(front?.22:0);
+  const start=r*(front?1.10:1.34),end=r*(front?1.59:1.74);
+  const sign=i%2?-1:1,wobble=Math.sin(beat*1.43+i*5.3);
+  const points=[
+   {x:Math.cos(a)*start,y:Math.sin(a)*start},
+   {x:Math.cos(a+.16*sign)*r*1.31+wobble*r*.09,
+    y:Math.sin(a+.16*sign)*r*1.31-wobble*r*.09},
+   {x:Math.cos(a-.13*sign)*r*1.49,y:Math.sin(a-.13*sign)*r*1.49},
+   {x:Math.cos(a+.07*sign)*end,y:Math.sin(a+.07*sign)*end}
+  ];
+  drawElectricArc(points,bright*(.64+.22*Math.sin(beat+i*2.1)**2),front?.68:.77);
+ }
+ g.restore();
+}
+function drawPierceTrailLightning(b,r,path){
+ if(!fxEnabled||!has('pierce')||!path||path.length<2)return;
+ const maxLen=Math.min(144,path[path.length-1].s);
+ if(maxLen<15)return;
+ const beat=Math.floor(clock*24),verts=[],bright=has('fire')?.66:1;
+ for(let d=2,i=0;d<maxLen;d+=12,i++){
+  const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+4));
+  if(!p||!q)continue;
+  const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1;
+  const sideways=Math.sin(beat*1.7+i*2.91)*r*.42*(1-d/maxLen*.45);
+  verts.push({x:p.x-dy/m*sideways,y:p.y+dx/m*sideways});
+ }
+ if(verts.length<2)return;
+ drawElectricArc(verts,bright*.81,.87);
+ // Short forked lightning tongues give a recognizable electrical discharge,
+ // unlike the existing smooth cyan trail. No impact, physics or hitbox change.
+ for(let i=2;i<verts.length-1;i+=3){
+  const p=verts[i],prev=verts[i-1],dx=p.x-prev.x,dy=p.y-prev.y;
+  const m=Math.hypot(dx,dy)||1,sign=(i+beat)%2?-1:1;
+  const forkLen=r*(.62+.17*Math.sin(beat+i)**2);
+  drawElectricArc([p,
+    {x:p.x-dy/m*sign*forkLen*.57+dx/m*3,
+     y:p.y+dx/m*sign*forkLen*.57+dy/m*3},
+    {x:p.x-dy/m*sign*forkLen+dx/m*6,
+     y:p.y+dx/m*sign*forkLen+dy/m*6}],bright*.65,.57);
+ }
+}
 // V76: per-ball rotational inertia updated ONCE per game tick, not per frame
 // cell or direction change. Squash/stretch uses its own transform axes.
 const HERO_BALL_SPIN_FACTORS=[1,.82,1.13]; // tennis / baseball / toy
@@ -1892,7 +2037,7 @@ function drawStruckZombie(z){
  g.translate(jitter.x,jitter.y);
  zombie(knockVisualPosition(z));g.restore();
 }
-function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawCrowd();
+function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
@@ -1904,20 +2049,24 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawEffectLightSpills();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHardGroundShadow(car,636+VIEW_DELTA,99,13,true,.23);player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  for(const b of balls){
   const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   const trailPath=buildBallTrailPath(b,r);
+  drawBallSoftShadow(b,r);
   drawHeroBallTrail(b,r,trailPath);
   drawBallSkillTrail(b,r,trailPath);
   drawBurningTrailFlames(b,r,trailPath);
+  drawPierceTrailLightning(b,r,trailPath);
   drawBallStateAura(b,r);
   drawBurningBallFlames(b,r,false);
+  drawPierceBallLightning(b,r,false);
   drawHeroBallSprite(b,r,palette.main);
   drawBallStatusForeground(b,r);
   drawBurningBallFlames(b,r,true);
+  drawPierceBallLightning(b,r,true);
  }
  drawBallVanish();
  if(particles.length)luminous(()=>{
@@ -2079,7 +2228,7 @@ function drawCitizenBitmap(p,x,y,cheering){
 // clear of civilian heads. The same Y is used for the ball rebound and
 // its hit sparkle; the bounce rule and skill duration do not change.
 const SHIELD_LINE_Y=H-58;
-function drawCrowd(){rect(20,H-51,410,4,'#7189a2');rect(20,H-47,410,3,'#182d40');for(const p of citizens){if(!p.alive&&p.dying<=0)continue;g.save();if(p.returning>0){const t=1-p.returning/1.1;g.globalAlpha=Math.min(1,t*5);if(fxEnabled){g.strokeStyle='#91f4d0';g.lineWidth=3;g.beginPath();g.ellipse(p.x,p.y+12,12+t*24,5+t*8,0,0,Math.PI*2);g.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+t*4;rect(p.x+Math.cos(a)*25,p.y-15+Math.sin(a)*23,4,4,'#ffed9b')}}g.translate(0,-Math.sin(t*Math.PI)*22)}if(!p.alive){const t=1-p.dying/.8;g.globalAlpha=Math.min(1,p.dying/.35);g.translate(p.x,p.y);g.rotate(Math.sin(t*13)*.22);g.scale(1+t*.15,1-t*.15);g.translate(-p.x,-p.y-30*Math.sin(t*Math.PI/2))}let cheer=mode==='clearing'||cheerTime>0||Math.sin(clock*1.5+p.phase)>.82,bob=cheer?Math.abs(Math.sin(clock*7+p.phase))*3:0,x=p.x,y=p.y-bob;if(drawCitizenBitmap(p,x,y,cheer)){g.restore();continue}rect(x-9,y+4,18,17,p.shirt);rect(x-8,y-10,16,16,p.skin);rect(x-9,y-13,18,5,p.hair);if(p.style===0){rect(x-11,y-15,22,4,p.shirt);rect(x-7,y-20,15,6,p.shirt)}if(p.style===1){rect(x-10,y-8,4,17,p.hair);rect(x+7,y-8,4,17,p.hair)}if(p.style===2){rect(x-8,y-7,16,2,'#263441');rect(x-7,y-5,5,4,'#d3ece1');rect(x+3,y-5,5,4,'#d3ece1')}else{rect(x-5,y-5,2,3,'#394149');rect(x+3,y-5,2,3,'#394149')}rect(x-3,y+1,6,2,'#984f4d');if(p.style===3){rect(x-6,y+12,13,3,'#f0e9c9');rect(x-2,y+4,4,14,'#f0e9c9')}if(p.style===4)rect(x-7,y,14,4,'#d3d4c0');if(cheer){rect(x-13,y-4,5,14,p.skin);rect(x+10,y-8,5,17,p.skin);rect(x-14,y-7,6,5,p.skin);rect(x+9,y-11,6,5,p.skin)}else{rect(x-12,y+7,4,12,p.skin);rect(x+9,y+7,4,12,p.skin)}g.restore()}}
+function drawCrowd(){rect(20,H-51,410,4,'#7189a2');rect(20,H-47,410,3,'#182d40');for(const p of citizens){if(!p.alive&&p.dying<=0)continue;g.save();drawHardGroundShadow(p.x,p.y+19,26,5,false,.17);if(p.returning>0){const t=1-p.returning/1.1;g.globalAlpha=Math.min(1,t*5);if(fxEnabled){g.strokeStyle='#91f4d0';g.lineWidth=3;g.beginPath();g.ellipse(p.x,p.y+12,12+t*24,5+t*8,0,0,Math.PI*2);g.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+t*4;rect(p.x+Math.cos(a)*25,p.y-15+Math.sin(a)*23,4,4,'#ffed9b')}}g.translate(0,-Math.sin(t*Math.PI)*22)}if(!p.alive){const t=1-p.dying/.8;g.globalAlpha=Math.min(1,p.dying/.35);g.translate(p.x,p.y);g.rotate(Math.sin(t*13)*.22);g.scale(1+t*.15,1-t*.15);g.translate(-p.x,-p.y-30*Math.sin(t*Math.PI/2))}let cheer=mode==='clearing'||cheerTime>0||Math.sin(clock*1.5+p.phase)>.82,bob=cheer?Math.abs(Math.sin(clock*7+p.phase))*3:0,x=p.x,y=p.y-bob;if(drawCitizenBitmap(p,x,y,cheer)){g.restore();continue}rect(x-9,y+4,18,17,p.shirt);rect(x-8,y-10,16,16,p.skin);rect(x-9,y-13,18,5,p.hair);if(p.style===0){rect(x-11,y-15,22,4,p.shirt);rect(x-7,y-20,15,6,p.shirt)}if(p.style===1){rect(x-10,y-8,4,17,p.hair);rect(x+7,y-8,4,17,p.hair)}if(p.style===2){rect(x-8,y-7,16,2,'#263441');rect(x-7,y-5,5,4,'#d3ece1');rect(x+3,y-5,5,4,'#d3ece1')}else{rect(x-5,y-5,2,3,'#394149');rect(x+3,y-5,2,3,'#394149')}rect(x-3,y+1,6,2,'#984f4d');if(p.style===3){rect(x-6,y+12,13,3,'#f0e9c9');rect(x-2,y+4,4,14,'#f0e9c9')}if(p.style===4)rect(x-7,y,14,4,'#d3d4c0');if(cheer){rect(x-13,y-4,5,14,p.skin);rect(x+10,y-8,5,17,p.skin);rect(x-14,y-7,6,5,p.skin);rect(x+9,y-11,6,5,p.skin)}else{rect(x-12,y+7,4,12,p.skin);rect(x+9,y+7,4,12,p.skin)}g.restore()}}
 // Citizen support uses its own projectiles; tennis ball physics stays unchanged.
 const BAZOOKA_RADIUS=120,BAZOOKA_DAMAGE=8;
 let rockets=[],bazookaTimer=0,bazookaBlasts=[];
