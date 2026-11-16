@@ -135,9 +135,8 @@ function heroCarShadowFoot(){
    window.ZZHeroCarAttack?.ready?window.ZZHeroCarAttack.image:null;
  const sampled=source?sampleHeroCarFoot(source,selectedHero):null;
  // Source art usually ends near y627; this fallback cannot sink to old y636.
- const bounce=mode==='clearing'||mode==='paused'&&resumeMode==='clearing'?
-   Math.abs(Math.sin(clearTime*7))*4:0;
- return (sampled??627)+VIEW_DELTA-bounce;
+ // Do not follow the win-pose bounce: only the wheel art rises, the floor does not.
+ return (sampled??627)+VIEW_DELTA;
 }
 function drawCarGroundShadow(){
  // A compact 2-layer silhouette hugs the rear and front wheel contact zones.
