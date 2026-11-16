@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=90-continuous-soft-trails'));
-assert(sw.includes('zombie-zero-shell-v90-continuous-soft-trails'));
+assert(html.includes('game.js?v=91-render-performance-preserve-visuals'));
+assert(sw.includes('zombie-zero-shell-v91-render-performance-preserve-visuals'));
 function extract(a,b){
  const i=code.indexOf(a),j=code.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'missing source section '+a);return code.slice(i,j);

@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=90-continuous-soft-trails'),'JS cache invalidated');
-assert(sw.includes('zombie-zero-shell-v90-continuous-soft-trails'),'PWA cache invalidated');
+assert(html.includes('game.js?v=91-render-performance-preserve-visuals'),'JS cache invalidated');
+assert(sw.includes('zombie-zero-shell-v91-render-performance-preserve-visuals'),'PWA cache invalidated');
 function section(a,b){
  const i=code.indexOf(a),j=code.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'missing source section '+a);
@@ -32,7 +32,7 @@ assert(!render.includes('drawEnemyDeaths();drawEffectLightSpills()'),
  'the old occluded early pass is gone');
 assert(ballShadowSrc.includes('g.scale(1,.53)'),'actual elliptical gradient geometry');
 assert(ballShadowSrc.includes('if(b.held)return'),'car-held ball cannot cast a false ground shadow over the car');
-assert(lightSrc.includes('fx.slice(-12)'),'generic hit/catch effects also project light');
+assert(lightSrc.includes('for(let i=Math.max(0,fx.length-12);i<fx.length;i++)'),'generic hit/catch effects still project light without array copying');
 assert(lightSrc.includes('itemPickupFX'),'pickup effects project light');
 assert(lightSrc.includes('actor.burn>0'),'burning enemies project warm light');
 const draws={paths:[],fills:[],gradients:[],translates:[],scales:[]};
