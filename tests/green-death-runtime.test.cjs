@@ -8,12 +8,12 @@ const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
 const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
-assert.match(html,/game\.js\?v=83-fire-trail-stage-loot/);
-assert.match(sw,/zombie-zero-shell-v83-fire-trail-stage-loot/);
+assert.match(html,/game\.js\?v=84-electric-hard-shadows/);
+assert.match(sw,/zombie-zero-shell-v84-electric-hard-shadows/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
-assert.match(code,/drawBallStateAura\(b,r\);\s*drawBurningBallFlames\(b,r,false\);\s*drawHeroBallSprite\(b,r,palette\.main\)/);
+assert.match(code,/drawBallStateAura\(b,r\);\s*drawBurningBallFlames\(b,r,false\);\s*drawPierceBallLightning\(b,r,false\);\s*drawHeroBallSprite\(b,r,palette\.main\)/);
 assert.doesNotMatch(code,/g\.strokeRect\(b\.x-r\*\.45,b\.y-r\*\.45/);
 
 const section=(start,end)=>{
