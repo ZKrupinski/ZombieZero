@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const src=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=83-fire-trail-stage-loot'),'game script cache version');
-assert(sw.includes('zombie-zero-shell-v83-fire-trail-stage-loot'),'offline cache version');
+assert(html.includes('game.js?v=84-electric-hard-shadows'),'game script cache version');
+assert(sw.includes('zombie-zero-shell-v84-electric-hard-shadows'),'offline cache version');
 assert(src.includes('drawBurningBallFlames(b,r,false);\n  drawHeroBallSprite(b,r,palette.main);'),
  'rear fire layer is underneath unchanged physical ball');
 assert(src.includes('drawBallStatusForeground(b,r);\n  drawBurningBallFlames(b,r,true);'),
