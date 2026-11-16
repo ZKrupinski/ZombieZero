@@ -188,6 +188,18 @@ function drawSoftLightSpill(x,y,r,rgb,alpha=.35){
  g.shadowColor='transparent';g.shadowBlur=0;
  g.fillStyle=grad;g.beginPath();g.arc(x,y,radius,0,Math.PI*2);g.fill();g.restore();
 }
+// V91: one geometry build per ball and rendered frame. The cache is weak
+// (retired balls do not leak), and the frame key prevents stale trails when
+// physics updates. This removes the second identical path build in floor FX.
+let trailRenderFrame=0;
+const trailRenderPaths=new WeakMap();
+function getBallRenderTrailPath(b,r){
+ const hit=trailRenderPaths.get(b);
+ if(hit&&hit.frame===trailRenderFrame&&hit.radius===r)return hit.path;
+ const path=buildBallTrailPath(b,r);
+ trailRenderPaths.set(b,{frame:trailRenderFrame,radius:r,path});
+ return path;
+}
 // Projected reflections sit below the effect, while the original flame
 // filaments, electric arcs and hit flashes stay attached to their sources.
 // Transforming BOTH the gradient and its path gives a soft elliptical pool.
@@ -272,7 +284,8 @@ function drawEffectLightSpills(){
   const u=b.t/Math.max(.01,b.life||.39);
   if(u<1)drawProjectedLightSpill(b.x,b.y,96,[255,174,70],.65*(1-u),38);
  }
- for(const f of fx.slice(-12)){
+ for(let i=Math.max(0,fx.length-12);i<fx.length;i++){
+  const f=fx[i];
   const u=f.t/Math.max(.01,f.visualLife||.21);
   if(u>=1||f.standardHit)continue;
   drawProjectedLightSpill(f.x,f.y,Math.min(74,Math.max(26,f.size*.64)),
@@ -296,7 +309,7 @@ function drawEffectLightSpills(){
  for(const b of balls){
   if(!b.held){
    const radius=has('power') ? 12 : 8;
-   drawTrailGroundReflections(b,radius,buildBallTrailPath(b,radius));
+   drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius));
   }
  }
  // Ball reflections have the SAME vertically separated center as their
@@ -1909,32 +1922,45 @@ function buildBallTrailPath(b,r){
  return path;
 }
 function sampleBallTrail(path,d){
- for(let i=1;i<path.length;i++){
-  const a=path[i-1],b=path[i];if(b.s<d)continue;
-  const t=clamp((d-a.s)/Math.max(.001,b.s-a.s),0,1);
-  return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
+ // Monotonic arc-length lookup: O(log N) instead of scanning up to ~74
+ // spline vertices for EACH flame, electric spark and floor reflection.
+ const n=path.length;
+ if(n<2)return path[0]||null;
+ let low=1,high=n-1;
+ while(low<high){
+  const mid=(low+high)>>1;
+  if(path[mid].s<d)low=mid+1;else high=mid;
  }
- return path[path.length-1]||null;
+ const a=path[low-1],b=path[low];
+ const t=clamp((d-a.s)/Math.max(.001,b.s-a.s),0,1);
+ return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
 }
 function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
  if(path.length<2)return;
  const col=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
- const left=[],right=[],n=path.length-1,len=Math.max(1,path[n].s);
+ const n=path.length-1,len=Math.max(1,path[n].s),tip=path[n];
+ const grad=g.createLinearGradient?.(tip.x,tip.y,b.x,b.y);
+ if(grad&&typeof grad.addColorStop==='function'){
+  grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,col.main+'b0');
+ }
+ g.save();g.fillStyle=grad||col.main+'88';g.beginPath();
+ // Trace the EXACT same left/right vertices directly to Canvas. Avoid two
+ // temporary arrays and 2*(N+1) point allocations every rendered frame.
  for(let i=0;i<=n;i++){
   const p=path[i],a=path[Math.max(0,i-1)],z=path[Math.min(n,i+1)];
   const dx=a.x-z.x,dy=a.y-z.y,m=Math.hypot(dx,dy)||1;
   const taper=clamp((len-p.s)/Math.min(17,len*.3),0,1);
   const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper);
-  left.push({x:p.x-dy/m*half,y:p.y+dx/m*half});
-  right.push({x:p.x+dy/m*half,y:p.y-dx/m*half});
+  const x=p.x-dy/m*half,y=p.y+dx/m*half;
+  if(i===0)g.moveTo(x,y);else g.lineTo(x,y);
  }
- const tip=path[n],grad=g.createLinearGradient?.(tip.x,tip.y,b.x,b.y);
- if(grad&&typeof grad.addColorStop==='function'){
-  grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,col.main+'b0');
+ for(let i=n;i>=0;i--){
+  const p=path[i],a=path[Math.max(0,i-1)],z=path[Math.min(n,i+1)];
+  const dx=a.x-z.x,dy=a.y-z.y,m=Math.hypot(dx,dy)||1;
+  const taper=clamp((len-p.s)/Math.min(17,len*.3),0,1);
+  const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper);
+  g.lineTo(p.x+dy/m*half,p.y-dx/m*half);
  }
- g.save();g.fillStyle=grad||col.main+'88';g.beginPath();g.moveTo(left[0].x,left[0].y);
- for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
- for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
  g.closePath();g.fill();g.restore();
 }
 // V90: the existing bitmap-colored ribbon stays crisp inside, while
@@ -2279,7 +2305,7 @@ function drawStruckZombie(z){
  g.translate(jitter.x,jitter.y);
  zombie(knockVisualPosition(z));g.restore();
 }
-function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
@@ -2296,7 +2322,7 @@ drawKillCombo();drawBarrelBlasts();
  for(const b of balls){
   const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
-  const trailPath=buildBallTrailPath(b,r);
+  const trailPath=getBallRenderTrailPath(b,r);
   drawBallSoftShadow(b,r);
   drawHeroBallTrail(b,r,trailPath);
   if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath));
