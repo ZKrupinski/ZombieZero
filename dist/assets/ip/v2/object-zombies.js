@@ -276,49 +276,8 @@ function drawP1FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
  }
  return true;
 }
-// v98 P2: independent transparent 8-frame sheets for black brain cube,
-// packing cardboard, wooden crate and black drum. No palette-shifted P1 art.
-// Drawing and collision logic are unchanged; original 2-frame art is fallback.
-const P2_FINISHED_DEATH_KEYS=['black_brain_cube','cardboard_box','wooden_crate','black_barrel'];
-const P2_FINISHED_DEATH_CELL=256;
-const p2FinishedDeaths={};
-for(const id of P2_FINISHED_DEATH_KEYS){
- const pair=p2FinishedDeaths[id]={};
- for(const kind of ['normal','critical']){
-  const img=new Image(),asset=pair[kind]={image:img,ready:false,failed:false};
-  img.decoding='async';
-  img.onload=()=>{
-   asset.ready=img.naturalWidth===2048&&img.naturalHeight===256;
-   asset.failed=!asset.ready;
-  };
-  img.onerror=()=>{asset.ready=false;asset.failed=true};
-  img.src='assets/ip/v2/p2-deaths/'+id+'-'+kind+'-v98.png';
- }
-}
-function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
- const id=keyFor(z);
- const clip=p2FinishedDeaths[id]?.[critical?'critical':'normal'];
- if(!clip?.ready)return false;
- const t=Math.max(0,Math.min(1,elapsed/Math.max(.001,duration)));
- const frame=Math.min(7,Math.floor(t*8));
- // First pose roughly matches the original 128px sprite's visible body.
- // 256px padded atlas cell lets later fragments extend far outside it.
- const size=104+(critical?42:24)*Math.pow(t,1.2);
- const dx=z.x+z.w/2-size/2,dy=z.y+z.h+2-size*(216/256);
- const blend=Math.max(0,Math.min(1,elapsed/.055));
- if(blend<1&&livingAtlas)
-  drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-blend);
- if(blend>0){
-  ctx.save();ctx.globalAlpha*=blend;
-  ctx.drawImage(clip.image,frame*P2_FINISHED_DEATH_CELL,0,256,256,
-   dx,dy,size,size);
-  ctx.restore();
- }
- return true;
-}
 function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(!img)return false;
  if(drawP1FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;
- if(drawP2FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP1BrainDeath(ctx,img,z,critical,elapsed,duration))return true;
  const t=Math.min(1,Math.max(0,elapsed/Math.max(.001,duration)));
  const first=critical?28:26,second=first+1;
@@ -327,5 +286,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(
  if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath};
 })();
