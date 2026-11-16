@@ -61,9 +61,9 @@ verify(balls.every(b=>b.pierceContacts.has(boss)),'each ball tracks independent 
 // Once the first stun starts, repeated hits must not extend its 0.19s freeze.
 boss=bossAt(192,120);foes=[boss];balls=[newBall(50,540,0,-300,false)];
 clock=0;damage(boss,1,false,{x:30,y:120});
-const end= boss.hitShakeUntil;
+const firstShakeEnd=boss.hitShakeUntil;
 clock=.09;damage(boss,1,false,{x:30,y:120});
-verify(Math.abs(boss.hitShakeUntil-end)<.00001,
+verify(Math.abs(boss.hitShakeUntil-firstShakeEnd)<.00001,
  'rapid second boss hit does not restart the stun timer');
 // Clear approach lane and set an explicit safe movement destination.
 boss.bossGoalX=305;boss.bossGoalY=120;boss.bossHomeY=120;
