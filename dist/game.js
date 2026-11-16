@@ -201,6 +201,44 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28){
  drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37);
  g.restore();
 }
+// V88: reflected light is a separate projected wake, NOT a glow pasted onto
+// the sprite. A bounded set of overlapping soft ellipses forms a readable
+// floor streak on bright stage roads, without another full-size particle pass.
+function drawTrailGroundReflections(b,r,path){
+ if(!fxEnabled||b.held||!path||path.length<2)return;
+ const length=Math.min(path[path.length-1].s,134);
+ if(length<9)return;
+ const fire=has('fire'),pierce=has('pierce'),power=has('power');
+ const defaultColors=[[192,234,112],[255,227,183],[255,191,129]];
+ const colors=fire&&pierce?[[255,155,62],[95,217,255]]:fire?[[255,139,51]]:
+   pierce?[[89,213,255]]:power?[[255,214,110]]:[defaultColors[selectedHero]||defaultColors[0]];
+ const baseAlpha=fire||pierce?(power?.66:.60):power?.53:.39;
+ const radius=fire||pierce?(power?34:28):power?28:24;
+ for(let i=0,d=6;i<8&&d<length-2;i++,d+=16){
+  const p=sampleBallTrail(path,d);
+  if(!p)continue;
+  const fade=Math.pow(Math.max(0,1-d/(length+8)),.88);
+  const variation=.94+.06*Math.sin(clock*12+i*1.7);
+  const rgb=colors[i%colors.length];
+  // The 30px downward gap remains independent of the ball silhouette.
+  // Use existing two-tier gradient (outer diffusion + small bright center).
+  drawProjectedLightSpill(p.x,p.y,radius*(.74+.26*fade),rgb,
+    baseAlpha*fade*variation,30);
+ }
+}
+// One short glowing line catches the eye in the middle of an otherwise
+// completely soft floor pool. Its alpha fades per collision: chain impacts
+// use their own delayed flash timestamps and never light up all at once.
+function drawHitGroundGlint(f,t,drop,color){
+ const power=Math.pow(Math.max(0,1-t),1.45);
+ if(power<=0)return;
+ const span=(f.critical?47:30)*(.77+.35*t);
+ g.save();g.translate(f.x+4,f.y+drop);g.globalCompositeOperation='lighter';
+ g.globalAlpha=(f.critical?.72:.50)*power;
+ g.strokeStyle=color;g.lineWidth=f.critical?2.2:1.5;
+ g.shadowColor=color;g.shadowBlur=f.critical?9:6;
+ g.beginPath();g.moveTo(-span,0);g.lineTo(span,0);g.stroke();g.restore();
+}
 function effectLightRGB(hex){
  const m=typeof hex==='string'?/^#([0-9a-f]{6})$/i.exec(hex):null;
  return m?[parseInt(m[1].slice(0,2),16),parseInt(m[1].slice(2,4),16),
@@ -213,8 +251,14 @@ function drawEffectLightSpills(){
  for(const f of hitFlashes){
   if(f.t<(f.delay||0)||f.t>=f.life)continue;
   const u=(f.t-(f.delay||0))/Math.max(.01,f.life-(f.delay||0));
-  drawProjectedLightSpill(f.x,f.y,f.critical?68:48,
-    f.piercing?[87,213,255]:[255,189,96],(f.critical?.59:.46)*(1-u),29);
+  // Freeze/hit flashes spawn at actor centers. Large bosses need their
+  // projected reflection closer to the actual feet than a fixed 29px drop.
+  const drop=Number.isFinite(f.groundY)?
+    clamp(f.groundY-f.y+6,26,105):29;
+  const rgb=f.piercing?[87,213,255]:f.critical?[255,226,142]:[255,194,105];
+  const alpha=(f.critical?.79:.64)*Math.pow(1-u,1.25);
+  drawProjectedLightSpill(f.x,f.y,f.critical?74:54,rgb,alpha,drop);
+  drawHitGroundGlint(f,u,drop,f.piercing?'#a6eaff':f.critical?'#fff5b6':'#ffdf9c');
  }
  for(const b of barrelBlasts){
   const u=b.t/Math.max(.01,b.life||.34);
@@ -242,6 +286,14 @@ function drawEffectLightSpills(){
   const z=knockVisualPosition(actor);
   drawSoftLightSpill(z.x+z.w*.5,z.y+z.h-20,z.boss?48:29,
     [255,130,41],.23*Math.min(1,actor.burn/.3));
+ }
+ // Every ball trail gets a floor wake, even without a skill. Active fire,
+ // pierce and power colors override the natural hero trail color.
+ for(const b of balls){
+  if(!b.held){
+   const radius=has('power') ? 12 : 8;
+   drawTrailGroundReflections(b,radius,buildBallTrailPath(b,radius));
+  }
  }
  // Ball reflections have the SAME vertically separated center as their
  // soft shadow. The active fire/flame artwork above is not repositioned.
@@ -1103,8 +1155,9 @@ function applyKnockback(z,impact,n=1){
     actor.chainReactAt=clock+actor.knockDelay;
     actor.hitShakeFrom=actor.chainReactAt;
     actor.hitShakeUntil=actor.chainReactAt+actor.knockFreeze;
-    hitFlashes.push({x:beforeX+actor.w/2,y:beforeY+actor.h/2,t:0,
-      delay:actor.knockDelay,life:.40+actor.knockDelay,critical:false,
+    hitFlashes.push({x:beforeX+actor.w/2,y:beforeY+actor.h/2,
+      groundY:beforeY+actor.h,t:0,delay:actor.knockDelay,
+      life:.40+actor.knockDelay,critical:false,
       spread:Math.max(actor.w,actor.h),angle:Math.atan2(dirY,dirX)});
    }
    actor.knockDuration=actor.knockDelay+actor.knockFreeze+KNOCK_TWEEN_LIFE;
@@ -1133,7 +1186,9 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  z.flash=burning?.12:.22;
  enemyReaction(z,amount,impact,!burning);
  if(!burning){
-  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),piercing:piercingCritical,angle:Math.atan2(impact?.y??-1,impact?.x??0)});
+  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,groundY:z.y+z.h,
+   t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),
+   piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
   cameraKick=fxEnabled?Math.max(cameraKick,critical?7.5:z.boss?6:4.7):0;
   haptic(critical?[25,18,25]:z.boss?20:16);
