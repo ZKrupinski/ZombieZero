@@ -43,7 +43,7 @@ vm.runInContext(section('function drawPierceTrailLightning(','// V76: per-ball r
 function measure(fn,fast){
  for(const k of Object.keys(gStats))gStats[k]=0;
  tongues=0;arcs=0;env.multiSkillFastRender=fast;vm.runInContext(fn+'(b,8,path)',env);
- return {...gStats,tongues,arcs};
+ return {...gStats,tongues,electricArcs:arcs};
 }
 const normalSkill=measure('drawBallSkillTrail',false);
 const fastSkill=measure('drawBallSkillTrail',true);
@@ -59,8 +59,8 @@ assert(normalFire.fills>=3&&fastFire.strokes===1,
 assert(fastFire.tongues>=3,'recognizable fire sparks remain');
 const normalBolt=measure('drawPierceTrailLightning',false);
 const fastBolt=measure('drawPierceTrailLightning',true);
-assert(normalBolt.arcs>=5,'baseline lightning has many independent fork arcs');
-assert(fastBolt.arcs===0,'fast lightning combines into one stroke path');
+assert(normalBolt.electricArcs>=5,'baseline lightning has many independent fork arcs');
+assert(fastBolt.electricArcs===0,'fast lightning combines into one stroke path');
 assert(fastBolt.strokes<=6&&fastBolt.strokes>=4,'full filament and visible forks retained');
 const ground=section('const TRAIL_GROUND_HERO_COLORS=','// V89: the former single-pixel');
 const floorDraws=[];
@@ -81,6 +81,6 @@ assert(fastPools<=10&&fastPools<basePools,'fewer multi-ball reflection samples')
 assert(floorDraws.every(a=>a[8]===false),'single wide floor halo per sample');
 const summary={skillStrokes:[normalSkill.strokes,fastSkill.strokes],
  fireTongues:[normalFire.tongues,fastFire.tongues],fireRibbons:[normalFire.fills,fastFire.strokes],
- lightningForks:[normalBolt.arcs,fastBolt.strokes],
+ lightningForks:[normalBolt.electricArcs,fastBolt.strokes],
  floorSamples:[basePools,fastPools]};
 console.log('PASS: dynamic 3+ skill LOD saves repeated trails, fire/bolt arcs and floor glow while keeping game art/physics. '+JSON.stringify(summary));
