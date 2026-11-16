@@ -64,8 +64,8 @@ function drawHardGroundShadow(cx,foot,width,depth=6,cast=true,alpha=.30){
   const dx=Math.min(17,d*.95+4),dy=Math.min(14,d*.72+4);
   g.fillStyle='rgba(10,17,23,'+(alpha*.73).toFixed(3)+')';
   g.beginPath();
-  g.moveTo(cx-w*.80,y-1.7);
-  g.lineTo(cx+w*.64,y-1.7);
+  g.moveTo(cx-w*.80,y-d*.43);
+  g.lineTo(cx+w*.64,y-d*.43);
   g.lineTo(cx+w*.78+dx,y+dy*.75);
   g.lineTo(cx-w*.26+dx,y+dy);
   g.lineTo(cx-w*.80,y+1);
@@ -75,12 +75,12 @@ function drawHardGroundShadow(cx,foot,width,depth=6,cast=true,alpha=.30){
  // Keep corners hard: no ellipse, blur, alpha gradient or softened mask.
  g.fillStyle='rgba(12,20,26,'+alpha.toFixed(3)+')';
  g.beginPath();
- g.moveTo(cx-w*.77,y-2.0);
- g.lineTo(cx+w*.68,y-2.0);
- g.lineTo(cx+w,y+1.2);
- g.lineTo(cx+w*.74,y+d*.84+1.5);
- g.lineTo(cx-w*.75,y+d*.84+1.5);
- g.lineTo(cx-w,y+.75);
+ g.moveTo(cx-w*.77,y-d*.53);
+ g.lineTo(cx+w*.68,y-d*.53);
+ g.lineTo(cx+w,y-d*.13);
+ g.lineTo(cx+w*.74,y+d*.92+1.5);
+ g.lineTo(cx-w*.75,y+d*.92+1.5);
+ g.lineTo(cx-w,y-d*.10);
  g.closePath();g.fill();
  g.restore();
 }
@@ -89,14 +89,14 @@ function drawWorldGroundShadows(){
   // ObjectZombie and GreenWalk use bottom pivot z.y+z.h+2.
   // Knockback shadows follow their displayed sprites, not future colliders.
   const z=knockVisualPosition(actor);
-  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h+2,
-    z.w*(z.boss?.93:.88),z.boss?12:6.5,true,z.boss?.34:.31);
+  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-3,
+    z.w*(z.boss?.93:.88),z.boss?15:9.5,true,z.boss?.34:.31);
  }
  for(const d of enemyDeaths){
   if((d.t||0)>=d.split)continue;
   const z=d.z,fade=Math.max(0,1-d.t/d.split);
-  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h+2,z.w*.83,
-    z.boss?11:5.5,true,(z.boss?.28:.27)*fade);
+  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-3,z.w*.83,
+    z.boss?14:8.5,true,(z.boss?.28:.27)*fade);
  }
 }
 // The real 192px car atlas has transparent bottom padding that differs by
@@ -141,54 +141,106 @@ function heroCarShadowFoot(){
 function drawCarGroundShadow(){
  // A compact 2-layer silhouette hugs the rear and front wheel contact zones.
  const foot=heroCarShadowFoot();
- drawHardGroundShadow(car,foot,84,8.5,true,.33);
+ drawHardGroundShadow(car,foot-4.5,84,11.5,true,.33);
 }
+// V86: shadow is projected BEYOND the 3.4*r bitmap circle instead of
+// hiding under the ball. Transform the gradient itself, not merely its clipping
+// path, so the falloff remains elliptical and readable on mobile.
 function drawBallSoftShadow(b,r){
- if(b.held)return;
- const x=b.x+2,y=b.y+r*1.18,outer=r*1.25;
- const grad=g.createRadialGradient?.(x,y,0,x,y,outer);
- if(!grad||typeof grad.addColorStop!=='function')return;
- grad.addColorStop(0,'rgba(10,17,22,.14)');
- grad.addColorStop(.45,'rgba(10,17,22,.065)');
- grad.addColorStop(1,'rgba(10,17,22,0)');
- g.save();g.fillStyle=grad;g.beginPath();g.ellipse(x,y,outer,Math.max(2,r*.43),0,0,Math.PI*2);
- g.fill();g.restore();
+ const held=!!b.held;
+ const radius=r*(held?1.42:1.75),x=b.x+r*.56,y=b.y+r*(held?1.47:1.72);
+ g.save();g.translate(x,y);g.scale(1,.53);
+ const grad=g.createRadialGradient?.(0,0,0,0,0,radius);
+ if(grad&&typeof grad.addColorStop==='function'){
+  grad.addColorStop(0,held?'rgba(10,18,27,.31)':'rgba(10,18,27,.50)');
+  grad.addColorStop(.34,held?'rgba(10,18,27,.20)':'rgba(10,18,27,.32)');
+  grad.addColorStop(.67,held?'rgba(10,18,27,.08)':'rgba(10,18,27,.13)');
+  grad.addColorStop(1,'rgba(10,18,27,0)');
+  g.fillStyle=grad;
+ }else{
+  g.fillStyle='rgba(10,18,27,.2)';
+ }
+ g.beginPath();g.arc(0,0,radius,0,Math.PI*2);g.fill();g.restore();
 }
 // Bright "shadows" are light spill, not dark silhouettes. This layer uses
 // smooth falloff; hard edges are reserved for physical actors and pickups.
-function drawSoftLightSpill(x,y,r,rgb,alpha=.2){
+// V86: luminous colored bounce-light. Additive gradients sit ABOVE bitmap
+// actors/balls and below the UI; otherwise their centers are hidden by sprites.
+function drawSoftLightSpill(x,y,r,rgb,alpha=.35){
  if(!fxEnabled||!Number.isFinite(x)||!Number.isFinite(y)||alpha<=0)return;
- const radius=Math.min(90,Math.max(9,r)),grad=g.createRadialGradient?.(x,y,1,x,y,radius);
+ const radius=Math.min(100,Math.max(12,r));
+ const grad=g.createRadialGradient?.(x,y,0,x,y,radius);
  if(!grad||typeof grad.addColorStop!=='function')return;
- const color=(a)=>'rgba('+rgb.join(',')+','+(a*alpha).toFixed(4)+')';
- grad.addColorStop(0,color(.92));grad.addColorStop(.28,color(.43));
- grad.addColorStop(.68,color(.12));grad.addColorStop(1,color(0));
- g.save();g.globalCompositeOperation='lighter';g.shadowBlur=0;g.fillStyle=grad;
- g.beginPath();g.arc(x,y,radius,0,Math.PI*2);g.fill();g.restore();
+ const channel=rgb.map(v=>Math.max(0,Math.min(255,v|0)));
+ const strength=Math.min(.8,alpha);
+ const color=m=>'rgba('+channel.join(',')+','+(m*strength).toFixed(3)+')';
+ grad.addColorStop(0,color(.9));
+ grad.addColorStop(.29,color(.69));
+ grad.addColorStop(.61,color(.30));
+ grad.addColorStop(.84,color(.085));
+ grad.addColorStop(1,color(0));
+ g.save();g.globalCompositeOperation='lighter';
+ g.shadowColor='transparent';g.shadowBlur=0;
+ g.fillStyle=grad;g.beginPath();g.arc(x,y,radius,0,Math.PI*2);g.fill();g.restore();
+}
+function effectLightRGB(hex){
+ const m=typeof hex==='string'?/^#([0-9a-f]{6})$/i.exec(hex):null;
+ return m?[parseInt(m[1].slice(0,2),16),parseInt(m[1].slice(2,4),16),
+   parseInt(m[1].slice(4,6),16)]:[255,210,112];
 }
 function drawEffectLightSpills(){
  if(!fxEnabled)return;
+ // The short, high-energy light is separate from the pixelated contact shape.
  for(const f of hitFlashes){
   if(f.t<(f.delay||0)||f.t>=f.life)continue;
   const u=(f.t-(f.delay||0))/Math.max(.01,f.life-(f.delay||0));
-  drawSoftLightSpill(f.x,f.y,f.critical?56:39,
-    f.piercing?[104,224,255]:[255,188,92],(.18+.12*Number(!!f.critical))*(1-u));
+  drawSoftLightSpill(f.x,f.y,f.critical?68:45,
+    f.piercing?[87,213,255]:[255,189,96],(f.critical?.58:.43)*(1-u));
  }
  for(const b of barrelBlasts){
   const u=b.t/Math.max(.01,b.life||.34);
-  if(u<1)drawSoftLightSpill(b.x,b.y,75,[255,127,48],.27*(1-u));
+  if(u<1)drawSoftLightSpill(b.x,b.y,82,[255,125,39],.57*(1-u));
  }
  for(const b of bazookaBlasts){
   const u=b.t/Math.max(.01,b.life||.39);
-  if(u<1)drawSoftLightSpill(b.x,b.y,82,[255,175,80],.29*(1-u));
+  if(u<1)drawSoftLightSpill(b.x,b.y,96,[255,174,70],.63*(1-u));
  }
+ // Ordinary particles, pickup bursts and zombie flames also project light.
+ for(const f of fx.slice(-12)){
+  const u=f.t/Math.max(.01,f.visualLife||.21);
+  if(u>=1||f.standardHit)continue;
+  drawSoftLightSpill(f.x,f.y,Math.min(74,Math.max(26,f.size*.64)),
+    effectLightRGB(f.color),(.28+.0016*Math.min(120,f.size))*(1-u));
+ }
+ for(const f of itemPickupFX){
+  const u=f.t/Math.max(.01,f.life||.62);
+  if(u>=1)continue;
+  drawSoftLightSpill(f.x,f.y-18*u,32,effectLightRGB(SKILLS[f.k]?.color),
+    .25*(1-u));
+ }
+ for(const actor of foes){
+  if(!(actor.burn>0))continue;
+  const z=knockVisualPosition(actor);
+  drawSoftLightSpill(z.x+z.w*.5,z.y+z.h-20,z.boss?48:29,
+    [255,130,41],.23*Math.min(1,actor.burn/.3));
+ }
+ // Ball status spill occupies both the nearby floor and its outside rim.
+ // Overlay runs after ball bitmap so light cannot be completely occluded.
  for(const b of balls){
-  if(has('pierce'))drawSoftLightSpill(b.x,b.y,has('power')?30:24,
-    [80,197,255],has('fire')?.12:.18);
-  if(has('fire'))drawSoftLightSpill(b.x,b.y,has('power')?35:28,
-    [255,123,42],.18);
-  if(!has('fire')&&!has('pierce')&&has('power'))
-   drawSoftLightSpill(b.x,b.y,26,[255,220,121],.10);
+  if(has('pierce')){
+   drawSoftLightSpill(b.x,b.y,has('power')?44:34,[81,204,255],
+     has('fire')?.29:.46);
+   drawSoftLightSpill(b.x+4,b.y+8,has('power')?40:31,
+     [94,218,255],.25);
+  }
+  if(has('fire')){
+   drawSoftLightSpill(b.x,b.y,has('power')?48:38,[255,133,47],
+     has('pierce')?.26:.44);
+   drawSoftLightSpill(b.x+4,b.y+10,has('power')?42:33,
+     [255,185,72],.25);
+  }
+  if(has('power')&&!has('fire')&&!has('pierce'))
+   drawSoftLightSpill(b.x,b.y,38,[255,219,111],.34);
  }
 }
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
@@ -2110,7 +2162,7 @@ function draw(){if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRen
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawEffectLightSpills();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  for(const b of balls){
   const r=has('power')?12:8;
@@ -2143,7 +2195,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();

@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=85-visible-contact-shadows'),'new assets bypass stale caches');
-assert(sw.includes('zombie-zero-shell-v85-visible-contact-shadows'),'offline assets refresh');
+assert(html.includes('game.js?v=86-visible-ball-shadow-vfx-light'),'new assets bypass stale caches');
+assert(sw.includes('zombie-zero-shell-v86-visible-ball-shadow-vfx-light'),'offline assets refresh');
 function section(a,b){
  const start=code.indexOf(a),end=code.indexOf(b,start+a.length);
  assert(start>=0&&end>start,'missing source boundary '+a);
@@ -21,8 +21,8 @@ assert(render.includes('background();drawWorldGroundShadows();drawCrowd()'),
  'world polygons drawn above terrain and below characters');
 assert(render.includes('drawCarGroundShadow();player()'),
  'car shadow uses measured wheel contact before body render');
-assert(render.includes('drawEffectLightSpills();drawImpactFlashes()'),
- 'smooth light spill appears on top of characters and below sharp hits');
+assert(render.includes('fxRenderer.composite(g);drawEffectLightSpills()'),
+ 'smooth light spill renders after sprite/effect composite, below the HUD');
 assert(render.includes('drawPierceTrailLightning(b,r,trailPath)'),
  'jagged cyan electricity follows path');
 assert(render.includes('drawPierceBallLightning(b,r,false);\n  drawHeroBallSprite'),
