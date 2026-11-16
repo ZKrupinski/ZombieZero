@@ -212,7 +212,7 @@ function drawTrailGroundReflections(b,r,path){
  const defaultColors=[[192,234,112],[255,227,183],[255,191,129]];
  const colors=fire&&pierce?[[255,155,62],[95,217,255]]:fire?[[255,139,51]]:
    pierce?[[89,213,255]]:power?[[255,214,110]]:[defaultColors[selectedHero]||defaultColors[0]];
- const baseAlpha=fire||pierce?(power?.66:.60):power?.53:.39;
+ const baseAlpha=fire||pierce?(power ? .66 : .60):(power ? .53 : .39);
  const radius=fire||pierce?(power?34:28):power?28:24;
  for(let i=0,d=6;i<8&&d<length-2;i++,d+=16){
   const p=sampleBallTrail(path,d);
