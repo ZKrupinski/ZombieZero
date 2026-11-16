@@ -178,7 +178,8 @@ function drawSoftLightSpill(x,y,r,rgb,alpha=.35){
  if(!grad||typeof grad.addColorStop!=='function')return;
  const channel=rgb.map(v=>Math.max(0,Math.min(255,v|0)));
  const strength=Math.min(.8,alpha);
- const color=m=>'rgba('+channel.join(',')+','+(m*strength).toFixed(3)+')';
+ const prefix='rgba('+channel.join(',')+',';
+ const color=m=>prefix+(m*strength).toFixed(3)+')';
  grad.addColorStop(0,color(.9));
  grad.addColorStop(.29,color(.69));
  grad.addColorStop(.61,color(.30));
@@ -218,6 +219,8 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82){
 // V88: reflected light is a separate projected wake, NOT a glow pasted onto
 // the sprite. A bounded set of overlapping soft ellipses forms a readable
 // floor streak on bright stage roads, without another full-size particle pass.
+// Fixed hero colors are not allocated again for every ball and frame.
+const TRAIL_GROUND_HERO_COLORS=[[192,234,112],[255,227,183],[255,191,129]];
 function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  // Match the full existing trail (170px normal, 190px power) exactly.
@@ -225,7 +228,7 @@ function drawTrailGroundReflections(b,r,path){
  const length=path[path.length-1].s;
  if(length<9)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
- const defaultColors=[[192,234,112],[255,227,183],[255,191,129]];
+ const defaultColors=TRAIL_GROUND_HERO_COLORS;
  const colors=fire&&pierce?[[255,155,62],[95,217,255]]:fire?[[255,139,51]]:
    pierce?[[89,213,255]]:power?[[255,214,110]]:[defaultColors[selectedHero]||defaultColors[0]];
  const baseAlpha=fire||pierce?(power ? .66 : .60):(power ? .53 : .39);
@@ -2305,7 +2308,7 @@ function drawStruckZombie(z){
  g.translate(jitter.x,jitter.y);
  zombie(knockVisualPosition(z));g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
