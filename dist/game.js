@@ -247,7 +247,7 @@ function drawEffectLightSpills(){
  // soft shadow. The active fire/flame artwork above is not repositioned.
  for(const b of balls){
   if(b.held)continue;
-  const r=has('power')?12:8,drop=ballProjectionDrop(r);
+  const r=has('power') ? 12 : 8,drop=ballProjectionDrop(r);
   if(has('pierce')){
    drawProjectedLightSpill(b.x,b.y,has('power')?41:34,
      [81,204,255],has('fire')?.26:.47,drop);
