@@ -30,6 +30,6 @@ assert(html.includes('style.css?v=80-scene-preload'),'updated title styles loade
 assert(css.includes('.boot-content>.boot-logo-image')&&css.includes('image-rendering:auto!important'),
  'approved graphic is sharp and responsive without pixelation or glowing border');
 assert(css.includes('max-height:min(35svh,260px)'),'small mobile title view keeps game button visible');
-assert(sw.includes('zombie-zero-shell-v86-visible-ball-shadow-vfx-light'),'offline cache version refreshed');
+assert(sw.includes('zombie-zero-shell-v87-projected-ground-reflection'),'offline cache version refreshed');
 assert(sw.includes("'./"+file+"'"),'approved title asset precached');
 console.log('PASS: approved transparent Zombie Zero BI replaces desktop, hero selection and startup logo, alpha/pixels/size/PWA validated');
