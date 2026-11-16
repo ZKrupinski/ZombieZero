@@ -161,7 +161,85 @@ function drawFrame(ctx,img,z,frame,opacity=1){
  ctx.restore();
 }
 function draw(ctx,z,seconds){const img=activeImage(z);if(!img)return false;drawFrame(ctx,img,z,getFrame(z,seconds));return true}
+// v96 P1: ORIGINAL-ART-only eight-step death atlas for red/yellow brain cubes.
+// Do NOT palette-shift the green mascot: those source characters have exposed
+// top brains, integrated red/yellow shells and NO black hair or top cap.
+// Bake once on an offscreen canvas, then render ONE texture draw per death.
+const P1_BRAIN_DEATH_KEYS=new Set(['yellow_brain_cube','red_brain_cube']);
+const P1_DEATH_CELL=256,P1_DEATH_FRAMES=8,P1_DEATH_FEET_Y=194;
+const p1DeathAtlases=new Map();
+function buildP1BrainDeathAtlas(img,critical){
+ if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
+ try {
+  const atlas=document.createElement('canvas');
+  atlas.width=P1_DEATH_CELL*P1_DEATH_FRAMES;atlas.height=P1_DEATH_CELL;
+  const cx=atlas.getContext('2d');
+  if(!cx||typeof cx.drawImage!=='function')return null;
+  for(let f=0;f<P1_DEATH_FRAMES;f++){
+   const x=f*P1_DEATH_CELL+P1_DEATH_CELL/2;
+   const y=P1_DEATH_FEET_Y-121;
+   if(f<4){
+    // Front pose, original hurt, original death key A, original key B.
+    const frame=f===0?0:f===1?24:critical?26+f:24+f;
+    // In critical sequence f=2/3 -> original 28/29, not green art.
+    const original=critical&&f>=2?28+(f-2):frame;
+    cx.drawImage(img,(original%8)*128,Math.floor(original/8)*128,128,128,x-64,y,128,128);
+    continue;
+   }
+   const frame=critical?29:27;
+   const t=(f-3)/(P1_DEATH_FRAMES-4);
+   // Nine independent, transparent source-art panels. We spread real atlas
+   // pixels in place instead of painting a new black cap/hair silhouette.
+   for(let row=0;row<3;row++)for(let col=0;col<3;col++){
+    const sx=col*42,sy=row*42,sw=col===2?44:42,sh=row===2?44:42;
+    const dx=(col-1)*(critical?45:33)*t+Math.sin((row*3+col+1)*2.2)*4*t;
+    const dy=(row-1)*(critical?37:27)*t-(critical?10:5)*t;
+    const px=x-64+sx+sw/2+dx,py=y+sy+sh/2+dy;
+    const rot=(col-1)*t*.18+(row-1)*t*.11+
+     Math.sin(row*5+col*3+1)*t*.09;
+    cx.save();cx.translate(px,py);cx.rotate(rot);
+    cx.drawImage(img,(frame%8)*128+sx,Math.floor(frame/8)*128+sy,sw,sh,
+     -sw/2,-sh/2,sw,sh);
+    cx.restore();
+   }
+   if(critical){
+    // Bright pink brain uses ORIGINAL critical pose 28. Never recolor or
+    // invent the wrong green mascot's separate brown/black hair part.
+    cx.save();cx.translate(x,P1_DEATH_FEET_Y-121-10*t);
+    cx.rotate(.06*t);
+    cx.drawImage(img,4*128+43,3*128+3,42,37,-21,2,42,37);
+    cx.restore();
+   }
+  }
+  return atlas;
+ }catch{return null} // Preserve the original 2-keyframe renderer.
+}
+function drawP1BrainDeath(ctx,img,z,critical,elapsed,duration){
+ const id=keyFor(z);
+ if(!P1_BRAIN_DEATH_KEYS.has(id)||!img)return false;
+ const key=id+(critical?':critical':':normal');
+ let atlas=p1DeathAtlases.get(key);
+ if(!atlas){
+  atlas=buildP1BrainDeathAtlas(img,critical);
+  if(!atlas)return false;
+  p1DeathAtlases.set(key,atlas);
+ }
+ const t=Math.max(0,Math.min(1,elapsed/Math.max(.001,duration)));
+ const frame=Math.min(P1_DEATH_FRAMES-1,Math.floor(t*P1_DEATH_FRAMES));
+ // Same uniform scale and bottom-center pivot as the normal live sprite.
+ const walk=window.ZZSpriteGeometry?.[id]?.walkUnion||[0,0,128,128];
+ const height=Math.min(66,61*walk[3]/walk[2]);
+ const scale=Math.min(height/walk[3],55/walk[3],43/walk[2]);
+ const x=z.x+z.w/2-(P1_DEATH_CELL/2)*scale;
+ const y=z.y+z.h+2-P1_DEATH_FEET_Y*scale;
+ ctx.save();ctx.globalAlpha*=1;
+ ctx.drawImage(atlas,frame*P1_DEATH_CELL,0,P1_DEATH_CELL,P1_DEATH_CELL,
+  x,y,P1_DEATH_CELL*scale,P1_DEATH_CELL*scale);
+ ctx.restore();
+ return true;
+}
 function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(!img)return false;
+ if(drawP1BrainDeath(ctx,img,z,critical,elapsed,duration))return true;
  const t=Math.min(1,Math.max(0,elapsed/Math.max(.001,duration)));
  const first=critical?28:26,second=first+1;
  const blend=Math.min(1,Math.max(0,(t-.35)/.35));
@@ -169,5 +247,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(
  if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas};
 })();
