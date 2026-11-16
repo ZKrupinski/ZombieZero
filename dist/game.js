@@ -173,9 +173,40 @@ function drawBallSoftShadow(b,r){
 // smooth falloff; hard edges are reserved for physical actors and pickups.
 // V86: luminous colored bounce-light. Additive gradients sit ABOVE bitmap
 // actors/balls and below the UI; otherwise their centers are hidden by sprites.
-function drawSoftLightSpill(x,y,r,rgb,alpha=.35){
+// v93: persistent 192px light mask per stable trail color. Multi-ball
+// renders use scaled additive stamps instead of rebuilding radial gradients.
+const TRAIL_LIGHT_STAMP_SIZE=192;
+const trailLightStamps=new WeakMap();
+function trailLightStamp(rgb){
+ const cached=trailLightStamps.get(rgb);if(cached)return cached;
+ const stamp=document.createElement('canvas');
+ stamp.width=stamp.height=TRAIL_LIGHT_STAMP_SIZE;
+ const ctx=stamp.getContext('2d');
+ if(!ctx||typeof ctx.createRadialGradient!=='function')return null;
+ const h=TRAIL_LIGHT_STAMP_SIZE/2;
+ const grad=ctx.createRadialGradient(h,h,0,h,h,h);
+ const channel=rgb.map(v=>Math.max(0,Math.min(255,v|0)));
+ const prefix='rgba('+channel.join(',')+',';
+ for(const [p,k] of [[0,.9],[.29,.69],[.61,.30],[.84,.085],[1,0]])
+  grad.addColorStop(p,prefix+(k*.8).toFixed(3)+')');
+ ctx.fillStyle=grad;ctx.fillRect(0,0,TRAIL_LIGHT_STAMP_SIZE,TRAIL_LIGHT_STAMP_SIZE);
+ trailLightStamps.set(rgb,stamp);return stamp;
+}
+function drawSoftLightSpill(x,y,r,rgb,alpha=.35,useTrailStamp=false){
  if(!fxEnabled||!Number.isFinite(x)||!Number.isFinite(y)||alpha<=0)return;
  const radius=Math.min(100,Math.max(12,r));
+ // Only the multi-ball trail wake takes this faster path. Positions, 5-stop
+ // falloff, additive alpha and BOTH outer/core radii stay unchanged.
+ if(useTrailStamp&&balls.length>1){
+  const stamp=trailLightStamp(rgb);
+  if(stamp){
+   g.save();g.globalCompositeOperation='lighter';
+   g.shadowColor='transparent';g.shadowBlur=0;
+   g.globalAlpha*=Math.min(.8,alpha)/.8;
+   g.drawImage(stamp,x-radius,y-radius,radius*2,radius*2);
+   g.restore();return;
+  }
+ }
  const grad=g.createRadialGradient?.(x,y,0,x,y,radius);
  if(!grad||typeof grad.addColorStop!=='function')return;
  const channel=rgb.map(v=>Math.max(0,Math.min(255,v|0)));
@@ -206,16 +237,16 @@ function getBallRenderTrailPath(b,r){
 // Projected reflections sit below the effect, while the original flame
 // filaments, electric arcs and hit flashes stay attached to their sources.
 // Transforming BOTH the gradient and its path gives a soft elliptical pool.
-function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82){
+function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=false){
  if(!fxEnabled||alpha<=0)return;
  g.save();
  g.translate(x+4,y+drop);
  // V89: the old 0.48 scale made falloff cores look like razor-thin lines.
  // Use a fuller oval; caller can give a rounder .94 for impact flashes.
  g.scale(1,Math.max(.72,Math.min(1,vertical)));
- drawSoftLightSpill(0,0,r,rgb,alpha);
+ drawSoftLightSpill(0,0,r,rgb,alpha,useTrailStamp);
  // Compact luminous center keeps colored reflections legible on bright roads.
- drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37);
+ drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
  g.restore();
 }
 // V88: reflected light is a separate projected wake, NOT a glow pasted onto
@@ -223,6 +254,8 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82){
 // floor streak on bright stage roads, without another full-size particle pass.
 // Fixed hero colors are not allocated again for every ball and frame.
 const TRAIL_GROUND_HERO_COLORS=[[192,234,112],[255,227,183],[255,191,129]];
+// Stable source arrays allow the color stamps to remain cached between frames.
+const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[255,139,51]],TRAIL_GROUND_PIERCE=[[89,213,255]],TRAIL_GROUND_POWER=[[255,214,110]];
 function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  // Match the full existing trail (170px normal, 190px power) exactly.
@@ -231,8 +264,8 @@ function drawTrailGroundReflections(b,r,path){
  if(length<9)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  const defaultColors=TRAIL_GROUND_HERO_COLORS;
- const colors=fire&&pierce?[[255,155,62],[95,217,255]]:fire?[[255,139,51]]:
-   pierce?[[89,213,255]]:power?[[255,214,110]]:[defaultColors[selectedHero]||defaultColors[0]];
+ const colors=fire&&pierce?TRAIL_GROUND_FIRE_PIERCE:fire?TRAIL_GROUND_FIRE:
+   pierce?TRAIL_GROUND_PIERCE:power?TRAIL_GROUND_POWER:defaultColors;
  const baseAlpha=fire||pierce?(power ? .66 : .60):(power ? .53 : .39);
  const radius=fire||pierce?(power?34:28):power?28:24;
  // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
@@ -245,10 +278,10 @@ function drawTrailGroundReflections(b,r,path){
   if(!p)continue;
   const fade=Math.pow(Math.max(.045,1-d/(length+12)),.86);
   const variation=.94+.06*Math.sin(clock*12+i*1.1);
-  const rgb=colors[i%colors.length];
+  const rgb=(!fire&&!pierce&&!power)?(defaultColors[selectedHero]||defaultColors[0]):colors[i%colors.length];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
-    baseAlpha*.68*fade*variation,30,.82);
+    baseAlpha*.68*fade*variation,30,.82,true);
  }
 }
 // V89: the former single-pixel horizontal stroke read as a loose line,

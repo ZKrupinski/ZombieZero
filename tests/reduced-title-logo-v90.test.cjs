@@ -5,8 +5,8 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const css=fs.readFileSync('dist/style.css','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('style.css?v=90-reduced-title-logo'),'page refreshes new CSS');
-assert(html.includes('game.js?v=92-trail-bloom-softened'));
-assert(sw.includes('zombie-zero-shell-v92-trail-bloom-softened'),'service worker refreshes title CSS');
+assert(html.includes('game.js?v=93-multiball-light-cache'));
+assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'service worker refreshes title CSS');
 const end=css.slice(css.indexOf('/* v90 title UI:'));
 assert(end.includes('.logo-heading>.game-logo')&&end.includes('max-width:305px'),
  'desktop sidebar logo shrunk from 395px');
