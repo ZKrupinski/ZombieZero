@@ -333,7 +333,7 @@ for(const id of P3_DEATH_NAMES){
    entry.failed=!entry.ready;
   };
   image.onerror=()=>{entry.failed=true;entry.ready=false};
-  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+(id==='trash_can'?'-v106.png':'-v104.png');
+  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+(id==='trash_can'?'-v106.png':'-v108.png');
  }
 }
 function drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,livingAtlas){

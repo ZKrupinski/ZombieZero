@@ -15,7 +15,7 @@ assert(!src.includes('P3_DEATH_FRAMES=12'),'rejected v103 grid split is absent')
 for(const key of keys){
  const pair=[];
  for(const mode of modes){
-  const name=key+'-'+mode+(key==='trash_can'?'-v106.png':'-v104.png');
+  const name=key+'-'+mode+(key==='trash_can'?'-v106.png':'-v108.png');
   const p=base+name,bytes=fs.readFileSync(p);
   assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10],'PNG '+name);
   assert.equal(bytes.readUInt32BE(16),6144,'12 frames');
@@ -58,7 +58,7 @@ for(let slot=0;slot<4;slot++){
    draws.length=0;
    assert(sprite.drawDeath(ctx,z,critical,(frame+.5)*duration/12,duration));
    assert.equal(draws.length,1,'one image draw per cached death frame');
-   assert(draws[0].url.endsWith('/'+id+'-'+kind+(id==='trash_can'?'-v106.png':'-v104.png')));
+   assert(draws[0].url.endsWith('/'+id+'-'+kind+(id==='trash_can'?'-v106.png':'-v108.png')));
    assert.equal(draws[0].args[0],512*frame);
    assert.equal(draws[0].args[2],512);
    assert.equal(draws[0].args[3],512);

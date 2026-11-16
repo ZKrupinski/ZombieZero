@@ -110,14 +110,14 @@ def transform_part(piece,canvas,dx,dy,angle):
  bbox=piece.getchannel('A').getbbox()
  if not bbox:return
  tile=piece.crop(bbox)
- rotated=tile.rotate(angle,resample=RESAMPLE,expand=True)
+ rotated=tile if angle==0 else tile.rotate(angle,resample=RESAMPLE,expand=True)
  mx=(bbox[0]+bbox[2])/2
  my=(bbox[1]+bbox[3])/2
  x=round(ORIGIN[0]+mx+dx-rotated.width/2)
  y=round(ORIGIN[1]+my+dy-rotated.height/2)
  canvas.alpha_composite(rotated,(x,y))
 
-def compose(atlas,key,kind):
+def compose(atlas,key,kind, no_rotation=False):
  critical=kind=='critical'
  source_frame=(28 if key=='big_zombie' and critical else 29) if critical else 27
  source=atlas_frame(atlas,source_frame)
@@ -139,7 +139,7 @@ def compose(atlas,key,kind):
    for name in ['torso','head','lid']:
     if name not in parts:continue
     dx,dy,rotation=curve(paths.get(name,[(0,0,0)]*5),t)
-    transform_part(parts[name],frame,dx,dy,rotation)
+    transform_part(parts[name],frame,dx,dy,0 if no_rotation else rotation)
   bounds=frame.getchannel('A').getbbox()
   if not bounds or min(bounds[:2])<3 or max(bounds[2:])>CELL-3:
    raise ValueError(f'{key}/{kind} frame {f} cropped: {bounds}')
@@ -167,6 +167,7 @@ def make_preview(key,animations):
 def main():
  parser=argparse.ArgumentParser()
  parser.add_argument('--verify',action='store_true')
+ parser.add_argument('--no-rotation',action='store_true')
  args=parser.parse_args()
  OUT.mkdir(parents=True,exist_ok=True)
  for key in ['big_zombie']:
@@ -176,8 +177,8 @@ def main():
    atlas=img.convert('RGBA')
   animations={}
   for kind in ['normal','critical']:
-   composed=compose(atlas,key,kind)
-   dst=OUT/f'{key}-{kind}-v104.png'
+   composed=compose(atlas,key,kind,args.no_rotation)
+   dst=OUT/f'{key}-{kind}-{"v108" if args.no_rotation else "v104"}.png'
    if not args.verify:composed.save(dst,'PNG',optimize=True,compress_level=9)
    with Image.open(dst) as check:
     if check.size!=(6144,512) or check.mode!='RGBA':
@@ -188,7 +189,7 @@ def main():
       raise ValueError(f'Committed art changed or no longer matches original: {dst}')
    print(f'PASS {dst.relative_to(ROOT)} bytes={dst.stat().st_size}')
    animations[kind]=composed
-  if not args.verify:make_preview(key,animations)
+  if not args.verify and not args.no_rotation:make_preview(key,animations)
  print('Both approved Big Zombie v104 original-HD strips generated.')
 
 if __name__=='__main__':

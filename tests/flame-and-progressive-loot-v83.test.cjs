@@ -55,7 +55,7 @@ check(drawCount.flame>rearFlames&&drawCount.fill>20,'independent tongues and thr
 active.power=8;active.pierce=8;
 const fireWithSkills=drawCount.flame;
 drawBurningBallFlames(ball,12,false);drawBurningTrailFlames(ball,12,path);
-check(drawCount.flame>fireWithSkills,'combined power + pierce still renders fire');
+check(drawCount.flame===fireWithSkills,'stacked skills omit expensive flame branches; compact aura provides fire cue');
 active={};const beforeOff=drawCount.flame;drawBurningTrailFlames(ball,12,path);
 check(drawCount.flame===beforeOff,'inactive fire draws no lingering flames');
 

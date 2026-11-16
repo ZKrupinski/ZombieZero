@@ -83,7 +83,7 @@ for(const slot of [1,3]){
  }
 }
 for(const kind of ['normal','critical'])
- assert(lib.p3AnatomicalDeaths.big_zombie[kind].image.src.endsWith('big_zombie-'+kind+'-v104.png'),
- 'approved big zombie art and motion remain untouched');
+ assert(lib.p3AnatomicalDeaths.big_zombie[kind].image.src.endsWith('big_zombie-'+kind+'-v108.png'),
+ 'big zombie uses the requested no-rotation revision');
 assert.equal(lib.bosses.join(','),'big_zombie,trash_can,big_zombie,trash_can');
 console.log('PASS v106: correctly isolated HD source frames, no rotations, stable world-foot pivot, Big v104 intact');
