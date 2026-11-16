@@ -4,7 +4,7 @@ const source=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert.match(html,/game\.js\?v=92-trail-bloom-softened/);
-assert.match(sw,/zombie-zero-shell-v92-trail-bloom-softened/);
+assert.match(sw,/zombie-zero-shell-v93-multiball-light-cache/);
 assert.doesNotMatch(source,/setLineDash\(\[4,6\]\)/,'old predicted trajectory must not appear');
 assert.match(source,/const angle=\(\.16\+Math\.random\(\)\*\.52\)/);
 const shot=source.match(/function serve\(\)\{[\s\S]*?\n\}\}/);

@@ -11,8 +11,8 @@ const at=css.indexOf(mark);
 assert(at>0,'v78 responsive CSS overrides legacy fixed HUD at the end');
 const rules=css.slice(at);
 assert(html.includes('style.css?v=90-reduced-title-logo'),'CSS cache busted');
-assert(html.includes('game.js?v=92-trail-bloom-softened'),'game cache busted');
-assert(sw.includes('zombie-zero-shell-v92-trail-bloom-softened'),'offline cache busted');
+assert(html.includes('game.js?v=93-multiball-light-cache'),'game cache busted');
+assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'offline cache busted');
 assert(app.includes("root.classList.toggle('zz-compact-hud',boardWidth<=330)"), 'compact HUD depends on contained board, not viewport');
 assert(rules.includes('/* v78.1: minimum 34px'), 'button spacing is computed from physical hit target width');
 assert(app.includes('const scale=Math.min(width/450,height/710)'),
