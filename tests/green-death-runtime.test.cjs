@@ -64,7 +64,7 @@ assert.match(code,/function buildBallTrailPath\(b,r\)/);
 assert.match(code,/function sampleBallTrail\(path,d\)/);
 assert.match(code,/function drawHeroBallTrail\(b,r,path=buildBallTrailPath\(b,r\)\)/);
 assert.match(code,/function drawBallSkillTrail\(b,r,path=buildBallTrailPath\(b,r\)\)/);
-assert.match(code,/const trailPath=buildBallTrailPath\(b,r\)/);
+assert.match(code,/const trailPath=getBallRenderTrailPath\(b,r\)/);
 assert.match(code,/drawHeroBallTrail\(b,r,trailPath\)/);
 assert.match(code,/drawBallSkillTrail\(b,r,trailPath\)/);
 assert.match(code,/recordBallTrail\(b,b\.x,b\.y,!!b\._trailCorner\)/);

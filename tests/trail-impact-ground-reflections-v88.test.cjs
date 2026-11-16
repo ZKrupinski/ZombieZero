@@ -11,7 +11,7 @@ const render=code.slice(code.indexOf('function draw(){'),code.indexOf('function 
 assert(render.includes('drawImpactFlashes()'),'hit flashes remain independent');
 assert(render.includes('fxRenderer.composite(g);drawEffectLightSpills()'),
  'reflections are composited after bitmap FX before interface');
-assert(code.includes('drawTrailGroundReflections(b,radius,buildBallTrailPath(b,radius))'),
+assert(code.includes('drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius))'),
  'per-ball projected wake integrated in the existing light pass');
 assert(code.includes('groundY:beforeY+actor.h'),
  'chain reflections retain the actor foot anchor and timing');
