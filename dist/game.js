@@ -145,30 +145,11 @@ function drawCarGroundShadow(){
  const foot=heroCarShadowFoot();
  drawHardGroundShadow(car,foot-4.5,84,11.5,true,.33);
 }
-// V86: shadow is projected BEYOND the 3.4*r bitmap circle instead of
-// hiding under the ball. Transform the gradient itself, not merely its clipping
-// path, so the falloff remains elliptical and readable on mobile.
-// V87: the sprite occupies roughly +/-1.7*r; the projection must have
-// a genuinely empty gap below that image, rather than disappearing under it.
+// v94: keep the original projection distance for colored ball lights,
+// while removing the dark oval directly beneath each ball.
 const BALL_PROJECTION_GAP=24;
 function ballProjectionDrop(r){return BALL_PROJECTION_GAP+r*1.25}
-function drawBallSoftShadow(b,r){
- // A held ball is on the car; its old projected patch landed on the vehicle.
- if(b.held)return;
- const radius=r*1.90,x=b.x+r*.42,y=b.y+ballProjectionDrop(r);
- g.save();g.translate(x,y);g.scale(1,.53);
- const grad=g.createRadialGradient?.(0,0,0,0,0,radius);
- if(grad&&typeof grad.addColorStop==='function'){
-  grad.addColorStop(0,'rgba(10,18,27,.50)');
-  grad.addColorStop(.35,'rgba(10,18,27,.34)');
-  grad.addColorStop(.68,'rgba(10,18,27,.14)');
-  grad.addColorStop(1,'rgba(10,18,27,0)');
-  g.fillStyle=grad;
- }else{
-  g.fillStyle='rgba(10,18,27,.27)';
- }
- g.beginPath();g.arc(0,0,radius,0,Math.PI*2);g.fill();g.restore();
-}
+// v94: no dark ball shadow. Colored projection and light spills stay active.
 // Bright "shadows" are light spill, not dark silhouettes. This layer uses
 // smooth falloff; hard edges are reserved for physical actors and pickups.
 // V86: luminous colored bounce-light. Additive gradients sit ABOVE bitmap
@@ -2365,7 +2346,7 @@ drawKillCombo();drawBarrelBlasts();
   const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   const trailPath=getBallRenderTrailPath(b,r);
-  drawBallSoftShadow(b,r);
+  // Dark oval shadow removed; full trail and colored reflection unchanged.
   drawHeroBallTrail(b,r,trailPath);
   if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
