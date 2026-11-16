@@ -12,7 +12,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 SPRITES = ROOT / 'dist/assets/ip/v2'
 TARGET = SPRITES / 'p3-deaths'
-CELL, COUNT, ORIGIN = 512, 12, (128, 90)
+CELL, COUNT, ORIGIN = 512, 12, (128, 116)
 # Partition into coherent source-art sections (hat/lid, face, arms, body, feet).
 # All regions are disjoint, so they cannot double-render overlapping alpha.
 REGIONS = {
