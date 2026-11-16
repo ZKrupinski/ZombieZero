@@ -319,7 +319,7 @@ function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
 // One drawImage per lethal frame. Never alter boss collision/hit/stagger rules.
 // If PNG is late/unavailable, the original authored 2-key boss death is used.
 const P3_BOSS_DEATH_KEYS=['big_zombie','trash_can'];
-const P3_DEATH_CELL=512,P3_DEATH_FRAMES=12,P3_DEATH_FEET_Y=328;
+const P3_DEATH_CELL=512,P3_DEATH_FRAMES=12,P3_DEATH_FEET_Y=354;
 const p3BossDeaths={};
 for(const id of P3_BOSS_DEATH_KEYS){
  const pair=p3BossDeaths[id]={};
