@@ -45,7 +45,7 @@ assert(game.includes('Math.min(7,Math.floor(t*8))'),'attack animates all 8 frame
 assert(game.includes('selectedHero*192'),'Ace, Ruby, and Ria share correct row mapping');
 assert(game.includes('const sprite=window.ZZHeroCarAttack;'),'fallback to previous sprite if loading fails');
 assert(game.includes('Math.abs(b.x-car)<hero().paddle+radius/2'),'real racket hitbox unchanged');
-assert(html.indexOf('hero-animations-v55.js')<html.indexOf('game.js?v=92-trail-bloom-softened'),
+assert(html.indexOf('hero-animations-v55.js')<html.indexOf('game.js?v=93-multiball-light-cache'),
  'hero atlas loader starts before gameplay script');
 assert(css.includes('hero-idle-v55.png?v=55-approved-cast')&&css.includes('clip-path:none!important'),
  'title/game-over cards display new padded idle art without masking wheels');

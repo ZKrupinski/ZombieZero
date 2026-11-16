@@ -5,7 +5,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const code=fs.readFileSync('dist/game.js','utf8'),
  html=fs.readFileSync('dist/index.html','utf8'),
  sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=92-trail-bloom-softened'),'new game asset version');
+assert(html.includes('game.js?v=93-multiball-light-cache'),'new game asset version');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'new offline cache key');
 function part(a,b){
  const i=code.indexOf(a),j=code.indexOf(b,i+a.length);

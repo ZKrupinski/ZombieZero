@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=92-trail-bloom-softened'),'current gameplay assets must reload');
+assert(html.includes('game.js?v=93-multiball-light-cache'),'current gameplay assets must reload');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'PWA cache refreshes skill art');
 assert(code.includes("carAtBirth:car,event:text?"),'support dialogue anchors at creation');
 assert(code.includes("carAtBirth:car,t:0,life:1.6"),'everyday cheering anchors at creation');
