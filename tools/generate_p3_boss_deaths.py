@@ -57,6 +57,35 @@ MASKS = {
  }
 }
 
+# Art QA revision: the original face, thorax, legs and hidden joints MUST
+# remain a single intact solid. Only fully readable exterior parts separate.
+# This prevents wedge/strip fragments from crossing the original character.
+for _kind in ['normal','critical']:
+ MASKS['big_zombie'][_kind].pop('head')
+ MASKS['big_zombie'][_kind].pop('left_boot')
+ MASKS['big_zombie'][_kind].pop('right_boot')
+ MASKS['trash_can'][_kind].pop('left_boot')
+ MASKS['trash_can'][_kind].pop('right_boot')
+MASKS['trash_can']['critical'].pop('contents')
+MASKS['trash_can']['normal']['lid']=[
+ (70,68),(113,61),(204,62),(213,112),(189,135),(75,130),(62,107)
+]
+MASKS['trash_can']['critical']['lid']=[
+ (51,44),(92,29),(222,28),(240,68),(224,101),(95,103),(56,88)
+]
+MASKS['trash_can']['normal']['left_arm']=[
+ (5,140),(79,137),(82,211),(70,229),(0,222)
+]
+MASKS['trash_can']['normal']['right_arm']=[
+ (205,139),(256,136),(256,227),(205,224)
+]
+MASKS['trash_can']['critical']['left_arm']=[
+ (0,135),(76,132),(77,215),(0,225)
+]
+MASKS['trash_can']['critical']['right_arm']=[
+ (207,130),(256,128),(256,228),(208,222)
+]
+
 # Explicit motion paths, not scatter directions or a fragment grid.
 # Each point is (x-offset, y-offset, rotation degrees) sampled at 5 beats.
 # The main facial and body pixels stay intact throughout.
@@ -165,7 +194,7 @@ def compose(atlas,key,kind):
  initial=[0,24,28,29] if critical else [0,24,25,26,27]
  split_start=len(initial)
  # Keep the face mask always intact; no eyes/mouth subpieces.
- assert 'head' in parts if key=='big_zombie' else 'lid' in parts
+ assert 'torso' in parts and ('cap' in parts if key=='big_zombie' else 'lid' in parts)
  result=Image.new('RGBA',(CELL*COUNT,CELL),(0,0,0,0))
  for f in range(COUNT):
   frame=Image.new('RGBA',(CELL,CELL),(0,0,0,0))
