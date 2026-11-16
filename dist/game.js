@@ -2410,24 +2410,29 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
  }
  for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
+ // v101: Only the THREE+ elemental ball case replaces the redundant
+ // BASE hero ribbon and its two halo draws with the skill's own continuous
+ // gradient core. This never affects physics, FX-off, single/dual-ball output.
+ const skillMultiFast=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'));
  for(const b of balls){
   const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   const trailPath=getBallRenderTrailPath(b,r);
-  // Dark oval shadow removed; full trail and colored reflection unchanged.
-  drawHeroBallTrail(b,r,trailPath);
-  if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
-    ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
-  drawBallSkillTrail(b,r,trailPath);
-  drawBurningTrailFlames(b,r,trailPath);
-  drawPierceTrailLightning(b,r,trailPath);
+  if(!skillMultiFast){
+   drawHeroBallTrail(b,r,trailPath);
+   if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
+     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
+  }
+  drawBallSkillTrail(b,r,trailPath,skillMultiFast);
+  drawBurningTrailFlames(b,r,trailPath,skillMultiFast);
+  drawPierceTrailLightning(b,r,trailPath,skillMultiFast);
   drawBallStateAura(b,r);
-  drawBurningBallFlames(b,r,false);
-  drawPierceBallLightning(b,r,false);
+  drawBurningBallFlames(b,r,false,skillMultiFast);
+  drawPierceBallLightning(b,r,false,skillMultiFast);
   drawHeroBallSprite(b,r,palette.main);
   drawBallStatusForeground(b,r);
-  drawBurningBallFlames(b,r,true);
-  drawPierceBallLightning(b,r,true);
+  drawBurningBallFlames(b,r,true,skillMultiFast);
+  drawPierceBallLightning(b,r,true,skillMultiFast);
  }
  drawBallVanish();
  if(particles.length)luminous(()=>{
