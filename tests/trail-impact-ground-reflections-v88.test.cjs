@@ -50,7 +50,7 @@ const context={
  g:ctx2d,Math,clock:2.3,fxEnabled:true,selectedHero:0,
  has:k=>skills.has(k),clamp:(v,a,b)=>Math.min(b,Math.max(a,v)),
  HERO_BALL_TRAILS:[{main:'#d8efa1'},{main:'#f2e9dd'},{main:'#f5be76'}],
- buildBallTrailPath:()=>path,
+ buildBallTrailPath:()=>path,ballProjectionDrop:r=>24+r*1.25,
  balls:[],foes:[],hitFlashes:[],barrelBlasts:[],bazookaBlasts:[],fx:[],itemPickupFX:[],
  knockVisualPosition:z=>z,SKILLS:{fire:{color:'#ff9b50'}}
 };

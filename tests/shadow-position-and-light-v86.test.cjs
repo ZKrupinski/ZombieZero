@@ -55,6 +55,7 @@ const ctx={g,Math,Map,WeakMap,Number,fxEnabled:true,selectedHero:0,VIEW_DELTA:0,
  clamp:(v,min,max)=>Math.max(min,Math.min(max,v)),
  knockVisualPosition:z=>z,foes:[],enemyDeaths:[],
  hitFlashes:[],barrelBlasts:[],bazookaBlasts:[],balls:[],fx:[],itemPickupFX:[],
+ buildBallTrailPath:()=>[],
  SKILLS:{fire:{color:'#ff813e'},pierce:{color:'#79d8f6'}},
  has:k=>ctx.active.has(k),active:new Set()};
 vm.createContext(ctx);

@@ -33,7 +33,7 @@ const g=new Proxy({}, {get(target,k){
 },set(target,k,v){target[k]=v;return true}});
 const stateContext={g,Math,Number,Map,WeakMap,clock:1.5,fxEnabled:true,VIEW_DELTA:0,
  balls:[],foes:[],enemyDeaths:[],hitFlashes:[],barrelBlasts:[],bazookaBlasts:[],
- itemPickupFX:[],fx:[],SKILLS:{fire:{color:'#ff813e'}},
+ itemPickupFX:[],fx:[],buildBallTrailPath:()=>[],SKILLS:{fire:{color:'#ff813e'}},
  active:new Set(),has:k=>stateContext.active.has(k),knockVisualPosition:z=>z};
 vm.createContext(stateContext);
 vm.runInContext(src.slice(a,b),stateContext);
