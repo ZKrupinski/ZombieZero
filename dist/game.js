@@ -2007,7 +2007,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*fade;
   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(next.x,next.y);g.stroke();
   if(i%3===0){
-   const lateral=r*.64,chip=Math.max(.8,width*.48);
+   const lateral=r*.72,chip=Math.max(.8,width*.48);
    for(const side of [-1,1]){
     g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*fade;
     g.beginPath();g.arc(p.x+nx*side*lateral,p.y+ny*side*lateral,chip,0,Math.PI*2);g.fill();
