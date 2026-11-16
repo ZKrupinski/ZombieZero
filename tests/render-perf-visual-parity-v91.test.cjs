@@ -151,7 +151,7 @@ assert(alloc[1][3]===225&&alloc[1][4]===355,'intermediate remains half-size');
 const surface={canvas:{width:450,height:710},globalAlpha:1,save(){},restore(){},setTransform(){},drawImage(){}};
 for(let i=0;i<4;i++){renderer.begin();renderer.dirty=true;renderer.composite(surface)}
 assert(uploads.length===4,'one sub-image upload per frame');
-assert(uploads.every(args=>args[2]===0&&args[3]===0&&args[8]===renderer.source),
+assert(uploads.every(args=>args[2]===0&&args[3]===0&&args[6]===renderer.source),
  'source pixel upload uses preallocated texture at origin');
 assert(alloc.length===2,'zero GPU texture reallocation during four representative frames');
 assert(passes.length===16,'original two-radius four-pass bloom quality maintained');
