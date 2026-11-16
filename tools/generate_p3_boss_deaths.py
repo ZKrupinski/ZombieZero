@@ -133,6 +133,26 @@ MASKS['trash_can']['critical']['waste']=[
  (127,113),(153,111),(171,122),(171,157),(127,160)
 ]
 
+# Final visual QA cut: only detach pre-existing full silhouette pieces.
+# The original HD corpse is NEVER divided into stripe/tile fragments.
+MASKS['big_zombie']['normal']={}
+# In HD critical pose 28 the *head is already visibly lifted* from the torso.
+# Preserve the entire hat/eyes/face together as one recognizable piece.
+MASKS['big_zombie']['critical']={
+ 'head':[(54,33),(86,13),(199,10),(222,49),(214,117),
+         (160,137),(86,133),(54,92)]
+}
+# The trash-can lid is a real separate articulated element in the source.
+# Keep the eyes, can body, feet, purple hands, original soda and bag intact.
+MASKS['trash_can']['normal']={
+ 'lid':[(58,72),(97,70),(167,73),(180,97),
+        (179,139),(153,147),(72,148),(58,122)]
+}
+MASKS['trash_can']['critical']={
+ 'lid':[(56,61),(96,57),(156,60),(181,79),
+        (182,112),(151,124),(80,116),(55,97)]
+}
+
 # Explicit motion paths, not scatter directions or a fragment grid.
 # Each point is (x-offset, y-offset, rotation degrees) sampled at 5 beats.
 # The main facial and body pixels stay intact throughout.
@@ -236,14 +256,14 @@ def transform_part(piece,canvas,dx,dy,angle):
 
 def compose(atlas,key,kind):
  critical=kind=='critical'
- source_frame=29 if critical else 27
+ source_frame=(28 if key=='big_zombie' and critical else 29) if critical else 27
  source=atlas_frame(atlas,source_frame)
  parts=pieces_from_source(source,key,kind)
  # Four living/impact key poses from authentic HD artwork.
- initial=[0,24,28,29] if critical else [0,24,25,26,27]
+ initial=([0,24,28] if key=='big_zombie' else [0,24,28,29]) if critical else [0,24,25,26,27]
  split_start=len(initial)
  # Keep the face mask always intact; no eyes/mouth subpieces.
- assert 'torso' in parts and ('cap' in parts if key=='big_zombie' else 'lid' in parts)
+ assert 'torso' in parts and (('head' in parts) if key=='big_zombie' and critical else True)
  result=Image.new('RGBA',(CELL*COUNT,CELL),(0,0,0,0))
  for f in range(COUNT):
   frame=Image.new('RGBA',(CELL,CELL),(0,0,0,0))
