@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const game=fs.readFileSync('dist/game.js','utf8'),html=fs.readFileSync('dist/index.html','utf8'),
  sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=85-visible-contact-shadows'),'updated game script cache');
-assert(sw.includes('zombie-zero-shell-v85-visible-contact-shadows'),'updated offline cache');
+assert(html.includes('game.js?v=86-visible-ball-shadow-vfx-light'),'updated game script cache');
+assert(sw.includes('zombie-zero-shell-v86-visible-ball-shadow-vfx-light'),'updated offline cache');
 const start=game.indexOf('function drawHardGroundShadow('),
  end=game.indexOf('function drawBallSoftShadow(',start);
 assert(start>=0&&end>start,'ground shadow functions present');
@@ -13,7 +13,7 @@ const src=game.slice(start,end);
 assert(!src.includes('g.ellipse('),'non-ball shadows are faceted');
 assert(!src.includes('g.filter='),'no shadow blur filtering');
 assert(src.includes('g.shadowBlur=0'),'physical shadows always hard-edge');
-assert(src.includes('z.y+z.h+2'),'zombie contact pivot matches bitmap bottom');
+assert(src.includes('z.y+z.h-3'),'zombie shadow intentionally hugs feet 5px higher');
 assert(game.includes('drawHardGroundShadow(p.x,p.y+21,25,6,true,.28)'),
  'citizens have visible contact and directional silhouettes');
 assert(game.includes('drawHardGroundShadow(item.x+2,item.y+FALLING_ITEM_SIZE*.48,30,6,true,.27)'),
