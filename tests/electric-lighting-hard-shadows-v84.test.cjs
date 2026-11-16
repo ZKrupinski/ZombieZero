@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=87-projected-ground-reflection'),'new assets bypass stale caches');
-assert(sw.includes('zombie-zero-shell-v87-projected-ground-reflection'),'offline assets refresh');
+assert(html.includes('game.js?v=88-trail-hit-floor-light'),'new assets bypass stale caches');
+assert(sw.includes('zombie-zero-shell-v88-trail-hit-floor-light'),'offline assets refresh');
 function section(a,b){
  const start=code.indexOf(a),end=code.indexOf(b,start+a.length);
  assert(start>=0&&end>start,'missing source boundary '+a);
