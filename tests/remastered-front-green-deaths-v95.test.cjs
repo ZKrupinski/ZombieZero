@@ -40,7 +40,11 @@ class Canvas{constructor(){this.width=0;this.height=0}getContext(){return{
  putImageData(){}}}}
 const env={window:{ZZGreenPalette:palette,ZZGreenWalk:{ready:true,draw(){calls.push('living')}}},
  Image:Img,document:{createElement:()=>new Canvas(),readyState:'loading',addEventListener(){}},console};
-const calls=[];vm.createContext(env);vm.runInContext(source,env);
+const calls=[];
+// The palette helper is defined in the browser realm, so give that realm
+// the same document before constructing cached tinted atlas canvases.
+paletteEnv.document=env.document;
+vm.createContext(env);vm.runInContext(source,env);
 const pack=env.window.ZZGreenDeath;assert(pack.ready);
 assert(pack.remaster.normal.ready&&pack.remaster.critical.ready,'both sheets actually loaded');
 assert.equal(pack.remaster.normal.variants.length,5,'five normal palette atlas variants cached');
