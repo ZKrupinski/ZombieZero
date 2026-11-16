@@ -316,7 +316,7 @@ function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
  return true;
 }
 // P3: preserve approved v104 Big Zombie exactly. Trash Can v105 uses only
-// complete ORIGINAL-HD frames transformed rigidly, never cut into pieces.
+// cleanly cropped original HD frames only, NO added rotation or atlas bleed.
 // 12 precomposed RGBA frames, one bitmap draw per death frame, legacy fallback.
 const P3_DEATH_NAMES=['big_zombie','trash_can'];
 const P3_DEATH_CELL=512,P3_DEATH_COUNT=12,P3_DEATH_ORIGIN_Y=104;
@@ -333,7 +333,7 @@ for(const id of P3_DEATH_NAMES){
    entry.failed=!entry.ready;
   };
   image.onerror=()=>{entry.failed=true;entry.ready=false};
-  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+(id==='trash_can'?'-v105.png':'-v104.png');
+  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+(id==='trash_can'?'-v106.png':'-v104.png');
  }
 }
 function drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,livingAtlas){
