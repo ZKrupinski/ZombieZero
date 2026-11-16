@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=86-visible-ball-shadow-vfx-light'),'JS cache invalidated');
-assert(sw.includes('zombie-zero-shell-v86-visible-ball-shadow-vfx-light'),'PWA cache invalidated');
+assert(html.includes('game.js?v=87-projected-ground-reflection'),'JS cache invalidated');
+assert(sw.includes('zombie-zero-shell-v87-projected-ground-reflection'),'PWA cache invalidated');
 function section(a,b){
  const i=code.indexOf(a),j=code.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'missing source section '+a);
@@ -31,7 +31,7 @@ assert(glowPosition<render.indexOf('drawActiveItemIcons()'),'HUD remains unaffec
 assert(!render.includes('drawEnemyDeaths();drawEffectLightSpills()'),
  'the old occluded early pass is gone');
 assert(ballShadowSrc.includes('g.scale(1,.53)'),'actual elliptical gradient geometry');
-assert(!ballShadowSrc.includes('if(b.held)return'),'held ball also has projected shadow');
+assert(ballShadowSrc.includes('if(b.held)return'),'car-held ball cannot cast a false ground shadow over the car');
 assert(lightSrc.includes('fx.slice(-12)'),'generic hit/catch effects also project light');
 assert(lightSrc.includes('itemPickupFX'),'pickup effects project light');
 assert(lightSrc.includes('actor.burn>0'),'burning enemies project warm light');
@@ -84,8 +84,8 @@ ctx.itemPickupFX=[{x:225,y:300,k:'fire',t:.02,life:.62}];
 vm.runInContext('drawEffectLightSpills()',ctx);
 assert(draws.gradients.length>=before+5,'simultaneous ball, hit, particle and pickup light spill');
 const stops=draws.gradients.slice(before).flatMap(x=>x.stops);
-assert(stops.some(([t,c])=>t===0&&c.includes('.414')),
- 'strong cyan status light reaches >=0.4 alpha in a radial gradient');
+assert(stops.some(([t,c])=>t===0&&c.startsWith('rgba(81,204,255,')&&Number(c.split(',')[3].replace(')',''))>.40),
+ 'cyan status light stays distinctly visible in an off-center ground gradient');
 assert(draws.fills.some(x=>x.composite==='lighter'),'FX spill uses additive blending');
 ctx.fxEnabled=false;
 const off=draws.gradients.length;
