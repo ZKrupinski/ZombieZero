@@ -218,7 +218,7 @@ function getBallRenderTrailPath(b,r){
 // Projected reflections sit below the effect, while the original flame
 // filaments, electric arcs and hit flashes stay attached to their sources.
 // Transforming BOTH the gradient and its path gives a soft elliptical pool.
-function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=false){
+function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=false,drawCore=true){
  if(!fxEnabled||alpha<=0)return;
  g.save();
  g.translate(x+4,y+drop);
@@ -227,7 +227,7 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTra
  g.scale(1,Math.max(.72,Math.min(1,vertical)));
  drawSoftLightSpill(0,0,r,rgb,alpha,useTrailStamp);
  // Compact luminous center keeps colored reflections legible on bright roads.
- drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
+ if(drawCore)drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
  g.restore();
 }
 // V88: reflected light is a separate projected wake, NOT a glow pasted onto
@@ -251,8 +251,14 @@ function drawTrailGroundReflections(b,r,path){
  const radius=fire||pierce?(power?34:28):power?28:24;
  // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
  // both ends present. At most 20 two-layer pools per ball for mobile GPUs.
+ // 3+ simultaneous fire/pierce balls already have a bright elemental ribbon.
+ // Project fewer soft pools and omit the duplicate inner core. The outer
+ // stamp stays large enough for the pools to overlap without dotted gaps.
+ const multiSkillFast=balls.length>=3&&(fire||pierce);
  const start=4;
- const samples=Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1));
+ const samples=multiSkillFast?
+  Math.min(10,Math.max(2,Math.ceil((length-start)/21)+1)):
+  Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1));
  for(let i=0;i<samples;i++){
   const d=start+(length-start)*i/(samples-1);
   const p=sampleBallTrail(path,d);
@@ -261,8 +267,12 @@ function drawTrailGroundReflections(b,r,path){
   const variation=.94+.06*Math.sin(clock*12+i*1.1);
   const rgb=(!fire&&!pierce&&!power)?(defaultColors[selectedHero]||defaultColors[0]):colors[i%colors.length];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
-  drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
-    baseAlpha*.68*fade*variation,30,.82,true);
+  if(multiSkillFast)
+   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
+     baseAlpha*.88*fade*variation,30,.82,true,false);
+  else
+   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
+     baseAlpha*.68*fade*variation,30,.82,true);
  }
 }
 // V89: the former single-pixel horizontal stroke read as a loose line,
@@ -2017,13 +2027,14 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
 // surface, not the background or the original ball sprite.
 // V82: fine comet streaks / light motes. No wide blocky particle chips.
 function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||path.length<2)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fire&&!pierce&&!power)return;
  const colors=fire&&pierce?['#ffd49b','#91e6fd','#fff8de']:fire?['#ffba77','#ff813e','#fff0c5']:
    pierce?['#79d8f6','#d9faff','#a3e7ff']:['#ffe8a0','#fff5d5','#e5c573'];
  const len=path[path.length-1].s;
- const step=r>8?6.5:5.5;
+ const step=fast?(r>8?14.5:13.5):(r>8?6.5:5.5);
  g.save();g.lineCap='round';g.lineJoin='round';
  g.globalCompositeOperation='lighter';
  // A single continuous, slightly feathered energy core stops individual
@@ -2055,7 +2066,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   const width=Math.min(2.3,Math.max(1,r*.14));
   g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*fade;
   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(next.x,next.y);g.stroke();
-  if(i%3===0){
+  if(!fast&&i%3===0){
    const lateral=r*.72,chip=Math.max(.8,width*.48);
    for(const side of [-1,1]){
     g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*fade;
@@ -2066,6 +2077,9 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  g.restore();
 }
 // V83: fire is a living secondary layer, never a replacement for the ball bitmap.
+// v101: scope-limited multi-ball fast mode. Ordinary 1/2 ball effects keep
+// every original render call and visual characteristic intact.
+let multiSkillFastRender=false;
 // Tapered cubic tongues, warm inner cores and a backward-flowing ember ribbon.
 function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  const mag=Math.hypot(dx,dy)||1,nx=-dy/mag,ny=dx/mag;
@@ -2080,6 +2094,7 @@ function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  g.restore();
 }
 function drawBurningBallFlames(b,r,front=false){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('fire'))return;
  const t=clock,velocity=Math.hypot(b.vx||0,b.vy||0);
  const windX=velocity>1?-(b.vx||0)/velocity:0,windY=velocity>1?-(b.vy||0)/velocity:-1;
@@ -2094,8 +2109,8 @@ function drawBurningBallFlames(b,r,front=false){
    g.fillStyle=glow;g.globalAlpha=.87;g.beginPath();g.arc(0,0,r*2.05,0,Math.PI*2);g.fill();
   }
  }
- const count=front?6:12;
- g.shadowColor=front?'transparent':'#ff7b2a';g.shadowBlur=front?0:4;
+ const count=fast?(front?3:5):(front?6:12);
+ g.shadowColor=fast||front?'transparent':'#ff7b2a';g.shadowBlur=fast||front?0:4;
  for(let i=0;i<count;i++){
   const angle=i*Math.PI*2/count+.06*Math.sin(t*7+i*2.3);
   const ax=Math.cos(angle),ay=Math.sin(angle);
@@ -2107,7 +2122,7 @@ function drawBurningBallFlames(b,r,front=false){
   const width=r*(front?.085:.14)*(1+.2*wave);
   const alpha=front?.47:.73;
   flameTongue(bx,by,dx,dy,width,i%3===0?'#ffe393':i%2?'#ffad48':'#ff6428',alpha);
-  if(!front)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
+  if(!front&&!fast)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
  }
  if(front){
   // Surface heat should glimmer over, but not obscure, the three ball designs.
@@ -2120,9 +2135,33 @@ function drawBurningBallFlames(b,r,front=false){
  g.restore();
 }
 function drawBurningTrailFlames(b,r,path){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('fire')||!path||path.length<2)return;
  const t=clock,maxLen=path[path.length-1].s;
  if(maxLen<4)return;
+ if(fast){
+  // Fast multi-ball path: one continuous heated wake and a handful of
+  // flame tongues. No three polygon ribbons or per-vertex temporary arrays.
+  g.save();g.globalCompositeOperation='lighter';g.lineCap='round';
+  const head=path[0],tail=path[path.length-1];
+  g.lineWidth=r*1.32;g.strokeStyle='rgba(255,116,44,.46)';
+  g.beginPath();g.moveTo(head.x,head.y);
+  for(let d=13;d<maxLen;d+=14){
+   const p=sampleBallTrail(path,d);if(p)g.lineTo(p.x,p.y);
+  }
+  g.lineTo(tail.x,tail.y);g.stroke();
+  for(let d=13,i=0;d<maxLen-8;d+=27,i++){
+   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
+   if(!p||!q)continue;
+   const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
+   const nx=-dy/mag,ny=dx/mag,side=i%2?-1:1;
+   const fade=1-d/maxLen,reach=(9+2*Math.sin(t*11+i*2))*fade;
+   flameTongue(p.x+nx*side*r*.42,p.y+ny*side*r*.42,
+    dx/mag*reach+nx*side*reach*.5,dy/mag*reach+ny*side*reach*.5,
+    Math.max(.6,r*.14*fade),i%3?'#ff8d36':'#ffe0a1',.63*fade);
+  }
+  g.restore();return;
+ }
  const ribbons=[
   {scale:1,color:'rgba(255,88,29,.59)',drift:.44},
   {scale:.55,color:'rgba(255,159,52,.64)',drift:.24},
@@ -2174,11 +2213,17 @@ function drawBurningTrailFlames(b,r,path){
 // V84: clearly readable cyan-white lightning for piercing shots.
 // Each arc receives a blurred additive outer glow and crisp inner filament.
 function drawElectricArc(points,alpha=1,scale=1){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!points||points.length<2)return;
  g.save();g.lineCap='round';g.lineJoin='miter';
  g.globalCompositeOperation='lighter';g.beginPath();
  g.moveTo(points[0].x,points[0].y);
  for(let i=1;i<points.length;i++)g.lineTo(points[i].x,points[i].y);
+ if(fast){
+  // Omit two shadow-blurred outer strokes for every fast-mode lightning arc.
+  g.shadowBlur=0;g.strokeStyle='#a9f4ff';g.lineWidth=2.15*scale;
+  g.globalAlpha=.81*alpha;g.stroke();g.restore();return;
+ }
  g.shadowColor='#69dfff';g.shadowBlur=9*scale;
  g.strokeStyle='#45c8ff';g.lineWidth=3.5*scale;g.globalAlpha=.39*alpha;g.stroke();
  g.shadowBlur=3.5*scale;g.strokeStyle='#a3efff';
@@ -2188,8 +2233,9 @@ function drawElectricArc(points,alpha=1,scale=1){
  g.restore();
 }
 function drawPierceBallLightning(b,r,front=false){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('pierce'))return;
- const beat=Math.floor(clock*25),count=front?3:4;
+ const beat=Math.floor(clock*25),count=fast?2:(front?3:4);
  const bright=has('fire')?.68:1;
  g.save();g.translate(b.x,b.y);
  for(let i=0;i<count;i++){
@@ -2208,9 +2254,40 @@ function drawPierceBallLightning(b,r,front=false){
  g.restore();
 }
 function drawPierceTrailLightning(b,r,path){
+ const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||!has('pierce')||!path||path.length<2)return;
  const maxLen=path[path.length-1].s;
  if(maxLen<15)return;
+ if(fast){
+  // One jagged lightning filament plus 3-4 compact side forks. Full wake
+  // length and visible electric hue are retained, without blur on every fork.
+  const beat=Math.floor(clock*24),brightness=has('fire')?.64:1;
+  const head=path[0],tail=path[path.length-1];
+  g.save();g.globalCompositeOperation='lighter';
+  g.lineCap='round';g.lineJoin='round';g.shadowBlur=0;
+  g.strokeStyle='#a2f3ff';g.lineWidth=Math.max(1.45,r*.20);
+  g.globalAlpha=.75*brightness;g.beginPath();g.moveTo(head.x,head.y);
+  for(let d=14,i=0;d<maxLen;d+=15,i++){
+   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+5));
+   if(!p||!q)continue;
+   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1;
+   const side=Math.sin(beat*1.7+i*2.91)*r*.39*(1-d/maxLen*.45);
+   g.lineTo(p.x-dy/m*side,p.y+dx/m*side);
+  }
+  g.lineTo(tail.x,tail.y);g.stroke();
+  g.strokeStyle='#ebffff';g.lineWidth=Math.max(.7,r*.09);
+  g.globalAlpha=.54*brightness;g.stroke();
+  g.strokeStyle='#91e8ff';g.lineWidth=Math.max(1,r*.11);
+  g.globalAlpha=.56*brightness;
+  for(let d=29,i=0;d<maxLen;d+=51,i++){
+   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+6));
+   if(!p||!q)continue;
+   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1,sign=i%2?-1:1;
+   g.beginPath();g.moveTo(p.x,p.y);
+   g.lineTo(p.x-dy/m*sign*r*.65,p.y+dx/m*sign*r*.65);g.stroke();
+  }
+  g.restore();return;
+ }
  const beat=Math.floor(clock*24),verts=[],bright=has('fire')?.66:1;
  for(let d=2,i=0;d<maxLen;d+=7.5,i++){
   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+4));
@@ -2342,14 +2419,22 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
  }
  for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
+ // v101: This is set once per render to avoid extra has()/ball-count checks
+ // inside each spark and flame loop; standalone legacy tests default to false.
+ multiSkillFastRender=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'));
+ // v101: Only the THREE+ elemental ball case replaces the redundant
+ // BASE hero ribbon and its two halo draws with the skill's own continuous
+ // gradient core. This never affects physics, FX-off, single/dual-ball output.
+ const skillMultiFast=multiSkillFastRender;
  for(const b of balls){
   const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   const trailPath=getBallRenderTrailPath(b,r);
-  // Dark oval shadow removed; full trail and colored reflection unchanged.
-  drawHeroBallTrail(b,r,trailPath);
-  if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
+  if(!skillMultiFast){
+   drawHeroBallTrail(b,r,trailPath);
+   if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
+  }
   drawBallSkillTrail(b,r,trailPath);
   drawBurningTrailFlames(b,r,trailPath);
   drawPierceTrailLightning(b,r,trailPath);

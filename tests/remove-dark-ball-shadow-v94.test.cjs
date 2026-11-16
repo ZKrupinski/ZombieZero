@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const s=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=93-multiball-light-cache-v94-no-dark-shadow'));
+assert(html.includes('game.js?v=93-multiball-light-cache-v94-no-dark-shadow-v101-multiskill-lod'));
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache-v94-no-dark-shadow'));
 assert(!s.includes('drawBallSoftShadow('),'no legacy dark-ball shadow call or definition');
 const draw=s.slice(s.indexOf('function draw(){'),s.indexOf('function frame('));
