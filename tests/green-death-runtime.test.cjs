@@ -9,7 +9,7 @@ const sw=fs.readFileSync(path.join(__dirname,'../dist/sw.js'),'utf8');
 
 new vm.Script(code,{filename:'game.js'});
 assert.match(html,/game\.js\?v=92-trail-bloom-softened/);
-assert.match(sw,/zombie-zero-shell-v92-trail-bloom-softened/);
+assert.match(sw,/zombie-zero-shell-v93-multiball-light-cache/);
 assert.match(code,/const HELD_BALL_OFFSETS=\[\{x:-21,y:-30\},\{x:-23,y:-31\},\{x:25,y:-30\}\]/);
 assert.match(code,/if\(ball\.held\)\{const o=heldBallOffset\(\);ball\.x=car\+o\.x;ball\.y=PY\+o\.y;continue\}/);
 assert.match(code,/function drawBallStateAura\(b,r\)/);
