@@ -104,10 +104,10 @@ for(let i=1;i<strokes.length;i++)assert.deepEqual(strokes[i].points[0],strokes[i
 vm.runInContext('drawBurningTrailFlames('+JSON.stringify(ball)+',12,'+JSON.stringify(p)+')',ctx);
 assert(flameTips>=30,'fire tongues are spaced more closely along entire trail');
 vm.runInContext('drawPierceTrailLightning('+JSON.stringify(ball)+',12,'+JSON.stringify(p)+')',ctx);
-assert(arcs.length>2,'piercing main lightning and forks still render');
-const main=arcs[0].points;
+assert(arcs.length===0,'no separate lightning branches');
+const main=strokes.at(-1).points;
 assert(main.length>23,'piercing main path uses densely sampled vertices');
-assert(Math.abs(main.at(-1).x-p.at(-1).x)<.01&&Math.abs(main.at(-1).y-p.at(-1).y)<.01,
+assert(Math.abs(main.at(-1)[0]-p.at(-1).x)<.01&&Math.abs(main.at(-1)[1]-p.at(-1).y)<.01,
  'piercing main path reaches the same original trail tip, including power');
 ctx.fxEnabled=false;strokes.length=0;const prior=gradients.length;
 vm.runInContext('drawTrailEdgeHalo('+JSON.stringify(ball)+',12,'+JSON.stringify(p)+');drawTrailGroundReflections('+JSON.stringify(ball)+',12,'+JSON.stringify(p)+')',ctx);

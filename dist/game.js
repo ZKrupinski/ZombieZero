@@ -1841,8 +1841,8 @@ function drawBarrelBlasts(){
 // exact 2x powered diameter; effects never form a second oversized silhouette.
 // v108: stacked skills use a fixed, small render budget even with one ball.
 function compactBallFX(){
- return fxEnabled&&(has('fire')||has('pierce'))&&
-  (has('power')||(has('fire')&&has('pierce'))||balls.length>=3);
+ return fxEnabled&&(has('pierce')||
+  (has('fire')&&(has('power')||balls.length>=3)));
 }
 function drawBallStateAura(b,r){
  if(typeof compactBallFX==='function'&&compactBallFX()){ return; }
@@ -2278,66 +2278,25 @@ function drawPierceBallLightning(b,r,front=false){
  g.restore();
 }
 function drawPierceTrailLightning(b,r,path){
- const fast=(typeof compactBallFX==='function'&&compactBallFX())||
-  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('pierce')||!path||path.length<2)return;
- const maxLen=path[path.length-1].s;
- if(maxLen<15)return;
- if(fast){
-  // One jagged lightning filament plus 3-4 compact side forks. Full wake
-  // length and visible electric hue are retained, without blur on every fork.
-  const beat=Math.floor(clock*24),brightness=has('fire')?.64:1;
-  const head=path[0],tail=path[path.length-1];
-  g.save();g.globalCompositeOperation='lighter';
-  g.lineCap='round';g.lineJoin='round';g.shadowBlur=0;
-  g.strokeStyle='#a2f3ff';g.lineWidth=Math.max(1.45,r*.20);
-  g.globalAlpha=.75*brightness;g.beginPath();g.moveTo(head.x,head.y);
-  for(let d=14,i=0;d<maxLen;d+=15,i++){
-   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+5));
-   if(!p||!q)continue;
-   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1;
-   const side=Math.sin(beat*1.7+i*2.91)*r*.39*(1-d/maxLen*.45);
-   g.lineTo(p.x-dy/m*side,p.y+dx/m*side);
-  }
-  g.lineTo(tail.x,tail.y);g.stroke();
-  g.strokeStyle='#ebffff';g.lineWidth=Math.max(.7,r*.09);
-  g.globalAlpha=.54*brightness;g.stroke();
-  g.strokeStyle='#91e8ff';g.lineWidth=Math.max(1,r*.11);
-  g.globalAlpha=.56*brightness;
-  for(let d=29,i=0;d<maxLen;d+=51,i++){
-   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+6));
-   if(!p||!q)continue;
-   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1,sign=i%2?-1:1;
-   g.beginPath();g.moveTo(p.x,p.y);
-   g.lineTo(p.x-dy/m*sign*r*.65,p.y+dx/m*sign*r*.65);g.stroke();
-  }
-  g.restore();return;
+ const len=path[path.length-1].s;if(len<3)return;
+ const beat=Math.floor(clock*18),n=path.length-1;
+ g.save();g.globalCompositeOperation='lighter';g.shadowBlur=0;
+ g.lineCap='round';g.lineJoin='round';
+ g.strokeStyle='#a8f3ff';g.lineWidth=Math.max(1.5,r*.17);
+ g.globalAlpha=has('fire')?.8:.9;
+ g.beginPath();g.moveTo(path[0].x,path[0].y);
+ // Single branchless zigzag. Retain every trajectory vertex at rebounds;
+ // a triangular wave supplies sharp alternating teeth, not parallel lines.
+ for(let i=1;i<=n;i++){
+  const p=path[i],a=path[i-1],z=path[Math.min(n,i+1)];
+  const dx=z.x-a.x,dy=z.y-a.y,m=Math.hypot(dx,dy)||1;
+  const wave=1-4*Math.abs((p.s/24)%1-.5);
+  const envelope=Math.min(1,p.s/10,(len-p.s)/12);
+  const side=wave*r*.42*envelope*(.88+.12*Math.sin(beat*1.7));
+  g.lineTo(p.x-dy/m*side,p.y+dx/m*side);
  }
- const beat=Math.floor(clock*24),verts=[],bright=has('fire')?.66:1;
- for(let d=2,i=0;d<maxLen;d+=7.5,i++){
-  const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+4));
-  if(!p||!q)continue;
-  const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1;
-  const sideways=Math.sin(beat*1.7+i*2.91)*r*.42*(1-d/maxLen*.45);
-  verts.push({x:p.x-dy/m*sideways,y:p.y+dx/m*sideways});
- }
- // End the electric filament at the same tip as the original ribbon.
- const last=sampleBallTrail(path,maxLen);
- if(last)verts.push({x:last.x,y:last.y});
- if(verts.length<2)return;
- drawElectricArc(verts,bright*.81,.87);
- // Short forked lightning tongues give a recognizable electrical discharge,
- // unlike the existing smooth cyan trail. No impact, physics or hitbox change.
- for(let i=2;i<verts.length-1;i+=3){
-  const p=verts[i],prev=verts[i-1],dx=p.x-prev.x,dy=p.y-prev.y;
-  const m=Math.hypot(dx,dy)||1,sign=(i+beat)%2?-1:1;
-  const forkLen=r*(.62+.17*Math.sin(beat+i)**2);
-  drawElectricArc([p,
-    {x:p.x-dy/m*sign*forkLen*.57+dx/m*3,
-     y:p.y+dx/m*sign*forkLen*.57+dy/m*3},
-    {x:p.x-dy/m*sign*forkLen+dx/m*6,
-     y:p.y+dx/m*sign*forkLen+dy/m*6}],bright*.65,.57);
- }
+ g.stroke();g.restore();
 }
 // V76: per-ball rotational inertia updated ONCE per game tick, not per frame
 // cell or direction change. Squash/stretch uses its own transform axes.

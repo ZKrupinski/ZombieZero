@@ -9,7 +9,7 @@ vm.createContext(env);
 vm.runInContext(src.slice(src.indexOf('function compactBallFX('),src.indexOf('// V76: per-ball rotational inertia')),env);
 vm.runInContext(src.slice(src.indexOf('function drawTrailGroundReflections('),src.indexOf('// V89:',src.indexOf('function drawTrailGroundReflections('))),env);
 env.path=Array.from({length:77},(_,i)=>({x:250-i*2.5,y:120+i*.5,s:i*2.5}));env.b={x:250,y:120,vx:300,vy:100,held:false};
-for(const skills of [['power','fire'],['power','pierce'],['fire','pierce'],['power','fire','pierce']])for(const count of [1,2,3,6]){
+for(const skills of [['pierce'],['power','fire'],['power','pierce'],['fire','pierce'],['power','fire','pierce']])for(const count of [1,2,3,6]){
  env.skills=skills;env.balls=Array.from({length:count},()=>env.b);stats={strokes:0,curves:0,gradients:0,blur:0};colors=[];ground=0;
  vm.runInContext(`
  if(!compactBallFX())throw Error('must select compact mode');
@@ -22,4 +22,4 @@ for(const skills of [['power','fire'],['power','pierce'],['fire','pierce'],['pow
  if(skills.includes('fire'))assert(colors.includes('#ffad48'),'orange fire identifier');
  if(skills.includes('pierce'))assert(colors.includes('#a9f4ff'),'cyan pierce identifier');
 }
-console.log('PASS v108: 16 stacked configurations, <=12 strokes + bounded flame silhouettes + 1 floor pool per ball, no radial aura/blur; both skill cues retained.');
+console.log('PASS v108: 20 single/stacked configurations, <=12 strokes + bounded flame silhouettes + 1 floor pool per ball, no radial aura/blur; both skill cues retained.');

@@ -57,9 +57,9 @@ assert(normalFire.fills===0&&fastFire.strokes===0,'fire detail never draws a sec
 assert(fastFire.tongues>=3,'recognizable fire sparks remain');
 const normalBolt=measure('drawPierceTrailLightning',false);
 const fastBolt=measure('drawPierceTrailLightning',true);
-assert(normalBolt.electricArcs>=5,'baseline lightning has many independent fork arcs');
-assert(fastBolt.electricArcs===0,'fast lightning combines into one stroke path');
-assert(fastBolt.strokes<=6&&fastBolt.strokes>=4,'full filament and visible forks retained');
+assert.equal(normalBolt.electricArcs,0,'single ball has no fork arcs');
+assert.equal(normalBolt.strokes,1,'single stroke at all detail levels');
+assert.deepEqual(fastBolt,normalBolt,'same inexpensive zigzag for single and multiple balls');
 const ground=section('const TRAIL_GROUND_HERO_COLORS=','// V89: the former single-pixel');
 const floorDraws=[];
 const floor={Math,clock:2.2,selectedHero:0,fxEnabled:true,
