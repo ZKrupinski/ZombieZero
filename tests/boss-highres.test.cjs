@@ -24,10 +24,7 @@ for(const name of names){
 const html=read('dist/index.html').toString();
 const sw=read('dist/sw.js').toString();
 assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')>0);
-const objectLoader=html.match(/src="assets\/ip\/v2\/object-zombies\.js\?[^"]+"/)?.[0];
-assert(objectLoader,'versioned object zombie loader exists');
-assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')<html.indexOf(objectLoader),
- 'boss HD geometry must load before object atlas regardless of cache version');
+assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')<html.indexOf('src="assets/ip/v2/object-zombies.js?v=77-analytic-ball-blue-boss-v96-original-brain-cube-deaths-v97-approved-6png-v99-rejected-p2-v100-approved-p2"'));
 for(const name of names)assert(sw.includes('./assets/ip/v2/'+name+'_hd.png'),name+' precached offline');
 assert(sw.includes('./assets/ip/v2/boss-geometry.js'),'HD geometry offline');
 assert(sw.includes('shell-v21-visible-loot-chain-knock'),'fresh cache');
