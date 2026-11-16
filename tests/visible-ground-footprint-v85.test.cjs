@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const game=fs.readFileSync('dist/game.js','utf8'),html=fs.readFileSync('dist/index.html','utf8'),
  sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=89-thick-soft-ground-reflections'),'updated game script cache');
-assert(sw.includes('zombie-zero-shell-v89-thick-soft-ground-reflections'),'updated offline cache');
+assert(html.includes('game.js?v=90-continuous-soft-trails'),'updated game script cache');
+assert(sw.includes('zombie-zero-shell-v90-continuous-soft-trails'),'updated offline cache');
 const start=game.indexOf('function drawHardGroundShadow('),
  end=game.indexOf('function drawBallSoftShadow(',start);
 assert(start>=0&&end>start,'ground shadow functions present');
