@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const src=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=91-render-performance-preserve-visuals'),'fresh game script URL');
-assert(sw.includes('zombie-zero-shell-v91-render-performance-preserve-visuals'),'PWA cache refresh');
+assert(html.includes('game.js?v=92-trail-bloom-softened'),'fresh game script URL');
+assert(sw.includes('zombie-zero-shell-v92-trail-bloom-softened'),'PWA cache refresh');
 assert(src.includes("has('power')?12:8"),'power ball stays 1.5 times normal');
 assert(src.includes('drawBurningBallFlames(b,r,false)')&&src.includes('drawPierceBallLightning(b,r,true)'),
  'attached flame and bolt visual layers remain in place');

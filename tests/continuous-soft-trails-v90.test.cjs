@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const code=fs.readFileSync('dist/game.js','utf8'),
  html=fs.readFileSync('dist/index.html','utf8'),
  sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=91-render-performance-preserve-visuals'),'new game asset version');
-assert(sw.includes('zombie-zero-shell-v91-render-performance-preserve-visuals'),'new offline cache key');
+assert(html.includes('game.js?v=92-trail-bloom-softened'),'new game asset version');
+assert(sw.includes('zombie-zero-shell-v92-trail-bloom-softened'),'new offline cache key');
 function part(a,b){
  const i=code.indexOf(a),j=code.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'missing source '+a);return code.slice(i,j);
@@ -20,8 +20,9 @@ const sample=part('function sampleBallTrail(','function drawHeroBallTrail(');
 const lighting=part('function drawSoftLightSpill(','function rect(');
 const render=part('function draw(){','function frame(');
 assert(render.includes('drawHeroBallTrail(b,r,trailPath);'),'original ribbon remains');
-assert(render.includes('luminous(()=>drawTrailEdgeHalo(b,r,trailPath))'),
- 'soft halo is captured in existing FX-only bloom');
+assert(render.includes('luminous(()=>drawTrailEdgeHalo(b,r,trailPath),')&&
+ render.includes('()=>drawTrailEdgeHalo(b,r,trailPath,.72)'),
+ 'same soft halo is captured into existing FX-only bloom at reduced strength');
 assert(render.includes('drawBallSkillTrail(b,r,trailPath)')&&
  render.includes('drawBurningTrailFlames(b,r,trailPath)')&&
  render.includes('drawPierceTrailLightning(b,r,trailPath)'),

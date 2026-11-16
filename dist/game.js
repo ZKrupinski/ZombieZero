@@ -2,11 +2,13 @@
 const c=document.getElementById('game');let g=c.getContext('2d');const $=id=>document.getElementById(id),W=450;let H=710,PY=584,VIEW_DELTA=0;
 // Preserve normal drawing; collect only luminous shapes for the additive pass.
 let fxRenderer=null;
-function luminous(draw){
+function luminous(draw,bloomDraw=draw){
  draw();
  if(!fxEnabled||!fxRenderer)return;
  const original=g;
- fxRenderer.capture(original,context=>{g=context;try{draw()}finally{g=original}});
+ // Independent FX-capture callback lets a selected layer bloom less
+ // without changing its visible base draw or any other effect.
+ fxRenderer.capture(original,context=>{g=context;try{bloomDraw()}finally{g=original}});
 }
 const TYPES=[{color:'#a9d67c',top:'#dcf3b1',side:'#60945b',hp:1,name:'그린'},{color:'#78d4e5',top:'#bbf3f6',side:'#367e98',hp:2,name:'블루'},{color:'#eabb58',top:'#ffdf96',side:'#a57932',hp:3,name:'골드'},{color:'#df87b5',top:'#ffc3e3',side:'#92527c',hp:4,name:'퍼플'},{color:'#ed7966',top:'#ffb091',side:'#a1403f',hp:5,name:'레드'}];
 const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:10,color:'#ff9763',desc:'점화 최대 2명 · 전염 1회',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:12,color:'#86f2e0',desc:'공·좀비 감속',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},pierce:{name:'관통샷',duration:10,color:'#ffe88a',desc:'10초간 적을 관통 · 충돌당 크리티컬 피해 ×2',icon:'<circle cx="7" cy="16" r="4"/><path d="M12 16h17M22 8l7 8-7 8M17 11h7"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
@@ -1971,7 +1973,7 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
 // V90: the existing bitmap-colored ribbon stays crisp inside, while
 // the outer edge receives a light feather and a small amount of the
 // existing FXRenderer bloom. No new full-screen shader or sprite sheet.
-function drawTrailEdgeHalo(b,r,path){
+function drawTrailEdgeHalo(b,r,path,bloomScale=1){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  const col=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
@@ -1988,7 +1990,9 @@ function drawTrailEdgeHalo(b,r,path){
  g.save();g.globalCompositeOperation='lighter';
  g.lineCap='round';g.lineJoin='round';
  g.shadowColor=glow;g.shadowBlur=4;
- g.globalAlpha=.23;g.strokeStyle=grad||glow;
+ // The ordinary feathered edge remains identical. Only the separate
+ // bloom capture uses a lower alpha (v92).
+ g.globalAlpha=.23*bloomScale;g.strokeStyle=grad||glow;
  g.lineWidth=r*1.55;
  g.beginPath();g.moveTo(head.x,head.y);
  for(let i=2;i<path.length;i+=2)g.lineTo(path[i].x,path[i].y);
@@ -2330,7 +2334,8 @@ drawKillCombo();drawBarrelBlasts();
   const trailPath=getBallRenderTrailPath(b,r);
   drawBallSoftShadow(b,r);
   drawHeroBallTrail(b,r,trailPath);
-  if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath));
+  if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
+    ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
   drawBallSkillTrail(b,r,trailPath);
   drawBurningTrailFlames(b,r,trailPath);
   drawPierceTrailLightning(b,r,trailPath);
