@@ -1311,7 +1311,7 @@ updateCrowd(dt);updateEmergencySupport(dt);
 if(mode==='clearing'){clearTime+=dt;clearBurst+=dt;car+=(225-car)*Math.min(1,dt*3);if(fxEnabled&&clearBurst>.22){clearBurst=0;burst(35+Math.random()*380,160+Math.random()*200,['#ffe97a','#8df3c8','#f9a2de'][Math.floor(Math.random()*3)],14)}if(clearTime>=2.8)advanceStage();return}
 if(!foes.length){beginClear();return}
 const previousCar=car;if(keys.ArrowLeft||keys.a)target-=hero().speed*dt;if(keys.ArrowRight||keys.d)target+=hero().speed*dt;target=clamp(target,72,W-72);car+=clamp(target-car,-hero().speed*dt,hero().speed*dt);
-for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}if(k==='pierce')for(const b of balls)b.pierceContacts?.clear();sfx('expire');hud()}}skillUI();
+for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}/* Preserve contacts through pierce expiry; clear only upon physical separation. */sfx('expire');hud()}}skillUI();
 for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65){items.splice(items.indexOf(item),1);activate(item.k,item.x,item.y)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
 if(balls[0]?.held){const o=heldBallOffset();balls[0].x=car+o.x;balls[0].y=PY+o.y;return}
 march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
@@ -1335,19 +1335,19 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
  // velocity, but never repeatedly damage one enemy during a single overlap.
  // Once it fully exits that enemy, the contact can be struck on a later pass.
  const piercing=has('pierce');
- if(piercing){
-  for(const z of b.pierceContacts){
-   if(!foes.includes(z)||b.x+radius<=z.x||b.x-radius>=z.x+z.w||
-      b.y+radius<=z.y||b.y-radius>=z.y+z.h)b.pierceContacts.delete(z);
-  }
+ // Track physical overlap for both regular and piercing shots. One hit per
+ // continuous touch even on the boss's 66x88 collider; not a .10s damage loop.
+ for(const z of b.pierceContacts){
+  if(!foes.includes(z)||b.x+radius<=z.x||b.x-radius>=z.x+z.w||
+     b.y+radius<=z.y||b.y-radius>=z.y+z.h)b.pierceContacts.delete(z);
  }
  for(const z of foes){
-  if(piercing?b.pierceContacts.has(z):(b.lastHit===z&&b.hitLock>0))continue;
+  if(b.pierceContacts.has(z)||(!piercing&&b.lastHit===z&&b.hitLock>0))continue;
   if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&b.y+radius>z.y&&b.y-radius<z.y+z.h){
    const impact={x:b.vx,y:b.vy};
+   b.pierceContacts.add(z);
    if(piercing){
-    b.pierceContacts.add(z);
-    // Keep both vx and vy: three or more packed zombies can be pierced.
+    // A penetrating ball retains its velocity through unique targets.
    }else if(ox+radius<=z.x||ox-radius>=z.x+z.w){b.vx*=-1;b.x=ox;ballImpact(b,'x',b.vx,'enemy')}
    else{b.vy*=-1;b.y=oy;ballImpact(b,'y',b.vy,'enemy')}
    b.lastHit=z;b.hitLock=.1;hit(z,impact,piercing);
@@ -1472,7 +1472,25 @@ function enemyAnim(z){if(z.anim)return z.anim;const seed=(z.seed||0)*13.71+z.x*.
 function enemyPose(z){const a=enemyAnim(z),t=z.hitHold>0?z.hitAt:clock,b=z.boss,person=b?[1,3,2,5][z.bossForm||0]:a.type,speed=b?[1.7,3.2,2.3,2.7][z.bossForm||0]:a.speed,q=t*speed+a.phase,low=b&&z.hp/z.max<.3?1.35:1,amp=a.amp*low*(fxEnabled?1:.6),cycle=Math.floor((t+a.phase)/a.period),u=(t+a.phase)%a.period,gate=fract(Math.sin(a.seed+cycle*8.3)*919.1),twitch=(person===2||person===5)&&u<.2?Math.sin(u*65)*.08:0,roar=b&&u>.5&&u<1.2?Math.sin((u-.5)/.7*Math.PI):0;
 const hit=clamp((z.recoil||0)/.22,0,1),dx=z.impactX||0,dy=z.impactY||-1,neighbor=(z.flinch||0)/.3;
 return {lean:clamp(Math.sin(q)*(person===0?.068:.037)*amp+twitch+neighbor*.035*(z.flinchSide||1)+hit*dx*.06,-.13,.13),bob:Math.sin(q*1.8)*.8*amp,head:clamp(Math.sin(q-.65)*.045*amp+(person===4?.04:0)*a.side+twitch*(person===2?1.3:.8)-hit*.09, -.16,.16),left:Math.sin(q*.91)*.24*amp+(person===1?.28:person===3?-.28:0)+hit*.35,right:Math.sin(q*1.13+1.8)*.24*amp+(person===3?-.3:0)-hit*.3,shoulder:Math.sin(q*2.31)*.7+roar*1.5,jaw:clamp((person===1?2:person===5?2.5:.4)+Math.max(0,Math.sin(q*.64))*1.7+(gate>.4&&u<.5?Math.sin(u*42)*.7:0)+roar*4,0,7),lidL:person===4?4:((gate<.65&&u<.23)?7*Math.sin(u/.23*Math.PI):1),lidR:person===1?3:((gate>.65&&u>.3&&u<.53)?8*Math.sin((u-.3)/.23*Math.PI):0),eye:gate>.45&&u>1.3&&u<1.7?a.side*2:0,legL:Math.sin(q+1.1)*1.3,legR:Math.sin(q*.94+3)*1.1,hit,dx,dy,roar};}
-function enemyReaction(z,n,impact,ballHit=true){const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;z.recoil=.29;z.hitHold=ballHit?(z.boss?HIT_FREEZE_BOSS:HIT_FREEZE_NORMAL):.025;z.hitAt=clock;if(ballHit){z.hitShakeFrom=clock;z.hitShakeUntil=clock+z.hitHold;}if(n>=2||z.boss)for(const other of foes){if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<100){other.flinch=.3;other.flinchSide=other.x<z.x?-1:1}}}
+// v102: Valid hits always show recoil/flash, but do not keep the boss
+// stationary forever when multiple balls arrive more often than .19 sec.
+const BOSS_STAGGER_REARM=.65;
+function enemyReaction(z,n,impact,ballHit=true){
+ const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;
+ z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;
+ z.recoil=.29;z.hitHold=ballHit?(z.boss?HIT_FREEZE_BOSS:HIT_FREEZE_NORMAL):.025;
+ z.hitAt=clock;
+ if(ballHit&&(!z.boss||clock>=(z.bossStaggerReadyAt||0))){
+  z.hitShakeFrom=clock;z.hitShakeUntil=clock+z.hitHold;
+  if(z.boss)z.bossStaggerReadyAt=clock+BOSS_STAGGER_REARM;
+ }
+ if(n>=2||z.boss)for(const other of foes){
+  if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,
+   other.y+other.h/2-z.y-z.h/2)<100){
+    other.flinch=.3;other.flinchSide=other.x<z.x?-1:1;
+  }
+ }
+}
 function enemyDeath(z,critical=false){
  enemyAnim(z);
  // The green mascot uses its approved 8+10-frame death atlas, rather than
