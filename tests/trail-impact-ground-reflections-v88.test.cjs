@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const code=fs.readFileSync('dist/game.js','utf8'),html=fs.readFileSync('dist/index.html','utf8'),
  sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=89-thick-soft-ground-reflections'),'fresh game URL');
-assert(sw.includes('zombie-zero-shell-v89-thick-soft-ground-reflections'),'new offline cache');
+assert(html.includes('game.js?v=90-continuous-soft-trails'),'fresh game URL');
+assert(sw.includes('zombie-zero-shell-v90-continuous-soft-trails'),'new offline cache');
 assert(code.includes("has('power')?12:8"),'power ball game size unchanged');
 const render=code.slice(code.indexOf('function draw(){'),code.indexOf('function frame('));
 assert(render.includes('drawImpactFlashes()'),'hit flashes remain independent');
@@ -45,6 +45,8 @@ const ctx2d=new Proxy({},{
 });
 const path=Array.from({length:12},(_,i)=>({x:240-i*4,y:180+i*4,s:i*16}));
 const ball={x:240,y:180,held:false,vx:220,vy:-330,trail:path};
+const expectedPools=Math.min(20,Math.max(2,Math.ceil((path[path.length-1].s-4)/11)+1))*2;
+
 let skills=new Set();
 const context={
  g:ctx2d,Math,clock:2.3,fxEnabled:true,selectedHero:0,
@@ -57,7 +59,7 @@ const context={
 vm.createContext(context);
 vm.runInContext(interpolation+light,context);
 vm.runInContext('drawTrailGroundReflections('+JSON.stringify(ball)+',8,'+JSON.stringify(path)+')',context);
-assert(gradients.length===16,'eight trail floor samples have soft diffused + bright core layers');
+assert(gradients.length===expectedPools,'the complete trailing centerline receives dense soft pools');
 assert(gradients.every(x=>x.sy===.82),'trails project as flattened ellipses, not light around ball');
 assert(gradients.some(x=>x.stops[0][1].startsWith('rgba(192,234,112,')),
  'plain tennis trail produces visible lime-tinted reflection without skill');
@@ -66,7 +68,7 @@ const defaultCount=gradients.length;
 skills=new Set(['fire','pierce','power']);
 vm.runInContext('drawTrailGroundReflections('+JSON.stringify(ball)+',12,'+JSON.stringify(path)+')',context);
 const combined=gradients.slice(defaultCount);
-assert(combined.length===16,'power+fire+pierce still produces bounded reflection workload');
+assert(combined.length===expectedPools,'combined skills stay bounded over the full trail');
 assert(combined.some(x=>x.stops[0][1].startsWith('rgba(255,155,62,')),
  'flame trail lights the ground in warm orange');
 assert(combined.some(x=>x.stops[0][1].startsWith('rgba(95,217,255,')),
@@ -102,5 +104,5 @@ context.hitFlashes=[];
 context.balls=[ball];skills=new Set();
 const integrated=gradients.length;
 vm.runInContext('drawEffectLightSpills()',context);
-assert(gradients.length>=integrated+16,'the full composite pass always renders trail floor wakes');
+assert(gradients.length>=integrated+expectedPools,'full composite renders the complete ground wake');
 console.log('PASS: default and empowered trail floor reflections, delayed chain hits, critical glints and true ground anchors.');

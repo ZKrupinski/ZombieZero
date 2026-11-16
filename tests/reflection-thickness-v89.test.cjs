@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=89-thick-soft-ground-reflections'));
-assert(sw.includes('zombie-zero-shell-v89-thick-soft-ground-reflections'));
+assert(html.includes('game.js?v=90-continuous-soft-trails'));
+assert(sw.includes('zombie-zero-shell-v90-continuous-soft-trails'));
 function extract(a,b){
  const i=code.indexOf(a),j=code.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'missing source section '+a);return code.slice(i,j);
@@ -38,6 +38,7 @@ const c=new Proxy({},{
 });
 const path=Array.from({length:12},(_,i)=>({x:235-i*4,y:135+i*5,s:i*16}));
 const ball={x:235,y:135,held:false};
+const expectedPools=Math.min(20,Math.max(2,Math.ceil((path[path.length-1].s-4)/11)+1))*2;
 let equipped=new Set();
 const ctx={g:c,Math,Number,clock:1.25,fxEnabled:true,selectedHero:0,
  clamp:(x,min,max)=>Math.min(max,Math.max(min,x)),
@@ -54,7 +55,7 @@ assert(gradients.every(x=>x.y===181),'floor light still projected 31px down');
 const afterDirect=gradients.length;
 vm.runInContext('drawTrailGroundReflections('+JSON.stringify(ball)+',8,'+JSON.stringify(path)+')',ctx);
 const trails=gradients.slice(afterDirect);
-assert(trails.length===16,'eight bounded double-layer trail samples');
+assert(trails.length===expectedPools,'continuous original-length wake with bounded double-layer samples');
 assert(trails.every(g=>g.sy===.82),'ALL trail samples visibly thick, not vertically crushed');
 assert(trails.every(g=>g.stops[0][1].startsWith('rgba(192,234,112,')),
  'ordinary hero wake retains its readable colored floor light');
