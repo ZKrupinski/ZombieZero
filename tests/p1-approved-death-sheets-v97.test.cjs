@@ -33,7 +33,7 @@ for(const critical of [false,true]){
  const z={x:70,y:70,w:33,h:44,form,flash:0};
  const dur=critical?.58:.52;
  frames.length=0;bakes.length=0;
- for(let n=0;n<8;n++)assert(lib.drawDeath(canvas,z,critical,(n+.75)*dur/8,dur));
+ for(let n=0;n<8;n++)assert(lib.drawDeath(canvas,z,critical,(n+.9)*dur/8,dur));
  assert.equal(frames.length,8,'one draw per frame');
  assert.equal(bakes.length,0,'never rebuild on active PNG path');
  for(let n=0;n<8;n++){
