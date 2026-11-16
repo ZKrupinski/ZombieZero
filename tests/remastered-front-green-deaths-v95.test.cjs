@@ -20,7 +20,7 @@ assert(source.includes('f*96,0,96,128'),'correct frame boundaries / no bleeding'
 assert(source.includes('width=100*scale'),'wide explosion display area');
 assert(source.includes('height*(657/800)'),'pivot aligned to living sprite feet');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(sw.includes('zombie-zero-shell-v95-front-death-8f'),'new service-worker cache');
+assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache-v94-no-dark-shadow-v95-front-death-8f'),'new service-worker cache preserves older cache contract');
 assert(sw.includes('./assets/ip/green-death-normal-v95.png'));
 assert(sw.includes('./assets/ip/green-death-critical-v95.png'));
 assert(fs.readFileSync('dist/index.html','utf8').includes('green-death-loader.js?v=95-front-death-8f'));
