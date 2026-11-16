@@ -13,7 +13,7 @@ function part(a,b){
 }
 const heroTrail=part('function drawHeroBallTrail(','// V90:');
 const halo=part('function drawTrailEdgeHalo(','// V82:');
-const skills=part('function drawBallSkillTrail(','// V83:');
+const skills=part('function drawElementalTrailBody(','// V83:');
 const flame=part('function drawBurningTrailFlames(','// V84:');
 const pierce=part('function drawPierceTrailLightning(','// V76:');
 const sample=part('function sampleBallTrail(','function drawHeroBallTrail(');
@@ -97,11 +97,10 @@ assert(Math.abs(h.points.at(-1)[0]-p.at(-1).x)<.01,
  'halo follows the entire source trail length');
 strokes.length=0;active=new Set(['pierce','power','fire']);
 vm.runInContext('drawBallSkillTrail('+JSON.stringify(ball)+',12,'+JSON.stringify(p)+')',ctx);
-assert(strokes.length>28,'skill streaks are closer together than the old 13px gaps');
-assert(strokes[0].points.length>15,'continuous uninterrupted skill color core covers the trajectory');
-assert(Math.abs(strokes[0].points.at(-1)[0]-p.at(-1).x)<.01,
- 'skill color core reaches exact same original trail endpoint');
-assert(strokes[0].blur===3,'skill trail core is softly feathered');
+assert(strokes.length===1,'one continuous body composites its joins once');
+assert(strokes[0].width===12*1.52,'full ball-width body');
+assert(Math.abs(strokes.at(-1).points.at(-1)[0]-p.at(-1).x)<.01,'body reaches exact tail');
+for(let i=1;i<strokes.length;i++)assert.deepEqual(strokes[i].points[0],strokes[i-1].points.at(-1),'bands join without gaps');
 vm.runInContext('drawBurningTrailFlames('+JSON.stringify(ball)+',12,'+JSON.stringify(p)+')',ctx);
 assert(flameTips>=30,'fire tongues are spaced more closely along entire trail');
 vm.runInContext('drawPierceTrailLightning('+JSON.stringify(ball)+',12,'+JSON.stringify(p)+')',ctx);

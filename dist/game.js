@@ -2044,11 +2044,32 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
 // A softly feathered path is captured into the existing FX-only bloom
 // surface, not the background or the original ball sprite.
 // V82: fine comet streaks / light motes. No wide blocky particle chips.
+// v107: a single broad body for elemental shots, independent of ball count.
+// Round, short strokes follow every history vertex, including reversal corners.
+// A coincident head/tail falls back to solid color instead of disappearing.
+function drawElementalTrailBody(b,r,path,fire,pierce){
+ const head=path[0],tail=path[path.length-1];
+ const color=fire&&pierce?'#c4dce0':fire?'#ff9b46':'#79d8f6';
+ g.save();g.lineCap='round';g.lineJoin='round';g.shadowBlur=0;
+ g.globalCompositeOperation='lighter';g.globalAlpha=.52;
+ // One stroke composites overlapping joins only once: no bright dotted seams.
+ // A closed rebound must not create a zero-length transparent gradient.
+ const gradient=Math.hypot(head.x-tail.x,head.y-tail.y)>1&&g.createLinearGradient?.(tail.x,tail.y,head.x,head.y);
+ if(gradient&&typeof gradient.addColorStop==='function'){
+  gradient.addColorStop(0,color+'00');gradient.addColorStop(.35,color+'65');
+  gradient.addColorStop(1,color+'ff');
+ }
+ g.strokeStyle=gradient||color;g.lineWidth=r*1.52;
+ g.beginPath();g.moveTo(head.x,head.y);
+ for(let i=1;i<path.length;i++)g.lineTo(path[i].x,path[i].y);
+ g.stroke();g.restore();
+}
 function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||path.length<2)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fire&&!pierce&&!power)return;
+ if(fire||pierce){drawElementalTrailBody(b,r,path,fire,pierce);return;}
  const colors=fire&&pierce?['#ffd49b','#91e6fd','#fff8de']:fire?['#ffba77','#ff813e','#fff0c5']:
    pierce?['#79d8f6','#d9faff','#a3e7ff']:['#ffe8a0','#fff5d5','#e5c573'];
  const len=path[path.length-1].s;
@@ -2158,16 +2179,7 @@ function drawBurningTrailFlames(b,r,path){
  const t=clock,maxLen=path[path.length-1].s;
  if(maxLen<4)return;
  if(fast){
-  // Fast multi-ball path: one continuous heated wake and a handful of
-  // flame tongues. No three polygon ribbons or per-vertex temporary arrays.
-  g.save();g.globalCompositeOperation='lighter';g.lineCap='round';
-  const head=path[0],tail=path[path.length-1];
-  g.lineWidth=r*1.32;g.strokeStyle='rgba(255,116,44,.46)';
-  g.beginPath();g.moveTo(head.x,head.y);
-  for(let d=13;d<maxLen;d+=14){
-   const p=sampleBallTrail(path,d);if(p)g.lineTo(p.x,p.y);
-  }
-  g.lineTo(tail.x,tail.y);g.stroke();
+  g.save();g.globalCompositeOperation='lighter';
   for(let d=13,i=0;d<maxLen-8;d+=27,i++){
    const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
    if(!p||!q)continue;
@@ -2180,32 +2192,7 @@ function drawBurningTrailFlames(b,r,path){
   }
   g.restore();return;
  }
- const ribbons=[
-  {scale:1,color:'rgba(255,88,29,.59)',drift:.44},
-  {scale:.55,color:'rgba(255,159,52,.64)',drift:.24},
-  {scale:.25,color:'rgba(255,240,167,.71)',drift:.09}
- ];
  g.save();g.lineCap='round';g.globalCompositeOperation='lighter';g.shadowBlur=0;
- for(const layer of ribbons){
-  const left=[],right=[];
-  for(let d=0;d<=maxLen;d+=4.5){
-   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+3));
-   if(!p||!q)continue;
-   const dx=q.x-p.x,dy=q.y-p.y,m=Math.hypot(dx,dy)||1;
-   const nx=-dy/m,ny=dx/m;
-   const fade=Math.pow(Math.max(0,1-d/Math.max(1,maxLen)),.78);
-   const flicker=.8+.2*Math.sin(t*18+d*.19);
-   const width=r*layer.scale*fade*flicker;
-   const drift=Math.sin(t*11+d*.12)*r*layer.drift*fade;
-   left.push({x:p.x+nx*(width+drift),y:p.y+ny*(width+drift)});
-   right.push({x:p.x+nx*(-width+drift),y:p.y+ny*(-width+drift)});
-  }
-  if(left.length<2)continue;
-  g.fillStyle=layer.color;g.beginPath();g.moveTo(left[0].x,left[0].y);
-  for(let i=1;i<left.length;i++)g.lineTo(left[i].x,left[i].y);
-  for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
-  g.closePath();g.fill();
- }
  // Tongues curl and detach from the outer edge of the moving trail,
  // staggered in time instead of one rigid straight beam.
  for(let d=7,i=0;d<maxLen-4;d+=10,i++){
@@ -2440,15 +2427,13 @@ drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
  multiSkillFastRender=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'));
- // v101: Only the THREE+ elemental ball case replaces the redundant
- // BASE hero ribbon and its two halo draws with the skill's own continuous
- // gradient core. This never affects physics, FX-off, single/dual-ball output.
- const skillMultiFast=multiSkillFastRender;
+ // Elemental shots own one broad body at every detail level.
+ const elementalTrail=fxEnabled&&(has('fire')||has('pierce'));
  for(const b of balls){
   const r=has('power')?12:8;
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   const trailPath=getBallRenderTrailPath(b,r);
-  if(!skillMultiFast){
+  if(!elementalTrail){
    drawHeroBallTrail(b,r,trailPath);
    if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));

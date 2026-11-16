@@ -9,8 +9,8 @@ const section=(a,b)=>{const i=src.indexOf(a),j=src.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'source section '+a);return src.slice(i,j)};
 const draw=section('function draw(){','function frame(');
 assert(draw.includes("multiSkillFastRender=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'))"));
-assert(draw.includes('if(!skillMultiFast){\n   drawHeroBallTrail(b,r,trailPath);'),
- 'skip duplicate hero ribbon only with 3+ skill balls');
+assert(draw.includes('if(!elementalTrail){\n   drawHeroBallTrail(b,r,trailPath);'),
+ 'elemental body replaces duplicate base consistently');
 assert(draw.includes('drawBallSkillTrail(b,r,trailPath)'));
 assert(draw.includes('drawBurningTrailFlames(b,r,trailPath)'));
 assert(draw.includes('drawPierceTrailLightning(b,r,trailPath)'));
@@ -37,7 +37,7 @@ const env={Math,g,fxEnabled:true,clock:2.2,multiSkillFastRender:false,balls:[{},
  b:{x:300,y:140,vx:280,vy:160},path,
  clamp:(v,a,b)=>Math.max(a,Math.min(b,v))};
 vm.createContext(env);
-vm.runInContext(section('function drawBallSkillTrail(','// V83: fire is a living secondary layer'),env);
+vm.runInContext(section('function drawElementalTrailBody(','// V83: fire is a living secondary layer'),env);
 vm.runInContext(section('function drawBurningTrailFlames(','// V84: clearly readable cyan-white lightning'),env);
 vm.runInContext(section('function drawPierceTrailLightning(','// V76: per-ball rotational inertia'),env);
 function measure(fn,fast){
@@ -47,15 +47,13 @@ function measure(fn,fast){
 }
 const normalSkill=measure('drawBallSkillTrail',false);
 const fastSkill=measure('drawBallSkillTrail',true);
-assert(normalSkill.strokes>fastSkill.strokes*1.7,
- 'fast skill trail produces substantially fewer per-sample strokes');
-assert(normalSkill.arcs>0&&fastSkill.arcs===0,'fast core skips scattered chips');
+assert.equal(normalSkill.strokes,1,'bounded body draw count');
+assert.deepEqual(normalSkill,fastSkill,'body stays identical when ball count crosses LOD threshold');
 const normalFire=measure('drawBurningTrailFlames',false);
 const fastFire=measure('drawBurningTrailFlames',true);
 assert(normalFire.tongues>fastFire.tongues*3,
  'fire tongues reduced >=3x');
-assert(normalFire.fills>=3&&fastFire.strokes===1,
- '3 fill ribbons replaced with 1 continuous stroke wake');
+assert(normalFire.fills===0&&fastFire.strokes===0,'fire detail never draws a second body');
 assert(fastFire.tongues>=3,'recognizable fire sparks remain');
 const normalBolt=measure('drawPierceTrailLightning',false);
 const fastBolt=measure('drawPierceTrailLightning',true);
