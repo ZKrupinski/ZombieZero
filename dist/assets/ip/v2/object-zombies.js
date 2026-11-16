@@ -315,7 +315,54 @@ function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
  }
  return true;
 }
+// v103 P3: four ORIGINAL-HD-derived boss PNG strips (12 x 512px each).
+// One drawImage per lethal frame. Never alter boss collision/hit/stagger rules.
+// If PNG is late/unavailable, the original authored 2-key boss death is used.
+const P3_BOSS_DEATH_KEYS=['big_zombie','trash_can'];
+const P3_DEATH_CELL=512,P3_DEATH_FRAMES=12,P3_DEATH_FEET_Y=328;
+const p3BossDeaths={};
+for(const id of P3_BOSS_DEATH_KEYS){
+ const pair=p3BossDeaths[id]={};
+ for(const kind of ['normal','critical']){
+  const image=new Image(),entry=pair[kind]={image,ready:false,failed:false};
+  image.decoding='async';
+  image.onload=()=>{
+   entry.ready=image.naturalWidth===P3_DEATH_CELL*P3_DEATH_FRAMES&&
+    image.naturalHeight===P3_DEATH_CELL;
+   entry.failed=!entry.ready;
+  };
+  image.onerror=()=>{entry.ready=false;entry.failed=true};
+  image.src='assets/ip/v2/p3-deaths/'+id+'-'+kind+'-v103.png';
+ }
+}
+function drawP3BossDeath(ctx,z,critical,elapsed,duration,livingAtlas){
+ if(!z.boss)return false;
+ const id=keyFor(z);
+ const asset=p3BossDeaths[id]?.[critical?'critical':'normal'];
+ if(!asset?.ready)return false;
+ const t=Math.max(0,Math.min(1,elapsed/Math.max(.001,duration)));
+ const f=Math.min(P3_DEATH_FRAMES-1,Math.floor(t*P3_DEATH_FRAMES));
+ // Same live-boss height and centered foot pivot, including slots 2/3.
+ const walk=window.ZZBossSpriteGeometry?.[id]?.walkUnion;
+ const footHeight=walk?.[3]||230;
+ const desiredHeight=id==='big_zombie'?104:98;
+ const scale=desiredHeight/footHeight;
+ const width=P3_DEATH_CELL*scale;
+ const x=z.x+z.w/2-width/2;
+ const y=z.y+z.h+2-P3_DEATH_FEET_Y*scale;
+ const blend=Math.max(0,Math.min(1,elapsed/.055));
+ if(blend<1&&livingAtlas)
+  drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-blend);
+ if(blend>0){
+  ctx.save();ctx.globalAlpha*=blend;
+  ctx.drawImage(asset.image,f*P3_DEATH_CELL,0,P3_DEATH_CELL,P3_DEATH_CELL,
+   x,y,width,width);
+  ctx.restore();
+ }
+ return true;
+}
 function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(!img)return false;
+ if(drawP3BossDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP1FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP2FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP1BrainDeath(ctx,img,z,critical,elapsed,duration))return true;
@@ -326,5 +373,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(
  if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath,p3BossDeaths,drawP3BossDeath};
 })();
