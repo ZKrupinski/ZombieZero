@@ -315,7 +315,57 @@ function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
  }
  return true;
 }
+// P3 v104: original HD anatomical poses, not grid-cut debris.
+// Big: the authored face/head lifts intact; trash can: the original lid opens.
+// 12 precomposed RGBA frames, one texture draw per death frame, with fallback.
+const P3_DEATH_NAMES=['big_zombie','trash_can'];
+const P3_DEATH_CELL=512,P3_DEATH_COUNT=12,P3_DEATH_ORIGIN_Y=104;
+const p3AnatomicalDeaths={};
+for(const id of P3_DEATH_NAMES){
+ const clips=p3AnatomicalDeaths[id]={};
+ for(const type of ['normal','critical']){
+  const image=new Image();
+  const entry=clips[type]={image,ready:false,failed:false};
+  image.decoding='async';
+  image.onload=()=>{
+   entry.ready=image.naturalWidth===P3_DEATH_CELL*P3_DEATH_COUNT &&
+    image.naturalHeight===P3_DEATH_CELL;
+   entry.failed=!entry.ready;
+  };
+  image.onerror=()=>{entry.failed=true;entry.ready=false};
+  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+'-v104.png';
+ }
+}
+function drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,livingAtlas){
+ if(!z.boss)return false;
+ const id=keyFor(z);
+ const asset=p3AnatomicalDeaths[id]?.[critical?'critical':'normal'];
+ if(!asset?.ready)return false;
+ const norm=Math.min(1,Math.max(0,elapsed/Math.max(.001,duration)));
+ const frame=Math.min(P3_DEATH_COUNT-1,Math.floor(norm*P3_DEATH_COUNT));
+ const geom=window.ZZBossSpriteGeometry?.[id];
+ const walkHeight=geom?.walkUnion?.[3]||230;
+ const desiredHeight=id==='big_zombie'?104:98;
+ // Original HD art lives inside each 512px cell at source y+104.
+ // Match the source death-pose bottom, not the frame's 512px bottom.
+ const pose=geom?.[critical?'critical':'normal']||[0,0,256,220];
+ const feetY=P3_DEATH_ORIGIN_Y+pose[1]+pose[3];
+ const side=P3_DEATH_CELL*(desiredHeight/walkHeight);
+ const x=z.x+z.w/2-side/2;
+ const y=z.y+z.h+2-feetY*(desiredHeight/walkHeight);
+ const fadeIn=Math.max(0,Math.min(1,elapsed/.055));
+ if(fadeIn<1&&livingAtlas)
+  drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-fadeIn);
+ if(fadeIn>0){
+  ctx.save();ctx.globalAlpha*=fadeIn;
+  ctx.drawImage(asset.image,frame*P3_DEATH_CELL,0,P3_DEATH_CELL,P3_DEATH_CELL,
+   x,y,side,side);
+  ctx.restore();
+ }
+ return true;
+}
 function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(!img)return false;
+ if(drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP1FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP2FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;
  if(drawP1BrainDeath(ctx,img,z,critical,elapsed,duration))return true;
@@ -326,5 +376,5 @@ function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(
  if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath};
+window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath,p3AnatomicalDeaths,drawP3AnatomicalDeath};
 })();

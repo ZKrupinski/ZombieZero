@@ -24,7 +24,10 @@ for(const name of names){
 const html=read('dist/index.html').toString();
 const sw=read('dist/sw.js').toString();
 assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')>0);
-assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')<html.indexOf('src="assets/ip/v2/object-zombies.js?v=77-analytic-ball-blue-boss-v96-original-brain-cube-deaths-v97-approved-6png-v99-rejected-p2-v100-approved-p2"'));
+const objectLoader=html.match(/src="assets\/ip\/v2\/object-zombies\.js\?[^"]+"/)?.[0];
+assert(objectLoader,'versioned original sprite loader present');
+assert(html.indexOf('src="assets/ip/v2/boss-geometry.js"')<html.indexOf(objectLoader),
+ 'HD geometry must load before the sprite module');
 for(const name of names)assert(sw.includes('./assets/ip/v2/'+name+'_hd.png'),name+' precached offline');
 assert(sw.includes('./assets/ip/v2/boss-geometry.js'),'HD geometry offline');
 assert(sw.includes('shell-v21-visible-loot-chain-knock'),'fresh cache');
@@ -60,6 +63,15 @@ for(let n=0;n<2;n++){
   if(frame>=26)assert(hi.pack.drawDeath(hi.ctx,z,critical,critical?.12:.1,.65));
   else assert(hi.pack.drawFrame(hi.ctx,hi.pack.activeImage(z),z,frame)===undefined);
   assert(hi.calls.length>0,'HD boss emitted draw calls');
+  if(frame>=26){
+   // P3 moves only death *rendering* to precomposed original-HD art.
+   // Earlier frames still sample the approved 2048px boss walk/hurt atlas.
+   const call=hi.calls[hi.calls.length-1];
+   assert(call[0].src.endsWith('_hd.png') ||
+     call[0].src.includes('/p3-deaths/'),
+     'boss death uses original HD bitmap or source-faithful P3 strip');
+   continue;
+  }
   const [img,sx,sy,sw,sh,dx,dy,dw,dh]=hi.calls[0];
   const b=hi.geometry[name][group];
   assert(img.src.endsWith('_hd.png'),'uses HD atlas rather than scaling old low-res frame');
