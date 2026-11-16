@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=87-projected-ground-reflection'),'JS cache invalidated');
-assert(sw.includes('zombie-zero-shell-v87-projected-ground-reflection'),'PWA cache invalidated');
+assert(html.includes('game.js?v=88-trail-hit-floor-light'),'JS cache invalidated');
+assert(sw.includes('zombie-zero-shell-v88-trail-hit-floor-light'),'PWA cache invalidated');
 function section(a,b){
  const i=code.indexOf(a),j=code.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'missing source section '+a);
@@ -55,6 +55,7 @@ const ctx={g,Math,Map,WeakMap,Number,fxEnabled:true,selectedHero:0,VIEW_DELTA:0,
  clamp:(v,min,max)=>Math.max(min,Math.min(max,v)),
  knockVisualPosition:z=>z,foes:[],enemyDeaths:[],
  hitFlashes:[],barrelBlasts:[],bazookaBlasts:[],balls:[],fx:[],itemPickupFX:[],
+ buildBallTrailPath:()=>[],
  SKILLS:{fire:{color:'#ff813e'},pierce:{color:'#79d8f6'}},
  has:k=>ctx.active.has(k),active:new Set()};
 vm.createContext(ctx);

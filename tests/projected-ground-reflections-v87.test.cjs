@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const src=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('game.js?v=87-projected-ground-reflection'),'fresh game script URL');
-assert(sw.includes('zombie-zero-shell-v87-projected-ground-reflection'),'PWA cache refresh');
+assert(html.includes('game.js?v=88-trail-hit-floor-light'),'fresh game script URL');
+assert(sw.includes('zombie-zero-shell-v88-trail-hit-floor-light'),'PWA cache refresh');
 assert(src.includes("has('power')?12:8"),'power ball stays 1.5 times normal');
 assert(src.includes('drawBurningBallFlames(b,r,false)')&&src.includes('drawPierceBallLightning(b,r,true)'),
  'attached flame and bolt visual layers remain in place');
@@ -33,7 +33,7 @@ const g=new Proxy({}, {get(target,k){
 },set(target,k,v){target[k]=v;return true}});
 const stateContext={g,Math,Number,Map,WeakMap,clock:1.5,fxEnabled:true,VIEW_DELTA:0,
  balls:[],foes:[],enemyDeaths:[],hitFlashes:[],barrelBlasts:[],bazookaBlasts:[],
- itemPickupFX:[],fx:[],SKILLS:{fire:{color:'#ff813e'}},
+ itemPickupFX:[],fx:[],buildBallTrailPath:()=>[],SKILLS:{fire:{color:'#ff813e'}},
  active:new Set(),has:k=>stateContext.active.has(k),knockVisualPosition:z=>z};
 vm.createContext(stateContext);
 vm.runInContext(src.slice(a,b),stateContext);
