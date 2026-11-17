@@ -21,7 +21,7 @@ assert.equal(vm.runInContext('ballContactFX.length',env),1,'repeat hits are thro
 vm.runInContext('drawContactFX(1);drawContactFX(.36)',env);
 assert.equal(created.length,1,'same transparent sprite is generated only once');
 assert.equal(drawn.length,2,'base alpha and attenuated ADD/Bloom share bitmap');
-assert(angles.every(a=>Math.abs(a-Math.PI)<.0001),'left surface points outwards');
+assert(angles.every(a=>Math.abs(a-Math.PI*.22)<.0001),'contact mark uses subtle normal-based rotation');
 assert(scales.every(([x,y])=>x>=1.0&&y>=1.0&&x<1.25&&y<1.25),'V118 comic burst stays small relative to the ball');
 const stampCode=src.slice(src.indexOf('function contactStamp('),src.indexOf('function spawnContact('));
 assert(stampCode.includes('const spike=()=>'),'jagged starburst is a single closed comic silhouette');
@@ -36,11 +36,11 @@ assert.equal(vm.runInContext('ballContactFX.length',env),2,'cooldown suppresses 
 const additional={held:false};env.other=additional;
 for(let i=0;i<32;i++){env.clock+=.1;vm.runInContext("spawnContact(other,414,200,-1,0,'wall')",env)}
 assert.equal(vm.runInContext('ballContactFX.length',env),20,'active hit effects remain bounded');
-assert(src.includes("spawnContact(b,ROAD_LEFT,b.y,1,0,'wall')"),'left wall collision feeds FX');
-assert(src.includes("spawnContact(b,ROAD_RIGHT,b.y,-1,0,'wall')"),'right wall collision feeds FX');
-assert(src.includes("spawnContact(b,b.x,16,0,1,'ceiling')"),'ceiling uses vertical face');
+assert(src.includes("spawnContact(b,b.x,b.y,1,0,'wall')"),'left wall collision feeds FX');
+assert(src.includes("spawnContact(b,b.x,b.y,-1,0,'wall')"),'right wall collision feeds FX');
+assert(src.includes("spawnContact(b,b.x,b.y,0,1,'ceiling')"),'ceiling uses vertical face');
 assert(src.includes("const f=contactFace(b,z,radius,ox,oy);spawnContact("),'enemy collision uses correct collider face');
-assert(src.includes("luminous(()=>drawContactFX(1),()=>drawContactFX(.23))"),'comic ink keeps a subtle bloom layer');
+assert(src.includes("luminous(()=>drawContactFX(1),()=>drawContactFX(.25))"),'comic ink keeps a subtle bloom layer');
 assert(src.includes('ballContactFX=ballContactFX.filter(q=>q.t<q.life)'),'effects expire');
 // LITE must still get this essential readable feedback, while Bloom is optional.
 env.fxEnabled=false;env.clock+=.2;
@@ -50,4 +50,6 @@ vm.runInContext('drawContactFX(1)',env);
 assert(drawn.length>before,'LITE mode draws basic contact feedback without FX renderer');
 assert(src.includes("g.drawImage(img,-22,-32)"),'centered comic burst bitmap anchored on collision face');
 assert(src.includes('life:kind===\'enemy\'?.18:kind===\'ceiling\'?.14:.16'),'impact is concise and fades promptly');
-console.log('PASS v118: closed ink starburst, halftone pattern, collision normals, cached sprites, LITE and bounded FX.');
+assert(src.includes("contactAtlasImage.src='assets/fx/impact-bursts-v119.png'"),'real bitmap atlas is preloaded');
+assert(src.includes("spawnContact(b,piercing?f[0]:ox,piercing?f[1]:oy"),'non-piercing hit covers the trail bend vertex');
+console.log('PASS v119 fallback: cached comic FX, corner coordinates, renderer budget and LITE visibility.');
