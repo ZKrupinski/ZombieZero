@@ -18,8 +18,8 @@ for(const skills of [['pierce'],['power','fire'],['power','pierce'],['fire','pie
  drawBallStatusForeground(b,12);drawBurningBallFlames(b,12,true);drawPierceBallLightning(b,12,true);
  drawTrailGroundReflections(b,12,path);`,env);
  assert(stats.strokes<=12,'bounded strokes including jagged arc and short forks');
- assert(stats.curves<=30);if(skills.includes('fire'))assert(stats.curves>=10,'animated flame silhouettes remain');assert.equal(stats.gradients,0);assert.equal(stats.blur,0);assert.equal(ground,skills.includes('pierce')?7:1);
+ assert(stats.curves<=30);if(skills.includes('fire'))assert(stats.curves>=10,'animated flame silhouettes remain');assert.equal(stats.gradients,0);assert.equal(stats.blur,0);assert.equal(ground,skills.includes('pierce')?16:1);
  if(skills.includes('fire'))assert(colors.includes('#ffad48'),'orange fire identifier');
  if(skills.includes('pierce'))assert(colors.includes('#a9f4ff'),'cyan pierce identifier');
 }
-console.log('PASS v108: 20 single/stacked configurations, <=12 strokes + bounded flame silhouettes + up to 7 cached floor pools per ball, no radial aura/blur; both skill cues retained.');
+console.log('PASS v108: 20 single/stacked configurations, <=12 strokes + bounded flame silhouettes + up to 16 cached floor pools per ball, no radial aura/blur; both skill cues retained.');
