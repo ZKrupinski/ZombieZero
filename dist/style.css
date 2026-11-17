@@ -1863,3 +1863,9 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
  #overlay[data-screen="results"]>#endless{min-height:38px!important;margin:2px auto 3px!important;padding:8px 12px!important;font-size:13px!important}
  #overlay[data-screen="results"]>.selection-copyright{font-size:9px;gap:0;margin-top:4px}
 }
+/* v137: the results secondary button returns to hero selection. */
+#overlay[data-screen="results"]>#endless{
+ background:#193d38!important;color:#b9f6dc!important;
+ border:1px solid #9fe7d2!important;
+ box-shadow:3px 3px 0 #0b211e!important;
+}
