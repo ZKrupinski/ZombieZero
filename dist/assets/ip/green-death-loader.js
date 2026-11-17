@@ -66,7 +66,8 @@
      }
    };
    part.image.onerror=()=>{part.ready=false};
-   part.image.src='assets/ip/green-death-'+kind+'-v95.png';
+   // v112: baked alpha fringe removed offline; no per-frame cleanup cost.
+   part.image.src='assets/ip/green-death-'+kind+'-v95.png'+'?v=112-sharp-alpha';
  }
 
  // In-game review control (same atlas/frame timings as real lethal-hit path).
