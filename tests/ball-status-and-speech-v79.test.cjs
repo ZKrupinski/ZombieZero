@@ -6,7 +6,7 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('game.js?v=93-multiball-light-cache'),'current gameplay assets must reload');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'PWA cache refreshes skill art');
 assert(code.includes("carAtBirth:car,event:text?"),'support dialogue anchors at creation');
-assert(code.includes("carAtBirth:car,t:0,life:1.6"),'everyday cheering anchors at creation');
+assert(code.includes('const q={citizen:p,x,y,w,carAtBirth:car}')&&code.includes('bubbles.push({...chosen,t:0,life:1.6,text:said})'),'staggered everyday cheering still anchors the car at creation');
 assert(code.includes("drawBallStatusForeground(b,r);"),'status highlights actually render after bitmap');
 const take=(start,end)=>{
  const i=code.indexOf(start),j=code.indexOf(end,i+start.length);
