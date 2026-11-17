@@ -974,10 +974,26 @@ function burst(x,y,color,n=12){
 }
 
 function multiCount(){return (has('dual')?2:1)*(has('triple')?3:1)}
-function syncMulti(){if(!balls.length||balls[0].held)return;const n=multiCount(),src=balls[0];while(balls.length<n){const angles=[-1.1,...balls.map(b=>clamp(Math.atan2(b.vx,Math.abs(b.vy)),-1.1,1.1)),1.1].sort((a,b)=>a-b);let gap=0,a=0;for(let i=1;i<angles.length;i++)if(angles[i]-angles[i-1]>gap){gap=angles[i]-angles[i-1];a=(angles[i]+angles[i-1])/2}const sp=Math.max(350,Math.hypot(src.vx,src.vy));balls.push(newBall(src.x,src.y,Math.sin(a)*sp,-Math.cos(a)*sp,false))}if(balls.length>n){for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}hud()}
+function syncMulti(fromHero=false){if(!balls.length||balls[0].held)return;const n=multiCount(),src=balls[0];
+ // First multiball pickup: the hero serves only the extra balls. Stacked
+ // dual x triple still splits at the existing ball, including after losses.
+ if(fromHero&&balls.length===1&&(n===2||n===3)){
+   const origin=heldBallOffset(),speed=Math.hypot(125,365);
+   const side=Math.random()<.5?-1:1;
+   for(let i=0,count=n-balls.length;i<count;i++){
+     const angle=(.16+Math.random()*.52)*side*(i===0?1:-1);
+     const extra=newBall(car+origin.x,PY+origin.y,Math.sin(angle)*speed,-Math.cos(angle)*speed,false);
+     extra.bounceDuration=.17;extra.bounceTime=.17;
+     extra.bounceAxis='y';extra.bounceDir=-1;
+     extra.impactKind='serve';extra.impactStrength=.7;
+     balls.push(extra);
+   }
+   swing=.22;heroAttackTime=HERO_ATTACK_DURATION;sfx('serve');
+ }
+ while(balls.length<n){const angles=[-1.1,...balls.map(b=>clamp(Math.atan2(b.vx,Math.abs(b.vy)),-1.1,1.1)),1.1].sort((a,b)=>a-b);let gap=0,a=0;for(let i=1;i<angles.length;i++)if(angles[i]-angles[i-1]>gap){gap=angles[i]-angles[i-1];a=(angles[i]+angles[i-1])/2}const sp=Math.max(350,Math.hypot(src.vx,src.vy));balls.push(newBall(src.x,src.y,Math.sin(a)*sp,-Math.cos(a)*sp,false))}if(balls.length>n){for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}hud()}
 function activate(k,x=car,y=PY-24){
  active[k]=SKILLS[k].duration*hero().duration;
- if(k==='dual'||k==='triple')syncMulti();
+ if(k==='dual'||k==='triple')syncMulti(true);
  if(k==='bazooka'){bazookaTimer=0;lastSupportAt=clock}
  sfx('item');
  // A brief bitmap pickup confirmation at the actual caught-item position.
