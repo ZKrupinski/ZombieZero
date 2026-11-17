@@ -964,9 +964,7 @@ function bossPatrolStep(z,dt){
  z.moveDir=0;
  const speed=BOSS_SWEEP_SPEED*(has('slow')?.4:1);
  if(!Number.isFinite(z.bossHomeY))z.bossHomeY=z.y;
- const catchup=Number.isFinite(z.mercyReturnY)&&z.bossHomeY<z.mercyReturnY-6;
- z.bossHomeY+=enemySpeed(z)*dt*(catchup?3.3:1);
- if(!catchup)delete z.mercyReturnY;
+ z.bossHomeY+=enemySpeed(z)*dt;
  const nearDefense=z.bossHomeY+z.h>DEFENSE_Y-60;
  if(nearDefense){delete z.bossGoalX;delete z.bossGoalY;}
  if(Number.isFinite(z.bossGoalX)&&clock>(z.bossGoalTime||0)){
@@ -992,7 +990,7 @@ function bossPatrolStep(z,dt){
   }
  }else{
   // Return toward the ordinary march baseline without accumulating Y drift.
-  const dy=clamp(z.bossHomeY-z.y,-speed*(catchup?.60:.30)*dt,speed*(catchup?.60:.30)*dt);
+  const dy=clamp(z.bossHomeY-z.y,-speed*.30*dt,speed*.30*dt);
   if(bossPatrolCorridor(z,z.x,z.y+dy))z.y+=dy;
  }
  if(nearDefense){
@@ -1002,8 +1000,10 @@ function bossPatrolStep(z,dt){
    z.y=nextY;
  }
 }
-// One-time cinematic retreat for a solo endless boss near the defense line.
-// Colliders move with the sprite, so no surprise breach or jump-cut occurs.
+// Endless solo-boss mercy: retreat quickly once, then descend gradually.
+// The collider follows the sprite throughout; ordinary boss motion resumes
+// after the full descent. A second retreat is never granted for this boss.
+const BOSS_MERCY_RETURN_SPEED=12.5; // px/s: about 14s to descend 175px.
 function bossMercyStep(z,dt){
  if(runMode!=='endless'||!z.boss||foes.length!==1)return false;
  if(!z.mercyUsed&&z.y+z.h>=DEFENSE_Y-90){
@@ -1014,16 +1014,27 @@ function bossMercyStep(z,dt){
   z.hitShakeUntil=0;z.knockTime=0;
   sfx('wave');effect(z.x+z.w/2,z.y+z.h/2,'#a9fce6',38);
  }
- if(!Number.isFinite(z.mercyElapsed))return false;
- z.mercyElapsed=Math.min(.48,z.mercyElapsed+dt);
- const u=z.mercyElapsed/.48,ease=1-Math.pow(1-u,3);
- z.y=z.mercyStartY+(z.mercyEndY-z.mercyStartY)*ease;
- z.bossHomeY=z.y;z.moveDir=0;
- if(u>=1){
-  delete z.mercyElapsed;delete z.mercyStartY;delete z.mercyEndY;
-  z.bossNextMove=clock+.6;
+ if(Number.isFinite(z.mercyElapsed)){
+  z.mercyElapsed=Math.min(.48,z.mercyElapsed+dt);
+  const u=z.mercyElapsed/.48,ease=1-Math.pow(1-u,3);
+  z.y=z.mercyStartY+(z.mercyEndY-z.mercyStartY)*ease;
+  z.bossHomeY=z.y;z.moveDir=0;
+  if(u>=1){
+   delete z.mercyElapsed;delete z.mercyStartY;delete z.mercyEndY;
+   z.mercyDescending=true;
+  }
+  return true;
  }
- return true;
+ if(z.mercyDescending){
+  z.y=Math.min(z.mercyReturnY,z.y+BOSS_MERCY_RETURN_SPEED*dt);
+  z.bossHomeY=z.y;z.moveDir=0;
+  if(z.y>=z.mercyReturnY-.01){
+   delete z.mercyDescending;delete z.mercyReturnY;
+   z.bossNextMove=clock+.6;
+  }
+  return true;
+ }
+ return false;
 }
 function march(dt){
  tryStartBreakouts();
