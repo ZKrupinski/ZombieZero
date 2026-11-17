@@ -660,6 +660,7 @@ function hud(){
  document.documentElement?.classList?.toggle?.('zz-endless-hud',runMode==='endless');
  $('survival-metric').hidden=runMode!=='endless';
  $('survival-time').textContent=survivalClock(endlessSurvival);
+ $('wave-label').textContent=runMode==='endless'?'WAVE':'현재 스테이지';
  $('score').textContent=score.toLocaleString('ko-KR');
  $('wave').textContent=runMode==='endless'?'∞ '+(wave-50):String(wave).padStart(2,'0');
  $('progress').textContent=runMode==='endless'?'':(wave-1)+'/50 스테이지 클리어';
