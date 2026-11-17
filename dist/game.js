@@ -613,7 +613,20 @@ function skillUI(){
 let DEFENSE_Y=565;
 let runMode='campaign',endlessUnlocked=false,lastStandUsed=false,resistFlash=0,failureScene=null,lastLostBall=null;
 try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
-function endlessUI(){const el=$('endless');el.hidden=!['menu','over'].includes(mode);el.textContent='ENDLESS WAVE';el.onclick=()=>start('endless')}
+// Selection opens endless; results return to the character picker.
+function endlessUI(){
+ const el=$('endless');
+ el.hidden=mode!=='menu'&&mode!=='over';
+ if(mode==='menu'){
+  el.textContent='ENDLESS WAVE';
+  el.setAttribute('aria-label','선택한 캐릭터로 엔드리스 모드 시작');
+  el.onclick=()=>start('endless');
+ }else if(mode==='over'){
+  el.textContent='메인 메뉴';
+  el.setAttribute('aria-label','캐릭터 선택 화면으로 돌아가기');
+  el.onclick=backToSelection;
+ }else el.onclick=null;
+}
 function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=1.4;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
  for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
@@ -631,7 +644,7 @@ function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed
   if(retreat>0)for(const z of foes)z.y-=retreat;
  }
  effect(225,DEFENSE_Y,'#b3fff0',140,'LAST STAND!');sfx('bosskill');haptic([20,30,20]);toast('최후의 저항! · 좀비 전원 밀쳐내기 · 이번 판 1회');return true}
-function finishCampaign(){endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! ENDLESS WAVE에 도전하세요.','일반 모드 다시 시작','VICTORY');endlessUI();sfx('wave')}
+function finishCampaign(){endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave')}
 function drawDanger(){if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
 function drawOutcome(){if(resistFlash>0){const t=1-resistFlash/1.4;g.save();g.globalAlpha=(1-t)*.75;g.strokeStyle='#a7ffea';g.lineWidth=8;g.beginPath();g.arc(225,DEFENSE_Y,30+t*560,Math.PI,Math.PI*2);g.stroke();g.fillStyle='#caffef';g.font='bold 24px Arial, sans-serif';g.textAlign='center';g.fillText('LAST STAND!',225,400);g.font='bold 14px Arial, sans-serif';g.fillText('최후의 저항 · 전원 밀쳐내기',225,426);g.restore()}
  if(!failureScene)return;const f=failureScene;g.save();rect(20,16,410,H-20,'#160d2444');g.strokeStyle='#ff6278';g.lineWidth=4;
@@ -951,7 +964,9 @@ function bossPatrolStep(z,dt){
  z.moveDir=0;
  const speed=BOSS_SWEEP_SPEED*(has('slow')?.4:1);
  if(!Number.isFinite(z.bossHomeY))z.bossHomeY=z.y;
- z.bossHomeY+=enemySpeed(z)*dt;
+ const catchup=Number.isFinite(z.mercyReturnY)&&z.bossHomeY<z.mercyReturnY-6;
+ z.bossHomeY+=enemySpeed(z)*dt*(catchup?3.3:1);
+ if(!catchup)delete z.mercyReturnY;
  const nearDefense=z.bossHomeY+z.h>DEFENSE_Y-60;
  if(nearDefense){delete z.bossGoalX;delete z.bossGoalY;}
  if(Number.isFinite(z.bossGoalX)&&clock>(z.bossGoalTime||0)){
@@ -977,7 +992,7 @@ function bossPatrolStep(z,dt){
   }
  }else{
   // Return toward the ordinary march baseline without accumulating Y drift.
-  const dy=clamp(z.bossHomeY-z.y,-speed*.30*dt,speed*.30*dt);
+  const dy=clamp(z.bossHomeY-z.y,-speed*(catchup?.60:.30)*dt,speed*(catchup?.60:.30)*dt);
   if(bossPatrolCorridor(z,z.x,z.y+dy))z.y+=dy;
  }
  if(nearDefense){
@@ -987,10 +1002,34 @@ function bossPatrolStep(z,dt){
    z.y=nextY;
  }
 }
+// One-time cinematic retreat for a solo endless boss near the defense line.
+// Colliders move with the sprite, so no surprise breach or jump-cut occurs.
+function bossMercyStep(z,dt){
+ if(runMode!=='endless'||!z.boss||foes.length!==1)return false;
+ if(!z.mercyUsed&&z.y+z.h>=DEFENSE_Y-90){
+  z.mercyUsed=true;
+  z.mercyStartY=z.y;z.mercyEndY=Math.max(ENEMY_TOP_Y,z.y-175);
+  z.mercyElapsed=0;z.mercyReturnY=z.mercyStartY;
+  delete z.bossGoalX;delete z.bossGoalY;
+  z.hitShakeUntil=0;z.knockTime=0;
+  sfx('wave');effect(z.x+z.w/2,z.y+z.h/2,'#a9fce6',38);
+ }
+ if(!Number.isFinite(z.mercyElapsed))return false;
+ z.mercyElapsed=Math.min(.48,z.mercyElapsed+dt);
+ const u=z.mercyElapsed/.48,ease=1-Math.pow(1-u,3);
+ z.y=z.mercyStartY+(z.mercyEndY-z.mercyStartY)*ease;
+ z.bossHomeY=z.y;z.moveDir=0;
+ if(u>=1){
+  delete z.mercyElapsed;delete z.mercyStartY;delete z.mercyEndY;
+  z.bossNextMove=clock+.6;
+ }
+ return true;
+}
 function march(dt){
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
  for(const z of sorted){
+  if(z.boss&&bossMercyStep(z,dt)){done.push(z);continue;}
   if((clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0))||
      (z.knockTime||0)>0){
    // Hold the gameplay collider stationary during the visual hit/launch.
@@ -1056,6 +1095,22 @@ function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;ball
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 function start(selectedMode='campaign'){runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
+function backToSelection(){
+ if(mode!=='over')return;
+ releaseInput();mode='menu';runMode='campaign';
+ failureScene=null;lastLostBall=null;lastStandUsed=false;resistFlash=0;
+ score=0;wave=1;lives=hero().lives;car=target=225;cameraKick=0;
+ particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];
+ fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];junk=[];
+ clearSkills();resetCitizens();setStageBackground(true);rack();resetBalls();hud();
+ $('overlay').setAttribute('data-title','true');
+ $('overlay').setAttribute('data-screen','selection');
+ $('label').textContent='NOVALIGHT ARCADE 001 / ZOMBIE SURVIVAL';
+ $('title').textContent='From HERO to ZERO';
+ $('message').textContent='3명의 주인공 중 한 명을 선택하세요.';
+ $('results').hidden=true;$('heroes').hidden=false;
+ renderHeroes();endlessUI();$('overlay').hidden=false;
+}
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  const speed=Math.hypot(125,365);
  const angle=(.16+Math.random()*.52)*(Math.random()<.5?-1:1);
@@ -2631,7 +2686,7 @@ function portrait(h){
  // Public hero names: Ace / Ruby / Ria. The Liam sprite ID remains stable.
  return '<span class="hero-portrait hero-vehicle-portrait row-'+i+'" role="img" aria-label="'+h.name+' · 차량과 전용 무기"></span>';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;$('start').innerHTML=hero().name+'로 시작 <span>↗</span>'}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML=hero().name+'로 시작 <span>↗</span>'}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
@@ -2901,7 +2956,7 @@ function inputDown(e){if(mode!=='playing'||blocksInput(e)||inputPointer!==null||
 function inputMove(e){if(mode!=='playing')return;if(inputPointer===e.pointerId){const r=c.getBoundingClientRect(),width=r.width||W;target=clamp(target+(e.clientX-inputX)*W/width,72,W-72);inputX=e.clientX;e.preventDefault?.()}else if(inputPointer===null&&e.pointerType==='mouse'&&e.target===c){const r=c.getBoundingClientRect();target=clamp((e.clientX-r.left)/(r.width||W)*W,72,W-72)}}
 function inputEnd(e){if(e.pointerId===inputPointer)releaseInput()}
 document.addEventListener('pointerdown',inputDown,{passive:false});document.addEventListener('pointermove',inputMove,{passive:false});document.addEventListener('pointerup',inputEnd);document.addEventListener('pointercancel',inputEnd);c.addEventListener('lostpointercapture',inputEnd);
-window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys[e.key]=true;if(e.code==='Space'){if(mode==='menu'||mode==='over')start();else if(mode==='paused')pause();else serve()}if(e.code==='Escape')pause()});window.addEventListener('keyup',e=>keys[e.key]=false);window.addEventListener('blur',()=>{keys={};if(mode==='playing'||mode==='clearing')pause()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')pause()});$('start').onclick=()=>mode==='paused'?pause():start();$('pause').onclick=pause;$('sound').onclick=()=>{sound=sound&&!audioRunning()?true:!sound;unlockAudio();audioUI();if(sound)sfx('item')};$('legend').innerHTML=Object.entries(SKILLS).map(([k,s])=>'<div style="--skill:'+s.color+'">'+icon(k)+'<span><b>'+s.name+'</b><small>'+s.desc+' · '+s.duration+'초</small></span></div>').join('');rack();resetBalls();renderHeroes();endlessUI();requestAnimationFrame(frame);
+window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys[e.key]=true;if(e.code==='Space'){if(mode==='menu'||mode==='over')start(mode==='over'?runMode:'campaign');else if(mode==='paused')pause();else serve()}if(e.code==='Escape')pause()});window.addEventListener('keyup',e=>keys[e.key]=false);window.addEventListener('blur',()=>{keys={};if(mode==='playing'||mode==='clearing')pause()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')pause()});$('start').onclick=()=>mode==='paused'?pause():start(mode==='over'?runMode:'campaign');$('pause').onclick=pause;$('sound').onclick=()=>{sound=sound&&!audioRunning()?true:!sound;unlockAudio();audioUI();if(sound)sfx('item')};$('legend').innerHTML=Object.entries(SKILLS).map(([k,s])=>'<div style="--skill:'+s.color+'">'+icon(k)+'<span><b>'+s.name+'</b><small>'+s.desc+' · '+s.duration+'초</small></span></div>').join('');rack();resetBalls();renderHeroes();endlessUI();requestAnimationFrame(frame);
 
 $('bgm').onclick=()=>{musicEnabled=!musicEnabled;unlockAudio();$('bgm').textContent=musicEnabled?'BGM ON':'BGM OFF';$('bgm').setAttribute('aria-pressed',String(musicEnabled));nextBeat=0};
 $('fx').onclick=()=>{fxEnabled=!fxEnabled;$('fx').textContent=fxEnabled?'FX FULL':'FX LIGHT';$('fx').setAttribute('aria-pressed',String(fxEnabled));if(!fxEnabled){fx=[];cameraKick=0}};
