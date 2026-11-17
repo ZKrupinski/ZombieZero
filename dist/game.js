@@ -1181,7 +1181,7 @@ function backToSelection(){
  renderHeroes();endlessUI();$('overlay').hidden=false;
 }
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
- if(runMode==='endless')endlessRunStarted=true;
+ if(typeof runMode!=='undefined'&&runMode==='endless')endlessRunStarted=true;
  const speed=Math.hypot(125,365);
  const angle=(.16+Math.random()*.52)*(Math.random()<.5?-1:1);
  balls[0].held=false;
