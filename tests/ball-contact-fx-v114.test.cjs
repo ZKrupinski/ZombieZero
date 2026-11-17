@@ -10,9 +10,10 @@ const env={Math,g,clock:1,fxEnabled:true,has:k=>k==='pierce',
  clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),
  document:{createElement(tag){assert.equal(tag,'canvas');const v={getContext:()=>painter};created.push(v);return v}}};
 vm.createContext(env);vm.runInContext(src.slice(begin,end),env);
-const b={held:false,vx:390,vy:0},z={x:100,y:80,w:40,h:40};
+const b={held:false,x:125,y:100,vx:390,vy:0},z={x:100,y:80,w:40,h:40};
 env.b=b;env.z=z;
 assert.deepEqual(Array.from(vm.runInContext('contactFace(b,z,8,90,100)',env)),[100,100,-1,0],'zombie left face');
+b.y=72;
 assert.deepEqual(Array.from(vm.runInContext('contactFace(b,z,8,125,68)',env)),[125,80,0,-1],'zombie top face');
 vm.runInContext("spawnContact(b,100,100,-1,0,'enemy')",env);
 vm.runInContext("spawnContact(b,100,100,-1,0,'enemy')",env);
