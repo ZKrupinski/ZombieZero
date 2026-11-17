@@ -47,42 +47,47 @@ function contactStamp(kind,tone,variant){
  if(typeof document==='undefined'||!document.createElement)return null;
  const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
  const p=canvas.getContext('2d');if(!p)return null;
- // Small but readable 4-point collision flash with a dark crisp rim,
- // rather than v114's ultra-thin, low-alpha lines on bright backgrounds.
- const core=['#fff9df','#fff5de','#eeffff'][tone];
- const accent=['#ffc46a','#ff9951','#62d4ff'][tone];
- const outline=['#675343','#794a38','#345a70'][tone];
- const size=kind==='enemy'?20:kind==='ceiling'?13:16;
- const lean=(variant-1)*2;
- const cx=20,cy=32;
+ // V117: hand-shaped, compact impact flecks instead of a long straight ray.
+ // Only three cached variants / palette; no gradients, shadows or particle loops.
+ const core=['#fff9e4','#fff4db','#effdff'][tone];
+ const accent=['#ffc56c','#ffab6c','#78dcff'][tone];
+ const deep=['#ac794e','#a86846','#4785a3'][tone];
+ const cx=20,cy=32,v=variant-1,enemy=kind==='enemy';
  p.lineCap='round';p.lineJoin='round';
- // Short asymmetric rays emerge from the actual contact normal (+X).
- const rays=()=>{
-  p.beginPath();
-  p.moveTo(cx+6,cy);p.lineTo(cx+size+6,cy+lean*.3);
-  p.moveTo(cx+4,cy-5);p.lineTo(cx+size*.70,cy-12+lean);
-  p.moveTo(cx+4,cy+5);p.lineTo(cx+size*.70,cy+12+lean);
-  if(kind==='enemy'){
-   p.moveTo(cx+size*.58,cy-5);p.lineTo(cx+size*.85,cy-9);
-   p.moveTo(cx+size*.58,cy+5);p.lineTo(cx+size*.85,cy+9);
-  }
+ // Soft, irregular body. A deliberately uneven shape, not a diagrammatic star.
+ p.globalAlpha=.50;p.fillStyle=deep;p.beginPath();
+ p.moveTo(cx-7,cy+1);p.quadraticCurveTo(cx-7,cy-5,cx-2,cy-7);
+ p.quadraticCurveTo(cx+4,cy-8,cx+8,cy-3);
+ p.quadraticCurveTo(cx+11,cy+2,cx+5,cy+6);
+ p.quadraticCurveTo(cx-3,cy+8,cx-7,cy+1);p.closePath();p.fill();
+ p.globalAlpha=.92;p.fillStyle=accent;p.beginPath();
+ p.moveTo(cx-5,cy+1);p.quadraticCurveTo(cx-5,cy-4,cx,cy-5);
+ p.quadraticCurveTo(cx+5,cy-5,cx+7,cy);
+ p.quadraticCurveTo(cx+5,cy+5,cx,cy+5);
+ p.quadraticCurveTo(cx-5,cy+4,cx-5,cy+1);p.closePath();p.fill();
+ p.fillStyle=core;p.globalAlpha=.98;p.beginPath();
+ p.moveTo(cx-2,cy-1);p.quadraticCurveTo(cx-1,cy-4,cx+2,cy-3);
+ p.quadraticCurveTo(cx+5,cy-1,cx+3,cy+2);
+ p.quadraticCurveTo(cx,cy+4,cx-2,cy+1);p.closePath();p.fill();
+ // Short curved splinters; asymmetric per surface and variant.
+ const chip=(x,y,dx,dy,w)=>{
+  const l=Math.max(1,Math.hypot(dx,dy)),ox=-dy/l*w,oy=dx/l*w;
+  p.beginPath();p.moveTo(x+ox,y+oy);
+  p.quadraticCurveTo(x+dx*.60+ox*.42,y+dy*.60+oy*.42,x+dx,y+dy);
+  p.quadraticCurveTo(x+dx*.50-ox*.25,y+dy*.50-oy*.25,x-ox,y-oy);
+  p.closePath();p.fill();
  };
- p.strokeStyle=outline;p.globalAlpha=.72;p.lineWidth=5;rays();p.stroke();
- p.strokeStyle=accent;p.globalAlpha=.98;p.lineWidth=3;rays();p.stroke();
- p.strokeStyle=core;p.globalAlpha=.93;p.lineWidth=1.35;rays();p.stroke();
- // Star core overlaps the contact surface, stays visible even under a ball.
- const star=()=>{
-  p.beginPath();
-  p.moveTo(cx-8,cy);p.lineTo(cx-2.6,cy-3);
-  p.lineTo(cx,cy-9);p.lineTo(cx+3,cy-3);
-  p.lineTo(cx+10,cy);p.lineTo(cx+3,cy+3);
-  p.lineTo(cx,cy+9);p.lineTo(cx-3,cy+3);p.closePath();
- };
- star();p.fillStyle=outline;p.globalAlpha=.85;p.fill();
- p.save();p.translate(cx,cy);p.scale(.70,.70);p.translate(-cx,-cy);
- star();p.fillStyle=core;p.globalAlpha=1;p.fill();p.restore();
- p.strokeStyle=accent;p.lineWidth=2.3;p.globalAlpha=.94;
- p.beginPath();p.arc(cx+3,cy,kind==='enemy'?10:8,-.95,.95);p.stroke();
+ p.fillStyle=accent;p.globalAlpha=.94;
+ chip(cx+5,cy,enemy?9:6,v*.85,2.4);
+ chip(cx+4,cy-4,enemy?6:5,-5-v,2.3);
+ chip(cx+3,cy+4,enemy?6:5,5-v,2.1);
+ if(enemy){p.globalAlpha=.75;chip(cx-2,cy-4,1,-5-v,1.7);}
+ // Small warm droplets make the contact organic and readable at mobile scale.
+ p.fillStyle=core;p.globalAlpha=.96;
+ p.beginPath();p.arc(cx+10+v,cy-8,1.5,0,Math.PI*2);p.fill();
+ p.globalAlpha=.75;p.fillStyle=accent;p.beginPath();
+ p.arc(cx+12,cy+8-v,1.9,0,Math.PI*2);p.fill();
+ if(kind==='wall'){p.beginPath();p.arc(cx+6,cy-10,1.25,0,Math.PI*2);p.fill();}
  contactStampCache.set(key,canvas);return canvas;
 }
 function spawnContact(b,x,y,nx,ny,kind){
@@ -90,7 +95,7 @@ function spawnContact(b,x,y,nx,ny,kind){
  if(Number.isFinite(b.contactAt)&&clock-b.contactAt<.045)return;
  b.contactAt=clock;
  ballContactFX.push({x,y,nx,ny,kind,tone:has('pierce')?2:has('fire')?1:0,
-  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.22:kind==='ceiling'?.17:.19});
+  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.18:kind==='ceiling'?.14:.16});
  if(ballContactFX.length>20)ballContactFX.splice(0,ballContactFX.length-20);
 }
 function contactFace(b,z,r,ox,oy){
@@ -113,16 +118,14 @@ function drawContactFX(bloom=1){
   const fade=(1-u)*(1-u*.28);
   if(fade<=0)continue;
   g.save();g.translate(f.x,f.y);g.rotate(Math.atan2(f.ny,f.nx));
-  // V116: the 450px world makes a 64px source look tiny on phones.
-  // Almost 2x the prior visible burst, with a short controlled "pop".
-  // Retain one cached bitmap per impact and the original physics point.
-  const size=f.kind==='enemy'?1.95:f.kind==='ceiling'?2.0:2.20;
-  const pop=.94+.14*u;
+  // V117: roughly 60% of V116's on-screen diameter and none of its long rays.
+  const size=f.kind==='enemy'?1.34:f.kind==='ceiling'?1.18:1.26;
+  const pop=.97+.07*u;
   g.scale(size*pop,size*pop);
   // Base sprite uses normal alpha for contrast on white and gray scenes.
   // ADD and subdued Bloom are captured once by the existing FX renderer.
   g.globalCompositeOperation='source-over';
-  g.globalAlpha=fade*(f.kind==='enemy'?1:.97)*bloom;
+  g.globalAlpha=fade*(f.kind==='enemy'?.95:.91)*bloom;
   g.drawImage(img,-20,-32);g.restore();
  }
 }
