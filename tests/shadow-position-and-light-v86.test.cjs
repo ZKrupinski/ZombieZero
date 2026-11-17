@@ -78,8 +78,8 @@ ctx.itemPickupFX=[{x:225,y:300,k:'fire',t:.02,life:.62}];
 vm.runInContext('drawEffectLightSpills()',ctx);
 assert(draws.gradients.length>=before+5,'simultaneous ball, hit, particle and pickup light spill');
 const stops=draws.gradients.slice(before).flatMap(x=>x.stops);
-assert(stops.some(([t,c])=>t===0&&c.startsWith('rgba(81,204,255,')&&Number(c.split(',')[3].replace(')',''))>.40),
- 'cyan status light stays distinctly visible in an off-center ground gradient');
+assert(stops.some(([t,c])=>t===0&&c.startsWith('rgba(81,204,255,')&&Number(c.split(',')[3].replace(')',''))>=.13&&Number(c.split(',')[3].replace(')',''))<=.15),
+ 'cyan ball pool stays softly visible without overpowering the trail');
 assert(draws.fills.some(x=>x.composite==='lighter'),'FX spill uses additive blending');
 ctx.fxEnabled=false;
 const off=draws.gradients.length;

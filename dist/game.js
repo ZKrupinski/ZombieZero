@@ -479,21 +479,22 @@ function drawEffectLightSpills(){
    drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius));
   }
  }
- // Ball reflections have the SAME vertically separated center as their
- // soft shadow. The active fire/flame artwork above is not repositioned.
+ // V131: keep the ball-local pool smaller and dimmer than its trail wake.
+ // Omit the extra inner core so the head does not become a bright round disc.
+ // Preserve projection position and all trail/flame/lightning artwork.
  for(const b of balls){
   if(b.held)continue;
   const r=has('power') ? 12 : 8,drop=ballProjectionDrop(r);
   if(has('pierce')){
-   drawProjectedLightSpill(b.x,b.y,has('power')?41:34,
-     [81,204,255],has('fire')?.26:.47,drop);
+   drawProjectedLightSpill(b.x,b.y,has('power')?24:20,
+     [81,204,255],has('fire')?.10:.16,drop,.82,false,false);
   }
   if(has('fire')){
-   drawProjectedLightSpill(b.x,b.y,has('power')?43:37,
-     [255,133,47],has('pierce')?.26:.45,drop);
+   drawProjectedLightSpill(b.x,b.y,has('power')?28:24,
+     [255,133,47],has('pierce')?.12:.20,drop,.82,false,false);
   }
   if(has('power')&&!has('fire')&&!has('pierce'))
-   drawProjectedLightSpill(b.x,b.y,38,[255,219,111],.36,drop);
+   drawProjectedLightSpill(b.x,b.y,26,[255,219,111],.17,drop,.82,false,false);
  }
 }
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
