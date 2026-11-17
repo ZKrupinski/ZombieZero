@@ -25,7 +25,7 @@ assert(html.includes('class="boot-logo-image zz-brand-image"'));
 assert(html.includes('alt="ZOMBIE ZERO"'),'accessible logo label retained');
 assert(!html.includes('class="zero-title"'),'old text-based BI completely removed');
 assert(!html.includes('class="boot-logo"'),'old CSS-built first-screen BI completely removed');
-assert(html.includes('id="boot-start"')&&html.includes('GAME START'),'start UX unchanged');
+assert(html.includes('id="boot-start"')&&html.includes('boot-arcade-start')&&html.includes('START GAME')&&html.includes('boot-arcade-coin')&&html.includes('INSERT COIN'),'native start control retains click UX with V125 alternating arcade text');
 assert(html.includes('style.css?v=90-reduced-title-logo'),'updated title styles loaded');
 assert(css.includes('.boot-content>.boot-logo-image')&&css.includes('image-rendering:auto!important'),
  'approved graphic is sharp and responsive without pixelation or glowing border');
