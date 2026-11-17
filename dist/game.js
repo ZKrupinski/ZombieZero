@@ -214,8 +214,14 @@ function drawWorldGroundShadows(){
   // ObjectZombie and GreenWalk use bottom pivot z.y+z.h+2.
   // Knockback shadows follow their displayed sprites, not future colliders.
   const z=knockVisualPosition(actor);
+  // The v141 incoming zombie sprites fade in from 0 over .62 seconds.
+  // Their cast shadows must share that SAME stagger and opacity: otherwise
+  // the fully visible ground silhouettes reveal the new formation early.
+  const arrivalAlpha=Number.isFinite(actor.arrivalTime)
+   ?Math.max(0,Math.min(1,actor.arrivalTime/.62)):1;
+  if(arrivalAlpha<=0)continue;
   drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-3,
-    z.w*(z.boss?.93:.88),z.boss?15:9.5,true,z.boss?.34:.31);
+    z.w*(z.boss?.93:.88),z.boss?15:9.5,true,(z.boss?.34:.31)*arrivalAlpha);
  }
  for(const d of enemyDeaths){
   if((d.t||0)>=d.split)continue;
