@@ -178,7 +178,7 @@ function drawSoftLightSpill(x,y,r,rgb,alpha=.35,useTrailStamp=false){
  const radius=Math.min(100,Math.max(12,r));
  // Only the multi-ball trail wake takes this faster path. Positions, 5-stop
  // falloff, additive alpha and BOTH outer/core radii stay unchanged.
- if(useTrailStamp&&balls.length>1&&typeof document.createElement==='function'){
+ if(useTrailStamp&&(balls.length>1||(typeof has==='function'&&has('pierce')))&&typeof document.createElement==='function'){
   const stamp=trailLightStamp(rgb);
   if(stamp){
    g.save();g.globalCompositeOperation='lighter';
@@ -240,6 +240,19 @@ const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[2
 function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  if(typeof compactBallFX==='function'&&compactBallFX()){
+  if(has('pierce')){
+   // Restore the full floor wake with at most seven overlapping cached stamps.
+   // One layer per sample, no live blur and no duplicate inner light pool.
+   const length=path[path.length-1].s;
+   const samples=Math.min(7,Math.max(2,Math.ceil(length/30)+1));
+   for(let i=0;i<samples;i++){
+    const u=i/(samples-1),p=sampleBallTrail(path,length*u);
+    const fade=1-.78*u;
+    drawProjectedLightSpill(p.x,p.y,(r>8?34:30)*(1-.12*u),
+     TRAIL_GROUND_PIERCE[0],.34*fade,30,.82,true,false);
+   }
+   return;
+  }
   // One cached soft pool per ball replaces up to 36 large blended pools.
   const rgb=has('fire')?TRAIL_GROUND_FIRE[0]:TRAIL_GROUND_PIERCE[0];
   drawProjectedLightSpill(b.x,b.y,r*2.4,rgb,.22,30,.82,true,false);
