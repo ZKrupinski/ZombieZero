@@ -1397,3 +1397,51 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
  .zz-boot-scene .boot-arcade-start{opacity:1!important}
  .zz-boot-scene .boot-arcade-coin{opacity:0!important}
 }
+
+/* v126: Restore authored title hierarchy and rich yellow arcade lettering.
+   Only first-launch title is changed; hero picker/gameplay remain unchanged. */
+.zz-boot-scene .boot-eyebrow{
+ color:#ffca9c;
+ font:700 clamp(9px,1.6svh,12px)/1.45 'Courier New',monospace;
+ letter-spacing:.085em;
+ text-align:center;
+ max-width:100%;
+ text-wrap:balance;
+}
+.zz-boot-scene .boot-tagline{
+ color:#ffe7c6!important;
+ font:900 clamp(18px,3.5vw,26px)/1.25 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:.035em;
+ text-align:center;
+ margin:1px 0 6px!important;
+ white-space:nowrap;
+ text-shadow:0 2px 0 #492421,0 0 10px #ffbd7759;
+}
+.zz-boot-scene .boot-start{
+ color:#ffe047;
+ text-shadow:
+  0 0 2px #fff7b8,
+  0 0 6px #ffea70,
+  0 0 14px #ffd53daa,
+  0 0 27px #ffbb3b77,
+  2px 2px 0 #3c1e0d;
+}
+.zz-boot-scene .boot-start:hover{
+ color:#fff28b;
+ text-shadow:
+  0 0 3px #fffad6,
+  0 0 10px #ffef84,
+  0 0 21px #ffd548cc,
+  0 0 34px #ffc13888;
+}
+.zz-boot-scene .boot-arcade-line{
+ /* Reused by both labels without adding offscreen bloom canvases. */
+ filter:drop-shadow(0 0 7px rgba(255,211,73,.48));
+}
+@media(max-height:460px){
+ .zz-boot-scene .boot-eyebrow{font-size:9px;letter-spacing:.04em}
+ .zz-boot-scene .boot-tagline{
+  font-size:clamp(14px,3.3svh,17px)!important;
+  margin:0 0 2px!important;
+ }
+}
