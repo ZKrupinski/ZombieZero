@@ -1801,3 +1801,20 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
  #options-dialog .options-hint{margin-top:12px;padding-top:10px}
 }
 @media(prefers-reduced-motion:reduce){#options-dialog .option-tile{transition:none}}
+
+/* V134: direct endless entry immediately below the selected hero's start. */
+#overlay[data-screen="selection"]>#endless{
+ display:block;width:min(100%,370px)!important;min-height:46px!important;
+ margin:3px auto 7px!important;padding:11px 18px!important;
+ border:1px solid #9fe7d2;border-radius:0;
+ background:#193d38;color:#b9f6dc;
+ font:800 15px/1.3 Arial,sans-serif;letter-spacing:.08em;
+ box-shadow:3px 3px 0 #0b211e;flex-shrink:0;
+}
+#overlay[data-screen="selection"]>#endless:hover{background:#27564a}
+#overlay[data-screen="selection"]>#endless:focus-visible{outline:2px solid #d5fc71;outline-offset:3px}
+#overlay[data-screen="selection"]>#endless[hidden]{display:none!important}
+@media(max-height:620px){
+ #overlay[data-screen="selection"]>#endless{min-height:38px!important;padding:8px 14px!important;font-size:13px;margin:2px auto 4px!important}
+ #overlay[data-screen="selection"]>.overlay-logo{max-height:9svh!important}
+}

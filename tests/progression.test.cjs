@@ -7,6 +7,15 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},w
 const saved={};sandbox.localStorage={getItem:k=>saved[k]||null,setItem:(k,v)=>saved[k]=v};
 vm.runInContext(fs.readFileSync('dist/game.js','utf8')+`
 function check(v,m){if(!v)throw Error(m)}
+// Direct entry is available before a campaign clear and respects hero choice.
+check(!endlessUnlocked&&!$('endless').hidden&&$('endless').textContent==='ENDLESS WAVE','new player sees endless button');
+for(let i=0;i<HEROES.length;i++){
+ mode='menu';selectedHero=i;endlessUI();$('endless').onclick();
+ check(mode==='playing'&&runMode==='endless'&&wave===51&&selectedHero===i&&lives===HEROES[i].lives,'direct endless entry uses selected hero');
+ check($('endless').hidden,'endless entry hidden during play');
+}
+selectedHero=0;start();
+
 const safeBall=()=>{balls=[newBall(225,450,0,-350,false)];crowdTimer=999;lastSupportAt=clock};
 start();serve();wave=19;foes=[{x:100,y:559-44,w:33,h:44,hp:100,max:100,kind:0,form:0,seed:0,flash:0,burn:0}];safeBall();update(.001);check(mode==='playing','regression: no early defeat at old 558 threshold');foes[0].y=DEFENSE_Y-44;update(.001);check(mode==='over'&&failureScene.type==='breach'&&lives===3,'defense breach explains defeat even with hearts');check($('overlay').hidden,'cause shown before results');draw();let scoreBefore=score;update(1);check(score===scoreBefore&&failureScene,'death scene freezes gameplay');update(.81);check(!failureScene&&!$('overlay').hidden&&$('message').innerHTML.includes('방어선'),'results follow cause scene');
 for(const w of [20,21,30,48,50]){start();serve();wave=w;rack();const front=Math.max(...foes.map(z=>z.y+z.h));for(const z of foes)z.y+=DEFENSE_Y-front;const old=foes.map(z=>({z,y:z.y,hp:z.hp}));safeBall();update(.001);check(mode==='playing'&&lastStandUsed,'stage '+w+' first breach resisted');for(const a of old)check(a.z.y<=a.y+.1&&a.z.hp===a.hp,'pushback preserves HP and never pushes forward');check(Math.max(...foes.map(z=>z.y+z.h))<DEFENSE_Y-100,'large pushback gives breathing room');for(const a of foes)for(const b of foes)if(a!==b)check(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y),'pushback does not overlap');foes[0].y=DEFENSE_Y-foes[0].h;update(.001);check(mode==='over'&&failureScene.type==='breach','second breach defeats once resistance used')}
