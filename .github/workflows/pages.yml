@@ -27,6 +27,9 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+      # GitHub's artifact index can lag behind a successful upload.
+      - name: Let Pages artifact metadata become available
+        run: sleep 15
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
