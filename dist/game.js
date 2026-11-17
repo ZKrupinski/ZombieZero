@@ -113,12 +113,16 @@ function drawContactFX(bloom=1){
   const fade=(1-u)*(1-u*.28);
   if(fade<=0)continue;
   g.save();g.translate(f.x,f.y);g.rotate(Math.atan2(f.ny,f.nx));
-  // Tiny, readable expansion on collision; no particles or per-frame blur.
-  g.scale(.94+.17*u,.94+.12*u);
+  // V116: the 450px world makes a 64px source look tiny on phones.
+  // Almost 2x the prior visible burst, with a short controlled "pop".
+  // Retain one cached bitmap per impact and the original physics point.
+  const size=f.kind==='enemy'?1.95:f.kind==='ceiling'?2.0:2.20;
+  const pop=.94+.14*u;
+  g.scale(size*pop,size*pop);
   // Base sprite uses normal alpha for contrast on white and gray scenes.
   // ADD and subdued Bloom are captured once by the existing FX renderer.
   g.globalCompositeOperation='source-over';
-  g.globalAlpha=fade*(f.kind==='enemy'?.92:.86)*bloom;
+  g.globalAlpha=fade*(f.kind==='enemy'?1:.97)*bloom;
   g.drawImage(img,-20,-32);g.restore();
  }
 }
