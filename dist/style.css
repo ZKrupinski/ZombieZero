@@ -1751,3 +1751,53 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
  #overlay[data-screen="pause"]>#hint{font-size:9px!important}
  #overlay[data-screen="pause"]>.selection-copyright{bottom:7px;font-size:9px}
 }
+
+/* V133: one icon grid, clear labels and consistent option states. */
+#options-dialog{
+ width:min(92vw,440px);max-height:calc(100dvh - 32px);
+ box-sizing:border-box;padding:22px;border-radius:20px;
+ border:1px solid #71948280;
+ background:linear-gradient(145deg,#1c302c,#10221f 75%);
+ box-shadow:0 22px 80px #0009,inset 0 1px 0 #d9ffdd0a;
+}
+#options-dialog .options-head{align-items:center;margin-bottom:20px;gap:12px}
+#options-dialog .options-eyebrow{display:block;color:#b9fa73;font:700 9px/1.4 Arial,sans-serif;letter-spacing:.22em;margin-bottom:5px}
+#options-dialog .options-head h2{margin:0;font:800 24px/1.2 Arial,'Noto Sans KR',sans-serif;letter-spacing:-.6px}
+#options-dialog #options-close{display:grid;place-items:center;flex:0 0 40px;width:40px;min-height:40px;height:40px;padding:0;margin:0;border-radius:12px;border:1px solid #7b9a8738;background:#d6f2d60a;color:#d6e8d6;font:300 28px/1 Arial,sans-serif}
+#options-dialog .options-actions{gap:10px}
+#options-dialog .options-actions .option-tile{
+ display:flex;align-items:center;justify-content:flex-start;gap:11px;
+ width:100%;min-width:0;min-height:82px;margin:0!important;padding:14px 12px;
+ border:1px solid #71978342;border-radius:13px;
+ background:#23403780;color:#e5f1df;text-align:left;box-shadow:none;
+ transition:background .15s,border-color .15s;
+}
+#options-dialog .option-icon{display:grid;place-items:center;flex:0 0 32px;width:32px;height:36px;color:#b4d2bd}
+#options-dialog .option-icon svg{display:block;width:25px;height:25px}
+#options-dialog .option-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
+#options-dialog .option-name{font:800 15px/1.2 Arial,'Noto Sans KR',sans-serif;letter-spacing:-.3px;white-space:nowrap}
+#options-dialog .option-status{font:500 10px/1.3 Arial,'Noto Sans KR',sans-serif;color:#a0baac;white-space:normal;word-break:keep-all}
+#options-dialog .option-tile[data-state="on"]{border-color:#9acb6959;background:#31503980}
+#options-dialog .option-tile[data-state="on"] .option-icon,
+#options-dialog .option-tile[data-state="on"] .option-status{color:#c4f88b}
+#options-dialog .option-tile[data-state="on"] .option-status:before,
+#options-dialog .option-tile[data-state="off"] .option-status:before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin:0 5px 1px 0}
+#options-dialog .option-tile[data-state="retry"] .option-status{color:#f6d184}
+#options-dialog .options-hint{border-top:1px solid #72917e30;padding-top:14px;margin:18px 0 0;font:400 11px/1.5 Arial,'Noto Sans KR',sans-serif;color:#91ad9e;text-align:center;word-break:keep-all}
+#options-dialog .option-tile:focus-visible,#options-dialog #options-close:focus-visible{outline:2px solid #c4f88b;outline-offset:3px}
+#options-dialog .option-tile:active{background:#42664c}
+@media(hover:hover){#options-dialog .option-tile:hover{background:#345346;border-color:#a3cf8c80}}
+@media(max-width:360px){
+ #options-dialog{padding:16px;width:94vw}
+ #options-dialog .options-actions{gap:8px}
+ #options-dialog .options-actions .option-tile{gap:7px;padding:12px 9px;min-height:76px}
+ #options-dialog .option-icon{flex-basis:26px;width:26px}
+ #options-dialog .option-name{font-size:14px}
+}
+@media(max-height:520px){
+ #options-dialog{padding:14px 18px;max-height:calc(100dvh - 20px)}
+ #options-dialog .options-head{margin-bottom:12px}
+ #options-dialog .options-actions .option-tile{min-height:62px;padding:9px 12px}
+ #options-dialog .options-hint{margin-top:12px;padding-top:10px}
+}
+@media(prefers-reduced-motion:reduce){#options-dialog .option-tile{transition:none}}
