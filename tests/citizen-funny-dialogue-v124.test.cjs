@@ -10,7 +10,10 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const citizens=[{x:66,y:680,alive:true},{x:386,y:680,alive:true}];
 const env={Math:rng,Number,Array,clamp,W:450,H:710,PY:584,car:225,citizens,
  bubbles:[],bubbleTimer:.1,cheerTime:0,mode:'playing'};
-vm.createContext(env);vm.runInContext(speech,env);
+const layoutStart=src.indexOf('function citizenBubbleLayout(q,carX=car){');
+const layoutEnd=src.indexOf('// A deliberately SHORT pointer',layoutStart);
+assert(layoutStart>0&&layoutEnd>layoutStart,'live speech layout available for overlap checking');
+vm.createContext(env);vm.runInContext(speech+'\n'+src.slice(layoutStart,layoutEnd),env);
 const required=['씩스쎄븐~!','사랑해요','확간다','통쾌!','쫌 치는데?'];
 const cheers=vm.runInContext('CHEERS',env);
 for(const line of required)assert(cheers.includes(line),'requested line missing: '+line);

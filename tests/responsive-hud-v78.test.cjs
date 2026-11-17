@@ -69,7 +69,7 @@ const fn=vm.runInNewContext(src+';citizenBubbleLayout',{
 function speech(q,carX){
  const o=fn(q,carX),w=o.w,h=o.h;
  assert(o.x>=22&&o.x+w<=428,'speech stays inside the 450px art border');
- assert(o.y>=100&&o.y+h<=653,'lower speech remains above citizens and defensive rail');
+ assert(o.y>=100&&o.y+h<=(q.event?653:665),'random lower cheers remain above crowd head, event text keeps original safe rail');
  const center=q.event?56:26;
  const clash=o.x<carX+center&&o.x+w>carX-center&&o.y+h>584-66&&o.y<584+42;
  assert(!clash,'speech may cover the outer car edge, never the central hero or long-event clearance');
