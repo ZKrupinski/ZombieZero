@@ -41,22 +41,13 @@ function ballImpact(b,axis,dir=1,kind='wall'){
 }
 // V114: Reusable tiny 48px transparent impact bitmaps (no per-frame gradients).
 let ballContactFX=[];const contactStampCache=new Map();
-// V119: 12 approved transparent bitmap impacts in a single 4x3 cached sheet.
-// The older canvas-drawn comic mark remains a safe fallback until PNG loads.
+// V122: 12 monochrome comic impact silhouettes in a transparent 4x3 sheet.
+// No skill tint, directional spirals, glow or smoke. A monochrome fallback
+// stays available until this 6KB sprite atlas has loaded.
 const contactAtlasImage=typeof Image!=='undefined'?new Image():null;
-if(contactAtlasImage){contactAtlasImage.decoding='async';contactAtlasImage.src='assets/fx/impact-bursts-v119.png';}
-const CONTACT_ATLAS_FRAMES={
- normal:{enemy:[7,1,6],wall:[8,7,1],ceiling:[8,1,7]},
- fire:{enemy:[4,1,7],wall:[4,7,1],ceiling:[1,4,7]},
- pierce:{enemy:[5,6,0],wall:[9,5,3],ceiling:[3,9,5]},
- power:{enemy:[2,11,1],wall:[7,1,11],ceiling:[1,11,7]},
- slow:{enemy:[0,3,9],wall:[9,0,3],ceiling:[3,0,9]},
- shield:{enemy:[10,11,7],wall:[10,11,8],ceiling:[10,3,11]}
-};
-function contactAtlasIndex(f){
- const group=CONTACT_ATLAS_FRAMES[f.style]||CONTACT_ATLAS_FRAMES.normal;
- return group[f.kind==='enemy'?'enemy':f.kind==='ceiling'?'ceiling':'wall'][f.variant%3];
-}
+if(contactAtlasImage){contactAtlasImage.decoding='async';contactAtlasImage.src='assets/fx/impact-bursts-mono-v122.png';}
+function contactAtlasIndex(f){return f.variant%12;}
+
 function contactStamp(kind,tone,variant){
  const key=kind+tone+variant;
  if(contactStampCache.has(key))return contactStampCache.get(key);
@@ -65,10 +56,10 @@ function contactStamp(kind,tone,variant){
  const p=canvas.getContext('2d');if(!p)return null;
  // V118: comic starburst silhouette based on the upper-right ink/halftone
  // reference; cached once. No independent straight motion rays.
- const paper=['#fff3d7','#ffead9','#e5faff'][tone];
- const gleam=['#ffe9ab','#ffd3ae','#b7f2ff'][tone];
- const ink=['#30262b','#3b2426','#233442'][tone];
- const dot=['#80634c','#8e4f40','#436b7a'][tone];
+ const paper='#ffffff';
+ const gleam='#ffffff';
+ const ink='#202020';
+ const dot='#444444';
  const cx=22,cy=32;
  const enemy=kind==='enemy';
  const points=enemy?11:kind==='ceiling'?9:10;
@@ -118,9 +109,8 @@ function spawnContact(b,x,y,nx,ny,kind){
  if(!b||b.held)return;
  if(Number.isFinite(b.contactAt)&&clock-b.contactAt<.045)return;
  b.contactAt=clock;
- ballContactFX.push({x,y,nx,ny,kind,tone:has('pierce')?2:has('fire')?1:0,
-  style:has('pierce')?'pierce':has('fire')?'fire':has('power')?'power':has('slow')?'slow':has('shield')?'shield':'normal',
-  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.30:kind==='ceiling'?.25:.27});
+ ballContactFX.push({x,y,nx,ny,kind,tone:0,
+  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:kind==='enemy'?.30:kind==='ceiling'?.25:.27});
  if(ballContactFX.length>20)ballContactFX.splice(0,ballContactFX.length-20);
 }
 function contactFace(b,z,r,ox,oy){
@@ -146,10 +136,8 @@ function drawContactFX(bloom=1){
   const fade=u<=.28?1:Math.pow(Math.max(0,(1-u)/.72),.86);
   if(fade<=0)continue;
   g.save();g.translate(f.x,f.y);
-  // The bitmap covers the exact ball-trail bounce vertex, above the ball,
-  // with only restrained orientation based on collision face direction.
-  const angle=Math.atan2(f.ny,f.nx);
-  g.rotate(angle*.22);
+  // Point-symmetric balloon shapes do not rotate with the travel direction.
+  // The center still covers the exact ball/trail-bend collision vertex.
   g.globalCompositeOperation='source-over';
   g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
   if(atlasReady){
@@ -2600,7 +2588,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.25));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
