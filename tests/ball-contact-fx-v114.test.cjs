@@ -3,9 +3,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const src=fs.readFileSync('dist/game.js','utf8');
 const begin=src.indexOf('let ballContactFX=[];'),end=src.indexOf('// Nine nearly touching lanes',begin);
 assert(begin>0&&end>begin,'v114 contact bitmap implementation present');
-const created=[],drawn=[],angles=[];
+const created=[],drawn=[],angles=[],scales=[];
 const painter={beginPath(){},moveTo(){},lineTo(){},stroke(){},arc(){},fillRect(){},closePath(){},fill(){},save(){},restore(){},translate(){},scale(){}};
-const g={save(){},restore(){},translate(){},scale(){},rotate(a){angles.push(a)},drawImage(...a){drawn.push(a)},set globalCompositeOperation(v){},set globalAlpha(v){}};
+const g={save(){},restore(){},translate(){},scale(x,y){scales.push([x,y])},rotate(a){angles.push(a)},drawImage(...a){drawn.push(a)},set globalCompositeOperation(v){},set globalAlpha(v){}};
 const env={Math,g,clock:1,fxEnabled:true,has:k=>k==='pierce',
  clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),
  document:{createElement(tag){assert.equal(tag,'canvas');const v={getContext:()=>painter};created.push(v);return v}}};
@@ -22,6 +22,7 @@ vm.runInContext('drawContactFX(1);drawContactFX(.36)',env);
 assert.equal(created.length,1,'same transparent sprite is generated only once');
 assert.equal(drawn.length,2,'base alpha and attenuated ADD/Bloom share bitmap');
 assert(angles.every(a=>Math.abs(a-Math.PI)<.0001),'left surface points outwards');
+assert(scales.every(([x,y])=>x>=1.8&&y>=1.8),'V116 impact remains legible: enlarged at least ~2x');
 env.clock=1.1;
 vm.runInContext("spawnContact(b,414,200,-1,0,'wall')",env);
 vm.runInContext("spawnContact(b,200,16,0,1,'ceiling')",env);
@@ -43,4 +44,4 @@ vm.runInContext('drawContactFX(1)',env);
 assert(drawn.length>before,'LITE mode draws basic contact feedback without FX renderer');
 assert(src.includes("g.drawImage(img,-20,-32)"),'bitmap artwork anchored on the collision surface');
 assert(src.includes('life:kind===\'enemy\'?.22:kind===\'ceiling\'?.17:.19'),'effect survives enough frames to read');
-console.log('PASS v114: 3 face types, normal direction, bitmap cache, per-ball throttle, max FX count, integrated bloom.');
+console.log('PASS v116: enlarged contact sprites, 3 surface normals, cache, throttle, impact budget and LITE visibility.');
