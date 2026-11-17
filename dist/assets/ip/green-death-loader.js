@@ -4,6 +4,61 @@
 (function(){
  'use strict';
  const image=new Image(); image.decoding='async';
+ // V121: Repair neutral-white, semi-transparent pixels only on the outer
+ // boundary of CRITICAL death frames. Interior white eyes/brain highlights,
+ // color grading and alpha of other materials stay untouched.
+ function cleanCriticalFringePixels(data,w,h){
+   if(!data||data.length!==w*h*4||w<3||h<3)return 0;
+   const original=new Uint8ClampedArray(data);
+   let changed=0;
+   for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+     const i=(y*w+x)*4,a=original[i+3];
+     if(a<12||a>251)continue;
+     const r=original[i],g=original[i+1],b=original[i+2];
+     const light=Math.min(r,g,b),spread=Math.max(r,g,b)-light;
+     if(light<185||spread>48)continue;
+     // Do not blend neighboring frames in the 8 x 96-pixel atlas.
+     const frameLeft=Math.floor(x/96)*96,frameRight=frameLeft+95;
+     let exposed=false,inner=-1,innerAlpha=a;
+     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+       if(!dx&&!dy)continue;
+       const xx=x+dx,yy=y+dy;
+       if(xx<frameLeft||xx>frameRight||yy<0||yy>=h)continue;
+       const n=(yy*w+xx)*4,na=original[n+3];
+       if(na<=24)exposed=true;
+       const nr=original[n],ng=original[n+1],nb=original[n+2];
+       const neutral=Math.min(nr,ng,nb)>=185&&Math.max(nr,ng,nb)-Math.min(nr,ng,nb)<=48;
+       if(na>innerAlpha+24&&!neutral){inner=n;innerAlpha=na;}
+     }
+     if(!exposed)continue;
+     if(inner>=0){
+       // Pull matted white RGB toward adjacent opaque silhouette material.
+       data[i]=Math.round(r*.30+original[inner]*.70);
+       data[i+1]=Math.round(g*.30+original[inner+1]*.70);
+       data[i+2]=Math.round(b*.30+original[inner+2]*.70);
+       data[i+3]=Math.round(a*.80);
+     }else{
+       // Isolated pale fringe with no colored interior: fade it cleanly.
+       data[i+3]=Math.round(a*.38);
+     }
+     changed++;
+   }
+   return changed;
+ }
+ function cleanCriticalFringeBitmap(bitmap){
+   if(typeof document==='undefined'||typeof document.createElement!=='function')return bitmap;
+   const w=bitmap.naturalWidth||bitmap.width,h=bitmap.naturalHeight||bitmap.height;
+   if(w!==768||h!==128)return bitmap;
+   try{
+     const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+     const c=canvas.getContext('2d',{willReadFrequently:true});if(!c)return bitmap;
+     c.drawImage(bitmap,0,0);
+     const frame=c.getImageData(0,0,w,h);
+     if(!cleanCriticalFringePixels(frame.data,w,h))return bitmap;
+     c.putImageData(frame,0,0);
+     return canvas;
+   }catch(_){return bitmap}
+ }
  const pack={
    image,ready:false,cell:48,variants:[image],
    // v95 remastered 8-frame 96x128 colorizable portraits, two separate
@@ -62,11 +117,13 @@
      part.ready=part.image.naturalWidth===768&&part.image.naturalHeight===128;
      if(part.ready){
        part.variants=window.ZZGreenPalette?.variants(part.image)||[part.image];
+       // Run once after palette baking, never during sprite animation.
+       if(kind==='critical')part.variants=part.variants.map(cleanCriticalFringeBitmap);
        pack.ready=true;
      }
    };
    part.image.onerror=()=>{part.ready=false};
-   // v112: baked alpha fringe removed offline; no per-frame cleanup cost.
+   // V121: critical edges decontaminated once after loading; original PNG retained.
    part.image.src='assets/ip/green-death-'+kind+'-v95.png'+'?v=112-sharp-alpha';
  }
 
