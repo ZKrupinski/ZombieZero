@@ -41,6 +41,22 @@ function ballImpact(b,axis,dir=1,kind='wall'){
 }
 // V114: Reusable tiny 48px transparent impact bitmaps (no per-frame gradients).
 let ballContactFX=[];const contactStampCache=new Map();
+// V119: 12 approved transparent bitmap impacts in a single 4x3 cached sheet.
+// The older canvas-drawn comic mark remains a safe fallback until PNG loads.
+const contactAtlasImage=typeof Image!=='undefined'?new Image():null;
+if(contactAtlasImage){contactAtlasImage.decoding='async';contactAtlasImage.src='assets/fx/impact-bursts-v119.png';}
+const CONTACT_ATLAS_FRAMES={
+ normal:{enemy:[7,1,6],wall:[8,7,1],ceiling:[8,1,7]},
+ fire:{enemy:[4,1,7],wall:[4,7,1],ceiling:[1,4,7]},
+ pierce:{enemy:[5,6,0],wall:[9,5,3],ceiling:[3,9,5]},
+ power:{enemy:[2,11,1],wall:[7,1,11],ceiling:[1,11,7]},
+ slow:{enemy:[0,3,9],wall:[9,0,3],ceiling:[3,0,9]},
+ shield:{enemy:[10,11,7],wall:[10,11,8],ceiling:[10,3,11]}
+};
+function contactAtlasIndex(f){
+ const group=CONTACT_ATLAS_FRAMES[f.style]||CONTACT_ATLAS_FRAMES.normal;
+ return group[f.kind==='enemy'?'enemy':f.kind==='ceiling'?'ceiling':'wall'][f.variant%3];
+}
 function contactStamp(kind,tone,variant){
  const key=kind+tone+variant;
  if(contactStampCache.has(key))return contactStampCache.get(key);
@@ -103,6 +119,7 @@ function spawnContact(b,x,y,nx,ny,kind){
  if(Number.isFinite(b.contactAt)&&clock-b.contactAt<.045)return;
  b.contactAt=clock;
  ballContactFX.push({x,y,nx,ny,kind,tone:has('pierce')?2:has('fire')?1:0,
+  style:has('pierce')?'pierce':has('fire')?'fire':has('power')?'power':has('slow')?'slow':has('shield')?'shield':'normal',
   variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.18:kind==='ceiling'?.14:.16});
  if(ballContactFX.length>20)ballContactFX.splice(0,ballContactFX.length-20);
 }
@@ -120,21 +137,32 @@ function contactFace(b,z,r,ox,oy){
  return f.slice(1);
 }
 function drawContactFX(bloom=1){
+ const atlasReady=!!(contactAtlasImage&&contactAtlasImage.complete&&contactAtlasImage.naturalWidth===256&&contactAtlasImage.naturalHeight===192);
  for(const f of ballContactFX){
-  const img=contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
+  const img=atlasReady?contactAtlasImage:contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
   const u=Math.max(0,Math.min(1,f.t/f.life));
   const fade=(1-u)*(1-u*.28);
   if(fade<=0)continue;
-  g.save();g.translate(f.x,f.y);g.rotate(Math.atan2(f.ny,f.nx));
-  // V118: compact starburst silhouette with dense ink outline, not extended rays.
-  const size=f.kind==='enemy'?1.12:f.kind==='ceiling'?1.05:1.10;
-  const pop=.97+.07*u;
-  g.scale(size*pop,size*pop);
-  // Base sprite uses normal alpha for contrast on white and gray scenes.
-  // ADD and subdued Bloom are captured once by the existing FX renderer.
+  g.save();g.translate(f.x,f.y);
+  // The bitmap covers the exact ball-trail bounce vertex, above the ball,
+  // with only restrained orientation based on collision face direction.
+  const angle=Math.atan2(f.ny,f.nx);
+  g.rotate(angle*.22);
   g.globalCompositeOperation='source-over';
   g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
-  g.drawImage(img,-22,-32);g.restore();
+  if(atlasReady){
+   const frame=contactAtlasIndex(f);
+   const base=f.kind==='enemy'?52:f.kind==='ceiling'?45:49;
+   const scale=1.02-.13*u;
+   const w=base*scale;
+   g.drawImage(img,(frame%4)*64,Math.floor(frame/4)*64,64,64,-w/2,-w/2,w,w);
+  }else{
+   // Retain the previous procedural art if the asset is still loading.
+   const size=f.kind==='enemy'?1.12:f.kind==='ceiling'?1.05:1.10;
+   g.scale(size*(.97+.07*u),size*(.97+.07*u));
+   g.drawImage(img,-22,-32);
+  }
+  g.restore();
  }
 }
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
@@ -1463,7 +1491,7 @@ march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
  }
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
-for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,ROAD_LEFT,b.y,1,0,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,ROAD_RIGHT,b.y,-1,0,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,16,0,1,'ceiling');sfx('wall')}
+for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
  // Once it fully exits that enemy, the contact can be struck on a later pass.
@@ -1478,7 +1506,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
   if(b.pierceContacts.has(z)||(!piercing&&b.lastHit===z&&b.hitLock>0))continue;
   if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&b.y+radius>z.y&&b.y-radius<z.y+z.h){
    const impact={x:b.vx,y:b.vy};
-   b.pierceContacts.add(z);const f=contactFace(b,z,radius,ox,oy);spawnContact(b,f[0],f[1],f[2],f[3],'enemy');
+   b.pierceContacts.add(z);const f=contactFace(b,z,radius,ox,oy);spawnContact(b,piercing?f[0]:ox,piercing?f[1]:oy,f[2],f[3],'enemy');
    if(piercing){
     // A penetrating ball retains its velocity through unique targets.
    }else if(ox+radius<=z.x||ox-radius>=z.x+z.w){b.vx*=-1;b.x=ox;ballImpact(b,'x',b.vx,'enemy')}
@@ -2569,7 +2597,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.23));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.25));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
