@@ -1146,7 +1146,7 @@ function refillEndlessWave(){
  const arriving=foes;
  foes=survivors;
  for(const z of arriving){
-  if(!foes.every(other=>!zombieBoxesOverlap(z,{x:z.x,y:z.y},other,{x:other.x,y:other.y},8)))continue;
+  if(!foes.every(other=>!zombieBoxesOverlap(z,{x:z.x,y:z.y},other,{x:other.x,y:other.y},1)))continue;
   z.arrivalTime=-z.row*.10-Math.random()*.09;
   foes.push(z);
  }
