@@ -47,47 +47,55 @@ function contactStamp(kind,tone,variant){
  if(typeof document==='undefined'||!document.createElement)return null;
  const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
  const p=canvas.getContext('2d');if(!p)return null;
- // V117: hand-shaped, compact impact flecks instead of a long straight ray.
- // Only three cached variants / palette; no gradients, shadows or particle loops.
- const core=['#fff9e4','#fff4db','#effdff'][tone];
- const accent=['#ffc56c','#ffab6c','#78dcff'][tone];
- const deep=['#ac794e','#a86846','#4785a3'][tone];
- const cx=20,cy=32,v=variant-1,enemy=kind==='enemy';
- p.lineCap='round';p.lineJoin='round';
- // Soft, irregular body. A deliberately uneven shape, not a diagrammatic star.
- p.globalAlpha=.50;p.fillStyle=deep;p.beginPath();
- p.moveTo(cx-7,cy+1);p.quadraticCurveTo(cx-7,cy-5,cx-2,cy-7);
- p.quadraticCurveTo(cx+4,cy-8,cx+8,cy-3);
- p.quadraticCurveTo(cx+11,cy+2,cx+5,cy+6);
- p.quadraticCurveTo(cx-3,cy+8,cx-7,cy+1);p.closePath();p.fill();
- p.globalAlpha=.92;p.fillStyle=accent;p.beginPath();
- p.moveTo(cx-5,cy+1);p.quadraticCurveTo(cx-5,cy-4,cx,cy-5);
- p.quadraticCurveTo(cx+5,cy-5,cx+7,cy);
- p.quadraticCurveTo(cx+5,cy+5,cx,cy+5);
- p.quadraticCurveTo(cx-5,cy+4,cx-5,cy+1);p.closePath();p.fill();
- p.fillStyle=core;p.globalAlpha=.98;p.beginPath();
- p.moveTo(cx-2,cy-1);p.quadraticCurveTo(cx-1,cy-4,cx+2,cy-3);
- p.quadraticCurveTo(cx+5,cy-1,cx+3,cy+2);
- p.quadraticCurveTo(cx,cy+4,cx-2,cy+1);p.closePath();p.fill();
- // Short curved splinters; asymmetric per surface and variant.
- const chip=(x,y,dx,dy,w)=>{
-  const l=Math.max(1,Math.hypot(dx,dy)),ox=-dy/l*w,oy=dx/l*w;
-  p.beginPath();p.moveTo(x+ox,y+oy);
-  p.quadraticCurveTo(x+dx*.60+ox*.42,y+dy*.60+oy*.42,x+dx,y+dy);
-  p.quadraticCurveTo(x+dx*.50-ox*.25,y+dy*.50-oy*.25,x-ox,y-oy);
-  p.closePath();p.fill();
+ // V118: comic starburst silhouette based on the upper-right ink/halftone
+ // reference; cached once. No independent straight motion rays.
+ const paper=['#fff3d7','#ffead9','#e5faff'][tone];
+ const gleam=['#ffe9ab','#ffd3ae','#b7f2ff'][tone];
+ const ink=['#30262b','#3b2426','#233442'][tone];
+ const dot=['#80634c','#8e4f40','#436b7a'][tone];
+ const cx=22,cy=32;
+ const enemy=kind==='enemy';
+ const points=enemy?11:kind==='ceiling'?9:10;
+ const outer=enemy?16:kind==='ceiling'?12.6:14.2;
+ // A loose cluster of halftone dots just outside the outgoing (+X) edge.
+ // Dots are irregularly spaced to keep it from looking like a UI icon.
+ p.fillStyle=dot;
+ for(let i=0;i<17;i++){
+  const seed=i*1.73+variant*.91+(enemy?.47:1.4);
+  const y=cy+(Math.sin(seed*2.39)*.5+.5)*35-17.5;
+  const x=cx+outer*.40+(Math.cos(seed*2.11)*.5+.5)*17;
+  if((x-cx)*(x-cx)+(y-cy)*(y-cy)<outer*outer*.83)continue;
+  const rad=(i%5===0?1.85:i%3===0?1.27:.82);
+  p.globalAlpha=.18+(i%4)*.095;
+  p.beginPath();p.arc(x,y,rad,0,Math.PI*2);p.fill();
+ }
+ // One thick, jagged, connected explosion contour—NOT lines extending
+ // independently from the collision. Vary point count/angle/length subtly.
+ const spike=()=>{
+  p.beginPath();
+  for(let j=0;j<points*2;j++){
+   const tip=j%2===0;
+   const k=Math.floor(j/2);
+   const variation=Math.sin(k*3.61+variant*1.38+(enemy?.2:1.2));
+   const radius=tip?outer*(.79+.21*(.5+.5*variation)):
+     outer*(.53+.07*Math.sin(k*5.2+variant));
+   const angle=j*Math.PI/points-.14+variant*.055;
+   const x=cx+Math.cos(angle)*radius*(1+(enemy?.06:.08)*Math.cos(angle));
+   const y=cy+Math.sin(angle)*radius*(.88+.07*Math.sin(angle*3));
+   if(!j)p.moveTo(x,y);else p.lineTo(x,y);
+  }
+  p.closePath();
  };
- p.fillStyle=accent;p.globalAlpha=.94;
- chip(cx+5,cy,enemy?9:6,v*.85,2.4);
- chip(cx+4,cy-4,enemy?6:5,-5-v,2.3);
- chip(cx+3,cy+4,enemy?6:5,5-v,2.1);
- if(enemy){p.globalAlpha=.75;chip(cx-2,cy-4,1,-5-v,1.7);}
- // Small warm droplets make the contact organic and readable at mobile scale.
- p.fillStyle=core;p.globalAlpha=.96;
- p.beginPath();p.arc(cx+10+v,cy-8,1.5,0,Math.PI*2);p.fill();
- p.globalAlpha=.75;p.fillStyle=accent;p.beginPath();
- p.arc(cx+12,cy+8-v,1.9,0,Math.PI*2);p.fill();
- if(kind==='wall'){p.beginPath();p.arc(cx+6,cy-10,1.25,0,Math.PI*2);p.fill();}
+ p.lineJoin='miter';p.miterLimit=2.3;
+ spike();p.globalAlpha=.95;p.fillStyle=paper;p.fill();
+ p.strokeStyle=ink;p.lineWidth=3.4;p.stroke();
+ // Tiny inner flash: graphic shading, no white rectangular overlay.
+ p.globalAlpha=.68;p.fillStyle=gleam;p.beginPath();
+ p.moveTo(cx-5,cy-1);p.quadraticCurveTo(cx-3,cy-7,cx+2,cy-7);
+ p.quadraticCurveTo(cx+8,cy-5,cx+8,cy+1);
+ p.quadraticCurveTo(cx+3,cy+6,cx-3,cy+4);p.closePath();p.fill();
+ p.globalAlpha=.76;p.fillStyle='#ffffff';p.beginPath();
+ p.arc(cx+2,cy-1,1.9,0,Math.PI*2);p.fill();
  contactStampCache.set(key,canvas);return canvas;
 }
 function spawnContact(b,x,y,nx,ny,kind){
@@ -118,15 +126,15 @@ function drawContactFX(bloom=1){
   const fade=(1-u)*(1-u*.28);
   if(fade<=0)continue;
   g.save();g.translate(f.x,f.y);g.rotate(Math.atan2(f.ny,f.nx));
-  // V117: roughly 60% of V116's on-screen diameter and none of its long rays.
-  const size=f.kind==='enemy'?1.34:f.kind==='ceiling'?1.18:1.26;
+  // V118: compact starburst silhouette with dense ink outline, not extended rays.
+  const size=f.kind==='enemy'?1.12:f.kind==='ceiling'?1.05:1.10;
   const pop=.97+.07*u;
   g.scale(size*pop,size*pop);
   // Base sprite uses normal alpha for contrast on white and gray scenes.
   // ADD and subdued Bloom are captured once by the existing FX renderer.
   g.globalCompositeOperation='source-over';
-  g.globalAlpha=fade*(f.kind==='enemy'?.95:.91)*bloom;
-  g.drawImage(img,-20,-32);g.restore();
+  g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
+  g.drawImage(img,-22,-32);g.restore();
  }
 }
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
@@ -2561,7 +2569,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.36));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.23));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
