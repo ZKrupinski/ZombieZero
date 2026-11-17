@@ -29,6 +29,6 @@ const bloom=draw.indexOf('fxRenderer.composite(g);');
 const iconDraw=draw.indexOf('drawActiveItemIcons();');
 assert(player>=0&&bloom>player&&iconDraw>bloom,'icons render last, above shield and bloom FX');
 assert.equal(draw.split('drawActiveItemIcons();').length-1,1,'only one final icon pass');
-assert(html.includes('src="game.js?v=93-multiball-light-cache-v94-no-dark-shadow-v101-multiskill-lod-v102-boss-contact-v107-stable-trails-v108-compact-stacks-v109-element-shapes-v110-single-zigzag-v111-pierce-wake-v113-hero-multiball-v114-dense-pierce-contact-fx-v115-visible-contact-fx-v116-impact-scale-v117-organic-impact-v118-comic-burst-v119-bitmap-impacts-v120-legible-hits"'),'new gameplay script bypasses old cache');
+assert(html.includes('src="game.js?v=93-multiball-light-cache-v94-no-dark-shadow-v101-multiskill-lod-v102-boss-contact-v107-stable-trails-v108-compact-stacks-v109-element-shapes-v110-single-zigzag-v111-pierce-wake-v113-hero-multiball-v114-dense-pierce-contact-fx-v115-visible-contact-fx-v116-impact-scale-v117-organic-impact-v118-comic-burst-v119-bitmap-impacts-v120-legible-hits-v122-mono-bursts"'),'new gameplay script bypasses old cache');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'PWA shell invalidated');
 console.log('PASS: duplicate defense dashes removed in both paths, collision/text intact, equipped icons clear shield Bloom.');

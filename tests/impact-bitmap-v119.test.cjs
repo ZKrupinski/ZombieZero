@@ -1,11 +1,15 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const path='dist/assets/fx/impact-bursts-v119.png';
+const path='dist/assets/fx/impact-bursts-mono-v122.png';
 const png=fs.readFileSync(path);
 assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a','real PNG signature');
 assert.equal(png.readUInt32BE(16),256,'4 columns of 64px');
 assert.equal(png.readUInt32BE(20),192,'3 rows of 64px');
-assert(png.length<22000,'12 optimized bitmap contacts stay within the lightweight budget');
+assert(png.length<12000,'12 grayscale transparent bitmap contacts stay within the lightweight budget');
+const pal=png.indexOf(Buffer.from('PLTE'));const trns=png.indexOf(Buffer.from('tRNS'));
+assert(pal>0&&trns>0,'indexed PNG must retain real transparent alpha');
+const palSize=png.readUInt32BE(pal-4);
+for(let i=0;i<palSize;i+=3){const p=pal+4+i;assert.equal(png[p],png[p+1],'neutral RGB R=G');assert.equal(png[p+1],png[p+2],'neutral RGB G=B');}
 const source=fs.readFileSync('dist/game.js','utf8');
 const start=source.indexOf('let ballContactFX=[];'),end=source.indexOf('// Nine nearly touching lanes',start);
 assert(start>=0&&end>start,'hit FX source is accessible');
@@ -20,15 +24,17 @@ const g={save(){},restore(){},translate(){},rotate(r){rotations.push(r)},scale()
 const ctx={Math,g,clock:1,Image:MockImage,fxEnabled:true,has:k=>k===skill,clamp:(n,a,b)=>Math.max(a,Math.min(b,n))};
 vm.createContext(ctx);
 vm.runInContext(source.slice(start,end),ctx);
-assert.equal(loadedSource,'assets/fx/impact-bursts-v119.png','new sprite atlas preloaded once');
+assert.equal(loadedSource,'assets/fx/impact-bursts-mono-v122.png','new monochrome sprite atlas preloaded once');
 ctx.b={held:false};
 vm.runInContext("spawnContact(b,100,100,1,0,'enemy');drawContactFX(1)",ctx);
 assert.equal(calls.length,1,'one real sprite draw on hit');
 const a=calls[0];
 assert.equal(a.length,9,'source-cell bitmap blit, not a generated line image');
 assert.equal(a[0].naturalWidth,256,'uses preloaded bitmap atlas');
-assert.equal(a[1],0,'fire first variant column');
-assert.equal(a[2],64,'fire first variant in second row');
+const selected=vm.runInContext('contactAtlasIndex(ballContactFX[0])',ctx);
+assert.equal(selected,9,'sample collision chooses one of all 12 varied bursts');
+assert.equal(a[1],(selected%4)*64,'source column matches selected collision silhouette');
+assert.equal(a[2],Math.floor(selected/4)*64,'source row matches selected collision silhouette');
 assert.equal(a[3],64);assert.equal(a[4],64);
 assert(a[7]>=73&&a[7]<=79,'V120 bitmap hit prominently covers trail bend without changing source artwork');
 assert.equal(a[7],a[8],'proportions preserved');
@@ -40,14 +46,19 @@ vm.runInContext('ballContactFX[0].t=.22;drawContactFX(1)',ctx);
 assert(alphas.at(-1)>.35,'contact retains a readable soft falloff late in the animation');
 vm.runInContext('ballContactFX[0].t=.30;drawContactFX(1)',ctx);
 assert.equal(calls.length,3,'expired effect produces no extra bitmap draws');
-const index=vm.runInContext("contactAtlasIndex({style:'pierce',kind:'wall',variant:1})",ctx);
-assert.equal(index,5,'pierce wall uses bright-blue electric burst');
-assert.equal(vm.runInContext("contactAtlasIndex({style:'shield',kind:'enemy',variant:0})",ctx),10,'shield state uses green burst');
-assert.equal(vm.runInContext("contactAtlasIndex({style:'power',kind:'enemy',variant:1})",ctx),11,'power variants can show pink burst');
-assert.equal(vm.runInContext("contactAtlasIndex({style:'slow',kind:'enemy',variant:2})",ctx),9,'slow uses icy burst');
+for(let v=0;v<12;v++){
+ const hit=vm.runInContext("contactAtlasIndex({kind:'wall',style:'fire',variant:"+v+"})",ctx);
+ assert.equal(hit,v,'variant '+v+' uses unique black-and-white burst');
+}
+assert.equal(vm.runInContext("contactAtlasIndex({kind:'enemy',style:'pierce',variant:9})",ctx),9,
+ 'pierce and all other skill states share the same neutral artwork');
+assert(source.includes('variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12'),
+ 'twelve varied shapes can appear independently of collision type');
+assert(!source.includes('CONTACT_ATLAS_FRAMES'),'remove old color/state-specific atlas mapping');
 assert(source.includes("spawnContact(b,b.x,b.y,1,0,'wall')"),'left wall anchors to the actual corner');
 assert(source.includes("spawnContact(b,b.x,b.y,-1,0,'wall')"),'right wall anchors to the actual corner');
 assert(source.includes("spawnContact(b,b.x,b.y,0,1,'ceiling')"),'ceiling corner is ball center');
 assert(source.includes("spawnContact(b,piercing?f[0]:ox,piercing?f[1]:oy"),'enemy bounce covers trail vertex');
-assert(source.includes("if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.25))"),'all status sprites overlaid with one subtle bloom pass');
-console.log('PASS v120: bitmap atlas mapping, bigger centered flashes, 0.30s lifetime, initial hold, LITE and Bloom.');
+assert(source.includes("if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10))"),'minimal neutral bloom pass');
+assert(!source.includes('g.rotate(angle*.22)'),'no special collision-facing rotation');
+console.log('PASS v122: 12 grayscale silhouette frames, transparent PNG, no skill tint or directional spin; V120 timing and layering retained.');
