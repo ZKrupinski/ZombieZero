@@ -21,7 +21,7 @@ assert.equal(vm.runInContext('ballContactFX.length',env),1,'repeat hits are thro
 vm.runInContext('drawContactFX(1);drawContactFX(.36)',env);
 assert.equal(created.length,1,'same transparent sprite is generated only once');
 assert.equal(drawn.length,2,'base alpha and attenuated ADD/Bloom share bitmap');
-assert(angles.every(a=>Math.abs(a-Math.PI*.22)<.0001),'contact mark uses subtle normal-based rotation');
+assert.equal(angles.length,0,'monochrome collision balloons never orient to the contact normal');
 assert(scales.every(([x,y])=>x>=1.25&&y>=1.25&&x<1.55&&y<1.55),'fallback burst scales up along with V120 bitmap');
 const stampCode=src.slice(src.indexOf('function contactStamp('),src.indexOf('function spawnContact('));
 assert(stampCode.includes('const spike=()=>'),'jagged starburst is a single closed comic silhouette');
@@ -40,7 +40,7 @@ assert(src.includes("spawnContact(b,b.x,b.y,1,0,'wall')"),'left wall collision f
 assert(src.includes("spawnContact(b,b.x,b.y,-1,0,'wall')"),'right wall collision feeds FX');
 assert(src.includes("spawnContact(b,b.x,b.y,0,1,'ceiling')"),'ceiling uses vertical face');
 assert(src.includes("const f=contactFace(b,z,radius,ox,oy);spawnContact("),'enemy collision uses correct collider face');
-assert(src.includes("luminous(()=>drawContactFX(1),()=>drawContactFX(.25))"),'comic ink keeps a subtle bloom layer');
+assert(src.includes("luminous(()=>drawContactFX(1),()=>drawContactFX(.10))"),'monochrome comic balloons use minimal bloom');
 assert(src.includes('ballContactFX=ballContactFX.filter(q=>q.t<q.life)'),'effects expire');
 // LITE must still get this essential readable feedback, while Bloom is optional.
 env.fxEnabled=false;env.clock+=.2;
@@ -50,6 +50,6 @@ vm.runInContext('drawContactFX(1)',env);
 assert(drawn.length>before,'LITE mode draws basic contact feedback without FX renderer');
 assert(src.includes("g.drawImage(img,-22,-32)"),'centered comic burst bitmap anchored on collision face');
 assert(src.includes('life:kind===\'enemy\'?.30:kind===\'ceiling\'?.25:.27'),'impacts remain visible longer in V120');
-assert(src.includes("contactAtlasImage.src='assets/fx/impact-bursts-v119.png'"),'real bitmap atlas is preloaded');
+assert(src.includes("contactAtlasImage.src='assets/fx/impact-bursts-mono-v122.png'"),'monochrome bitmap atlas is preloaded');
 assert(src.includes("spawnContact(b,piercing?f[0]:ox,piercing?f[1]:oy"),'non-piercing hit covers the trail bend vertex');
-console.log('PASS v120 fallback: readable comic FX, anchors, durations, renderer budget and LITE visibility.');
+console.log('PASS v122 fallback: grayscale contact FX, no directional spin, anchors, timing and LITE visibility.');
