@@ -745,37 +745,54 @@ function setStageForms(regulars,stage){
  }
  for(const z of regulars)z.hp=z.max=zombieHP(z.form,z.kind,stage);
 }
+// Endless wave numbers are UI/progression counters, not campaign difficulty.
+// Start like an early-mid campaign stage, then climb steadily across waves.
+function combatStage(){
+ return runMode==='endless'?Math.min(50,6+Math.floor(Math.max(0,wave-51)*.9)):wave;
+}
+function endlessWaveNumber(){return wave-50}
+function isBossWave(){
+ return runMode==='endless'?endlessWaveNumber()%3===0:wave%3===0;
+}
+function bossIndex(){
+ return runMode==='endless'?Math.floor((endlessWaveNumber()-1)/3):wave/3-1;
+}
 function rack(){
- foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];supportDropsThisWave=0;
- const rows=wave===1&&runMode==='campaign'?2:Math.min(4,Math.max(2,Math.min(
-  Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
-  Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
- )));
- const bossStage=wave%3===0;
+ foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
+ supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
+ const stage=combatStage();
+ // Ease endless into its full four-row formation over the opening waves.
+ const rows=runMode==='endless'
+  ?Math.min(4,endlessWaveNumber()<=2?2:endlessWaveNumber()<=5?3:4)
+  :wave===1?2:Math.min(4,Math.max(2,Math.min(
+   Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
+   Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
+  )));
+ const bossStage=isBossWave();
  for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
   if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
-  const maxKind=Math.min(4,1+Math.floor(wave/2));
-  const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-wave*.12))*(maxKind+1));
-  const hp=zombieHP(0,kind,wave);
+  const maxKind=Math.min(4,1+Math.floor(stage/2));
+  const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-stage*.12))*(maxKind+1));
+  const hp=zombieHP(0,kind,stage);
   foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,
    row:r,col,w:33,h:44,hp,max:hp,kind,form:0,flash:0,
    seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
  }
- setStageForms(foes,wave);
+ setStageForms(foes,stage);
  if(bossStage){
-  const hp=Math.round(24+Math.min(wave,10)*4+Math.max(0,wave-10)*1.2);
-  const bossForm=(wave/3-1)%BOSS_FORMS.length;
+  const hp=Math.round(24+Math.min(stage,10)*4+Math.max(0,stage-10)*1.2);
+  const bossForm=bossIndex()%BOSS_FORMS.length;
   foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
  }
- $('encounter').textContent=(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+wave)
-  +' · '+(bossStage?BOSS_FORMS[(wave/3-1)%4]:stageRosterLabel(wave))
+ $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():'STAGE '+wave)
+  +' · '+(bossStage?BOSS_FORMS[bossIndex()%BOSS_FORMS.length]:stageRosterLabel(stage))
   +' / 진군 속도 '+marchBase().toFixed(1);
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
  breakoutNextCheck=clock+.85;
 }
-function marchBase(){const stage=Math.min(50,wave),n=Math.min(9,Math.max(0,stage-1)),late=Math.max(0,stage-10);return 2.7+.22*n+.006*n*n+.07*late+.0008*late*late+(runMode==='endless'?Math.min(9,Math.max(0,wave-50)*.035):0)}
+function marchBase(){const stage=Math.min(50,combatStage()),n=Math.min(9,Math.max(0,stage-1)),late=Math.max(0,stage-10);return 2.7+.22*n+.006*n*n+.07*late+.0008*late*late+(runMode==='endless'?Math.min(4,Math.max(0,endlessWaveNumber()-1)*.035):0)}
 function enemySpeed(z){
  const seed=Number.isFinite(z.seed)?z.seed:0;
  const pace=Number.isFinite(z.seed)?.80+.43*((seed*.61803398875)%1):1;
@@ -1100,7 +1117,7 @@ function march(dt){
  }
 }
 function beginClear(){if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];for(const b of balls)retireBall(b,'clear');balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;active={};score+=500;cheerTime=3;sfx('wave');effect(225,340,'#edfc8d',130,'STAGE CLEAR');$('toast').style.opacity=0;hud();$('status').textContent=''}
-function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;setStageBackground();if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(wave%3===0?'WARNING · '+BOSS_FORMS[(wave/3-1)%4]:(runMode==='endless'?'ENDLESS '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' · '+stageRosterLabel(wave))}
+function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();return}wave++;setStageBackground();if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;toast(isBossWave()?'WARNING · '+BOSS_FORMS[bossIndex()%BOSS_FORMS.length]:(runMode==='endless'?'ENDLESS '+endlessWaveNumber():'STAGE '+String(wave).padStart(2,'0'))+' · '+stageRosterLabel(combatStage()))}
 function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5,spinAngle:0,spinVelocity:0,spinDirection:vx<0?-1:1}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
@@ -1191,11 +1208,53 @@ function activate(k,x=car,y=PY-24){
  hud();
 }
 // Support is rare while safe, weighted toward danger, and rate-limited per run.
-let lastSupportAt=-60,supportDangerTime=0,supportDropsThisWave=0;
-function supportRisk(){if(!foes.length)return 0;const bottom=Math.max(...foes.map(z=>z.y+z.h)),alive=citizens.filter(p=>p.alive).length;return bottom>=475||(bottom>=380&&(lives===1||alive<=5))?2:bottom>=390||lives===1||alive<=8?1:0}
+let lastSupportAt=-60,supportDangerTime=0,supportDropsThisWave=0,endlessEmergencyUsed=false;
+function supportRisk(){
+ if(!foes.length)return 0;
+ const bottom=Math.max(...foes.map(z=>z.y+z.h)),alive=citizens.filter(p=>p.alive).length;
+ // A lone endless boss that already withdrew is still a threat during its
+ // slow return. Don't reset the emergency clock just because it moved up.
+ if(runMode==='endless'&&foes.length===1&&foes[0].boss&&foes[0].mercyUsed)return 2;
+ return bottom>=475||(bottom>=380&&(lives===1||alive<=5))?2:bottom>=390||lives===1||alive<=8?1:0;
+}
 function supportAvailable(){return wave>=3&&supportDropsThisWave<1&&citizens.some(p=>p.alive)&&clock-lastSupportAt>=45&&!has('bazooka')&&!items.some(i=>i.k==='bazooka')&&!rockets.length}
 function supportChance(){return supportAvailable()?[.005,.1,.28][supportRisk()]:0}
-function updateEmergencySupport(dt){if(mode!=='playing'||balls[0]?.held||!supportAvailable()||supportRisk()<2){supportDangerTime=0;return}supportDangerTime+=dt;if(supportDangerTime<3||items.length>=lootVisibleLimit())return;const pos=pickupLocation(car,PY-119);if(!pos)return;items.push({...pos,k:'bazooka',phase:0});lastSupportAt=clock;supportDropsThisWave++;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item')}
+function updateEmergencySupport(dt){
+ if(mode!=='playing'||supportRisk()<2){supportDangerTime=0;return}
+ if(runMode==='endless'){
+  // A collected bazooka is already doing its job. Uncollected pickups can
+  // otherwise block support indefinitely, especially when the stage is full.
+  if(has('bazooka')||endlessEmergencyUsed){supportDangerTime=0;return}
+  const pending=items.find(i=>i.k==='bazooka');
+  if(supportDropsThisWave>=1&&!pending){supportDangerTime=0;return}
+  supportDangerTime+=dt;
+  if(supportDangerTime<2)return;
+  // Give the run exactly one automatic emergency assist per wave, even when
+  // the item slots are full or every citizen has fallen.
+  const dropped=items.findIndex(i=>i.k==='bazooka');
+  if(dropped>=0)items.splice(dropped,1);
+  else supportDropsThisWave++;
+  let citizen=citizens.find(p=>p.alive);
+  if(!citizen){
+   citizen=citizens[0];
+   if(citizen){citizen.alive=true;citizen.dying=0;citizen.absent=0;citizen.returning=1.1;citizen.shooting=0}
+  }
+  if(!citizen)return;
+  endlessEmergencyUsed=true;supportDangerTime=0;
+  activate('bazooka',car,PY-24);
+  citizenCue(citizen,true);
+  sfx('item');
+  return;
+ }
+ // Campaign retains its original pickup-based support mechanics.
+ if(balls[0]?.held||!supportAvailable()){supportDangerTime=0;return}
+ supportDangerTime+=dt;
+ if(supportDangerTime<3||items.length>=lootVisibleLimit())return;
+ const pos=pickupLocation(car,PY-119);
+ if(!pos)return;
+ items.push({...pos,k:'bazooka',phase:0});lastSupportAt=clock;
+ supportDropsThisWave++;supportDangerTime=0;toast('긴급 지원! · 바주카를 받아주세요');sfx('item');
+}
 // Controlled loot: a few meaningful, non-duplicate pickups per wave.
 // Fire is recoverably rare (guaranteed after a dry streak of stages), not absent.
 const LOOT_DROP_CHANCE=.19,LOOT_MAX_VISIBLE=2,LOOT_MAX_STAGE=3,LOOT_SPACING=72;
@@ -2901,7 +2960,7 @@ function updateBazooka(dt){
  for(const r of [...rockets]){r.t+=dt;if(r.t<r.duration)continue;rockets.splice(rockets.indexOf(r),1);bazookaBlasts.push({x:r.tx,y:r.ty,t:0,life:.39,seed:Math.random()*6.28});if(bazookaBlasts.length>6)bazookaBlasts.shift();effect(r.tx,r.ty,'#ffd16c',115,'BAZOOKA!');burst(r.tx,r.ty,'#ffae65',40);sfx('blast');haptic(16);
   for(const z of [...foes]){const dx=r.tx-clamp(r.tx,z.x,z.x+z.w),dy=r.ty-clamp(r.ty,z.y,z.y+z.h);if(dx*dx+dy*dy<=BAZOOKA_RADIUS*BAZOOKA_RADIUS){damage(z,BAZOOKA_DAMAGE,false,{x:z.x+z.w/2-r.tx,y:z.y+z.h/2-r.ty});if(mode!=='playing')return}}
  }
- if(!has('bazooka')||!foes.length||balls[0]?.held)return;
+ if(!has('bazooka')||!foes.length||(runMode!=='endless'&&balls[0]?.held))return;
  bazookaTimer-=dt;if(bazookaTimer>0)return;
  const alive=citizens.filter(p=>p.alive);if(!alive.length)return;
  const p=alive[Math.floor(Math.random()*alive.length)],z=foes[Math.floor(Math.random()*foes.length)],tx=z.x+z.w/2,ty=z.y+z.h/2;

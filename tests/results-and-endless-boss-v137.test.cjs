@@ -38,7 +38,7 @@ listeners.keydown({code:'Space',key:' ',preventDefault:noop});
 assert.equal(run('mode'),'playing');
 assert.equal(run('runMode'),'endless','space replay preserves mode');
 // Only the last solo boss in endless gets one fast retreat without HP changes.
-run("start('endless');wave=60;rack();foes=foes.filter(z=>z.boss);foes[0].y=DEFENSE_Y-foes[0].h-82;foes[0].bossHomeY=foes[0].y;foes[0].hp=7;");
+run("start('endless');wave=59;rack();foes=foes.filter(z=>z.boss);foes[0].y=DEFENSE_Y-foes[0].h-82;foes[0].bossHomeY=foes[0].y;foes[0].hp=7;");
 assert.equal(run('foes.length'),1);
 const before=run('foes[0].y'),hp=run('foes[0].hp');
 run('march(.016)');
