@@ -21,7 +21,7 @@ assert(title.includes('2027 All Rights Reserved.'),'copyright second line matche
 assert(html.includes('style.css?v=90-reduced-title-logo-v125-arcade-title'),
  'fresh stylesheet URL avoids a stale mobile title');
 assert(html.includes('family=Press+Start+2P'),'pixel arcade webfont requested');
-const v125=css.slice(css.indexOf('/* v125: independent arcade title scene'));
+const v125=css.slice(css.indexOf('/* v125: independent arcade title scene'),css.indexOf('/* v126: Restore authored title hierarchy'));
 assert(v125.length>1000,'title override present at the end of stylesheet');
 for(const c of ['#693339','#84452f','#050506'])
  assert(v125.includes(c),'desaturated red/orange/black vertical gradient contains '+c);

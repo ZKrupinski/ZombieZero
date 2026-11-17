@@ -18,7 +18,7 @@ assert(!boot.includes('도시는 빼앗겼다. 랠리는 아직 끝나지 않았
  'old tagline no longer appears in title');
 const cssStart=css.indexOf('/* v126: Restore authored title hierarchy');
 assert(cssStart>0,'v126 scoped title styles exist');
-const last=css.slice(cssStart);
+const last=css.slice(cssStart,css.indexOf('/* v127: Wider arcade hero selection',cssStart));
 assert(last.includes('.zz-boot-scene .boot-eyebrow')&&last.includes('.zz-boot-scene .boot-tagline'),
  'both header lines scoped exclusively to initial boot title');
 assert(last.includes('clamp(18px,3.5vw,26px)'),
