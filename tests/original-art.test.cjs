@@ -34,7 +34,7 @@ while(offset+12<=png.length){
 }
 assert(ended&&transparency,'transparent PNG is complete');
 assert.equal(offset,png.length,'no trailing PNG garbage');
-assert(html.includes('assets/ip/green-zombie.js')&&html.indexOf('assets/ip/green-zombie.js')<html.indexOf('src="game.js?v=93-multiball-light-cache-v94-no-dark-shadow-v101-multiskill-lod-v102-boss-contact-v107-stable-trails-v108-compact-stacks-v109-element-shapes-v110-single-zigzag-v111-pierce-wake-v113-hero-multiball"'),'sprite loader precedes game');
+assert(html.includes('assets/ip/green-zombie.js')&&html.indexOf('assets/ip/green-zombie.js')<html.indexOf('src="game.js?v=93-multiball-light-cache-v94-no-dark-shadow-v101-multiskill-lod-v102-boss-contact-v107-stable-trails-v108-compact-stacks-v109-element-shapes-v110-single-zigzag-v111-pierce-wake-v113-hero-multiball-v114-dense-pierce-contact-fx"'),'sprite loader precedes game');
 assert(sw.includes('assets/ip/green-zombie.js')&&sw.includes('shell-v21-visible-loot-chain-knock'),'asset cached in updated service worker');
 assert(!game.includes('g.drawImage(originalGreen,-3,-8,39,52)'),'legacy isometric green reference not drawn in gameplay');
 assert(!game.includes("rect(-3,39,40,5,'#0b132699')"),'procedural ground shadow removed');

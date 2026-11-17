@@ -39,6 +39,56 @@ function ballImpact(b,axis,dir=1,kind='wall'){
  b.impactStrength=clamp((normalSpeed-80)/380,.64,1.12);
  b._trailCorner=true;
 }
+// V114: Reusable tiny 48px transparent impact bitmaps (no per-frame gradients).
+let ballContactFX=[];const contactStampCache=new Map();
+function contactStamp(kind,tone,variant){
+ const key=kind+tone+variant;if(contactStampCache.has(key))return contactStampCache.get(key);
+ if(typeof document==='undefined'||!document.createElement)return null;
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=48;
+ const p=canvas.getContext('2d');if(!p)return null;
+ const c=['#ffdfa0','#ffb975','#a2eeff'],e=['#f4ae63','#ff844c','#57cef7'];
+ const n=kind==='enemy'?16:kind==='ceiling'?12:10;
+ p.globalAlpha=.8;p.lineCap='round';p.lineWidth=2;p.strokeStyle=c[tone];
+ p.beginPath();p.moveTo(15,24);p.lineTo(15+n,24);
+ p.moveTo(16,20);p.lineTo(17+n*.73,variant===1?13:16);
+ p.moveTo(16,28);p.lineTo(17+n*.73,variant===2?35:32);p.stroke();
+ p.lineWidth=1.5;p.strokeStyle=e[tone];p.beginPath();
+ p.arc(14,24,kind==='enemy'?6:4,-1.05,1.05);p.stroke();
+ p.fillStyle='#fffdf2';p.fillRect(14,23,3,3);
+ contactStampCache.set(key,canvas);return canvas;
+}
+function spawnContact(b,x,y,nx,ny,kind){
+ if(!fxEnabled||!b||b.held)return;
+ if(Number.isFinite(b.contactAt)&&clock-b.contactAt<.045)return;
+ b.contactAt=clock;
+ ballContactFX.push({x,y,nx,ny,kind,tone:has('pierce')?2:has('fire')?1:0,
+  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.17:.14});
+ if(ballContactFX.length>20)ballContactFX.splice(0,ballContactFX.length-20);
+}
+function contactFace(b,z,r,ox,oy){
+ const x=clamp(b.x,z.x+2,z.x+z.w-2),y=clamp(b.y,z.y+2,z.y+z.h-2);
+ if(ox+r<=z.x&&b.vx>0)return[z.x,y,-1,0];
+ if(ox-r>=z.x+z.w&&b.vx<0)return[z.x+z.w,y,1,0];
+ if(oy+r<=z.y&&b.vy>0)return[x,z.y,0,-1];
+ if(oy-r>=z.y+z.h&&b.vy<0)return[x,z.y+z.h,0,1];
+ const faces=[[Math.abs(b.x+r-z.x),z.x,y,-1,0],
+  [Math.abs(b.x-r-(z.x+z.w)),z.x+z.w,y,1,0],
+  [Math.abs(b.y+r-z.y),x,z.y,0,-1],
+  [Math.abs(b.y-r-(z.y+z.h)),x,z.y+z.h,0,1]];
+ let f=faces[0];for(let i=1;i<4;i++)if(faces[i][0]<f[0])f=faces[i];
+ return f.slice(1);
+}
+function drawContactFX(bloom=.27){
+ for(const f of ballContactFX){
+  const img=contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
+  const fade=Math.pow(Math.max(0,1-f.t/f.life),1.35);
+  if(!fade)continue;
+  g.save();g.translate(f.x,f.y);g.rotate(Math.atan2(f.ny,f.nx));
+  g.globalCompositeOperation='lighter';
+  g.globalAlpha=fade*(f.kind==='enemy'?.62:.53)*bloom;
+  g.drawImage(img,-12,-24);g.restore();
+ }
+}
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
 // Shared interior lane for the painted walls in all 18 portrait scenes.
 // Center a nine-column horde inside the scenery instead of clipping side walls.
@@ -241,10 +291,10 @@ function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  if(typeof compactBallFX==='function'&&compactBallFX()){
   if(has('pierce')){
-   // Restore the full floor wake with at most seven overlapping cached stamps.
+   // Use up to sixteen overlapping cached pools (near-standard 12px spacing).
    // One layer per sample, no live blur and no duplicate inner light pool.
    const length=path[path.length-1].s;
-   const samples=Math.min(7,Math.max(2,Math.ceil(length/30)+1));
+   const samples=Math.min(16,Math.max(2,Math.ceil(length/12)+1));
    for(let i=0;i<samples;i++){
     const u=i/(samples-1),p=sampleBallTrail(path,length*u);
     const fade=1-.78*u;
@@ -934,7 +984,7 @@ function advanceStage(){if(runMode==='campaign'&&wave===50){finishCampaign();ret
 function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5,spinAngle:0,spinVelocity:0,spinDirection:vx<0?-1:1}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
-function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){if(selectedMode==='endless'&&!endlessUnlocked)return;runMode=selectedMode;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  const speed=Math.hypot(125,365);
@@ -1338,7 +1388,7 @@ function update(dt){
   for(const f of criticalPopups)f.t+=dt;
   criticalPopups=criticalPopups.filter(f=>f.t<f.life);
   for(const f of itemPickupFX)f.t+=dt;
-  itemPickupFX=itemPickupFX.filter(f=>f.t<f.life);
+  itemPickupFX=itemPickupFX.filter(f=>f.t<f.life);for(const q of ballContactFX)q.t+=dt;ballContactFX=ballContactFX.filter(q=>q.t<q.life);
  }
  if(mode==='over'&&failureScene){failureScene.t+=dt;clock+=dt;cameraKick*=Math.exp(-dt*10);if(failureScene.t>=1.8){failureScene=null;$('overlay').hidden=false}return}if(mode!=='playing'&&mode!=='clearing')return;clock+=dt;updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;fx=fx.filter(f=>(f.t+=dt)<f.life);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);particles=particles.filter(p=>p.t>0);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
 if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt);comboDisplayTime=Math.max(0,comboDisplayTime-dt)}
@@ -1365,7 +1415,7 @@ march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
  }
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
-for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');sfx('wall')}
+for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,ROAD_LEFT,b.y,1,0,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,ROAD_RIGHT,b.y,-1,0,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,16,0,1,'ceiling');sfx('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
  // Once it fully exits that enemy, the contact can be struck on a later pass.
@@ -1380,7 +1430,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
   if(b.pierceContacts.has(z)||(!piercing&&b.lastHit===z&&b.hitLock>0))continue;
   if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&b.y+radius>z.y&&b.y-radius<z.y+z.h){
    const impact={x:b.vx,y:b.vy};
-   b.pierceContacts.add(z);
+   b.pierceContacts.add(z);const f=contactFace(b,z,radius,ox,oy);spawnContact(b,f[0],f[1],f[2],f[3],'enemy');
    if(piercing){
     // A penetrating ball retains its velocity through unique targets.
    }else if(ox+radius<=z.x||ox-radius>=z.x+z.w){b.vx*=-1;b.x=ox;ballImpact(b,'x',b.vx,'enemy')}
@@ -2457,8 +2507,8 @@ drawKillCombo();drawBarrelBlasts();
   drawBurningBallFlames(b,r,true);
   drawPierceBallLightning(b,r,true);
  }
- drawBallVanish();
- if(particles.length)luminous(()=>{
+ drawBallVanish();if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.27));
+  if(particles.length)luminous(()=>{
   g.save();
   for(const p of particles){
    const fade=clamp(p.t/(p.life||.25),0,1);

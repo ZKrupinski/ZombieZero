@@ -24,7 +24,7 @@ while(off+12<=png.length){
 }
 assert(finished&&transparent&&off===png.length,'no opaque backdrop or corrupt chunks');
 assert(html.includes('src="assets/ip/v2/green-walk.js"'),'green loader before game');
-assert(html.indexOf('src="assets/ip/v2/green-walk.js"')<html.indexOf('src="game.js?v=93-multiball-light-cache-v94-no-dark-shadow-v101-multiskill-lod-v102-boss-contact-v107-stable-trails-v108-compact-stacks-v109-element-shapes-v110-single-zigzag-v111-pierce-wake-v113-hero-multiball"'),'load ordering');
+assert(html.indexOf('src="assets/ip/v2/green-walk.js"')<html.indexOf('src="game.js?v=93-multiball-light-cache-v94-no-dark-shadow-v101-multiskill-lod-v102-boss-contact-v107-stable-trails-v108-compact-stacks-v109-element-shapes-v110-single-zigzag-v111-pierce-wake-v113-hero-multiball-v114-dense-pierce-contact-fx"'),'load ordering');
 assert(sw.includes('./assets/ip/v2/green_zombie.png')&&sw.includes('./assets/ip/v2/green-walk.js'),'offline assets');
 assert(sw.includes('shell-v21-visible-loot-chain-knock'),'cache version');
 assert(game.includes('mascot?.draw(g,z,clock)'),'runtime connected');
