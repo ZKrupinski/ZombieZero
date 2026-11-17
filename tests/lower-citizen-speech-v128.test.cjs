@@ -4,14 +4,14 @@ const game=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(game.includes('y:p.y-86'),'save/return/special speech lowers 14px');
-assert(game.includes('y:o.p.y-61'),'ambient cheer lowers 14px');
+assert(game.includes('const y=p.y-61+stagger['),'ambient cheer keeps V128 baseline with randomized lower offsets');
 assert(game.includes('Math.abs(p.x-car)>76'),'citizens near the car can cheer but not crowd its center');
 assert(game.includes('const centralClearance=q.event?56:26'),
  'event bubbles keep safe spacing, ambient bubbles allow only near-edge overlap');
 assert(game.includes('const edge=q.event?67:34'),
  'ambient text stays away from hero while overlapping vehicle edge slightly');
-assert(game.includes('let x=clamp(q.x,22,W-22-w),y=clamp(q.y,100,H-57-h)'),
- 'new 14px lower y is not suppressed by old height clamp');
+assert(game.includes('q.event?H-57-h:H-45-h'),
+ 'normal cheers receive extra 12px of downward room, event messages retain V128 clamp');
 const start=game.indexOf('// V79: speech placement');
 const v128=game.indexOf('// V128: Drop speech 14px');
 const end=game.indexOf('function drawBubbles(){',v128);
@@ -39,7 +39,7 @@ assert.equal(special.y,596,'special return/save cue is also lowered 14px');
 for(const q of [ambient,event]){
  const place=vm.runInContext('citizenBubbleLayout('+JSON.stringify(q)+')',ctx);
  assert(place.x>=22&&place.x+place.w<=428,'speech stays inside the 450px canvas');
- assert(place.y>=100&&place.y+place.h<=710-57,'speech stays above the citizen area');
+ assert(place.y>=100&&place.y+place.h<=710-(q.event?57:45),'speech stays above the citizen area');
 }
 assert(game.includes("const initialCar=Number.isFinite(q.carAtBirth)?q.carAtBirth:carX"),
  'original car-at-birth anchor must remain');
