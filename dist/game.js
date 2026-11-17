@@ -241,10 +241,10 @@ function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  if(typeof compactBallFX==='function'&&compactBallFX()){
   if(has('pierce')){
-   // Restore the full floor wake with at most seven overlapping cached stamps.
+   // Use up to sixteen overlapping cached pools (near-standard 12px spacing).
    // One layer per sample, no live blur and no duplicate inner light pool.
    const length=path[path.length-1].s;
-   const samples=Math.min(7,Math.max(2,Math.ceil(length/30)+1));
+   const samples=Math.min(16,Math.max(2,Math.ceil(length/12)+1));
    for(let i=0;i<samples;i++){
     const u=i/(samples-1),p=sampleBallTrail(path,length*u);
     const fade=1-.78*u;
