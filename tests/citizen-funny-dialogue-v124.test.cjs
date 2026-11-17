@@ -1,0 +1,47 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const src=fs.readFileSync('dist/game.js','utf8');
+const begin=src.indexOf('// V124: Short arcade crowd reactions');
+const end=src.indexOf('// V79: speech placement',begin);
+assert(begin>=0&&end>begin,'v124 dialogue implementation must load');
+const speech=src.slice(begin,end);
+const rng=Object.create(Math);rng.random=()=>0;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const citizens=[{x:66,y:680,alive:true},{x:386,y:680,alive:true}];
+const env={Math:rng,Number,Array,clamp,W:450,H:710,PY:584,car:225,citizens,
+ bubbles:[],bubbleTimer:.1,cheerTime:0,mode:'playing'};
+vm.createContext(env);vm.runInContext(speech,env);
+const required=['씩스쎄븐~!','사랑해요','확간다','통쾌!','쫌 치는데?'];
+const cheers=vm.runInContext('CHEERS',env);
+for(const line of required)assert(cheers.includes(line),'requested line missing: '+line);
+assert(cheers.length>=24,'the everyday cheering pool is meaningfully expanded');
+const first=vm.runInContext('pickCitizenLine(CHEERS)',env),second=vm.runInContext('pickCitizenLine(CHEERS)',env);
+assert.notEqual(first,second,'do not show the same random cheer twice in succession');
+for(const line of cheers){
+ const width=vm.runInContext('citizenBubbleWidth('+JSON.stringify(line)+')',env);
+ const estimate=Array.from(line).reduce((n,c)=>n+(c.codePointAt(0)>255?15:9),0);
+ assert(width>=estimate+18,'bubble fits '+line);
+ assert(width<=152,'cheers stay within an appropriate mobile width');
+}
+vm.runInContext('citizenCue(citizens[0],true)',env);
+assert.equal(env.bubbles.length,1,'return event creates one speech bubble');
+assert.equal(env.bubbles[0].event,'return','return type preserved');
+assert(env.bubbles[0].w>=112,'event bubble keeps readable minimum width');
+assert(env.bubbles[0].x>=22&&env.bubbles[0].x+env.bubbles[0].w<=428,'event bubble remains on screen');
+env.bubbles=[];env.bubbleTimer=0;
+vm.runInContext('updateBubbles(.016)',env);
+assert.equal(env.bubbles.length,1,'ambient cheering still occurs');
+const q=env.bubbles[0];
+assert(cheers.includes(q.text),'ambient line is from updated pool');
+assert(q.w>=80&&q.w<=152,'ambient width adjusts to text length');
+assert(q.x>=22&&q.x+q.w<=428,'ambient bubble stays within canvas');
+assert.equal(q.carAtBirth,225,'car-relative placement is anchored at bubble birth');
+env.bubbles=[];env.bubbleTimer=0;
+vm.runInContext("citizenCue(citizens[1],false,'한 방 간다!')",env);
+assert.equal(env.bubbles[0].event,'bazooka','scripted bazooka shout preserved');
+assert.equal(env.bubbles[0].text,'한 방 간다!','scripted text is not replaced');
+assert.equal(vm.runInContext('lastCitizenLine',env),second,'scripted line does not alter random rotation');
+assert(src.includes('drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();'),
+ 'dialogue remains over game effects and badges');
+assert(src.includes('function citizenBubblePointer(q,place){'),'fixed tail placement retained');
+console.log('PASS v124: requested Korean lines, varied cheers, no consecutive duplicates, responsive on-screen bubbles, scripted event cues.');
