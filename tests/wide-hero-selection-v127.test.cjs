@@ -32,7 +32,8 @@ assert(html.includes('v127-wide-selection'),'new stylesheet cache is invalidated
 assert(sw.includes('v127-wide-selection'),'service worker cache refreshed');
 const pos=css.indexOf('/* v127: Wider arcade hero selection');
 assert(pos>0,'new feature stylesheet exists at end');
-const styles=css.slice(pos);
+const nextSection=css.indexOf('/* V132:',pos);
+const styles=css.slice(pos,nextSection>pos?nextSection:undefined);
 assert(!styles.includes('#overlay[data-screen="results"]'),'results are still separately styled');
 assert(!styles.includes('.zz-boot-scene'),'independent title screen remains unchanged');
 for(const k of [
