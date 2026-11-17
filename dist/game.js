@@ -328,8 +328,10 @@ const trailRenderPaths=new WeakMap();
 function getBallRenderTrailPath(b,r){
  const hit=trailRenderPaths.get(b);
  if(hit&&hit.frame===trailRenderFrame&&hit.radius===r)return hit.path;
- const path=buildBallTrailPath(b,r);
- trailRenderPaths.set(b,{frame:trailRenderFrame,radius:r,path});
+ const entry=hit||{points:[]};
+ const path=buildBallTrailPath(b,r,entry.points);
+ entry.frame=trailRenderFrame;entry.radius=r;entry.path=path;
+ if(!hit)trailRenderPaths.set(b,entry);
  return path;
 }
 // Projected reflections sit below the effect, while the original flame
@@ -605,7 +607,7 @@ function skillUI(){
  const el=$('skills');
  if(!el)return;
  if(el.innerHTML)el.innerHTML='';
- el.hidden=true;
+ if(!el.hidden)el.hidden=true;
 }
 let DEFENSE_Y=565;
 let runMode='campaign',endlessUnlocked=false,lastStandUsed=false,resistFlash=0,failureScene=null,lastLostBall=null;
@@ -1447,17 +1449,30 @@ function hit(z,impact=null,piercing=false){
   if(count)sfx('fire');
  }
 }
+// Stable in-place removal avoids allocating short-lived effect arrays each tick.
+function compactVisualQueue(queue,keep){
+ let write=0;
+ for(let read=0;read<queue.length;read++){
+  const value=queue[read];if(keep(value))queue[write++]=value;
+ }
+ queue.length=write;return queue;
+}
+const visualAlive=f=>f.t<f.life,particleAlive=p=>p.t>0,deathPending=d=>!d.done;
+function advanceVisualQueue(queue,dt){
+ for(const f of queue)f.t+=dt;
+ return compactVisualQueue(queue,visualAlive);
+}
 function update(dt){
  // Visual FX can finish even while a final-ball loss freezes the game scene.
  if(mode!=='paused'){
   for(const f of ballVanish)f.t+=dt;
-  ballVanish=ballVanish.filter(f=>f.t<f.life);
+  compactVisualQueue(ballVanish,visualAlive);
   for(const f of criticalPopups)f.t+=dt;
-  criticalPopups=criticalPopups.filter(f=>f.t<f.life);
+  compactVisualQueue(criticalPopups,visualAlive);
   for(const f of itemPickupFX)f.t+=dt;
-  itemPickupFX=itemPickupFX.filter(f=>f.t<f.life);for(const q of ballContactFX)q.t+=dt;ballContactFX=ballContactFX.filter(q=>q.t<q.life);
+  compactVisualQueue(itemPickupFX,visualAlive);for(const q of ballContactFX)q.t+=dt;compactVisualQueue(ballContactFX,visualAlive);
  }
- if(mode==='over'&&failureScene){failureScene.t+=dt;clock+=dt;cameraKick*=Math.exp(-dt*10);if(failureScene.t>=1.8){failureScene=null;$('overlay').hidden=false}return}if(mode!=='playing'&&mode!=='clearing')return;clock+=dt;updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;fx=fx.filter(f=>(f.t+=dt)<f.life);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);particles=particles.filter(p=>p.t>0);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
+ if(mode==='over'&&failureScene){failureScene.t+=dt;clock+=dt;cameraKick*=Math.exp(-dt*10);if(failureScene.t>=1.8){failureScene=null;$('overlay').hidden=false}return}if(mode!=='playing'&&mode!=='clearing')return;clock+=dt;updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;advanceVisualQueue(fx,dt);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);compactVisualQueue(particles,particleAlive);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
 if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt);comboDisplayTime=Math.max(0,comboDisplayTime-dt)}
 updateCrowd(dt);updateEmergencySupport(dt);
 if(mode==='clearing'){clearTime+=dt;clearBurst+=dt;car+=(225-car)*Math.min(1,dt*3);if(fxEnabled&&clearBurst>.22){clearBurst=0;burst(35+Math.random()*380,160+Math.random()*200,['#ffe97a','#8df3c8','#f9a2de'][Math.floor(Math.random()*3)],14)}if(clearTime>=2.8)advanceStage();return}
@@ -1655,7 +1670,7 @@ function enemyDeath(z,critical=false){
  const freeze=Math.max(0,(z.hitShakeUntil||0)-clock);
  enemyDeaths.push({z:{...z,flash:.12},critical,spriteMode,t:0,freeze,split:split+freeze,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
 function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
-function updateEnemyVisuals(dt){hitFlashes=hitFlashes.filter(f=>(f.t+=dt)<f.life);barrelBlasts=barrelBlasts.filter(b=>(b.t+=dt)<b.life);bazookaBlasts=bazookaBlasts.filter(b=>(b.t+=dt)<b.life);for(const z of foes){
+function updateEnemyVisuals(dt){advanceVisualQueue(hitFlashes,dt);advanceVisualQueue(barrelBlasts,dt);advanceVisualQueue(bazookaBlasts,dt);for(const z of foes){
  z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);
  z.flinch=Math.max(0,(z.flinch||0)-dt);z.knockTime=Math.max(0,(z.knockTime||0)-dt);
  if(Number.isFinite(z.chainReactAt)&&clock>=z.chainReactAt){
@@ -1668,7 +1683,7 @@ function updateEnemyVisuals(dt){hitFlashes=hitFlashes.filter(f=>(f.t+=dt)<f.life
  // Final bitmap already depicts lying down / cute brain debris; do not duplicate
  // the old procedural blast or turn a normal backward fall into a side explosion.
  if(!d.spriteMode)scatterEnemy(d)
-}}enemyDeaths=enemyDeaths.filter(d=>!d.done);for(const p of enemyPieces){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=420*dt;p.angle+=p.spin*dt}enemyPieces=enemyPieces.filter(p=>p.t<p.life)}
+}}compactVisualQueue(enemyDeaths,deathPending);for(const p of enemyPieces){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=420*dt;p.angle+=p.spin*dt}compactVisualQueue(enemyPieces,visualAlive)}
 // Original ZOMBIE ZERO mascot critical death: hinged black head lid reveals
 // a bright pink brain. Fixed front/elevated-top gameplay camera; NO floor shadow.
 // This only changes the cosmetic death queue (never HP, scoring or colliders).
@@ -2106,23 +2121,31 @@ function recordBallTrail(b,x,y,corner=false){
  b.trail.unshift({x,y,corner:!!corner});
  if(b.trail.length>96)b.trail.length=96;
 }
-function buildBallTrailPath(b,r){
+function buildBallTrailPath(b,r,points){
  if(b.held||!b.trail?.length)return [];
- const raw=[{x:b.x,y:b.y},...b.trail],limit=r>8?BALL_TRAIL_POWER:BALL_TRAIL_NORMAL;
- let total=0;const path=[{x:b.x,y:b.y,s:0}];
- for(let i=0;i<raw.length-1&&total<limit;i++){
-  const p=raw[i],q=raw[i+1],prev=raw[Math.max(0,i-1)],next=raw[Math.min(raw.length-1,i+2)];
+ // Reuse vertex storage per live ball; retain the exact spline and sampling.
+ // Index zero is the current position (without a historical corner flag).
+ const head={x:b.x,y:b.y},trail=b.trail,limit=r>8?BALL_TRAIL_POWER:BALL_TRAIL_NORMAL;
+ let total=0;const path=[];
+ const append=(x,y,s)=>{
+  const i=path.length,p=points?(points[i]||(points[i]={x:0,y:0,s:0})):{};
+  p.x=x;p.y=y;p.s=s;path.push(p);
+ };
+ append(b.x,b.y,0);
+ for(let i=0;i<trail.length&&total<limit;i++){
+  const p=i?trail[i-1]:head,q=trail[i],prev=i>1?trail[i-2]:head,next=trail[Math.min(trail.length-1,i+1)];
   const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy);if(len<.6)continue;
-  const count=Math.ceil(len/2.6);
+  const count=Math.ceil(len/2.6),corner=p.corner||q.corner;
+  const m0x=corner?dx:(q.x-prev.x)*.5,m0y=corner?dy:(q.y-prev.y)*.5;
+  const m1x=corner?dx:(next.x-p.x)*.5,m1y=corner?dy:(next.y-p.y)*.5;
+  const minX=Math.min(p.x,q.x),maxX=Math.max(p.x,q.x),minY=Math.min(p.y,q.y),maxY=Math.max(p.y,q.y);
   for(let n=1;n<=count;n++){
-   const t=n/count,t2=t*t,t3=t2*t,corner=p.corner||q.corner;
-   const m0x=corner?dx:(q.x-prev.x)*.5,m0y=corner?dy:(q.y-prev.y)*.5;
-   const m1x=corner?dx:(next.x-p.x)*.5,m1y=corner?dy:(next.y-p.y)*.5;
-   const x=clamp(corner?p.x+dx*t:(2*t3-3*t2+1)*p.x+(t3-2*t2+t)*m0x+(-2*t3+3*t2)*q.x+(t3-t2)*m1x,Math.min(p.x,q.x),Math.max(p.x,q.x));
-   const y=clamp(corner?p.y+dy*t:(2*t3-3*t2+1)*p.y+(t3-2*t2+t)*m0y+(-2*t3+3*t2)*q.y+(t3-t2)*m1y,Math.min(p.y,q.y),Math.max(p.y,q.y));
+   const t=n/count,t2=t*t,t3=t2*t;
+   const x=clamp(corner?p.x+dx*t:(2*t3-3*t2+1)*p.x+(t3-2*t2+t)*m0x+(-2*t3+3*t2)*q.x+(t3-t2)*m1x,minX,maxX);
+   const y=clamp(corner?p.y+dy*t:(2*t3-3*t2+1)*p.y+(t3-2*t2+t)*m0y+(-2*t3+3*t2)*q.y+(t3-t2)*m1y,minY,maxY);
    const last=path[path.length-1],step=Math.hypot(x-last.x,y-last.y);if(step<.04)continue;
-   if(total+step>=limit){const z=(limit-total)/step;path.push({x:last.x+(x-last.x)*z,y:last.y+(y-last.y)*z,s:limit});return path}
-   total+=step;path.push({x,y,s:total});
+   if(total+step>=limit){const z=(limit-total)/step;append(last.x+(x-last.x)*z,last.y+(y-last.y)*z,limit);return path}
+   total+=step;append(x,y,total);
   }
  }
  return path;

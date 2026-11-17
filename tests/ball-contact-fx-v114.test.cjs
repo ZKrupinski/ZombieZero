@@ -41,7 +41,7 @@ assert(src.includes("spawnContact(b,b.x,b.y,-1,0,'wall')"),'right wall collision
 assert(src.includes("spawnContact(b,b.x,b.y,0,1,'ceiling')"),'ceiling uses vertical face');
 assert(src.includes("const f=contactFace(b,z,radius,ox,oy);spawnContact("),'enemy collision uses correct collider face');
 assert(src.includes("luminous(()=>drawContactFX(1),()=>drawContactFX(.10))"),'monochrome comic balloons use minimal bloom');
-assert(src.includes('ballContactFX=ballContactFX.filter(q=>q.t<q.life)'),'effects expire');
+assert(src.includes('compactVisualQueue(ballContactFX,visualAlive)'),'effects expire');
 // LITE must still get this essential readable feedback, while Bloom is optional.
 env.fxEnabled=false;env.clock+=.2;
 vm.runInContext("spawnContact(other,175,130,1,0,'wall')",env);
