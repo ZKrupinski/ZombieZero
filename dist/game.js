@@ -178,7 +178,7 @@ function drawSoftLightSpill(x,y,r,rgb,alpha=.35,useTrailStamp=false){
  const radius=Math.min(100,Math.max(12,r));
  // Only the multi-ball trail wake takes this faster path. Positions, 5-stop
  // falloff, additive alpha and BOTH outer/core radii stay unchanged.
- if(useTrailStamp&&(balls.length>1||(typeof has==='function'&&has('pierce')))&&typeof document.createElement==='function'){
+ if(useTrailStamp&&(balls.length>1||(typeof has==='function'&&has('pierce')))&&typeof document!=='undefined'&&typeof document.createElement==='function'){
   const stamp=trailLightStamp(rgb);
   if(stamp){
    g.save();g.globalCompositeOperation='lighter';
