@@ -36,11 +36,12 @@ assert(cheers.includes(q.text),'ambient line is from updated pool');
 assert(q.w>=80&&q.w<=152,'ambient width adjusts to text length');
 assert(q.x>=22&&q.x+q.w<=428,'ambient bubble stays within canvas');
 assert.equal(q.carAtBirth,225,'car-relative placement is anchored at bubble birth');
+const previousRandomLine=vm.runInContext('lastCitizenLine',env);
 env.bubbles=[];env.bubbleTimer=0;
 vm.runInContext("citizenCue(citizens[1],false,'한 방 간다!')",env);
 assert.equal(env.bubbles[0].event,'bazooka','scripted bazooka shout preserved');
 assert.equal(env.bubbles[0].text,'한 방 간다!','scripted text is not replaced');
-assert.equal(vm.runInContext('lastCitizenLine',env),second,'scripted line does not alter random rotation');
+assert.equal(vm.runInContext('lastCitizenLine',env),previousRandomLine,'scripted line does not alter random rotation');
 assert(src.includes('drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();'),
  'dialogue remains over game effects and badges');
 assert(src.includes('function citizenBubblePointer(q,place){'),'fixed tail placement retained');
