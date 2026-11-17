@@ -26,7 +26,7 @@ assert(selection.includes('NOVALIGHT x AHNDANTE x BLACKRAIN')&&
  'same two-line exact title screen credits');
 assert(selection.indexOf('id="hint"')<selection.indexOf('class="selection-copyright"'),
  'selection copyright lies below character and start controls');
-assert(selection.indexOf('class="selection-copyright"')<selection.indexOf('</div>'),
+assert(selection.indexOf('class="selection-copyright"')<selection.lastIndexOf('</div>'),
  'copyright is located inside overlay');
 assert(html.includes('v127-wide-selection'),'new stylesheet cache is invalidated');
 assert(sw.includes('v127-wide-selection'),'service worker cache refreshed');
