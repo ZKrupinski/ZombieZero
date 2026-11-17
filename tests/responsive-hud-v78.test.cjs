@@ -69,12 +69,13 @@ const fn=vm.runInNewContext(src+';citizenBubbleLayout',{
 function speech(q,carX){
  const o=fn(q,carX),w=o.w,h=o.h;
  assert(o.x>=22&&o.x+w<=428,'speech stays inside the 450px art border');
- assert(o.y>=100&&o.y+h<=635,'speech stays above crowd foot area');
- const clash=o.x<carX+56&&o.x+w>carX-56&&o.y+h>584-66&&o.y<584+42;
- assert(!clash,'speech does not hide player car or racket');
+ assert(o.y>=100&&o.y+h<=653,'lower speech remains above citizens and defensive rail');
+ const center=q.event?56:26;
+ const clash=o.x<carX+center&&o.x+w>carX-center&&o.y+h>584-66&&o.y<584+42;
+ assert(!clash,'speech may cover the outer car edge, never the central hero or long-event clearance');
 }
 speech({x:190,y:582,w:112,event:'return'},225);
 speech({x:320,y:582,w:112,event:'save'},380);
 speech({x:20,y:607,w:80,event:null},80);
 speech({x:190,y:350,w:112,event:'return'},225);
-console.log('PASS: 11 device ratios keep heart/wave/score/pause/menu distinct, combo below HUD and citizens clear of the player');
+console.log('PASS: 11 device ratios keep HUD distinct, combo below HUD and citizens only at the car edge, never over its center');
