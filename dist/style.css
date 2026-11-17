@@ -1314,7 +1314,9 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
 .zz-boot-scene .boot-eyebrow{color:#f0b3a2}
 .zz-boot-scene .boot-start{
  position:relative;
- display:block;
+ display:flex;
+ align-items:center;
+ justify-content:center;
  flex:none;
  width:min(90%,328px);
  height:clamp(52px,8svh,70px);
