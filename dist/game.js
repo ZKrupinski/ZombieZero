@@ -2663,20 +2663,55 @@ function drawKillCombo(){
 // Keep all 18 original supporters and sprites, but bring their save hitboxes
 // inside the same side walls where the ball now legitimately travels.
 const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,phase:i*.9,alive:true,dying:0,supportTime:0}));
-function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0}bubbles=[];bubbleTimer=.25}
+function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0}bubbles=[];bubbleTimer=.25;lastCitizenLine=''}
 function haptic(pattern){if(!fxEnabled||!touchUsed||typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return;const now=Date.now();if(now-lastBuzz<100)return;lastBuzz=now;try{navigator.vibrate(pattern)}catch{}}
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
 function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
 function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');haptic(10);return true}
 function citizenCollision(b,r){if(b.vy<=0)return false;for(const p of citizens){if(!p.alive)continue;const box={x:p.x-10,y:p.y-13,w:20,h:34};if(!circleRect(b.x,b.y,r,box))continue;p.alive=false;p.dying=.8;p.returning=0;p.absent=0;bubbles=bubbles.filter(q=>q.citizen!==p);upwardBounce(b,p.x,16,box.y,r);citizenCue(p,false);effect(p.x,box.y,'#ffb16f',65);burst(p.x,p.y-10,'#ffda86',22);sfx('citizen');haptic(14);return true}return false}
-function citizenCue(p,back,text=null){
- const w=112,x=clamp(p.x-w/2,22,W-22-w);
- bubbles=bubbles.filter(q=>q.citizen!==p&&(q.x+(q.w||80)+8<=x||q.x>=x+w+8)).slice(-1);
- const lines=back?['다시 왔어!','나만 믿어!','한 번 더!']:['내가 막을게!','뒤를 부탁해!','으악! 막았다!'];
- bubbles.push({citizen:p,x,y:p.y-100,w,carAtBirth:car,event:text?'bazooka':back?'return':'save',t:0,life:2.1,text:text||lines[Math.floor(Math.random()*lines.length)]});bubbleTimer=1;
+// V124: Short arcade crowd reactions with dynamic speech width.
+// A measured approximation avoids per-frame canvas text measurement.
+let lastCitizenLine='';
+function citizenBubbleWidth(text,event=false){
+ const len=Array.from(text).reduce((sum,c)=>sum+(c.codePointAt(0)>255?15:9),0);
+ return clamp(Math.ceil(len+22),event?112:80,event?166:152);
 }
-const CHEERS=['파이팅!','막아줘!','멋져!','최고야!','조심해!','가자!'];
-function updateBubbles(dt){bubbles=bubbles.filter(q=>(q.t+=dt)<q.life&&(q.event||q.citizen.alive));bubbleTimer-=dt;if(bubbleTimer>0||bubbles.length>=2)return;bubbleTimer=.7+Math.random()*.4;const options=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>85).map(p=>({p,x:clamp(p.x-40,22,348)})).filter(o=>bubbles.every(q=>o.x+88<=q.x||o.x>=q.x+(q.w||80)+8));if(!options.length)return;const o=options[Math.floor(Math.random()*options.length)];bubbles.push({citizen:o.p,x:o.x,y:o.p.y-75,carAtBirth:car,t:0,life:1.6,text:mode==='clearing'?'고마워!':CHEERS[Math.floor(Math.random()*CHEERS.length)]});cheerTime=Math.max(cheerTime,1)}
+function pickCitizenLine(lines){
+ const available=lines.length>1?lines.filter(line=>line!==lastCitizenLine):lines;
+ const line=available[Math.floor(Math.random()*available.length)];
+ lastCitizenLine=line;
+ return line;
+}
+function citizenCue(p,back,text=null){
+ const lines=back?
+  ['다시 왔어!','나만 믿어!','한 번 더!','돌아왔다!','복귀 완료!','아직 안 끝났어!']:
+  ['내가 막을게!','뒤를 부탁해!','으악! 막았다!','이 몸이 막는다!','살신성인!','내가 지킨다!'];
+ const said=text||pickCitizenLine(lines);
+ const w=citizenBubbleWidth(said,true),x=clamp(p.x-w/2,22,W-22-w);
+ bubbles=bubbles.filter(q=>q.citizen!==p&&(q.x+(q.w||80)+8<=x||q.x>=x+w+8)).slice(-1);
+ bubbles.push({citizen:p,x,y:p.y-100,w,carAtBirth:car,event:text?'bazooka':back?'return':'save',t:0,life:2.1,text:said});bubbleTimer=1;
+}
+const CHEERS=['파이팅!','막아줘!','멋져!','최고야!','조심해!','가자!',
+ '씩스쎄븐~!','사랑해요','확간다','통쾌!','쫌 치는데?',
+ '이 맛이지!','캬~ 시원해!','오늘 폼 뭐야?','나이스 샷!',
+ '가보자고!','어우야!','오, 제법인데?','짜릿하다!',
+ '실화냐?','이게 되네?','이거지 이거!','오우~ 예!',
+ '대박 사건!','공 좀 친다!','얼씨구!','화끈하다!'];
+function updateBubbles(dt){
+ bubbles=bubbles.filter(q=>(q.t+=dt)<q.life&&(q.event||q.citizen.alive));
+ bubbleTimer-=dt;
+ if(bubbleTimer>0||bubbles.length>=2)return;
+ bubbleTimer=.7+Math.random()*.4;
+ const said=mode==='clearing'?'고마워!':pickCitizenLine(CHEERS);
+ const w=citizenBubbleWidth(said);
+ const options=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>85)
+  .map(p=>({p,x:clamp(p.x-w/2,22,W-22-w)}))
+  .filter(o=>bubbles.every(q=>o.x+w+8<=q.x||o.x>=q.x+(q.w||80)+8));
+ if(!options.length)return;
+ const o=options[Math.floor(Math.random()*options.length)];
+ bubbles.push({citizen:o.p,x:o.x,y:o.p.y-75,w,carAtBirth:car,t:0,life:1.6,text:said});
+ cheerTime=Math.max(cheerTime,1);
+}
 // V79: speech placement depends on the car position ONLY when the bubble
 // is created. Moving the car cannot drag the bubble or stretch its pointer.
 function citizenBubbleLayout(q,carX=car){
