@@ -2697,6 +2697,18 @@ const CHEERS=['파이팅!','막아줘!','멋져!','최고야!','조심해!','가
  '가보자고!','어우야!','오, 제법인데?','짜릿하다!',
  '실화냐?','이게 되네?','이거지 이거!','오우~ 예!',
  '대박 사건!','공 좀 친다!','얼씨구!','화끈하다!'];
+// V129: Small vertical variation keeps spontaneous cheers from forming one
+// ruler-straight row. Check FINAL clamped/car-shifted rectangles, not raw x/y.
+// A second cheer must be staggered by >=11px and clear all nearby balloons.
+function citizenCheerFits(q){
+ const a=citizenBubbleLayout(q);
+ return bubbles.every(other=>{
+  const b=citizenBubbleLayout(other);
+  if(Math.abs(a.y-b.y)<11)return false;
+  return a.x+a.w+7<=b.x||b.x+b.w+7<=a.x||
+         a.y+a.h+7<=b.y||b.y+b.h+7<=a.y;
+ });
+}
 function updateBubbles(dt){
  bubbles=bubbles.filter(q=>(q.t+=dt)<q.life&&(q.event||q.citizen.alive));
  bubbleTimer-=dt;
@@ -2704,12 +2716,25 @@ function updateBubbles(dt){
  bubbleTimer=.7+Math.random()*.4;
  const said=mode==='clearing'?'고마워!':pickCitizenLine(CHEERS);
  const w=citizenBubbleWidth(said);
- const options=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>76)
-  .map(p=>({p,x:clamp(p.x-w/2,22,W-22-w)}))
-  .filter(o=>bubbles.every(q=>o.x+w+8<=q.x||o.x>=q.x+(q.w||80)+8));
- if(!options.length)return;
- const o=options[Math.floor(Math.random()*options.length)];
- bubbles.push({citizen:o.p,x:o.x,y:o.p.y-61,w,carAtBirth:car,t:0,life:1.6,text:said});
+ const crowd=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>76&&
+  !bubbles.some(q=>q.citizen===p));
+ if(!crowd.length)return;
+ // Original p.y-61 is the baseline; positive values lower the balloon.
+ const stagger=[-8,-2,4,10,16,21];
+ const firstCitizen=Math.floor(Math.random()*crowd.length);
+ const firstOffset=Math.floor(Math.random()*stagger.length);
+ let chosen=null;
+ for(let i=0;i<crowd.length&&!chosen;i++){
+  const p=crowd[(firstCitizen+i)%crowd.length];
+  const x=clamp(p.x-w/2,22,W-22-w);
+  for(let j=0;j<stagger.length;j++){
+   const y=p.y-61+stagger[(firstOffset+j)%stagger.length];
+   const q={citizen:p,x,y,w,carAtBirth:car};
+   if(citizenCheerFits(q)){chosen=q;break}
+  }
+ }
+ if(!chosen)return;
+ bubbles.push({...chosen,t:0,life:1.6,text:said});
  cheerTime=Math.max(cheerTime,1);
 }
 // V79: speech placement depends on the car position ONLY when the bubble
@@ -2720,7 +2745,8 @@ function updateBubbles(dt){
 function citizenBubbleLayout(q,carX=car){
  const w=q.w||80,h=q.event?46:29;
  const initialCar=Number.isFinite(q.carAtBirth)?q.carAtBirth:carX;
- let x=clamp(q.x,22,W-22-w),y=clamp(q.y,100,H-57-h);
+ // Normal cheers can land 12px lower; keep the pointer just above citizen heads.
+ let x=clamp(q.x,22,W-22-w),y=clamp(q.y,100,q.event?H-57-h:H-45-h);
  // Long save/return bubbles keep original car clearance; short cheers can
  // partially overlap the car's outer 20px without hiding the hero's face.
  const centralClearance=q.event?56:26;
