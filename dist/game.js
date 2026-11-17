@@ -42,27 +42,55 @@ function ballImpact(b,axis,dir=1,kind='wall'){
 // V114: Reusable tiny 48px transparent impact bitmaps (no per-frame gradients).
 let ballContactFX=[];const contactStampCache=new Map();
 function contactStamp(kind,tone,variant){
- const key=kind+tone+variant;if(contactStampCache.has(key))return contactStampCache.get(key);
+ const key=kind+tone+variant;
+ if(contactStampCache.has(key))return contactStampCache.get(key);
  if(typeof document==='undefined'||!document.createElement)return null;
- const canvas=document.createElement('canvas');canvas.width=canvas.height=48;
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
  const p=canvas.getContext('2d');if(!p)return null;
- const c=['#ffdfa0','#ffb975','#a2eeff'],e=['#f4ae63','#ff844c','#57cef7'];
- const n=kind==='enemy'?16:kind==='ceiling'?12:10;
- p.globalAlpha=.8;p.lineCap='round';p.lineWidth=2;p.strokeStyle=c[tone];
- p.beginPath();p.moveTo(15,24);p.lineTo(15+n,24);
- p.moveTo(16,20);p.lineTo(17+n*.73,variant===1?13:16);
- p.moveTo(16,28);p.lineTo(17+n*.73,variant===2?35:32);p.stroke();
- p.lineWidth=1.5;p.strokeStyle=e[tone];p.beginPath();
- p.arc(14,24,kind==='enemy'?6:4,-1.05,1.05);p.stroke();
- p.fillStyle='#fffdf2';p.fillRect(14,23,3,3);
+ // Small but readable 4-point collision flash with a dark crisp rim,
+ // rather than v114's ultra-thin, low-alpha lines on bright backgrounds.
+ const core=['#fff9df','#fff5de','#eeffff'][tone];
+ const accent=['#ffc46a','#ff9951','#62d4ff'][tone];
+ const outline=['#675343','#794a38','#345a70'][tone];
+ const size=kind==='enemy'?20:kind==='ceiling'?13:16;
+ const lean=(variant-1)*2;
+ const cx=20,cy=32;
+ p.lineCap='round';p.lineJoin='round';
+ // Short asymmetric rays emerge from the actual contact normal (+X).
+ const rays=()=>{
+  p.beginPath();
+  p.moveTo(cx+6,cy);p.lineTo(cx+size+6,cy+lean*.3);
+  p.moveTo(cx+4,cy-5);p.lineTo(cx+size*.70,cy-12+lean);
+  p.moveTo(cx+4,cy+5);p.lineTo(cx+size*.70,cy+12+lean);
+  if(kind==='enemy'){
+   p.moveTo(cx+size*.58,cy-5);p.lineTo(cx+size*.85,cy-9);
+   p.moveTo(cx+size*.58,cy+5);p.lineTo(cx+size*.85,cy+9);
+  }
+ };
+ p.strokeStyle=outline;p.globalAlpha=.72;p.lineWidth=5;rays();p.stroke();
+ p.strokeStyle=accent;p.globalAlpha=.98;p.lineWidth=3;rays();p.stroke();
+ p.strokeStyle=core;p.globalAlpha=.93;p.lineWidth=1.35;rays();p.stroke();
+ // Star core overlaps the contact surface, stays visible even under a ball.
+ const star=()=>{
+  p.beginPath();
+  p.moveTo(cx-8,cy);p.lineTo(cx-2.6,cy-3);
+  p.lineTo(cx,cy-9);p.lineTo(cx+3,cy-3);
+  p.lineTo(cx+10,cy);p.lineTo(cx+3,cy+3);
+  p.lineTo(cx,cy+9);p.lineTo(cx-3,cy+3);p.closePath();
+ };
+ star();p.fillStyle=outline;p.globalAlpha=.85;p.fill();
+ p.save();p.translate(cx,cy);p.scale(.70,.70);p.translate(-cx,-cy);
+ star();p.fillStyle=core;p.globalAlpha=1;p.fill();p.restore();
+ p.strokeStyle=accent;p.lineWidth=2.3;p.globalAlpha=.94;
+ p.beginPath();p.arc(cx+3,cy,kind==='enemy'?10:8,-.95,.95);p.stroke();
  contactStampCache.set(key,canvas);return canvas;
 }
 function spawnContact(b,x,y,nx,ny,kind){
- if(!fxEnabled||!b||b.held)return;
+ if(!b||b.held)return;
  if(Number.isFinite(b.contactAt)&&clock-b.contactAt<.045)return;
  b.contactAt=clock;
  ballContactFX.push({x,y,nx,ny,kind,tone:has('pierce')?2:has('fire')?1:0,
-  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.17:.14});
+  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.22:kind==='ceiling'?.17:.19});
  if(ballContactFX.length>20)ballContactFX.splice(0,ballContactFX.length-20);
 }
 function contactFace(b,z,r,ox,oy){
@@ -78,15 +106,20 @@ function contactFace(b,z,r,ox,oy){
  let f=faces[0];for(let i=1;i<4;i++)if(faces[i][0]<f[0])f=faces[i];
  return f.slice(1);
 }
-function drawContactFX(bloom=.27){
+function drawContactFX(bloom=1){
  for(const f of ballContactFX){
   const img=contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
-  const fade=Math.pow(Math.max(0,1-f.t/f.life),1.35);
-  if(!fade)continue;
+  const u=Math.max(0,Math.min(1,f.t/f.life));
+  const fade=(1-u)*(1-u*.28);
+  if(fade<=0)continue;
   g.save();g.translate(f.x,f.y);g.rotate(Math.atan2(f.ny,f.nx));
-  g.globalCompositeOperation='lighter';
-  g.globalAlpha=fade*(f.kind==='enemy'?.62:.53)*bloom;
-  g.drawImage(img,-12,-24);g.restore();
+  // Tiny, readable expansion on collision; no particles or per-frame blur.
+  g.scale(.94+.17*u,.94+.12*u);
+  // Base sprite uses normal alpha for contrast on white and gray scenes.
+  // ADD and subdued Bloom are captured once by the existing FX renderer.
+  g.globalCompositeOperation='source-over';
+  g.globalAlpha=fade*(f.kind==='enemy'?.92:.86)*bloom;
+  g.drawImage(img,-20,-32);g.restore();
  }
 }
 // Nine nearly touching lanes fill the full 450px road without squeezing 128px source art.
@@ -2507,7 +2540,7 @@ drawKillCombo();drawBarrelBlasts();
   drawBurningBallFlames(b,r,true);
   drawPierceBallLightning(b,r,true);
  }
- drawBallVanish();if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.27));
+ drawBallVanish();
   if(particles.length)luminous(()=>{
   g.save();
   for(const p of particles){
@@ -2521,7 +2554,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();if(fx.length)luminous(()=>drawEffects());if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.36));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();if(mode==='clearing'||mode==='paused'&&resumeMode==='clearing')drawClear();}
 function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
