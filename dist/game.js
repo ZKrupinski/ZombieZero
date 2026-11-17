@@ -2712,6 +2712,8 @@ function updateBubbles(dt){
  bubbles.push({citizen:o.p,x:o.x,y:o.p.y-61,w,carAtBirth:car,t:0,life:1.6,text:said});
  cheerTime=Math.max(cheerTime,1);
 }
+// V79: speech placement depends on the car position ONLY when the bubble
+// is created. Moving the car cannot drag the bubble or stretch its pointer.
 // V128: Drop speech 14px toward the citizen and allow ambient bubbles to
 // overlap only the outer edge of the car, never its central hero portrait.
 // Preserve V79's immutable car-at-birth anchor and 16px nonstretching pointer.
