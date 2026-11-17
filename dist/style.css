@@ -1445,3 +1445,238 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
   margin:0 0 2px!important;
  }
 }
+
+
+/* v127: Wider arcade hero selection, larger transparent approved sprite cells.
+   Scope strictly to character selection; game-over and initial title remain intact. */
+#overlay[data-screen="selection"]{
+ box-sizing:border-box!important;
+ padding:8px 9px 59px!important;
+ justify-content:safe center!important;
+ align-items:center!important;
+ gap:0!important;
+ overflow-x:hidden!important;
+ overflow-y:auto!important;
+ overscroll-behavior:contain;
+}
+#overlay[data-screen="selection"]>.overlay-logo{
+ width:min(57%,240px)!important;
+ max-width:240px!important;
+ height:auto!important;
+ max-height:min(19svh,142px)!important;
+ object-fit:contain!important;
+ margin:0 auto 6px!important;
+ flex:0 1 auto!important;
+}
+#overlay[data-screen="selection"]>.label{
+ width:100%;max-width:100%;
+ margin:0 auto 1px!important;
+ font:700 clamp(9px,2.5vw,11px)/1.4 'Courier New',monospace!important;
+ letter-spacing:.055em!important;
+ color:#b9f68a!important;
+ text-align:center;
+ white-space:normal;
+ text-wrap:balance;
+}
+#overlay[data-screen="selection"]>#title{
+ font:900 clamp(23px,5.9vw,29px)/1.12 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:.005em!important;
+ color:#f4f8cc!important;
+ text-shadow:0 2px 0 #142b31,0 0 10px #b6e38333!important;
+ margin:2px auto 5px!important;
+ white-space:nowrap;
+}
+#overlay[data-screen="selection"]>#message{
+ font:600 11px/1.3 Arial,'Noto Sans KR',sans-serif!important;
+ color:#c0d5ca!important;
+ margin:0 auto 5px!important;
+}
+#overlay[data-screen="selection"] #heroes{
+ display:block!important;
+ box-sizing:border-box!important;
+ width:100%!important;
+ max-width:none!important;
+ margin:5px auto 2px!important;
+ flex:0 0 auto!important;
+}
+#overlay[data-screen="selection"] .hero-options{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:clamp(3px,1.2vw,7px)!important;
+ width:100%!important;
+}
+#overlay[data-screen="selection"] .hero-card{
+ box-sizing:border-box!important;
+ min-width:0!important;
+ width:100%!important;
+ min-height:clamp(192px,31svh,240px)!important;
+ height:auto!important;
+ padding:9px 3px 11px!important;
+ gap:5px!important;
+ border:2px solid #54748b!important;
+ border-top-color:#7b9aa6!important;
+ border-radius:4px!important;
+ background:linear-gradient(180deg,#274153f2 0%,#15293bfc 55%,#0c1829fc 100%)!important;
+ box-shadow:0 3px 0 #081522!important;
+ align-items:center!important;
+ overflow:hidden!important;
+}
+#overlay[data-screen="selection"] .hero-card[aria-pressed="true"]{
+ border-color:#cefa80!important;
+ background:linear-gradient(180deg,#3d6656 0%,#21453f 52%,#142a37 100%)!important;
+ box-shadow:0 0 0 1px #d9ff9670,0 0 12px #baff5733!important;
+}
+#overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait{
+ /* Percent-sized atlas stays frame-accurate even on small landscape screens. */
+ display:block!important;
+ width:min(100%,118px)!important;
+ height:auto!important;
+ aspect-ratio:1/1!important;
+ flex:0 0 auto!important;
+ background-size:800% 300%!important;
+ background-repeat:no-repeat!important;
+ background-position-x:0%;
+ background-position-y:0%!important;
+ image-rendering:auto!important;
+ clip-path:none!important;
+ margin:0 auto 3px!important;
+}
+#overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait.row-1{
+ background-position-y:50%!important;
+}
+#overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait.row-2{
+ background-position-y:100%!important;
+}
+#overlay[data-screen="selection"] .hero-card[aria-pressed="true"] .hero-vehicle-portrait{
+ animation:zz-v127-hero-frames 2.4s steps(7,end) infinite!important;
+}
+@keyframes zz-v127-hero-frames{
+ 0%,26%{background-position-x:0%}
+ 57%{background-position-x:100%}
+ 57.01%,100%{background-position-x:0%}
+}
+#overlay[data-screen="selection"] .hero-card b{
+ display:block!important;
+ flex:0 0 auto!important;
+ margin:0!important;
+ font:900 clamp(15px,3.8vw,18px)/1.18 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:.015em!important;
+ color:#fff4d1!important;
+ text-shadow:0 2px 0 #0d1d27!important;
+}
+#overlay[data-screen="selection"] .hero-card small{
+ display:block!important;
+ font:700 clamp(11px,2.7vw,12px)/1.2 Arial,'Noto Sans KR',sans-serif!important;
+ color:#bdf5db!important;
+ margin:0!important;
+}
+#overlay[data-screen="selection"] .hero-card>span:not(.hero-vehicle-portrait){
+ display:block!important;
+ font:600 clamp(10px,2.4vw,11px)/1.36 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:-.012em!important;
+ color:#e3e9db!important;
+ text-align:center!important;
+ overflow-wrap:anywhere;
+ word-break:keep-all;
+ margin:0!important;
+}
+#overlay[data-screen="selection"] #hero-stats{
+ box-sizing:border-box!important;
+ width:100%!important;
+ min-height:0!important;
+ max-width:none!important;
+ margin:7px auto 3px!important;
+ padding:7px 6px!important;
+ border:1px solid #5d8e78;
+ border-radius:3px;
+ background:#132b2bee;
+ color:#d7f9a7!important;
+ font:800 clamp(11px,2.9vw,13px)/1.4 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:.005em!important;
+ text-align:center!important;
+ overflow-wrap:break-word;
+}
+#overlay[data-screen="selection"] #start{
+ width:min(100%,370px)!important;
+ margin:7px auto 4px!important;
+ min-height:47px!important;
+ font:800 16px/1.3 Arial,'Noto Sans KR',sans-serif!important;
+}
+#overlay[data-screen="selection"] #hint{
+ font-size:10px!important;
+ line-height:1.35!important;
+ color:#bad1c1!important;
+ margin:2px auto 0!important;
+}
+#overlay[data-screen="selection"]>.selection-copyright{
+ position:absolute;
+ left:6px;right:6px;bottom:10px;
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ align-items:center;
+ gap:2px;
+ padding:0;
+ margin:0;
+ color:#b9fa73;
+ font:700 11px/1.3 Arial,'Noto Sans KR',sans-serif;
+ text-align:center;
+ letter-spacing:.02em;
+ text-shadow:0 1px 2px #04140bcc,0 0 6px #95df542f;
+ pointer-events:none;
+ z-index:2;
+}
+#overlay[data-screen="selection"]>.selection-copyright span{
+ display:block;
+ white-space:nowrap;
+}
+@media(max-height:620px){
+ #overlay[data-screen="selection"]{padding:5px 8px 50px!important;justify-content:flex-start!important}
+ #overlay[data-screen="selection"]>.overlay-logo{
+  width:min(40%,170px)!important;
+  max-height:min(14svh,88px)!important;
+  margin-bottom:2px!important;
+ }
+ #overlay[data-screen="selection"]>#title{font-size:21px!important;margin:0 auto 3px!important}
+ #overlay[data-screen="selection"]>#message{font-size:10px!important;margin-bottom:2px!important}
+ #overlay[data-screen="selection"] .hero-card{
+  min-height:175px!important;padding:5px 2px 6px!important;gap:2px!important;
+ }
+ #overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait{
+  width:min(100%,88px)!important;
+  margin-bottom:1px!important;
+ }
+ #overlay[data-screen="selection"] #hero-stats{
+  font-size:11px!important;padding:4px 4px!important;margin:4px auto 0!important;
+ }
+ #overlay[data-screen="selection"]>.selection-copyright{
+  bottom:5px;font-size:9px;gap:0;
+ }
+}
+@media(max-height:460px){
+ #overlay[data-screen="selection"]{padding:4px 7px 40px!important}
+ #overlay[data-screen="selection"]>.overlay-logo{
+  width:min(30%,124px)!important;
+  max-height:58px!important;
+ }
+ #overlay[data-screen="selection"]>.label{font-size:9px!important;line-height:1.2!important}
+ #overlay[data-screen="selection"]>#title{font-size:18px!important}
+ #overlay[data-screen="selection"] .hero-card{
+  min-height:150px!important;gap:2px!important;
+ }
+ #overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait{
+  width:min(100%,65px)!important;
+ }
+ #overlay[data-screen="selection"] .hero-card b{font-size:14px!important}
+ #overlay[data-screen="selection"] .hero-card small{font-size:10px!important}
+ #overlay[data-screen="selection"] .hero-card>span:not(.hero-vehicle-portrait){font-size:9px!important}
+ #overlay[data-screen="selection"] #start{
+  min-height:38px!important;padding:7px 8px!important;margin:4px auto 2px!important;
+ }
+ #overlay[data-screen="selection"] #hint{font-size:9px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay[data-screen="selection"] .hero-card[aria-pressed="true"] .hero-vehicle-portrait{
+  animation:none!important;
+ }
+}
