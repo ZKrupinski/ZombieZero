@@ -2689,7 +2689,7 @@ function citizenCue(p,back,text=null){
  const said=text||pickCitizenLine(lines);
  const w=citizenBubbleWidth(said,true),x=clamp(p.x-w/2,22,W-22-w);
  bubbles=bubbles.filter(q=>q.citizen!==p&&(q.x+(q.w||80)+8<=x||q.x>=x+w+8)).slice(-1);
- bubbles.push({citizen:p,x,y:p.y-100,w,carAtBirth:car,event:text?'bazooka':back?'return':'save',t:0,life:2.1,text:said});bubbleTimer=1;
+ bubbles.push({citizen:p,x,y:p.y-86,w,carAtBirth:car,event:text?'bazooka':back?'return':'save',t:0,life:2.1,text:said});bubbleTimer=1;
 }
 const CHEERS=['파이팅!','막아줘!','멋져!','최고야!','조심해!','가자!',
  '씩스쎄븐~!','사랑해요','확간다','통쾌!','쫌 치는데?',
@@ -2704,25 +2704,30 @@ function updateBubbles(dt){
  bubbleTimer=.7+Math.random()*.4;
  const said=mode==='clearing'?'고마워!':pickCitizenLine(CHEERS);
  const w=citizenBubbleWidth(said);
- const options=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>85)
+ const options=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>76)
   .map(p=>({p,x:clamp(p.x-w/2,22,W-22-w)}))
   .filter(o=>bubbles.every(q=>o.x+w+8<=q.x||o.x>=q.x+(q.w||80)+8));
  if(!options.length)return;
  const o=options[Math.floor(Math.random()*options.length)];
- bubbles.push({citizen:o.p,x:o.x,y:o.p.y-75,w,carAtBirth:car,t:0,life:1.6,text:said});
+ bubbles.push({citizen:o.p,x:o.x,y:o.p.y-61,w,carAtBirth:car,t:0,life:1.6,text:said});
  cheerTime=Math.max(cheerTime,1);
 }
-// V79: speech placement depends on the car position ONLY when the bubble
-// is created. Moving the car cannot drag the bubble or stretch its pointer.
+// V128: Drop speech 14px toward the citizen and allow ambient bubbles to
+// overlap only the outer edge of the car, never its central hero portrait.
+// Preserve V79's immutable car-at-birth anchor and 16px nonstretching pointer.
 function citizenBubbleLayout(q,carX=car){
  const w=q.w||80,h=q.event?46:29;
  const initialCar=Number.isFinite(q.carAtBirth)?q.carAtBirth:carX;
- let x=clamp(q.x,22,W-22-w),y=clamp(q.y,100,H-75-h);
- if(x<initialCar+56&&x+w>initialCar-56&&y+h>PY-66&&y<PY+42){
-  const left=initialCar-w-67,right=initialCar+67;
+ let x=clamp(q.x,22,W-22-w),y=clamp(q.y,100,H-57-h);
+ // Long save/return bubbles keep original car clearance; short cheers can
+ // partially overlap the car's outer 20px without hiding the hero's face.
+ const centralClearance=q.event?56:26;
+ if(x<initialCar+centralClearance&&x+w>initialCar-centralClearance&&y+h>PY-66&&y<PY+42){
+  const edge=q.event?67:34;
+  const left=initialCar-w-edge,right=initialCar+edge;
   const candidates=[left,right].filter(v=>v>=22&&v+w<=W-22);
   if(candidates.length)x=candidates.sort((a,b)=>Math.abs(a-x)-Math.abs(b-x))[0];
-  else y=Math.max(108,PY-h-69);
+  else y=Math.max(108,PY-h-(q.event?69:50));
  }
  return {x,y,w,h};
 }
