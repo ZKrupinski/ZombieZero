@@ -1183,7 +1183,7 @@ function updateEndlessShift(dt){
  if(!endlessShiftSpawned&&endlessShiftTime>=ENDLESS_SHIFT_SPAWN_AT){
   endlessShiftSpawned=true;refillEndlessWave();
  }
- if(endlessShiftTime>=ENDLESS_SHIFT_SECONDS){
+ if(endlessShiftTime>=ENDLESS_SHIFT_SECONDS-1e-6){
   mode='playing';endlessShiftTime=0;
   crowdTimer=3.5;hud();
  }
