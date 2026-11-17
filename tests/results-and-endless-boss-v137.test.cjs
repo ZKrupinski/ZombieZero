@@ -1,0 +1,64 @@
+'use strict';
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const noop=()=>{},elements={},listeners={},ctx=new Proxy({},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
+function el(id){return elements[id]??={textContent:'',innerHTML:'',style:{},hidden:false,onclick:noop,setAttribute:noop,addEventListener:noop,getContext:()=>ctx,getBoundingClientRect:()=>({width:450,height:710,left:0,top:0}),setPointerCapture:noop}}
+class AudioMock{constructor(){this.currentTime=0;this.sampleRate=44100;this.destination={}}resume(){}createBuffer(n,len,sr){return{getChannelData:()=>new Float32Array(len)}}createBufferSource(){return{connect:noop,start:noop,stop:noop}}createDelay(){return{delayTime:{value:0},connect:noop}}createDynamicsCompressor(){return{threshold:{value:0},ratio:{value:0},connect:noop}}createGain(){return{gain:{value:1,setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop}}createOscillator(){return{frequency:{setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop,start:noop,stop:noop}}}
+const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},window:{AudioContext:AudioMock,addEventListener:(type,cb)=>{listeners[type]=cb}},localStorage:{getItem:()=>null,setItem:noop},Path2D:class{},requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console};
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync('dist/game.js','utf8'),sandbox);
+const run=s=>vm.runInContext(s,sandbox);
+assert.equal(el('endless').textContent,'ENDLESS WAVE','selection offers endless');
+for(const name of ['campaign','endless']){
+ run("selectedHero=2;start('"+name+"');end('RESULTS TEST')");
+ assert.equal(run('mode'),'over');
+ assert.equal(el('endless').textContent,'메인 메뉴');
+ assert.equal(el('endless').hidden,false);
+ assert.equal(el('start').innerHTML.includes('다시 시작'),true);
+ el('start').onclick();
+ assert.equal(run('mode'),'playing');
+ assert.equal(run('runMode'),name);
+ assert.equal(run('wave'),name==='endless'?51:1);
+ assert.equal(run('selectedHero'),2);
+ run("end('RESULTS TEST')");
+ el('endless').onclick();
+ assert.equal(run('mode'),'menu');
+ assert.equal(run('runMode'),'campaign');
+ assert.equal(el('results').hidden,true);
+ assert.equal(el('heroes').hidden,false);
+ assert.equal(el('label').textContent,'NOVALIGHT ARCADE 001 / ZOMBIE SURVIVAL');
+ assert.equal(el('title').textContent,'From HERO to ZERO');
+ assert.equal(el('endless').textContent,'ENDLESS WAVE');
+ assert.equal(el('start').innerHTML.includes('리아로 시작'),true);
+ assert.equal(run('selectedHero'),2);
+ el('start').onclick();
+ assert.equal(run('runMode'),'campaign');
+}
+run("start('endless');end('RESULTS TEST')");
+listeners.keydown({code:'Space',key:' ',preventDefault:noop});
+assert.equal(run('mode'),'playing');
+assert.equal(run('runMode'),'endless','space replay preserves mode');
+// Only the last solo boss in endless gets one fast retreat without HP changes.
+run("start('endless');wave=60;rack();foes=foes.filter(z=>z.boss);foes[0].y=DEFENSE_Y-foes[0].h-82;foes[0].bossHomeY=foes[0].y;foes[0].hp=7;");
+assert.equal(run('foes.length'),1);
+const before=run('foes[0].y'),hp=run('foes[0].hp');
+run('march(.016)');
+assert.equal(run('foes[0].mercyUsed'),true,'mercy triggers');
+for(let i=0;i<34;i++)run('march(.016)');
+const retreated=run('foes[0].y');
+assert(retreated<before-130,'boss retreats upwards visibly');
+assert.equal(run('foes[0].hp'),hp);
+for(let i=0;i<240;i++)run('march(.016)');
+assert(run('foes[0].y')>retreated+10,'boss comes back down');
+assert.equal(run('foes[0].mercyUsed'),true);
+run('foes[0].y=DEFENSE_Y-foes[0].h-40;delete foes[0].mercyElapsed;march(.016)');
+assert.equal(run('foes[0].mercyElapsed'),undefined,'mercy must not repeat');
+run("start('campaign');wave=60;rack();foes=foes.filter(z=>z.boss);foes[0].y=DEFENSE_Y-foes[0].h-82;foes[0].bossHomeY=foes[0].y;march(.016)");
+assert.equal(run('foes[0].mercyUsed'),undefined,'campaign boss unaffected');
+run("start('campaign');wave=50;mode='playing';foes=[];beginClear();advanceStage()");
+assert.equal(run('mode'),'over');
+assert.equal(el('label').textContent,'VICTORY');
+assert.equal(el('endless').textContent,'메인 메뉴');
+el('endless').onclick();
+assert.equal(run('mode'),'menu');
+assert.equal(el('endless').textContent,'ENDLESS WAVE');
+console.log('PASS v137: campaign/endless game-over and victory retry/menu; solo endless boss one-time up-and-down retreat; ordinary bosses unchanged.');
