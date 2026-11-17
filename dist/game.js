@@ -120,7 +120,7 @@ function spawnContact(b,x,y,nx,ny,kind){
  b.contactAt=clock;
  ballContactFX.push({x,y,nx,ny,kind,tone:has('pierce')?2:has('fire')?1:0,
   style:has('pierce')?'pierce':has('fire')?'fire':has('power')?'power':has('slow')?'slow':has('shield')?'shield':'normal',
-  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.18:kind==='ceiling'?.14:.16});
+  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%3,t:0,life:kind==='enemy'?.30:kind==='ceiling'?.25:.27});
  if(ballContactFX.length>20)ballContactFX.splice(0,ballContactFX.length-20);
 }
 function contactFace(b,z,r,ox,oy){
@@ -141,7 +141,9 @@ function drawContactFX(bloom=1){
  for(const f of ballContactFX){
   const img=atlasReady?contactAtlasImage:contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
   const u=Math.max(0,Math.min(1,f.t/f.life));
-  const fade=(1-u)*(1-u*.28);
+  // Hold the bitmap at full strength for several frames before a soft fade.
+  // V119 faded from the first tick, making a nominal 0.16s hit nearly invisible.
+  const fade=u<=.28?1:Math.pow(Math.max(0,(1-u)/.72),.86);
   if(fade<=0)continue;
   g.save();g.translate(f.x,f.y);
   // The bitmap covers the exact ball-trail bounce vertex, above the ball,
@@ -152,13 +154,14 @@ function drawContactFX(bloom=1){
   g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
   if(atlasReady){
    const frame=contactAtlasIndex(f);
-   const base=f.kind==='enemy'?52:f.kind==='ceiling'?45:49;
-   const scale=1.02-.13*u;
+   // 40-50% more screen coverage than V119; centered on the trail bend.
+   const base=f.kind==='enemy'?75:f.kind==='ceiling'?67:72;
+   const scale=1.02-.10*u;
    const w=base*scale;
    g.drawImage(img,(frame%4)*64,Math.floor(frame/4)*64,64,64,-w/2,-w/2,w,w);
   }else{
    // Retain the previous procedural art if the asset is still loading.
-   const size=f.kind==='enemy'?1.12:f.kind==='ceiling'?1.05:1.10;
+   const size=f.kind==='enemy'?1.44:f.kind==='ceiling'?1.34:1.40;
    g.scale(size*(.97+.07*u),size*(.97+.07*u));
    g.drawImage(img,-22,-32);
   }
