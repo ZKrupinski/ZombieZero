@@ -50,6 +50,6 @@ vm.runInContext('drawContactFX(1)',env);
 assert(drawn.length>before,'LITE mode draws basic contact feedback without FX renderer');
 assert(src.includes("g.drawImage(img,-22,-32)"),'centered comic burst bitmap anchored on collision face');
 assert(src.includes('life:kind===\'enemy\'?.30:kind===\'ceiling\'?.25:.27'),'impacts remain visible longer in V120');
-assert(src.includes("contactAtlasImage.src='assets/fx/impact-bursts-mono-v122.png'"),'monochrome bitmap atlas is preloaded');
+assert(src.includes("contactAtlasImage.src='assets/fx/impact-bursts-mono-v123.png'"),'monochrome bitmap atlas is preloaded');
 assert(src.includes("spawnContact(b,piercing?f[0]:ox,piercing?f[1]:oy"),'non-piercing hit covers the trail bend vertex');
-console.log('PASS v122 fallback: grayscale contact FX, no directional spin, anchors, timing and LITE visibility.');
+console.log('PASS v123 fallback: grayscale contact FX, no directional spin, anchors, timing and LITE visibility.');

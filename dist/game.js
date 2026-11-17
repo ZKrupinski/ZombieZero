@@ -41,11 +41,11 @@ function ballImpact(b,axis,dir=1,kind='wall'){
 }
 // V114: Reusable tiny 48px transparent impact bitmaps (no per-frame gradients).
 let ballContactFX=[];const contactStampCache=new Map();
-// V122: 12 monochrome comic impact silhouettes in a transparent 4x3 sheet.
+// V123: 12 asymmetric hand-inked impact shapes with tapered variable-weight lines.
 // No skill tint, directional spirals, glow or smoke. A monochrome fallback
 // stays available until this 6KB sprite atlas has loaded.
 const contactAtlasImage=typeof Image!=='undefined'?new Image():null;
-if(contactAtlasImage){contactAtlasImage.decoding='async';contactAtlasImage.src='assets/fx/impact-bursts-mono-v122.png';}
+if(contactAtlasImage){contactAtlasImage.decoding='async';contactAtlasImage.src='assets/fx/impact-bursts-mono-v123.png';}
 function contactAtlasIndex(f){return f.variant%12;}
 
 function contactStamp(kind,tone,variant){

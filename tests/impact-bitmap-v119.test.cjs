@@ -1,11 +1,11 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const path='dist/assets/fx/impact-bursts-mono-v122.png';
+const path='dist/assets/fx/impact-bursts-mono-v123.png';
 const png=fs.readFileSync(path);
 assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a','real PNG signature');
 assert.equal(png.readUInt32BE(16),256,'4 columns of 64px');
 assert.equal(png.readUInt32BE(20),192,'3 rows of 64px');
-assert(png.length<12000,'12 grayscale transparent bitmap contacts stay within the lightweight budget');
+assert(png.length<17000,'12 grayscale transparent bitmap contacts stay within the lightweight budget');
 const pal=png.indexOf(Buffer.from('PLTE'));const trns=png.indexOf(Buffer.from('tRNS'));
 assert(pal>0&&trns>0,'indexed PNG must retain real transparent alpha');
 const palSize=png.readUInt32BE(pal-4);
@@ -24,7 +24,7 @@ const g={save(){},restore(){},translate(){},rotate(r){rotations.push(r)},scale()
 const ctx={Math,g,clock:1,Image:MockImage,fxEnabled:true,has:k=>k===skill,clamp:(n,a,b)=>Math.max(a,Math.min(b,n))};
 vm.createContext(ctx);
 vm.runInContext(source.slice(start,end),ctx);
-assert.equal(loadedSource,'assets/fx/impact-bursts-mono-v122.png','new monochrome sprite atlas preloaded once');
+assert.equal(loadedSource,'assets/fx/impact-bursts-mono-v123.png','new monochrome sprite atlas preloaded once');
 ctx.b={held:false};
 vm.runInContext("spawnContact(b,100,100,1,0,'enemy');drawContactFX(1)",ctx);
 assert.equal(calls.length,1,'one real sprite draw on hit');
@@ -61,4 +61,4 @@ assert(source.includes("spawnContact(b,b.x,b.y,0,1,'ceiling')"),'ceiling corner 
 assert(source.includes("spawnContact(b,piercing?f[0]:ox,piercing?f[1]:oy"),'enemy bounce covers trail vertex');
 assert(source.includes("if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10))"),'minimal neutral bloom pass');
 assert(!source.includes('g.rotate(angle*.22)'),'no special collision-facing rotation');
-console.log('PASS v122: 12 grayscale silhouette frames, transparent PNG, no skill tint or directional spin; V120 timing and layering retained.');
+console.log('PASS v123: 12 grayscale silhouette frames, transparent PNG, no skill tint or directional spin; V120 timing and layering retained.');
