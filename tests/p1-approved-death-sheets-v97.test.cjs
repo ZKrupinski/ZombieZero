@@ -44,7 +44,7 @@ for(const critical of [false,true]){
  assert(frames[7].args[6]>frames[0].args[6],'late frames expand');
 }
 const source=fs.readFileSync('dist/game.js','utf8');
-assert(source.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split)'),'game death flow retained');
+assert(source.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'),'game death flow retained');
 assert(src.includes('if(drawP1BrainDeath(ctx,img,z,critical,elapsed,duration))return true;'),'v96 fallback');
 assert(src.includes('drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-blend)'),'living->death blend');
 console.log('PASS: six padded 8f PNGs, unique normal/critical assets, PWA, no runtime baking, frame expansion, fallback.');
