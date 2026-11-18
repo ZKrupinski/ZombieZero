@@ -1923,7 +1923,14 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
  }
  const hitPosition=knockVisualPosition(z);
- if(critical){criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,t:0,life:.72,pierce:piercingCritical});if(criticalPopups.length>12)criticalPopups.shift()}
+ if(critical){
+  // Sample once, at the hit. A piercing combo uses varied, slightly smaller
+  // CRITICAL! titles to avoid stacking giant identical words across the lane.
+  const textScale=piercingCritical?.75+Math.random()*.28:.90+Math.random()*.15;
+  criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,
+    t:0,life:.72,pierce:piercingCritical,textScale});
+  if(criticalPopups.length>12)criticalPopups.shift();
+ }
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount,
@@ -2413,7 +2420,7 @@ function drawCriticalPopups(){
   const x=clamp(f.x,95,W-95),y=clamp(f.y-24-t*28,131,DEFENSE_Y-40);
   const word='CRITICAL!';
   g.save();g.translate(x,y);g.globalAlpha=fade;
-  const sc=.78+.28*Math.sin(Math.min(1,t*4)*Math.PI/2);
+  const sc=(f.textScale??1)*(.82+.18*Math.sin(Math.min(1,t*4)*Math.PI/2));
   g.scale(sc,sc);g.textAlign='center';g.textBaseline='middle';
   g.font='400 16px "Press Start 2P",monospace';g.lineJoin='bevel';
   g.shadowColor=f.pierce?'#ffe061':'#fff4bb';g.shadowBlur=fxEnabled?15*fade:0;
