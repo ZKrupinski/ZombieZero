@@ -5,7 +5,7 @@ const source=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const section=(start,end)=>{const i=source.indexOf(start),j=source.indexOf(end,i+start.length);assert(i>=0&&j>i);return source.slice(i,j)};
-for(const body of [section('function proceduralBackground(){','const STAGE_ART_COUNT=18'),section('function background(){','function player(){')]){
+for(const body of [section('function proceduralBackground(){','const STAGE_ART_COUNT=25'),section('function background(){','function player(){')]){
  assert(!body.includes('DEFENSE LINE / 넘기면 끝!'),'defense caption removed from both background types');
 }
 assert(source.includes('z.y+z.h>=DEFENSE_Y'),'breach collision check preserved');
