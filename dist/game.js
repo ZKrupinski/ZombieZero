@@ -675,18 +675,18 @@ function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed
   if(retreat>0)for(const z of foes)z.y-=retreat;
  }
  effect(225,DEFENSE_Y,'#b3fff0',140,'LAST STAND!');sfx('bosskill');haptic([20,30,20]);toast('최후의 저항! · 좀비 전원 밀쳐내기 · 이번 판 1회');return true}
-function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave')}
+function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=String(score);$('result-best').textContent=String(best);overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave')}
 function drawDanger(){if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
 function drawOutcome(){if(resistFlash>0){const t=1-resistFlash/1.4;g.save();g.globalAlpha=(1-t)*.75;g.strokeStyle='#a7ffea';g.lineWidth=8;g.beginPath();g.arc(225,DEFENSE_Y,30+t*560,Math.PI,Math.PI*2);g.stroke();g.fillStyle='#caffef';g.font='400 18px "Press Start 2P",monospace';g.textAlign='center';arcadeGlowText('LAST STAND!',225,400,10);g.font='bold 14px Arial, sans-serif';g.fillText('최후의 저항 · 전원 밀쳐내기',225,426);g.restore()}
  if(!failureScene)return;const f=failureScene;g.save();rect(20,16,410,H-20,'#160d2444');g.strokeStyle='#ff6278';g.lineWidth=4;
  if(f.type==='breach'){rect(20,DEFENSE_Y-3,410,6,'#ff546c');g.beginPath();g.arc(f.x,f.y,42+Math.sin(f.t*15)*4,0,Math.PI*2);g.stroke();g.fillStyle='#ffd8ce';g.font='bold 14px Arial, sans-serif';g.textAlign='center';g.fillText('이 적이 방어선을 돌파했습니다',225,DEFENSE_Y+26)}else{g.beginPath();g.moveTo(f.x,H-95);g.lineTo(f.x,H-11);g.stroke();poly([[f.x-12,H-28],[f.x,H-8],[f.x+12,H-28]],'#ff7182');g.textAlign='center';g.font='bold 25px Arial, sans-serif';g.fillStyle='#ff9b9b';g.fillText('♡  0',225,H-55)}
- rect(38,264,374,142,'#251827ed');g.fillStyle='#ffad9f';g.font='bold 25px Arial, sans-serif';g.textAlign='center';g.fillText(f.type==='breach'?'방어선 돌파!':'마지막 공을 놓쳤습니다!',225,299);g.font='bold 14px Arial, sans-serif';g.fillStyle='#fff0d4';g.fillText(f.type==='breach'?'하트가 남아 있어도':'남은 하트가 0이 되어',225,329);g.fillText(f.type==='breach'?'방어선이 뚫리면 패배합니다.':'게임이 종료됩니다.',225,350);g.fillText((runMode==='endless'?'생존 '+survivalClock(endlessSurvival):'STAGE '+wave)+' · SCORE '+score.toLocaleString('ko-KR'),225,382);g.restore()}
+ rect(38,264,374,142,'#251827ed');g.fillStyle='#ffad9f';g.font='bold 25px Arial, sans-serif';g.textAlign='center';g.fillText(f.type==='breach'?'방어선 돌파!':'마지막 공을 놓쳤습니다!',225,299);g.font='bold 14px Arial, sans-serif';g.fillStyle='#fff0d4';g.fillText(f.type==='breach'?'하트가 남아 있어도':'남은 하트가 0이 되어',225,329);g.fillText(f.type==='breach'?'방어선이 뚫리면 패배합니다.':'게임이 종료됩니다.',225,350);g.fillText((runMode==='endless'?'생존 '+survivalClock(endlessSurvival):'STAGE '+wave)+' · SCORE '+String(score),225,382);g.restore()}
 function hud(){
  document.documentElement?.classList?.toggle?.('zz-endless-hud',runMode==='endless');
  $('survival-metric').hidden=runMode!=='endless';
  $('survival-time').textContent=survivalClock(endlessSurvival);
  $('wave-label').textContent=runMode==='endless'?'WAVE':'현재 스테이지';
- $('score').textContent=score.toLocaleString('ko-KR');
+ $('score').textContent=String(score);
  $('wave').textContent=runMode==='endless'?'∞ '+(wave-50):String(wave).padStart(2,'0');
  $('progress').textContent=runMode==='endless'?'':(wave-1)+'/50 스테이지 클리어';
  // Only one prominent 3D voxel heart in the upper-left; a high-contrast
@@ -1541,8 +1541,8 @@ function end(reason,detail=null){
   $('result-stage').textContent=wave+' 스테이지';
   $('result-cleared').textContent=(wave-1)+'개 클리어';
  }
- $('result-score').textContent=score.toLocaleString('ko-KR');
- $('result-best').textContent=best.toLocaleString('ko-KR');
+ $('result-score').textContent=String(score);
+ $('result-best').textContent=String(best);
  overlay('게임 오버',reason,'다시 시작','GAME OVER');sfx('over');
  if(detail){failureScene={...detail,t:0};$('overlay').hidden=true;cameraKick=fxEnabled?4:0;haptic([30,40,30])}
 }
