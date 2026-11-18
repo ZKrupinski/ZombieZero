@@ -571,6 +571,18 @@ function effect(x,y,color,size=45,text='',standardHit=false){
  if(fx.length>45)fx.shift();
  cameraKick=Math.max(cameraKick,size>=120?5.2:size>=70?3.2:size>=45?2:.9);
 }
+// V153: one base glyph + a faint additive text-only glow. Never postprocess
+// the whole board or allocate an offscreen canvas for each HUD label.
+function arcadeGlowText(word,x,y,blur=9){
+ g.fillText(word,x,y);
+ if(!fxEnabled)return;
+ g.save();
+ g.globalCompositeOperation='lighter';
+ g.globalAlpha=(typeof g.globalAlpha==='number'?g.globalAlpha:1)*.25;
+ g.shadowColor=g.fillStyle;g.shadowBlur=blur;
+ g.fillText(word,x,y);
+ g.restore();
+}
 function drawEffects(labels=false){
  if(!fxEnabled)return;
  for(const f of fx){
@@ -580,9 +592,15 @@ function drawEffects(labels=false){
       ['#fffdf0',f.color,f.color],0);
   }else if(f.text){
    const fade=Math.pow(1-clamp(f.t/f.life,0,1),.75);
-   g.save();g.globalAlpha=fade;g.font='bold 15px monospace';g.textAlign='center';
+   const latin=!/[\u3131-\uD79D]/.test(f.text);
+   g.save();g.globalAlpha=fade;
+   g.font=latin?'400 12px "Press Start 2P",monospace':'bold 15px monospace';
+   g.textAlign='center';
    g.fillStyle='#081322';g.fillText(f.text,f.x+2,f.y-18-f.t*36+2);
-   g.fillStyle=f.color;g.fillText(f.text,f.x,f.y-18-f.t*36);g.restore();
+   g.fillStyle=f.color;
+   if(latin)arcadeGlowText(f.text,f.x,f.y-18-f.t*36,7);
+   else g.fillText(f.text,f.x,f.y-18-f.t*36);
+   g.restore();
   }
  }
 }
@@ -659,7 +677,7 @@ function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed
  effect(225,DEFENSE_Y,'#b3fff0',140,'LAST STAND!');sfx('bosskill');haptic([20,30,20]);toast('최후의 저항! · 좀비 전원 밀쳐내기 · 이번 판 1회');return true}
 function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=score.toLocaleString('ko-KR');$('result-best').textContent=best.toLocaleString('ko-KR');overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave')}
 function drawDanger(){if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
-function drawOutcome(){if(resistFlash>0){const t=1-resistFlash/1.4;g.save();g.globalAlpha=(1-t)*.75;g.strokeStyle='#a7ffea';g.lineWidth=8;g.beginPath();g.arc(225,DEFENSE_Y,30+t*560,Math.PI,Math.PI*2);g.stroke();g.fillStyle='#caffef';g.font='bold 24px Arial, sans-serif';g.textAlign='center';g.fillText('LAST STAND!',225,400);g.font='bold 14px Arial, sans-serif';g.fillText('최후의 저항 · 전원 밀쳐내기',225,426);g.restore()}
+function drawOutcome(){if(resistFlash>0){const t=1-resistFlash/1.4;g.save();g.globalAlpha=(1-t)*.75;g.strokeStyle='#a7ffea';g.lineWidth=8;g.beginPath();g.arc(225,DEFENSE_Y,30+t*560,Math.PI,Math.PI*2);g.stroke();g.fillStyle='#caffef';g.font='400 18px "Press Start 2P",monospace';g.textAlign='center';arcadeGlowText('LAST STAND!',225,400,10);g.font='bold 14px Arial, sans-serif';g.fillText('최후의 저항 · 전원 밀쳐내기',225,426);g.restore()}
  if(!failureScene)return;const f=failureScene;g.save();rect(20,16,410,H-20,'#160d2444');g.strokeStyle='#ff6278';g.lineWidth=4;
  if(f.type==='breach'){rect(20,DEFENSE_Y-3,410,6,'#ff546c');g.beginPath();g.arc(f.x,f.y,42+Math.sin(f.t*15)*4,0,Math.PI*2);g.stroke();g.fillStyle='#ffd8ce';g.font='bold 14px Arial, sans-serif';g.textAlign='center';g.fillText('이 적이 방어선을 돌파했습니다',225,DEFENSE_Y+26)}else{g.beginPath();g.moveTo(f.x,H-95);g.lineTo(f.x,H-11);g.stroke();poly([[f.x-12,H-28],[f.x,H-8],[f.x+12,H-28]],'#ff7182');g.textAlign='center';g.font='bold 25px Arial, sans-serif';g.fillStyle='#ff9b9b';g.fillText('♡  0',225,H-55)}
  rect(38,264,374,142,'#251827ed');g.fillStyle='#ffad9f';g.font='bold 25px Arial, sans-serif';g.textAlign='center';g.fillText(f.type==='breach'?'방어선 돌파!':'마지막 공을 놓쳤습니다!',225,299);g.font='bold 14px Arial, sans-serif';g.fillStyle='#fff0d4';g.fillText(f.type==='breach'?'하트가 남아 있어도':'남은 하트가 0이 되어',225,329);g.fillText(f.type==='breach'?'방어선이 뚫리면 패배합니다.':'게임이 종료됩니다.',225,350);g.fillText((runMode==='endless'?'생존 '+survivalClock(endlessSurvival):'STAGE '+wave)+' · SCORE '+score.toLocaleString('ko-KR'),225,382);g.restore()}
@@ -1905,7 +1923,14 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
  }
  const hitPosition=knockVisualPosition(z);
- if(critical){criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,t:0,life:.72,pierce:piercingCritical});if(criticalPopups.length>12)criticalPopups.shift()}
+ if(critical){
+  // Sample once, at the hit. A piercing combo uses varied, slightly smaller
+  // CRITICAL! titles to avoid stacking giant identical words across the lane.
+  const textScale=piercingCritical?.75+Math.random()*.28:.90+Math.random()*.15;
+  criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,
+    t:0,life:.72,pierce:piercingCritical,textScale});
+  if(criticalPopups.length>12)criticalPopups.shift();
+ }
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount,
@@ -2395,12 +2420,13 @@ function drawCriticalPopups(){
   const x=clamp(f.x,95,W-95),y=clamp(f.y-24-t*28,131,DEFENSE_Y-40);
   const word='CRITICAL!';
   g.save();g.translate(x,y);g.globalAlpha=fade;
-  const sc=.78+.28*Math.sin(Math.min(1,t*4)*Math.PI/2);
+  const sc=(f.textScale??1)*(.82+.18*Math.sin(Math.min(1,t*4)*Math.PI/2));
   g.scale(sc,sc);g.textAlign='center';g.textBaseline='middle';
-  g.font='900 18px monospace';g.lineJoin='bevel';
+  g.font='400 16px "Press Start 2P",monospace';g.lineJoin='bevel';
   g.shadowColor=f.pierce?'#ffe061':'#fff4bb';g.shadowBlur=fxEnabled?15*fade:0;
   g.strokeStyle='#17212b';g.lineWidth=5;g.strokeText(word,0,0);
-  g.fillStyle=f.pierce?'#ffda49':'#fff2a3';g.fillText(word,0,0);
+  g.fillStyle=f.pierce?'#ffda49':'#fff2a3';
+  arcadeGlowText(word,0,0,12);
   g.shadowBlur=0;
   for(const side of [-1,1])for(let i=0;i<3;i++){
    const px=side*(68+9*i+16*t),py=(i-1)*9+t*(i%2?8:-8);
@@ -3361,14 +3387,14 @@ function drawEndlessShift(){
   Math.max(0,(ENDLESS_SHIFT_SECONDS-endlessShiftTime)/.30));
  g.save();g.globalAlpha=alpha;
  g.textAlign='center';
- g.font='900 23px Arial, sans-serif';g.fillStyle='#e9ffbd';
+ g.font='400 19px "Press Start 2P",monospace';g.fillStyle='#e9ffbd';
  g.shadowColor='#132926';g.shadowBlur=8;
- g.fillText('WAVE '+String(waveNumber).padStart(2,'0'),225,315);
+ arcadeGlowText('WAVE '+String(waveNumber).padStart(2,'0'),225,315,9);
  g.font='bold 12px Arial, sans-serif';g.fillStyle='#d7e9e0';
  g.fillText('READY · 다음 공을 준비하세요',225,338);
  g.restore();
 }
-function drawClear(){g.fillStyle='#101a36df';g.fillRect(48,290,354,124);g.strokeStyle='#eff39e';g.lineWidth=2;g.strokeRect(48,290,354,124);g.textAlign='center';g.fillStyle='#eaf98a';g.font='bold 27px monospace';g.fillText((runMode==='endless'?'WAVE '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' CLEAR',225,330);g.fillStyle='#faf1d1';g.font='bold 13px monospace';g.fillText('시민들을 지켜냈습니다!',225,357);g.fillStyle='#96e3cd';g.font='12px monospace';g.fillText('+500 BONUS  ·  '+hero().name+' WIN!',225,385)}
+function drawClear(){g.fillStyle='#101a36df';g.fillRect(48,290,354,124);g.strokeStyle='#eff39e';g.lineWidth=2;g.strokeRect(48,290,354,124);g.textAlign='center';g.fillStyle='#eaf98a';g.font='400 17px "Press Start 2P",monospace';arcadeGlowText((runMode==='endless'?'WAVE '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' CLEAR',225,330,10);g.fillStyle='#faf1d1';g.font='bold 13px monospace';g.fillText('시민들을 지켜냈습니다!',225,357);g.fillStyle='#96e3cd';g.font='400 10px "Press Start 2P",Arial,sans-serif';arcadeGlowText('+500 BONUS  ·  '+hero().name+' WIN!',225,385,5)}
 let inputPointer=null,inputX=0;
 function releaseInput(){inputPointer=null}
 function blocksInput(e){return !!e.target?.closest?.('button,a,input,select,textarea,summary,[role="button"],.overlay,.guide')}

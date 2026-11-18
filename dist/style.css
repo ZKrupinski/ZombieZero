@@ -1982,3 +1982,56 @@ html.zz-scene-title .machine,html.zz-scene-loading .machine{
   font-size:13px!important;
  }
 }
+
+
+/* V153: START GAME's exact Press Start 2P family for in-game Latin/numerals.
+   Keep Korean citizen dialogue, HUD captions, selection, and title untouched.
+   CSS text shadows = narrow bloom; additive blend only on text, never sprites. */
+.machine>.hud #hud-heart-count,
+.machine>.hud #wave,
+.machine>.hud #score,
+.machine>.hud #survival-time,
+.stage .zz-combo-praise,
+.stage .zz-combo-score strong,
+.stage .zz-combo-score span,
+.machine .arcade-tools>span,
+.machine .arcade-tools button,
+.machine .control,
+.machine footer #sound {
+ font-family:'Press Start 2P','Courier New',monospace!important;
+ font-weight:400!important;
+ font-synthesis:none;
+ letter-spacing:-.055em!important;
+ text-shadow:0 1px 0 #081b20,
+   0 0 3px #fff3b6bb,0 0 8px #ffe37573,0 0 14px #ffc34c3d!important;
+ filter:drop-shadow(0 0 3px #ffdf745a);
+ mix-blend-mode:screen;
+}
+@supports (mix-blend-mode:plus-lighter){
+ .machine>.hud #hud-heart-count,
+ .machine>.hud #wave,.machine>.hud #score,
+ .machine>.hud #survival-time,
+ .stage .zz-combo-praise,.stage .zz-combo-score strong,
+ .stage .zz-combo-score span,
+ .machine .arcade-tools>span,.machine .arcade-tools button,
+ .machine .control,.machine footer #sound{mix-blend-mode:plus-lighter}
+}
+.stage .zz-combo-praise,
+.stage .zz-combo-score strong,
+.stage .zz-combo-score span{
+ text-shadow:0 1px 1px #071721,
+   0 0 4px var(--combo-glow,#e5fa85),
+   0 0 10px var(--combo-glow,#e5fa85)!important;
+}
+html.zz-endless-hud .machine>.hud #wave-label{
+ font-family:'Press Start 2P','Courier New',monospace!important;
+ font-weight:400!important;
+ letter-spacing:-.025em!important;
+ text-shadow:0 0 4px #f5edaa7c,0 0 9px #ffda6e46!important;
+}
+@media(max-width:350px){
+ .machine>.hud #score,.machine>.hud #wave,
+ .machine>.hud #survival-time{letter-spacing:-.07em!important}
+ .stage .zz-combo-praise{letter-spacing:-.09em!important}
+}
+/* Korean bubble copy is intentionally excluded from the arcade font/glow pass. */
