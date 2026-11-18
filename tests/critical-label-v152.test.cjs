@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const game=fs.readFileSync('dist/game.js','utf8');
+const html=fs.readFileSync('dist/index.html','utf8');
+const sw=fs.readFileSync('dist/sw.js','utf8');
+const begin=game.indexOf('function drawCriticalPopups(){');
+const end=game.indexOf('function drawImpactFlashes(){',begin);
+assert(begin>=0&&end>begin);
+const popup=game.slice(begin,end);
+assert(popup.includes("const word='CRITICAL!';"),'all critical hits share the CRITICAL! label');
+assert(!game.includes('PIERCE CRIT!'),'old pierce-specific text is removed');
+assert(popup.includes("f.pierce?'#ffda49':'#fff2a3'"),'pierce-specific golden art remains intact');
+assert(popup.includes('g.fillText(word,0,0)'), 'label still rendered');
+assert(html.includes('v152-critical-label'),'new game script cache-busted');
+assert(sw.includes('v152-critical-label'),'offline cache bumped');
+console.log('PASS V152: CRITICAL! for piercing and standard crits, original VFX retained');
