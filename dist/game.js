@@ -1160,6 +1160,9 @@ function beginEndlessShift(){
 function beginClear(){
  if(runMode==='endless'){beginEndlessShift();return}
  if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];
+ // Begin downloading only the next campaign background at STAGE CLEAR.
+ // The 2.8s result celebration is the loading/decoding window.
+ if(wave<50)window.ZZStageArt?.load?.(stageArtForWave(wave+1));
  for(const b of balls)retireBall(b,'clear');
  balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;
  active={};score+=500;cheerTime=3;sfx('wave');
@@ -1716,7 +1719,17 @@ function update(dt){
 if(mode==='endlessShift'){updateEndlessShift(dt);return}
 if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt);comboDisplayTime=Math.max(0,comboDisplayTime-dt)}
 updateCrowd(dt);updateEmergencySupport(dt);
-if(mode==='clearing'){clearTime+=dt;clearBurst+=dt;car+=(225-car)*Math.min(1,dt*3);if(fxEnabled&&clearBurst>.22){clearBurst=0;burst(35+Math.random()*380,160+Math.random()*200,['#ffe97a','#8df3c8','#f9a2de'][Math.floor(Math.random()*3)],14)}if(clearTime>=2.8)advanceStage();return}
+if(mode==='clearing'){
+ clearTime+=dt;clearBurst+=dt;car+=(225-car)*Math.min(1,dt*3);
+ if(fxEnabled&&clearBurst>.22){clearBurst=0;burst(35+Math.random()*380,160+Math.random()*200,['#ffe97a','#8df3c8','#f9a2de'][Math.floor(Math.random()*3)],14)}
+ if(clearTime>=2.8){
+  // Wait for the specifically requested scene, with a bounded fallback
+  // to avoid softlock when the network stops responding.
+  const loading=runMode==='campaign'&&wave<50&&window.ZZStageArt?.loading?.[stageArtForWave(wave+1)];
+  if(!loading||clearTime>=6.8)advanceStage();
+ }
+ return;
+}
 if(!foes.length){beginClear();return}
 const previousCar=car;if(keys.ArrowLeft||keys.a)target-=hero().speed*dt;if(keys.ArrowRight||keys.d)target+=hero().speed*dt;target=clamp(target,72,W-72);car+=clamp(target-car,-hero().speed*dt,hero().speed*dt);
 for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}/* Preserve contacts through pierce expiry; clear only upon physical separation. */sfx('expire');hud()}}skillUI();
