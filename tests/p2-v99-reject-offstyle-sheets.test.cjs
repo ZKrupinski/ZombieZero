@@ -39,5 +39,5 @@ for(const [form,key] of [[6,'black_brain_cube'],[4,'cardboard_box'],[5,'wooden_c
  }
 }
 assert.equal(Object.keys(lib.p1FinishedDeaths).length,3,'all three P1 remain loaded');
-assert(fs.readFileSync('dist/game.js','utf8').includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split)'));
+assert(fs.readFileSync('dist/game.js','utf8').includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'));
 console.log('PASS: v98 rejected, new P2 v100 enabled, original P2 fallback and P1 preserved.');
