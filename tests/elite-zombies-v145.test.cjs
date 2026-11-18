@@ -16,7 +16,7 @@ vm.createContext(world);
 vm.runInContext(loader,world);
 const elite=world.window.ZZEliteSprites;
 assert.equal(elite.SPECS.length,3);
-assert.deepEqual(elite.SPECS.map(s=>s.unlock),[3,5,7]);
+assert.deepEqual(Array.from(elite.SPECS,s=>s.unlock),[3,5,7]);
 elite.requestForStage(2);assert.equal(requested.length,0);
 elite.requestForStage(3);assert.equal(requested.length,1);
 requested[0].onload();assert.equal(elite.cache[0].ready,true);
