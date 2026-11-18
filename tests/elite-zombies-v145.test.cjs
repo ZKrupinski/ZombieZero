@@ -25,7 +25,6 @@ const z={x:42,y:72,w:33,h:44,kind:0,form:0,eliteKind:0,moveDir:0,seed:0,recoil:0
 assert.equal(elite.draw(g,z,0),true);
 assert.equal(g.drawCalls.at(-1)[3],1344/8);
 z.moveDir=-1;elite.draw(g,z,0);
-assert.equal(g.drawCalls.at(-1)[2],1176/7);
 assert.equal(g.drawCalls.at(-1)[2],2*(1176/7));
 z.moveDir=1;elite.draw(g,z,0);
 assert.equal(g.drawCalls.at(-1)[2],3*(1176/7));
