@@ -2393,7 +2393,7 @@ function drawCriticalPopups(){
  for(const f of criticalPopups){
   const t=clamp(f.t/f.life,0,1),fade=Math.min(1,(1-t)*2.8);
   const x=clamp(f.x,95,W-95),y=clamp(f.y-24-t*28,131,DEFENSE_Y-40);
-  const word=f.pierce?'PIERCE CRIT!':'CRITICAL!';
+  const word='CRITICAL!';
   g.save();g.translate(x,y);g.globalAlpha=fade;
   const sc=.78+.28*Math.sin(Math.min(1,t*4)*Math.PI/2);
   g.scale(sc,sc);g.textAlign='center';g.textBaseline='middle';
