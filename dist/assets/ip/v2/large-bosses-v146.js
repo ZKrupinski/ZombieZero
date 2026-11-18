@@ -10,10 +10,11 @@ const SPECS=[
 const COLS=8,ROWS=5,CELL=256;
 const CLIPS={idle:0,down:1,left:2,right:1,hit:3,death:4};
 const cache=SPECS.map(s=>({...s,image:null,ready:false,loading:false,failed:false,
- rightImage:null,rightReady:false,rightLoading:false,rightFailed:false}));
+ rightImage:null,rightReady:false,rightLoading:false,rightFailed:false,
+ attempts:0,rightAttempts:0}));
 function requestRight(entry){
  if(entry.rightReady||entry.rightLoading||entry.rightFailed)return;
- entry.rightLoading=true;
+ entry.rightLoading=true;entry.rightAttempts++;
  const img=new Image();
  entry.rightImage=img;img.decoding='async';
  img.onload=()=>{
@@ -24,7 +25,12 @@ function requestRight(entry){
   if(typeof img.decode==='function')img.decode().then(finish,finish);
   else finish();
  };
- img.onerror=()=>{entry.rightFailed=true;entry.rightLoading=false};
+ img.onerror=()=>{
+  entry.rightFailed=true;entry.rightLoading=false;
+  // One missing response must not permanently suppress a new species.
+  if(entry.rightAttempts<3&&typeof setTimeout==='function')
+   setTimeout(()=>{entry.rightFailed=false;requestRight(entry)},750*entry.rightAttempts);
+ };
  img.src=DIR+entry.rightFile;
 }
 function requestByForm(form){
@@ -33,7 +39,7 @@ function requestByForm(form){
  // Both sheets are requested together, only for the upcoming boss stage.
  requestRight(entry);
  if(entry.ready||entry.loading||entry.failed)return;
- entry.loading=true;
+ entry.loading=true;entry.attempts++;
  const img=new Image();
  entry.image=img;img.decoding='async';
  img.onload=()=>{
@@ -44,7 +50,11 @@ function requestByForm(form){
   if(typeof img.decode==='function')img.decode().then(finish,finish);
   else finish();
  };
- img.onerror=()=>{entry.failed=true;entry.loading=false};
+ img.onerror=()=>{
+  entry.failed=true;entry.loading=false;
+  if(entry.attempts<3&&typeof setTimeout==='function')
+   setTimeout(()=>{entry.failed=false;requestByForm(form)},750*entry.attempts);
+ };
  img.src=DIR+entry.file;
 }
 function readyByForm(form){return !!cache[form-2]?.ready}
