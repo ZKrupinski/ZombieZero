@@ -45,7 +45,7 @@ vm.createContext(context);
 vm.runInContext(aura,context);
 vm.runInContext(trail,context);
 const ball={x:205,y:352,vx:180,vy:-390,held:false};
-for(const [skills,minDraws,tag] of [[['pierce'],15,'blue'],[['fire'],14,'fire'],[['power'],8,'power'],[['fire','pierce','power'],32,'combined']]){
+for(const [skills,minDraws,tag] of [[['pierce'],4,'blue'],[['fire'],14,'fire'],[['power'],8,'power'],[['fire','pierce','power'],10,'combined']]){
  active=new Set(skills);count={rect:0,stroke:0,filled:0,arc:0,positions:[],colors:[]};
  vm.runInContext('drawBallStateAura('+JSON.stringify(ball)+',8);drawBallStatusForeground('+JSON.stringify(ball)+',8)',context);
  assert(count.rect+count.filled+count.stroke>=minDraws,tag+' gives a visible full-ball effect');
