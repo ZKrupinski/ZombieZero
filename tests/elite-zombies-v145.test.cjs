@@ -3,6 +3,19 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const root='dist/assets/ip/v2/elite-zombies-v145.js';
+const expectedAssets=[
+ ['trash-bag-v145.png',1537571],
+ ['volume-bag-v145.png',1693436],
+ ['water-bottle-v145.png',1529756]
+];
+for(const [file,bytes] of expectedAssets){
+ const asset=fs.readFileSync('dist/assets/ip/v2/elites/'+file);
+ assert.equal(asset.length,bytes,'approved original bitmap length: '+file);
+ assert.equal(asset.subarray(0,8).toString('hex'),'89504e470d0a1a0a','PNG signature: '+file);
+ assert.equal(asset.readUInt32BE(16),1344,'8 columns / full resolution: '+file);
+ assert.equal(asset.readUInt32BE(20),1176,'7 rows / full resolution: '+file);
+ assert.equal(asset.readUInt8(25),6,'RGBA transparency channel: '+file);
+}
 const loader=fs.readFileSync(root,'utf8');
 const game=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
