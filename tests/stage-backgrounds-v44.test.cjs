@@ -24,7 +24,7 @@ for(let i=1;i<=8;i++){
  assert.equal(img.toString('ascii',0,4),'RIFF',file+' has valid RIFF header');
  assert.equal(img.toString('ascii',8,12),'WEBP',file+' uses genuine WebP bitmap');
  assert(img.length>30000&&img.length<230000,file+' is a compressed high-quality mobile scene');
- assert(sw.includes("'./assets/stages/bg-"+String(i).padStart(2,'0')+".webp'"),file+' precached offline');
+ assert(!sw.includes("'./assets/stages/bg-"+String(i).padStart(2,'0')+".webp'"),file+' loaded on demand');
  assert(loader.includes('String(i+1).padStart(2'), 'loader uses ordered 2-digit filenames');
  names.add(img.subarray(0,Math.min(128,img.length)).toString('base64'));total+=img.length;
 }
@@ -42,7 +42,7 @@ const packed=fs.readFileSync(archive);
 assert.equal(crypto.createHash('sha256').update(packed).digest('hex'),
  '40f2169f2fa837de0abf56c68282a077fa73c581433e56366aeac1c701ac1493',
  'GitHub archive must contain byte-identical approved v57 art');
-assert(sw.includes("'./assets/stages/bg-09-18-v57-stored.zip'"),'all 10 artworks are precached in one ZIP');
+assert(!sw.includes("'./assets/stages/bg-09-18-v57-stored.zip'"),'the archive is excluded from installation');
 let addedBytes=0,at=0,count=0;
 while(at+30<=packed.length&&packed.readUInt32LE(at)===0x04034b50){
  const flags=packed.readUInt16LE(at+6),method=packed.readUInt16LE(at+8),
@@ -62,6 +62,7 @@ while(at+30<=packed.length&&packed.readUInt32LE(at)===0x04034b50){
  assert(img.length>100000&&img.length<280000,'compressed full-color game bitmap');
  assert.equal(crypto.createHash('sha256').update(img).digest('hex').slice(0,12),
   expected[stage],name+' is the correct user-approved v57 image');
+ if(stage!==9&&stage!==15)assert.deepEqual(fs.readFileSync('dist/assets/stages/'+name),img);
  names.add(img.subarray(0,Math.min(128,img.length)).toString('base64'));
  addedBytes+=img.length;
  at=stop;count++;
@@ -79,12 +80,9 @@ for(const stage of ['09','15']){
  assert.equal(img.readUInt16LE(26)&0x3fff,900);
  assert.equal(img.readUInt16LE(28)&0x3fff,1420);
  assert(img.length>60000&&img.length<200000);
- assert(sw.includes("'./assets/stages/bg-"+stage+"-v66-orthographic.webp'"));
+ assert(!sw.includes("'./assets/stages/bg-"+stage+"-v66-orthographic.webp'"));
 }
 assert(loader.includes("const override={8:'bg-09-v66-orthographic.webp',14:'bg-15-v66-orthographic.webp'}"));
-assert(loader.includes("if(i<8)img.src="),'original 8 backgrounds retain their independent WebP source');
-assert(loader.includes("fetch(archive).then"),'stages 09–18 load from the one protected binary archive');
-
 const noop=()=>{},elements={},draws=[],styles=[];
 const ctx=new Proxy({globalAlpha:1,drawImage:function(...args){
   draws.push({args,alpha:this.globalAlpha});

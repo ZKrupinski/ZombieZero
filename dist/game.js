@@ -1145,10 +1145,11 @@ function march(dt){
 // Endless advances through a short, in-world intermission. It never opens
 // a stage result dialog, but the player must serve a fresh ball for each wave.
 const ENDLESS_SHIFT_SECONDS=1.8,ENDLESS_SHIFT_SPAWN_AT=.35;
-let endlessShiftTime=0,endlessShiftSpawned=false;
+let endlessShiftTime=0,endlessShiftSpawned=false,endlessBackgroundWait=0;
 function beginEndlessShift(){
  if(runMode!=='endless'||mode!=='playing')return;
  mode='endlessShift';endlessShiftTime=0;endlessShiftSpawned=false;
+ endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));
  releaseInput();
  // Clear old-stage pickups, buffs, rockets, and all extra balls.
  clearSkills();resetBalls();junk=[];itemPickupFX=[];
@@ -1186,6 +1187,11 @@ function refillEndlessWave(){
  score+=500;hud();
 }
 function updateEndlessShift(dt){
+ if(!endlessShiftSpawned&&endlessShiftTime+dt>=ENDLESS_SHIFT_SPAWN_AT&&
+    window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]&&endlessBackgroundWait<4){
+  endlessShiftTime=ENDLESS_SHIFT_SPAWN_AT;
+  endlessBackgroundWait+=dt;return;
+ }
  endlessShiftTime+=dt;
  if(!endlessShiftSpawned&&endlessShiftTime>=ENDLESS_SHIFT_SPAWN_AT){
   endlessShiftSpawned=true;refillEndlessWave();
@@ -1787,6 +1793,9 @@ let stageArtIndex=0,previousArtIndex=-1,stageArtBlend=1;
 function stageArtForWave(n){return ((Math.max(1,n)-1)%STAGE_ART_COUNT)}
 function setStageBackground(immediate=false){
  const next=stageArtForWave(wave);
+ const art=window.ZZStageArt;
+ art?.retain?.(next,immediate?-1:stageArtIndex);
+ art?.load?.(next);
  if(immediate){stageArtIndex=next;previousArtIndex=-1;stageArtBlend=1;return}
  if(stageArtIndex!==next){
   previousArtIndex=stageArtIndex;
@@ -1798,7 +1807,7 @@ function updateStageBackground(dt){
  const art=window.ZZStageArt;
  if(previousArtIndex<0||!art?.ready?.[stageArtIndex])return;
  stageArtBlend=Math.min(1,stageArtBlend+dt/STAGE_FADE_SECONDS);
- if(stageArtBlend>=1)previousArtIndex=-1;
+ if(stageArtBlend>=1){previousArtIndex=-1;art.retain?.(stageArtIndex,mode==='endlessShift'&&!endlessShiftSpawned?stageArtForWave(wave+1):-1);}
 }
 function background(){
  if(stageArtIndex!==stageArtForWave(wave))setStageBackground();
