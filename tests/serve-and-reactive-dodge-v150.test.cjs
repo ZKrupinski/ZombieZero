@@ -48,6 +48,7 @@ function actor(form,eliteKind){
 }
 function setup(form,eliteKind){
  const z=actor(form,eliteKind);
+ dodgeGhosts.length=0;
  foes=[z];balls=[newBall(z.x+z.w/2,300,0,-400,false)];
  active={};clock=50;return z;
 }
