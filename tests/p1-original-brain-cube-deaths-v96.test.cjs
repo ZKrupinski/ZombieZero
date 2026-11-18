@@ -58,5 +58,5 @@ runtime.length=0;const barrel={form:1,x:30,y:50,w:33,h:44,flash:0};
 assert(sprites.drawDeath(canvas,barrel,true,.3,.58));
 assert(runtime.every(x=>x.img._src?.includes('red_barrel.png')),'existing red barrel still uses source frame renderer');
 const source=fs.readFileSync('dist/game.js','utf8');
-assert(source.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split)'),'game flow unaffected');
+assert(source.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'),'game flow unaffected');
 console.log('PASS: yellow/red original front bitmaps, 8 cached frames x 2 death modes, no black-hair assets, red barrel unchanged.');

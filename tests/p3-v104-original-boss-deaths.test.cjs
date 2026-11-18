@@ -73,6 +73,6 @@ for(let slot=0;slot<4;slot++){
 assert.equal(Object.keys(sprite.p1FinishedDeaths).length,3,'keep P1');
 assert.equal(Object.keys(sprite.p2FinishedDeaths).length,4,'keep P2');
 assert(fs.readFileSync('dist/game.js','utf8').includes(
- 'ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split)'),
+ 'ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'),
  'unchanged gameplay death path');
 console.log('PASS P3-v104/v106: approved big unchanged; trash clean no-spin HD strips, 4 slots, single draw and fallback.');

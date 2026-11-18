@@ -56,5 +56,5 @@ for(const [key,form] of [['black_brain_cube',6],['cardboard_box',4],['wooden_cra
 }
 assert.equal(Object.keys(lib.p1FinishedDeaths).length,3,'P1 unchanged');
 assert(src.includes('if(drawP1FinishedDeath(ctx,z,critical,elapsed,duration,img))return true;'));
-assert(fs.readFileSync('dist/game.js','utf8').includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split)'));
+assert(fs.readFileSync('dist/game.js','utf8').includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'));
 console.log('PASS: user-approved v100 P2 8 RGBA sheets, 8 frames each, distinct deaths, actual gameplay/preview and fallback.');

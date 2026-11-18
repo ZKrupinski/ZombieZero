@@ -23,8 +23,8 @@ updateEnemyVisuals(.34);
 check(enemyDeaths.length===1,'lid / brain reveal remains onscreen before shattering');
 drawEnemyDeaths();
 updateEnemyVisuals(.46);
-check(enemyDeaths.length===0&&enemyPieces.length===6,'six special green pieces after reveal');
-check(enemyPieces.every(p=>p.criticalGreen),'lid, brain, green body fragment types retained');
+check(enemyDeaths.length===0&&enemyPieces.length===0,'bitmap critical death finishes without vector fragments');
+check(enemyPieces.length===0,'old generic vector fragments are never spawned');
 drawEnemyDeaths();
 let once=score;damage(target,10);check(score===once,'no double-awarded critical kill');
 start();serve();wave=1;rack();let normal=foes[0];normal.form=0;normal.hp=1;normal.max=1;
@@ -33,6 +33,6 @@ start();serve();wave=1;rack();let burning=foes[0];burning.form=0;burning.hp=1;bu
 damage(burning,3,true);check(enemyDeaths.length===1&&!enemyDeaths[0].critical,'burn damage does not trigger critical');
 start();serve();wave=3;rack();let boss=foes.find(z=>z.boss);boss.hp=1;
 damage(boss,5,false);check(enemyDeaths.length===1&&!enemyDeaths[0].critical,'boss still uses boss-specific death');
-console.log('PASS: green critical lid reveal, brain, 6 themed fragments, single kill, unchanged collider and ordinary/burn/boss fallbacks');
+console.log('PASS: green critical bitmap death, no procedural debris, unchanged collider and ordinary/burn/boss handling');
 }
 `,sandbox);

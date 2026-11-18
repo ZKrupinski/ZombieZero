@@ -171,7 +171,7 @@ const ENEMY_COLUMNS=9,ENEMY_PITCH=40.875,ENEMY_LEFT_X=45,ENEMY_ROW_PITCH=58;
 const zombieMinX=()=>ROAD_LEFT+ZOMBIE_WALL_MARGIN;
 const zombieMaxX=z=>ROAD_RIGHT-ZOMBIE_WALL_MARGIN-z.w;
 const ZOMBIE_FORMS=[{name:'그린 좀비',unlock:1},{name:'드럼통 좀비 · 레드',unlock:6},{name:'드럼통 좀비 · 블랙',unlock:32},{name:'브레인 큐브 · 레드',unlock:9},{name:'일회용 포장 박스 좀비',unlock:24},{name:'나무 상자 좀비',unlock:28},{name:'브레인 큐브 · 블랙',unlock:16},{name:'브레인 큐브 · 옐로',unlock:4}];
-const BOSS_FORMS=['빅 좀비','쓰레기통 좀비','빅 좀비','쓰레기통 좀비'];
+const BOSS_FORMS=['빅 좀비','쓰레기통 좀비','대형 생수통 좀비','큰 쓰레기 좀비'];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const has=k=>(active[k]||0)>0;
 // V84: hard-edge, low-poly contact shadows. All ground actors use polygon
@@ -808,11 +808,17 @@ function isBossWave(){
 function bossIndex(){
  return runMode==='endless'?Math.floor((endlessWaveNumber()-1)/3):wave/3-1;
 }
+function requestBossForWave(nextWave){
+ const ordinal=runMode==='endless'?nextWave-50:nextWave;
+ if(ordinal>0&&ordinal%3===0)
+  window.ZZLargeBossSprites?.requestByForm(Math.floor((ordinal-1)/3)%BOSS_FORMS.length);
+}
 function rack(){
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
  const stage=combatStage();
  window.ZZEliteSprites?.requestForStage(stage);
+ requestBossForWave(wave);
  // A full four-row, mixed-cast opening; HP and movement scale independently.
  const rows=runMode==='endless'
   ?4
@@ -821,6 +827,9 @@ function rack(){
    Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
   )));
  const bossStage=isBossWave();
+ const requestedBossForm=bossIndex()%BOSS_FORMS.length;
+ const bossForm=requestedBossForm>=2&&!window.ZZLargeBossSprites?.readyByForm(requestedBossForm)
+  ?requestedBossForm%2:requestedBossForm;
  for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
   if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
   const maxKind=Math.min(4,1+Math.floor(stage/2));
@@ -834,13 +843,13 @@ function rack(){
  insertEliteZombies(foes,stage);
  if(bossStage){
   const hp=Math.round(24+Math.min(stage,10)*4+Math.max(0,stage-10)*1.2);
-  const bossForm=bossIndex()%BOSS_FORMS.length;
+  /* Boss form is selected above, after checking bitmap readiness. */
   foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
  }
  $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():'STAGE '+wave)
-  +' · '+(bossStage?BOSS_FORMS[bossIndex()%BOSS_FORMS.length]:stageRosterLabel(stage))
+  +' · '+(bossStage?BOSS_FORMS[bossForm]:stageRosterLabel(stage))
   +' / 진군 속도 '+marchBase().toFixed(1);
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
  breakoutNextCheck=clock+.85;
@@ -1176,7 +1185,7 @@ let endlessShiftTime=0,endlessShiftSpawned=false,endlessBackgroundWait=0;
 function beginEndlessShift(){
  if(runMode!=='endless'||mode!=='playing')return;
  mode='endlessShift';endlessShiftTime=0;endlessShiftSpawned=false;
- endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));
+ endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));requestBossForWave(wave+1);
  releaseInput();
  // Clear old-stage pickups, buffs, rockets, and all extra balls.
  clearSkills();resetBalls();junk=[];itemPickupFX=[];
@@ -1189,7 +1198,7 @@ function beginClear(){
  if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];
  // Begin downloading only the next campaign background at STAGE CLEAR.
  // The 2.8s result celebration is the loading/decoding window.
- if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1)}
+ if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1);requestBossForWave(wave+1)}
  for(const b of balls)retireBall(b,'clear');
  balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;
  active={};score+=500;cheerTime=3;sfx('wave');
@@ -1202,7 +1211,7 @@ function advanceStage(){
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);
  mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;
- toast(isBossWave()?'WARNING · '+BOSS_FORMS[bossIndex()%BOSS_FORMS.length]:
+ toast(isBossWave()?'WARNING · '+BOSS_FORMS[foes.find(z=>z.boss)?.bossForm??0]:
   'STAGE '+String(wave).padStart(2,'0')+' · '+stageRosterLabel(combatStage()));
 }
 // Switch the background and entire enemy formation during the intermission.
@@ -1948,13 +1957,13 @@ function enemyDeath(z,critical=false){
  // the generic 2-key critical/death poses shared by the other 9 object types.
  const eliteSprite=!z.boss&&Number.isInteger(z.eliteKind)&&window.ZZEliteSprites?.available(z)===true;
  const isGreen=!z.boss&&(z.form??0)===0&&!eliteSprite;
- const objectSprite=!isGreen&&!eliteSprite&&window.ZZObjectSprite?.available(z)===true;
+ const largeBossSprite=!!z.boss&&window.ZZLargeBossSprites?.available(z)===true;
+ const objectSprite=!isGreen&&!eliteSprite&&!largeBossSprite&&window.ZZObjectSprite?.available(z)===true;
  const greenSprite=isGreen&&window.ZZGreenDeath?.ready===true;
- const spriteMode=eliteSprite||objectSprite||greenSprite;
- const split=eliteSprite?.72:objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
+ const spriteMode=largeBossSprite||eliteSprite||objectSprite||greenSprite;
+ const split=largeBossSprite?(critical?.94:.78):eliteSprite?.72:objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  const freeze=Math.max(0,(z.hitShakeUntil||0)-clock);
  enemyDeaths.push({z:{...z,flash:.12},critical,spriteMode,t:0,freeze,split:split+freeze,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
-function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
 function updateEnemyVisuals(dt){advanceVisualQueue(hitFlashes,dt);advanceVisualQueue(barrelBlasts,dt);advanceVisualQueue(bazookaBlasts,dt);for(const z of foes){
  if(Number.isFinite(z.arrivalTime)){
   z.arrivalTime=Math.min(.62,z.arrivalTime+dt);
@@ -1971,155 +1980,51 @@ function updateEnemyVisuals(dt){advanceVisualQueue(hitFlashes,dt);advanceVisualQ
 }for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
  // Final bitmap already depicts lying down / cute brain debris; do not duplicate
  // the old procedural blast or turn a normal backward fall into a side explosion.
- if(!d.spriteMode)scatterEnemy(d)
+ // No procedural fragments when a bitmap sprite is missing.
 }}compactVisualQueue(enemyDeaths,deathPending);for(const p of enemyPieces){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=420*dt;p.angle+=p.spin*dt}compactVisualQueue(enemyPieces,visualAlive)}
 // Original ZOMBIE ZERO mascot critical death: hinged black head lid reveals
 // a bright pink brain. Fixed front/elevated-top gameplay camera; NO floor shadow.
 // This only changes the cosmetic death queue (never HP, scoring or colliders).
-function drawCriticalGreenDeath(d){
- const z=d.z,t=clamp(d.t/d.split,0,1),open=clamp((t-.06)/.29,0,1);
- const rise=clamp((t-.27)/.3,0,1),fall=clamp((t-.42)/.46,0,1);
- g.save();g.translate(z.x+z.w/2,z.y+23);
- g.translate(0,fall*11);g.scale(1+fall*.12,1-fall*.52);
- g.translate(-17,-23);
- // Feet and clothes, held under the face: recognizable as the green mascot.
- rect(5,30,23,10,'#d84851');rect(7,37,7,6,'#25272b');rect(23,37,7,6,'#25272b');
- rect(-4,27,9,7,'#66ce5c');rect(31,27,9,7,'#66ce5c');
- rect(0,0,34,30,'#58c65b');rect(0,1,34,5,'#7fed77');
- // Top cavity must be visible in the game's slight top-down camera.
- if(open>0){rect(3,1,28,Math.max(1,Math.round(9*open)),'#23873f');rect(6,2,22,Math.max(1,Math.round(6*open)),'#17452b')}
- // Two oversized original eyes; two pink pupils + strong separate eyebrows.
- g.fillStyle='#fffaf5';g.beginPath();g.ellipse(9,18,7,9,0,0,Math.PI*2);g.ellipse(25,18,7,9,0,0,Math.PI*2);g.fill();
- rect(9,17,3,5,'#ee5a78');rect(24,17,3,5,'#ee5a78');
- rect(3,9,12,3,'#312b29');rect(20,9,11,3,'#312b29');
- rect(14,24,7,5,'#e95476');rect(3,27,4,6,'#fff1e7');rect(28,27,4,6,'#fff1e7');
- // Pink brain rises from under the hinged lid. No background shadow plate.
- if(rise>0){
-  g.save();g.translate(17,2-6*rise);
-  g.fillStyle='#fa5b91';g.beginPath();
-  g.arc(-3.3,2,3,0,Math.PI*2);g.arc(0,0,3.8,0,Math.PI*2);g.arc(3.3,2,3,0,Math.PI*2);g.fill();
-  g.strokeStyle='#c93168';g.lineWidth=1.3;g.beginPath();g.moveTo(-3,3);g.lineTo(-1,1);g.lineTo(1,3);g.lineTo(3,1);g.stroke();
-  g.restore();
+// Bitmap-only zombies and bosses. The former procedural/vector fallback
+// must never replace approved character art during asynchronous image loads.
+function drawEnemyDeaths(){
+ for(const d of enemyDeaths){
+  if(d.t<(d.freeze||0)){
+   g.save();
+   const t=d.t/Math.max(.001,d.freeze||.105);
+   g.filter=t<.68?'brightness(2.25) saturate(.52)':'brightness(1.64) saturate(.83)';
+   const jitter=hitShakeOffset(d.t,d.freeze||.105,!!d.z.boss);
+   g.translate(jitter.x,jitter.y);zombie(d.z);g.restore();continue;
+  }
+  const elapsed=Math.max(0,d.t-(d.freeze||0));
+  const duration=Math.max(.01,d.split-(d.freeze||0));
+  if(d.spriteMode&&window.ZZLargeBossSprites?.available(d.z)===true)
+   window.ZZLargeBossSprites.drawDeath(g,d.z,elapsed,duration);
+  else if(d.spriteMode&&window.ZZEliteSprites?.available(d.z)===true)
+   window.ZZEliteSprites.drawDeath(g,d.z,elapsed,duration);
+  else if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true)
+   window.ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration);
+  else if(d.spriteMode&&window.ZZGreenDeath?.ready===true)
+   window.ZZGreenDeath.draw(g,d.z,d.critical,elapsed);
  }
- // Rigid rectangular black skull cap rotates away from the cavity.
- g.save();g.translate(17,-1);g.rotate(-open*.62);
- rect(-17,-6-7*open,34,9,'#302c29');rect(-15,-6-7*open,30,2,'#403b36');
- g.restore();
- if(t>.49){const glow=Math.max(0,1-Math.abs(t-.68)/.3);
-  g.globalAlpha=glow*.85;g.strokeStyle='#ff4d9c';g.lineWidth=2;
-  for(let i=0;i<4;i++){const a=i*Math.PI/2;g.beginPath();g.moveTo(17+Math.cos(a)*15,2+Math.sin(a)*11);g.lineTo(17+Math.cos(a)*20,2+Math.sin(a)*14);g.stroke()}
+}
+function zombie(z){
+ if(z.boss&&window.ZZLargeBossSprites?.draw(g,z,clock))return;
+ if(!z.boss&&window.ZZEliteSprites?.draw(g,z,clock))return;
+ const originalObject=window.ZZObjectSprite;
+ if(originalObject?.draw(g,z,clock)){
+  if(z.burn>0){
+   g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
+   for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
+   g.restore();
+  }
+  return;
  }
- g.restore();
+ if(!z.boss&&(z.form??0)===0&&window.ZZGreenWalk?.draw(g,z,clock))return;
+ if(!z.boss&&(z.form??0)===0&&window.ZZGreenDeath?.ready===true)
+  window.ZZGreenDeath.draw(g,z,false,0);
+ // No generic rectangle/cube placeholder. The source sprite is mandatory.
 }
-function drawEnemyDeaths(){for(const d of enemyDeaths){
- if(d.t<(d.freeze||0)){
-  g.save();
-  const freezeT=d.t/Math.max(.001,d.freeze||.105);
-  g.filter=freezeT<.68?'brightness(2.25) saturate(.52)':'brightness(1.64) saturate(.83)';
-  // Hit tremble is tightly localized; death animation begins after this hold.
-  const jitter=hitShakeOffset(d.t,d.freeze||.105,!!d.z.boss);
-  g.translate(jitter.x,jitter.y);
-  zombie(d.z);g.restore();continue;
- }
- const elapsed=Math.max(0,d.t-(d.freeze||0));
- const anim={...d,t:elapsed,split:Math.max(.01,d.split-(d.freeze||0))};
- if(d.spriteMode&&window.ZZEliteSprites?.available(d.z)===true){window.ZZEliteSprites.drawDeath(g,d.z,anim.t,anim.split)}
-  else if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true){
-   window.ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split);
- }else if(d.spriteMode&&window.ZZGreenDeath?.ready===true){
-   window.ZZGreenDeath.draw(g,d.z,d.critical,anim.t);
- }else if(d.critical)drawCriticalGreenDeath(anim);
- else zombie(d.z,anim)
-}for(const p of enemyPieces){g.save();g.globalAlpha=Math.min(1,(p.life-p.t)/.3);g.translate(p.x,p.y);g.rotate(p.angle);g.scale(p.sc,p.sc);const f=p.z.boss?[3,4,7,1][p.z.bossForm||0]:p.z.form||0,col=TYPES[p.z.kind],pose={jaw:2,lidL:3,lidR:0,eye:0};// When original sprites are active, scatter actual sampled character pieces
-// instead of switching to the older generic procedural humanoid fragments.
-const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null;
-const artIndex=cast?(p.z.boss?cast.bossIndex[p.z.bossForm??0]:cast.enemyIndex[p.z.form??0]):undefined;
-if(p.criticalGreen){
- if(p.part===0){rect(-13,-5,26,8,'#302c29');rect(-11,-5,22,2,'#47413b')}
- else if(p.part===1){g.fillStyle='#f65d92';g.beginPath();g.arc(-2,1,3.4,0,Math.PI*2);g.arc(2,-1,3.9,0,Math.PI*2);g.fill();g.strokeStyle='#c22c68';g.lineWidth=1;g.beginPath();g.moveTo(-2,0);g.lineTo(2,2);g.stroke()}
- else if(p.part<6){rect(-5,-5,10,10,p.part===5?'#d84851':'#61cf61');rect(-5,-5,10,3,'#91ef7a')}
-}else if(p.part<6&&atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
- const cuts=[[5,5,54,33],[16,35,32,20],[0,30,25,25],[39,30,25,25],[12,49,24,15],[37,49,24,15]];
- const cut=cuts[p.part],ax=artIndex%4*64+cut[0],ay=Math.floor(artIndex/4)*64+cut[1];
- g.drawImage(atlas,ax,ay,cut[2],cut[3],-cut[2]/2,-cut[3]/2,cut[2],cut[3]);
-}else if(p.part===0){g.translate(-16.5,-14);enemyHead(p.z,f,col,col.color,pose)}else if(p.part===1){g.translate(-16.5,-35);enemyTorso(f,col)}else if(p.part===2||p.part===3){g.translate(p.part===2?1:-34,-28);enemyArm(f,col,col.color,p.part===2?0:1,0,0)}else if(p.part<6){rect(-5,-3,10,6,'#273748')}else{rect(-3,-2,6,4,p.color);rect(-3,-2,6,1,col.top)}g.restore()}}
-function enemyTorso(f,p){rect(5,30,23,10,ENEMY_CLOTH[f]);if(f===0){rect(6,32,4,7,'#a89478');rect(21,34,6,2,'#9b6d70')}if(f===2){rect(2,30,31,9,'#252638');for(let i=0;i<3;i++)rect(5+i*10,32,3,3,'#bfc8c7')}if(f===3)rect(18,32,10,5,'#b98495');if(f===5){rect(5,30,24,10,'#d9d4b5');rect(17,31,3,8,'#637998')}if(f===6)rect(15,32,5,6,'#202e36');if(f===7){rect(-5,29,43,11,'#944e77');rect(0,31,33,6,'#312b47');for(let i=0;i<5;i++)rect(2+i*6,31,4,4,'#f4d9a5')}}
-function enemyArm(f,p,skin,side,angle,lift){const x=side?34:-1;g.save();g.translate(x,24+lift);g.rotate(angle*(side?-1:1));g.translate(-x,-24);rect(side?30:-5,side?23:24,8,9,skin);rect(side?31:-4,31,6,3,p.side);if(f===2&&!side)rect(-5,27,8,5,'#323145');if(f===4)for(let i=0;i<3;i++)rect((side?31:-5)+i*3,side?29:30,2,6,'#e2cdab');if(f===7){rect(side?32:-8,side?26:27,side?11:10,side?13:12,'#708995');rect(side?34:-6,side?29:30,6,side?7:6,'#252c49')}g.restore()}
-function enemyHead(z,f,p,skin,a){
-rect(0,0,33,29,skin);rect(3,-3,27,4,p.top);rect(0,26,33,3,p.side);
-rect(2,6,13,12,'#693c54');rect(19,5,12,13,'#693c54');rect(4,8,9,8,'#f7e6cb');rect(21,7,8,10,'#f7e6cb');rect(8+a.eye,10,3,5,'#5c7899');rect(23+a.eye,10,3,4,'#b44251');rect(4,8,9,a.lidL,skin);rect(21,7,8,a.lidR,skin);rect(13,17,6,3,p.side);
-rect(6,21,23,10+a.jaw,'#533043');rect(9,22,4,4,'#fff0c2');rect(20,22,4,3,'#fff0c2');rect(13,28+a.jaw,9,5,'#d76c85');rect(6,31+a.jaw,23,2,p.side);rect(1,16,4,3,p.side);rect(27,19,5,3,p.side);
-if(f===0){rect(0,-2,33,6,'#3d353b');rect(3,1,5,7,'#3d353b')}
-if(f===1){rect(4,19,27,18+a.jaw,'#543047');rect(6,21,23,12+a.jaw,'#391c35');for(let i=0;i<4;i++)rect(7+i*6,21,4,4,'#efdfb6');rect(11,29+a.jaw,15,6,'#d86087');rect(8,36+a.jaw,23,3,p.side);rect(8,32+a.jaw,3,3,'#f7e4c2')}
-if(f===2){rect(12,-8,9,12,'#e8848a');rect(15,-12,6,6,'#f4ad67')}
-if(f===3){rect(1,-4,30,7,'#776255');rect(20,0,12,10,'#d58d9f');rect(-7,8,7,4,'#c3bc91');rect(33,8,7,4,'#c3bc91');for(let i=0;i<4;i++){rect(18+i*3,3+i*2,5,1,'#603c56');rect(19+i*3,2+i*2,1,4,'#e0c6a6')}}
-if(f===4){poly([[0,7],[-4,-10],[11,0]],skin);poly([[23,0],[37,-10],[33,8]],skin);poly([[2,4],[0,-5],[8,2]],'#ac5c78');poly([[26,2],[34,-5],[31,5]],'#ac5c78');rect(9,15,16,9,p.side);rect(13,15,8,4,'#522d43');rect(4,22,26,12+a.jaw,'#50263e');poly([[7,22],[10,29],[13,22]],'#fff2cd');poly([[23,22],[26,29],[29,22]],'#fff2cd');rect(14,29+a.jaw,10,8,'#e07688')}
-if(f===5){rect(3,-5,28,8,'#e49fa7');for(let i=0;i<4;i++)rect(5+i*6,-3,2,5,'#ac617e');rect(6,10,22,3,'#342b4a');rect(6,8,9,7,'#bdd0bb');rect(20,8,9,7,'#bdd0bb');rect(6,8,9,a.lidL,p.side);rect(20,8,9,a.lidR,p.side)}
-if(f===6){rect(-2,-4,37,7,'#e8ba5b');rect(-2,0,4,29,'#cf9740');rect(32,0,4,29,'#cf9740');rect(10,20,17,11,'#3b4a55');rect(8,22,5,6,'#b5c9b9');rect(25,22,5,6,'#b5c9b9');rect(13,23+Math.min(1,a.jaw/4),11,2,'#869b8c')}
-if(f===7){rect(2,-5,29,8,'#ecaa78');for(let i=0;i<4;i++)rect(5+i*6,-3,2,5,'#a35b70')}
-}
-// Boss HP is still simulated for combat balance, but has no visible gauge.
-function zombie(z,death=null){
-if(!death&&window.ZZEliteSprites?.draw(g,z,clock))return;
-const originalObject=window.ZZObjectSprite;
-if(!death&&originalObject?.draw(g,z,clock)){
- // The original colours are character identity, not HP tint.
- if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
-  for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
-  g.restore()}
- return;
-}
-// Distinct mascot atlas: preserve the original cube geometry and 8-frame
-// diagonal footsteps, without changing the enemy collision rectangle.
-const mascot=window.ZZGreenWalk;
-if(!death&&!z.boss&&(z.form??0)===0&&mascot?.draw(g,z,clock)){
- if(z.burn>0){g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
-  for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
-  g.restore()}
- return;
-}
-const f=z.boss?[3,4,7,1][z.bossForm??0]:(z.form??0),sc=z.boss?2:1,p=TYPES[z.kind],skin=z.flash>0?'#fff':p.color,a=enemyPose(z);g.save();g.translate(z.x,z.y);g.scale(sc,sc);/* no baked character ground shadow; gameplay floor handles depth */
-// Local pivots keep the sprite centered on its unchanged collision rectangle.
-g.translate(16.5,25);g.rotate(a.lean);g.translate(a.dx*a.hit*1.5,a.dy*a.hit*1.5+a.bob);let sx=1+a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1,sy=1-a.hit*(Math.abs(a.dy)-Math.abs(a.dx))*.1;
-if(death){const t=death.t/death.split;const squash=t<.45?Math.sin(t/.45*Math.PI/2):1-(t-.45)/.55;sx*=1+squash*(z.boss?.2:.14);sy*=1-squash*.18;if(z.boss&&t>.55){sx*=1+(t-.55)*.28;sy*=1+(t-.55)*.28}/* no sideways flop: front/back projected collapse */}g.scale(sx,sy);g.translate(-16.5,-25);
-// Original art pilot: render the canonical green cube zombie from its transparent
-// PNG bitmap. Keep existing pose transforms / collision coordinates unchanged.
-// Other types and missing/failed bitmap loads fall back to procedural art.
-// Canonical cast atlas: all 10 object zombies use their original identity
-// irrespective of numeric HP tier. The old procedural version remains a fallback.
-const cast=window.ZZObjectCast;
-// The supplied isometric collection atlas is a reference, NOT gameplay art.
-const atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null;
-const artIndex=cast?(z.boss?cast.bossIndex[z.bossForm??0]:cast.enemyIndex[z.form??0]):undefined;
-if(atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(artIndex)){
- g.save();
- if(z.flash>0)g.filter='brightness(1.7)';
- g.drawImage(atlas,(artIndex%4)*64,Math.floor(artIndex/4)*64,64,64,-4,-8,41,52);
- g.restore();
- if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
- g.restore();
- 
- return;
-}
-// Actual top/front-oriented sprite pilot: same approved artwork as normal and
-// critical death, so the green enemy does not change drawing style on death.
-// No ground shadow, no isometric artwork; physics/HP colliders remain unchanged.
-const greenSprite=window.ZZGreenDeath;
-if(!death&&!z.boss&&(z.form??0)===0&&greenSprite?.ready===true){
- g.save();
- if(z.flash>0)g.filter='brightness(1.55)';
- greenSprite.draw(g,{x:0,y:0,w:33,h:44},false,0);
- g.restore();
- if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}
- g.restore();return;
-}
-// Legacy isometric green-zombie bitmap intentionally disabled in current gameplay.
-// A front-oriented, slightly elevated sprite atlas is required before enabling art.
-rect(3,38+a.legL,10,6,'#273748');rect(22,38+a.legR,10,6,'#273748');enemyTorso(f,p);
-enemyArm(f,p,skin,0,a.left+(death?Math.sin(death.t*60)*.3:0),a.shoulder);enemyArm(f,p,skin,1,a.right-(death?Math.sin(death.t*49)*.3:0),-a.shoulder*.7);
-g.save();g.translate(16.5,23);g.rotate(a.head);g.translate(-16.5,-23-a.hit*1.3);enemyHead(z,f,p,skin,a);g.restore();
-if(z.boss){rect(2,34,4,4,'#ffd27b');rect(26,34,4,4,'#ffd27b')}
-if(z.burn>0){g.globalAlpha=.8;for(let i=0;i<3;i++){let x=4+i*12,h=12+Math.sin(clock*14+i)*5;poly([[x-5,39],[x,39-h],[x+4,31],[x+8,40]],'#ff793c');rect(x,34,4,5,'#ffe68b')}g.globalAlpha=1}g.restore();}
 const ITEM_ICON_KEYS=['bazooka','dual','triple','power','fire','slow','pierce','shield'];
 function drawItemArtwork(k,x,y,size=24){
  const atlas=window.ZZItemIcons,ix=ITEM_ICON_KEYS.indexOf(k);

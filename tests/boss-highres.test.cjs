@@ -96,7 +96,7 @@ for(let n=0;n<2;n++){
 }
 const game=read('dist/game.js').toString();
 assert(game.includes('originalObject?.draw(g,z,clock)'),'gameplay uses boss HD-capable renderer');
-assert(game.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split)'),'boss death uses same HD-capable renderer');
+assert(game.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'),'boss death uses same HD-capable renderer');
 const gallery=read(base+'cast-demo.js').toString();
 assert(gallery.includes('pack.activeImage(actor)'),'gallery displays actual HD boss');
 assert(gallery.includes('pack.sourceRect(actor,frame,img)'),'gallery samples HD pixel coordinates');
