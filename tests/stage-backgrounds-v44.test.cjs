@@ -82,7 +82,10 @@ for(const stage of ['09','15']){
  assert(img.length>60000&&img.length<200000);
  assert(!sw.includes("'./assets/stages/bg-"+stage+"-v66-orthographic.webp'"));
 }
-assert(loader.includes("const override={8:'bg-09-v66-orthographic.webp',14:'bg-15-v66-orthographic.webp'}"));
+assert(loader.includes("8:'bg-09-v66-orthographic.webp'")&&
+       loader.includes("13:'bg-14-v157-orthographic.webp'")&&
+       loader.includes("14:'bg-15-v66-orthographic.webp'"),
+       'approved stage 9, winter 14 and stage 15 use their orthographic bitmaps');
 const noop=()=>{},elements={},draws=[],styles=[];
 const ctx=new Proxy({globalAlpha:1,drawImage:function(...args){
   draws.push({args,alpha:this.globalAlpha});

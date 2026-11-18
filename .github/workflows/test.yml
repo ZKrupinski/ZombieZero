@@ -19,6 +19,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install "Pillow>=10,<12"
+      - run: python tools/rectify_winter_bg_v157.py --verify
       - run: python tools/generate_p3_boss_deaths.py --verify
       - run: python tools/generate_p3_trash_v106.py --verify
       - run: node tools/test.cjs

@@ -11,7 +11,7 @@
   '식생에 잠긴 폐허 쇼핑몰'
  ];
  // Approved orthographic bitmap replacements. Fixed visual road edges x=72 and 828.
- const override={8:'bg-09-v66-orthographic.webp',14:'bg-15-v66-orthographic.webp'};
+ const override={8:'bg-09-v66-orthographic.webp',13:'bg-14-v157-orthographic.webp',14:'bg-15-v66-orthographic.webp'};
  const images=new Array(18),ready=new Array(18).fill(false);
  const loading=new Array(18).fill(false);
  function load(i){
@@ -36,6 +36,6 @@
    images[i]=undefined;ready[i]=false;loading[i]=false;
   }
  }
- window.ZZStageArt={images,ready,loading,load,retain,themes,count:18,sourceWidth:900,sourceHeight:1420,version:143};
+ window.ZZStageArt={images,ready,loading,load,retain,themes,count:18,sourceWidth:900,sourceHeight:1420,version:157};
  load(0); // The character picker displays the first campaign scene.
 })();
