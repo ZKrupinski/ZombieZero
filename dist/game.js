@@ -379,8 +379,13 @@ function drawTrailGroundReflections(b,r,path){
    for(let i=0;i<samples;i++){
     const u=i/(samples-1),p=sampleBallTrail(path,length*u);
     const fade=1-.78*u;
+    // Alternate warm and cyan pools when fire and pierce overlap.
+    // Same 16 cached stamps; never double the floor draw calls.
+    const rgb=has('fire')&&i%2===0?
+      (typeof TRAIL_GROUND_FIRE!=='undefined'?TRAIL_GROUND_FIRE[0]:[255,139,51]):
+      TRAIL_GROUND_PIERCE[0];
     drawProjectedLightSpill(p.x,p.y,(r>8?34:30)*(1-.12*u),
-     TRAIL_GROUND_PIERCE[0],.34*fade,30,.82,true,false);
+     rgb,.34*fade,30,.82,true,false);
    }
    return;
   }
@@ -2482,8 +2487,35 @@ function compactBallFX(){
  return fxEnabled&&(has('pierce')||
   (has('fire')&&(has('power')||balls.length>=3)));
 }
+// V156: Compact LOD still draws the skill colors. The previous early returns
+// erased ALL fire/pierce/power accents whenever stacked skills were active.
+// Keep a fixed 2-7 tiny additive dots per pass, with no blur or gradients.
+function drawCompactBallStatus(b,r,front=false){
+ if(!fxEnabled)return;
+ const fire=has('fire'),pierce=has('pierce'),power=has('power');
+ if(!fire&&!pierce&&!power)return;
+ const phase=clock*(front?1.1:.72),radius=r*(front?1.14:1.35);
+ g.save();g.translate(b.x,b.y);
+ g.globalCompositeOperation='lighter';g.shadowBlur=0;
+ const emit=(count,phaseOffset,color,alpha)=>{
+  for(let i=0;i<count;i++){
+   const a=phase+phaseOffset+i*Math.PI*2/count;
+   g.fillStyle=color;g.globalAlpha=alpha;
+   g.beginPath();
+   g.arc(Math.cos(a)*radius,Math.sin(a)*radius,
+     Math.max(.85,Math.min(1.45,r*.095)),0,Math.PI*2);
+   g.fill();
+  }
+ };
+ if(fire)emit(front?2:3,0,'#ff9a3f',front?.56:.68);
+ if(pierce)emit(front?2:3,Math.PI/3,'#a9f4ff',front?.66:.76);
+ if(power)emit(front?1:2,Math.PI/4,'#ffdf87',front?.45:.55);
+ g.restore();
+}
 function drawBallStateAura(b,r){
- if(typeof compactBallFX==='function'&&compactBallFX()){ return; }
+ if(typeof compactBallFX==='function'&&compactBallFX()){
+  drawCompactBallStatus(b,r,false);return;
+ }
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
  const phase=clock*(b.held?2.4:4.2),pulse=.5+.5*Math.sin(clock*9.5);
@@ -2561,7 +2593,9 @@ function drawBallStateAura(b,r){
 // remains readable on white baseballs and pale green tennis balls.
 // V82: sparse surface glints on TOP of the bitmap, not oversized pixels.
 function drawBallStatusForeground(b,r){
- if(typeof compactBallFX==='function'&&compactBallFX()){ return; }
+ if(typeof compactBallFX==='function'&&compactBallFX()){
+  drawCompactBallStatus(b,r,true);return;
+ }
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
  const count=Number(fire)+Number(pierce)+Number(power),balance=count>1?.73:1;
@@ -2713,7 +2747,12 @@ function drawElementalTrailBody(b,r,path,fire,pierce){
  g.globalCompositeOperation='lighter';g.globalAlpha=.52;
  // One stroke composites overlapping joins only once: no bright dotted seams.
  // A closed rebound must not create a zero-length transparent gradient.
- const gradient=Math.hypot(head.x-tail.x,head.y-tail.y)>1&&g.createLinearGradient?.(tail.x,tail.y,head.x,head.y);
+ // A hairpin/rebound may put head almost on top of tail. A spatial
+ // gradient then maps the whole loop to zero alpha and the trail vanishes.
+ // Use a fixed visible body on folded paths; vertex/length data is unchanged.
+ const displacement=Math.hypot(head.x-tail.x,head.y-tail.y);
+ const useGradient=displacement>Math.min(24,path[path.length-1].s*.33);
+ const gradient=useGradient&&g.createLinearGradient?.(tail.x,tail.y,head.x,head.y);
  if(gradient&&typeof gradient.addColorStop==='function'){
   gradient.addColorStop(0,color+'00');gradient.addColorStop(.35,color+'65');
   gradient.addColorStop(1,color+'ff');
@@ -2792,12 +2831,14 @@ function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  g.restore();
 }
 function drawBurningBallFlames(b,r,front=false){
- if(front&&typeof compactBallFX==='function'&&compactBallFX())return;
  const fast=(typeof compactBallFX==='function'&&compactBallFX())||
   (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('fire'))return;
  const t=clock,velocity=Math.hypot(b.vx||0,b.vy||0);
  const windX=velocity>1?-(b.vx||0)/velocity:0,windY=velocity>1?-(b.vy||0)/velocity:-1;
+ // Power increases the physical ball from r=8 to 12, but the ornament
+ // thickness grows less aggressively so overlapping skills never look broken.
+ const fxRadius=r>8?8+(r-8)*.55:r;
  g.save();g.translate(b.x,b.y);g.globalCompositeOperation='lighter';
  if(!front&&!fast){
   const glow=g.createRadialGradient?.(0,0,r*.65,0,0,r*2.05);
@@ -2809,17 +2850,17 @@ function drawBurningBallFlames(b,r,front=false){
    g.fillStyle=glow;g.globalAlpha=.87;g.beginPath();g.arc(0,0,r*2.05,0,Math.PI*2);g.fill();
   }
  }
- const count=fast?(front?3:6):(front?6:12);
+ const count=fast?(front?2:4):(front?6:12);
  g.shadowColor=fast||front?'transparent':'#ff7b2a';g.shadowBlur=fast||front?0:4;
  for(let i=0;i<count;i++){
   const angle=i*Math.PI*2/count+.06*Math.sin(t*7+i*2.3);
   const ax=Math.cos(angle),ay=Math.sin(angle);
   const wave=.5+.5*Math.sin(t*(front?13:10)+i*2.4);
-  const bx=ax*r*(front?1.25:1.43),by=ay*r*(front?1.25:1.43);
-  const length=r*(front?.18+.18*wave:fast?.38+.28*wave:.25+.23*wave);
+  const bx=ax*r*(front?1.17:1.26),by=ay*r*(front?1.17:1.26);
+  const length=fxRadius*(front?.18+.18*wave:fast?.38+.28*wave:.25+.23*wave);
   const dx=ax*length*.75+windX*length*.46;
   const dy=ay*length*.75+windY*length*.46;
-  const width=r*(front?.085:fast?.20:.14)*(1+.2*wave);
+  const width=fxRadius*(front?.085:fast?.17:.14)*(1+.2*wave);
   const alpha=front?.47:.73;
   flameTongue(bx,by,dx,dy,width,i%3===0?'#ffe393':i%2?'#ffad48':'#ff6428',alpha);
   if(!front&&!fast)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
@@ -2841,23 +2882,29 @@ function drawBurningTrailFlames(b,r,path){
  const t=clock,maxLen=path[path.length-1].s;
  if(maxLen<4)return;
  if(fast){
+  // Even an 8px-long fresh trail gets a spark near the head. Multi-ball
+  // keeps a coarser fixed budget; 1/2-ball power/pierce is more detailed.
+  const spacing=typeof balls!=='undefined'&&balls.length>=3?19:12;
+  const ornamentR=r>8?8+(r-8)*.55:r;
   g.save();g.globalCompositeOperation='lighter';
-  for(let d=13,i=0;d<maxLen-8;d+=20,i++){
+  for(let d=3,i=0;d<maxLen-1;d+=spacing,i++){
    const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
    if(!p||!q)continue;
-   const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
+   let dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy);
+   if(mag<.35){dx=b.vx||0;dy=b.vy||-1;mag=Math.hypot(dx,dy)||1}
    const nx=-dy/mag,ny=dx/mag,side=i%2?-1:1;
-   const fade=1-d/maxLen,reach=(14+4*Math.sin(t*11+i*2))*fade;
-   flameTongue(p.x+nx*side*r*.42,p.y+ny*side*r*.42,
+   const fade=Math.pow(Math.max(.08,1-d/maxLen),.9);
+   const reach=(12+3*Math.sin(t*11+i*2))*fade;
+   flameTongue(p.x+nx*side*ornamentR*.42,p.y+ny*side*ornamentR*.42,
     dx/mag*reach+nx*side*reach*.5,dy/mag*reach+ny*side*reach*.5,
-    Math.max(.8,r*.22*fade),i%3?'#ff8d36':'#ffe0a1',.63*fade);
+    Math.max(.7,ornamentR*.18*fade),i%3?'#ff8d36':'#ffe0a1',.72*fade);
   }
   g.restore();return;
  }
  g.save();g.lineCap='round';g.globalCompositeOperation='lighter';g.shadowBlur=0;
  // Tongues curl and detach from the outer edge of the moving trail,
  // staggered in time instead of one rigid straight beam.
- for(let d=7,i=0;d<maxLen-4;d+=10,i++){
+ for(let d=3,i=0;d<maxLen-1;d+=10,i++){
   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
   if(!p||!q)continue;
   const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
@@ -2901,12 +2948,14 @@ function drawElectricArc(points,alpha=1,scale=1){
  g.restore();
 }
 function drawPierceBallLightning(b,r,front=false){
- if(front&&typeof compactBallFX==='function'&&compactBallFX())return;
+ // A single thin foreground bolt keeps fire + pierce recognizable in
+ // compact mode; pierce-only compact remains back-only to limit overdraw.
+ if(front&&typeof compactBallFX==='function'&&compactBallFX()&&!has('fire'))return;
  const fast=(typeof compactBallFX==='function'&&compactBallFX())||
   (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('pierce'))return;
- const beat=Math.floor(clock*25),count=fast?2:(front?3:4);
- const bright=has('fire')?.68:1;
+ const beat=Math.floor(clock*25),count=fast?(front?1:2):(front?3:4);
+ const bright=has('fire')?.86:1;
  g.save();g.translate(b.x,b.y);
  for(let i=0;i<count;i++){
   const a=i*Math.PI*2/count+beat*.43+(front?.22:0);
@@ -2929,8 +2978,10 @@ function drawPierceTrailLightning(b,r,path){
  const beat=Math.floor(clock*18),n=path.length-1;
  g.save();g.globalCompositeOperation='lighter';g.shadowBlur=0;
  g.lineCap='round';g.lineJoin='round';
- g.strokeStyle='#a8f3ff';g.lineWidth=Math.max(1.5,r*.17);
- g.globalAlpha=has('fire')?.8:.9;
+ // Cyan-white must stay visible over the continuous warm fire ribbon.
+ g.strokeStyle=has('fire')?'#d9fdff':'#a8f3ff';
+ g.lineWidth=has('fire')?Math.max(2.4,r*.25):Math.max(1.5,r*.17);
+ g.globalAlpha=has('fire')?.95:.9;
  g.beginPath();g.moveTo(path[0].x,path[0].y);
  // Single branchless zigzag. Retain every trajectory vertex at rebounds;
  // a triangular wave supplies sharp alternating teeth, not parallel lines.
