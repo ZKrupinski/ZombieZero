@@ -701,7 +701,10 @@ const STAGE_SPECIALS=[
  {form:5,at:[28]},          // wooden crate cameo
  {form:2,at:[32]}           // black barrel cameo
 ];
+// Distinct elite durability/tempo. 50L is the durable bruiser, the bottle is evasive.
 const ELITE_FIRST_STAGES=[3,5,7];
+const ELITE_HP_BONUS=[9,13,7];
+const ELITE_COOLDOWN=[2.7,4.1,1.65];
 function insertEliteZombies(regulars,stage){
  const atlas=window.ZZEliteSprites;
  if(!atlas)return;
@@ -722,7 +725,8 @@ function insertEliteZombies(regulars,stage){
    if(!free.length)break;
    const [z]=free.splice(Math.floor(Math.random()*free.length),1);
    z.eliteKind=kind;
-   z.hp=z.max=Math.min(runMode==='endless'?7:14,zombieHP(0,z.kind,stage)+[2,2,3][kind]);
+   z.hp=z.max=Math.min(runMode==='endless'?24:29,
+     zombieHP(0,z.kind,stage)+ELITE_HP_BONUS[kind]+Math.floor(Math.max(0,stage-6)/13));
    free=free.filter(other=>other.row!==z.row||Math.abs(other.col-z.col)>1);
  }
 }
@@ -806,19 +810,29 @@ function isBossWave(){
  return runMode==='endless'?endlessWaveNumber()%3===0:wave%3===0;
 }
 function bossIndex(){
- return runMode==='endless'?Math.floor((endlessWaveNumber()-1)/3):wave/3-1;
+ return runMode==='endless'?Math.floor((endlessWaveNumber()-1)/3):Math.floor(wave/3)-1;
 }
 function requestBossForWave(nextWave){
  const ordinal=runMode==='endless'?nextWave-50:nextWave;
  if(ordinal>0&&ordinal%3===0)
   window.ZZLargeBossSprites?.requestByForm(Math.floor((ordinal-1)/3)%BOSS_FORMS.length);
 }
+// Only hold the short stage transition if this specific new boss is still decoding.
+function nextBossArtLoading(nextWave){
+ const ordinal=runMode==='endless'?nextWave-50:nextWave;
+ if(ordinal<=0||ordinal%3!==0)return false;
+ const form=Math.floor((ordinal-1)/3)%BOSS_FORMS.length;
+ const sprites=window.ZZLargeBossSprites;
+ return form>=2&&!!sprites&&sprites.readyByForm(form)!==true&&
+   sprites.cache?.[form-2]?.loading===true;
+}
 function rack(){
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
  const stage=combatStage();
  window.ZZEliteSprites?.requestForStage(stage);
- requestBossForWave(wave);
+ // Prefetch only the imminent boss (including its separate right walk).
+ requestBossForWave(wave);requestBossForWave(wave+1);
  // A full four-row, mixed-cast opening; HP and movement scale independently.
  const rows=runMode==='endless'
   ?4
@@ -828,8 +842,8 @@ function rack(){
   )));
  const bossStage=isBossWave();
  const requestedBossForm=bossIndex()%BOSS_FORMS.length;
- const bossForm=requestedBossForm>=2&&!window.ZZLargeBossSprites?.readyByForm(requestedBossForm)
-  ?requestedBossForm%2:requestedBossForm;
+ // Boss identity must never change because of asynchronous PNG decoding.
+ const bossForm=bossStage?requestedBossForm:0;
  for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
   if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
   const maxKind=Math.min(4,1+Math.floor(stage/2));
@@ -842,8 +856,9 @@ function rack(){
  setStageForms(foes,stage);
  insertEliteZombies(foes,stage);
  if(bossStage){
-  const hp=Math.round(24+Math.min(stage,10)*4+Math.max(0,stage-10)*1.2);
-  /* Boss form is selected above, after checking bitmap readiness. */
+  // Tighter boss/elite HP spread: a threat, not the only target left for minutes.
+  const hp=Math.round(26+Math.min(stage,12)*1.45+Math.max(0,stage-12)*.48);
+  // Identity is stable; a pending new-boss bitmap is never substituted.
   foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
@@ -886,7 +901,7 @@ function tryStartBreakouts(){
  for(let k=0;k<count;k++){
   const choices=[];
   for(const z of living){
-   if(chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
+   if(Number.isInteger(z.eliteKind)||chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
       !Number.isInteger(z.col)||!Number.isInteger(z.row)||
       z.row===0||z.y+z.h>=DEFENSE_Y-125||
       (z.breakoutCooldownUntil||0)>clock||
@@ -1115,6 +1130,110 @@ function bossMercyStep(z,dt){
  }
  return false;
 }
+// Elite tactics v148. Every impulse is real collider movement: never teleport,
+// cross occupied lanes, create vector stand-ins, or alter the shared hitbox.
+function eliteCorridorFree(z,dx,dy){
+ const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/6));
+ for(let i=1;i<=steps;i++){
+  const t=i/steps;
+  if(!canKnockback(z,z.x+dx*t,z.y+dy*t))return false;
+ }
+ return true;
+}
+function beginEliteMotion(z,dx,dy,duration,tag,windup=.12,follow=null){
+ if(!eliteCorridorFree(z,dx,dy))return false;
+ clearShortStep(z,duration+windup+.45);
+ z.eliteMotion={sx:z.x,sy:z.y,dx,dy,t:-windup,duration,tag,follow};
+ z.eliteMoveCount=(z.eliteMoveCount||0)+1;
+ return true;
+}
+function endEliteMotion(z,m){
+ delete z.eliteMotion;
+ // White 50L bag: deliberate retreat then a forward counter-charge.
+ // Water bottle: one quick lateral dodge followed by an opposing zigzag.
+ if(m.follow&&beginEliteMotion(z,m.follow.dx,m.follow.dy,
+    m.follow.duration,m.follow.tag,m.follow.windup||0))return;
+ const col=Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH);
+ if(Math.abs(z.x-(ENEMY_LEFT_X+col*ENEMY_PITCH))<8)
+  z.col=clamp(col,0,ENEMY_COLUMNS-1);
+ z.shortStepHomeX=z.x;
+ z.eliteNextMove=clock+ELITE_COOLDOWN[z.eliteKind]+Math.random()*.8;
+}
+function moveElite(z,dt){
+ if(!Number.isInteger(z.eliteKind))return false;
+ if(z.eliteMotion){
+  const m=z.eliteMotion,step=dt*(has('slow')?.4:1);
+  const next=Math.min(m.duration,m.t+step);
+  if(next<=0){m.t=next;z.moveDir=0;return true;}
+  const u=clamp(next/m.duration,0,1);
+  const ease=m.tag==='dash'||m.tag==='charge'
+   ?1-Math.pow(1-u,2):u*u*(3-2*u);
+  const nx=m.sx+m.dx*ease,ny=m.sy+m.dy*ease;
+  const dx=nx-z.x,dy=ny-z.y;
+  const count=Math.max(1,Math.ceil(Math.hypot(dx,dy)/6));
+  let clear=true;
+  for(let i=1;i<=count;i++)
+   if(!canKnockback(z,z.x+dx*i/count,z.y+dy*i/count)){clear=false;break}
+  if(!clear){
+   delete z.eliteMotion;z.moveDir=0;z.eliteNextMove=clock+1.05;
+   return true;
+  }
+  const oldX=z.x;
+  z.x=nx;z.y=ny;m.t=next;
+  z.moveDir=Math.abs(nx-oldX)>.05?Math.sign(nx-oldX):0;
+  if(next>=m.duration-1e-5)endEliteMotion(z,m);
+  return true;
+ }
+ if(!Number.isFinite(z.eliteNextMove)){
+  z.eliteNextMove=clock+.55+((z.seed||0)%3)*.29;
+  return false;
+ }
+ if(clock<z.eliteNextMove)return false;
+ if(z.y+z.h>DEFENSE_Y-105){
+  z.eliteNextMove=clock+1.25;return false;
+ }
+ const direction=(Math.random()<.5?-1:1);
+ let began=false;
+ if(z.eliteKind===0){
+  // Black trash bag: impatient diagonal ambush into a missing slot.
+  for(const offset of [ENEMY_PITCH,ENEMY_PITCH*2,ENEMY_PITCH*.65]){
+   for(const sign of [direction,-direction])
+    if(beginEliteMotion(z,sign*offset,16+(z.seed||0)%9,
+      .29+offset/ENEMY_PITCH*.07,'dash',.14)){
+     began=true;break;
+    }
+   if(began)break;
+  }
+ }else if(z.eliteKind===1){
+  // White 50L regulation bag: heavy backstep / feint / linear counter-charge.
+  // It retreats only if there is physical room behind its box.
+  began=beginEliteMotion(z,0,-20,.29,'backstep',.22,
+    {dx:0,dy:31,duration:.37,tag:'charge',windup:.16});
+  if(!began){
+   // Heavy shoulder shove sideways when rear lanes are sealed.
+   for(const sign of [direction,-direction])
+    if(beginEliteMotion(z,sign*ENEMY_PITCH,3,.49,'charge',.22)){
+     began=true;break;
+    }
+  }
+ }else if(z.eliteKind===2){
+  // Water bottle: evasive side-hop when an ascending ball approaches,
+  // otherwise a smaller surprise zigzag through an open neighboring space.
+  const threatened=balls.some(b=>!b.held&&b.vy<0&&
+    Math.abs(b.x-z.x-z.w/2)<58&&Math.abs(b.y-z.y-z.h/2)<95);
+  if(threatened||Math.random()<.42){
+   for(const sign of [direction,-direction])
+    if(beginEliteMotion(z,sign*ENEMY_PITCH,-10,.22,'dodge',.065,
+      {dx:-sign*ENEMY_PITCH*.42,dy:5,duration:.20,tag:'zigzag',windup:0})){
+     began=true;break;
+    }
+  }
+ }
+ if(!began){
+  z.eliteNextMove=clock+.38+Math.random()*.48;return false;
+ }
+ return moveElite(z,dt);
+}
 function march(dt){
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
@@ -1127,6 +1246,7 @@ function march(dt){
    done.push(z);continue;
   }
   if(z.boss){bossPatrolStep(z,dt);done.push(z);continue;}
+  if(moveElite(z,dt)){done.push(z);continue;}
   let extraY=0;
   if(!z.boss&&Number.isFinite(z.breakoutTime)){
    const timeStep=Math.max(0,Math.min(dt*(has('slow')?.4:1),
@@ -1227,7 +1347,8 @@ function refillEndlessWave(){
 }
 function updateEndlessShift(dt){
  if(!endlessShiftSpawned&&endlessShiftTime+dt>=ENDLESS_SHIFT_SPAWN_AT&&
-    window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]&&endlessBackgroundWait<4){
+    (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||
+     nextBossArtLoading(wave+1))&&endlessBackgroundWait<6){
   endlessShiftTime=ENDLESS_SHIFT_SPAWN_AT;
   endlessBackgroundWait+=dt;return;
  }
@@ -1604,6 +1725,12 @@ function applyKnockback(z,impact,n=1){
    }
   if(!valid)continue;
   for(const [actor,pos] of plans){
+   // A chained shove interrupts any existing elite route; never snap back
+   // to the start of a pre-hit dash once the physics tween ends.
+   if(actor.eliteMotion){
+    delete actor.eliteMotion;
+    actor.eliteNextMove=clock+(actor.eliteKind===2?.6:1.1);
+   }
    // Repeated hits restart from the current rendered position, not a
    // previous distant collider destination.
    const before=knockVisualPosition(actor);
@@ -1761,8 +1888,9 @@ if(mode==='clearing'){
  if(clearTime>=2.8){
   // Wait for the specifically requested scene, with a bounded fallback
   // to avoid softlock when the network stops responding.
-  const loading=runMode==='campaign'&&wave<50&&window.ZZStageArt?.loading?.[stageArtForWave(wave+1)];
-  if(!loading||clearTime>=6.8)advanceStage();
+  const loading=runMode==='campaign'&&wave<50&&
+    (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||nextBossArtLoading(wave+1));
+  if(!loading||clearTime>=8.8)advanceStage();
  }
  return;
 }
@@ -1939,6 +2067,9 @@ function enemyReaction(z,n,impact,ballHit=true){
  const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;
  z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;
  z.recoil=.29;z.hitHold=ballHit?(z.boss?HIT_FREEZE_BOSS:HIT_FREEZE_NORMAL):.025;
+ if(z.eliteMotion){
+  delete z.eliteMotion;z.eliteNextMove=clock+(z.eliteKind===2?.55:1.1);
+ }
  z.hitAt=clock;
  if(ballHit&&(!z.boss||clock>=(z.bossStaggerReadyAt||0))){
   z.hitShakeFrom=clock;z.hitShakeUntil=clock+z.hitHold;
