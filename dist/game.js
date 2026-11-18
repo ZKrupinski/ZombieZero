@@ -3275,12 +3275,25 @@ function drawCitizenBitmap(p,x,y,cheering){
 const SHIELD_LINE_Y=H-58;
 function drawCrowd(){rect(20,H-51,410,4,'#7189a2');rect(20,H-47,410,3,'#182d40');for(const p of citizens){if(!p.alive&&p.dying<=0)continue;g.save();drawHardGroundShadow(p.x,p.y+21,25,6,true,.28);if(p.returning>0){const t=1-p.returning/1.1;g.globalAlpha=Math.min(1,t*5);if(fxEnabled){g.strokeStyle='#91f4d0';g.lineWidth=3;g.beginPath();g.ellipse(p.x,p.y+12,12+t*24,5+t*8,0,0,Math.PI*2);g.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+t*4;rect(p.x+Math.cos(a)*25,p.y-15+Math.sin(a)*23,4,4,'#ffed9b')}}g.translate(0,-Math.sin(t*Math.PI)*22)}if(!p.alive){const t=1-p.dying/.8;g.globalAlpha=Math.min(1,p.dying/.35);g.translate(p.x,p.y);g.rotate(Math.sin(t*13)*.22);g.scale(1+t*.15,1-t*.15);g.translate(-p.x,-p.y-30*Math.sin(t*Math.PI/2))}let cheer=mode==='clearing'||cheerTime>0||Math.sin(clock*1.5+p.phase)>.82,bob=cheer?Math.abs(Math.sin(clock*7+p.phase))*3:0,x=p.x,y=p.y-bob;if(drawCitizenBitmap(p,x,y,cheer)){g.restore();continue}rect(x-9,y+4,18,17,p.shirt);rect(x-8,y-10,16,16,p.skin);rect(x-9,y-13,18,5,p.hair);if(p.style===0){rect(x-11,y-15,22,4,p.shirt);rect(x-7,y-20,15,6,p.shirt)}if(p.style===1){rect(x-10,y-8,4,17,p.hair);rect(x+7,y-8,4,17,p.hair)}if(p.style===2){rect(x-8,y-7,16,2,'#263441');rect(x-7,y-5,5,4,'#d3ece1');rect(x+3,y-5,5,4,'#d3ece1')}else{rect(x-5,y-5,2,3,'#394149');rect(x+3,y-5,2,3,'#394149')}rect(x-3,y+1,6,2,'#984f4d');if(p.style===3){rect(x-6,y+12,13,3,'#f0e9c9');rect(x-2,y+4,4,14,'#f0e9c9')}if(p.style===4)rect(x-7,y,14,4,'#d3d4c0');if(cheer){rect(x-13,y-4,5,14,p.skin);rect(x+10,y-8,5,17,p.skin);rect(x-14,y-7,6,5,p.skin);rect(x+9,y-11,6,5,p.skin)}else{rect(x-12,y+7,4,12,p.skin);rect(x+9,y+7,4,12,p.skin)}g.restore()}}
 // Citizen support uses its own projectiles; tennis ball physics stays unchanged.
-const BAZOOKA_RADIUS=120,BAZOOKA_DAMAGE=8;
+// V151: each support rocket rolls one actual radius at launch.
+// 48..88px replaces the former fixed 120px blast. The same value drives
+// damage, contact flash, and the bitmap-friendly pixel burst renderer.
+const BAZOOKA_RADIUS_MIN=48,BAZOOKA_RADIUS_MAX=88,BAZOOKA_DAMAGE=8;
+function rollBazookaRadius(){
+ return Math.round(BAZOOKA_RADIUS_MIN+
+   (BAZOOKA_RADIUS_MAX-BAZOOKA_RADIUS_MIN)*Math.pow(Math.random(),1.25));
+}
 let rockets=[],bazookaTimer=0,bazookaBlasts=[];
 function updateBazooka(dt){
  for(const p of citizens)p.shooting=Math.max(0,(p.shooting||0)-dt);
- for(const r of [...rockets]){r.t+=dt;if(r.t<r.duration)continue;rockets.splice(rockets.indexOf(r),1);bazookaBlasts.push({x:r.tx,y:r.ty,t:0,life:.39,seed:Math.random()*6.28});if(bazookaBlasts.length>6)bazookaBlasts.shift();effect(r.tx,r.ty,'#ffd16c',115,'BAZOOKA!');burst(r.tx,r.ty,'#ffae65',40);sfx('blast');haptic(16);
-  for(const z of [...foes]){const dx=r.tx-clamp(r.tx,z.x,z.x+z.w),dy=r.ty-clamp(r.ty,z.y,z.y+z.h);if(dx*dx+dy*dy<=BAZOOKA_RADIUS*BAZOOKA_RADIUS){damage(z,BAZOOKA_DAMAGE,false,{x:z.x+z.w/2-r.tx,y:z.y+z.h/2-r.ty});if(mode!=='playing')return}}
+ for(const r of [...rockets]){r.t+=dt;if(r.t<r.duration)continue;rockets.splice(rockets.indexOf(r),1);
+  const radius=r.radius??BAZOOKA_RADIUS_MAX;
+  bazookaBlasts.push({x:r.tx,y:r.ty,radius,t:0,life:.39,seed:Math.random()*6.28});
+  if(bazookaBlasts.length>6)bazookaBlasts.shift();
+  effect(r.tx,r.ty,'#ffd16c',radius*.94,'BAZOOKA!');
+  burst(r.tx,r.ty,'#ffae65',Math.round(14+radius*.27));
+  sfx('blast');haptic(Math.round(8+radius*.09));
+  for(const z of [...foes]){const dx=r.tx-clamp(r.tx,z.x,z.x+z.w),dy=r.ty-clamp(r.ty,z.y,z.y+z.h);if(dx*dx+dy*dy<=radius*radius){damage(z,BAZOOKA_DAMAGE,false,{x:z.x+z.w/2-r.tx,y:z.y+z.h/2-r.ty});if(mode!=='playing')return}}
  }
  if(!has('bazooka')||!foes.length||(runMode!=='endless'&&balls[0]?.held))return;
  if(runMode==='endless'&&foes.some(z=>z.boss)&&supportRisk()<2)return;
@@ -3288,7 +3301,7 @@ function updateBazooka(dt){
  const alive=citizens.filter(p=>p.alive);if(!alive.length)return;
  const p=alive[Math.floor(Math.random()*alive.length)],z=foes[Math.floor(Math.random()*foes.length)],tx=z.x+z.w/2,ty=z.y+z.h/2;
  p.shooting=1.15;p.aim=Math.atan2(ty-(p.y-16),tx-p.x);bazookaTimer=3;
- rockets.push({sx:p.x,sy:p.y-16,tx,ty,t:0,duration:.7});citizenCue(p,false,'한 방 간다!');sfx('launch');burst(p.x,p.y-16,'#ffd16c',6);
+ rockets.push({sx:p.x,sy:p.y-16,tx,ty,radius:rollBazookaRadius(),t:0,duration:.7});citizenCue(p,false,'한 방 간다!');sfx('launch');burst(p.x,p.y-16,'#ffd16c',6);
 }
 function drawBazooka(){
  for(const p of citizens){
@@ -3332,10 +3345,10 @@ function drawBazooka(){
  if(bazookaBlasts.length)luminous(()=>{for(const b of bazookaBlasts){
   const t=clamp(b.t/.39,0,1);
   if(t>=1)continue;
-  drawPixelBurst(b.x,b.y,t,BAZOOKA_RADIUS*.94,68,b.seed||0,
+  drawPixelBurst(b.x,b.y,t,(b.radius??BAZOOKA_RADIUS_MAX)*.94,68,b.seed||0,
     ['#ffffff','#ffedb3','#ffcb5d','#ff9036','#e96733'],0);
   g.save();g.globalAlpha=Math.max(0,(1-t*4)*.88);
-  const box=50*(1-t*.42);
+  const box=(b.radius??BAZOOKA_RADIUS_MAX)*.52*(1-t*.42);
   g.fillStyle='#fff7c9';g.fillRect(b.x-box/2,b.y-box/2,box,box);g.restore();
  }});
 }
