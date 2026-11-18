@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const src=fs.readFileSync('dist/game.js','utf8');
 const a=src.indexOf("function proceduralBackground(){");
-const b=src.indexOf("const STAGE_ART_COUNT=18;",a);
+const b=src.indexOf("const STAGE_ART_COUNT=25;",a);
 assert(a>=0&&b>a,'neutral three-palette road remains available when a painted bitmap is missing');
 const bg=src.slice(a,b);
 const p=bg.match(/const palette=([\s\S]*?)\]\[\(wave-1\)%3\];/);
