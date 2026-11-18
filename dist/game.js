@@ -1196,12 +1196,14 @@ function moveElite(z,dt){
  let began=false;
  if(z.eliteKind===0){
   // Black trash bag: impatient diagonal ambush into a missing slot.
-  for(const offset of [ENEMY_PITCH,ENEMY_PITCH*2,ENEMY_PITCH*.65])
+  for(const offset of [ENEMY_PITCH,ENEMY_PITCH*2,ENEMY_PITCH*.65]){
    for(const sign of [direction,-direction])
     if(beginEliteMotion(z,sign*offset,16+(z.seed||0)%9,
       .29+offset/ENEMY_PITCH*.07,'dash',.14)){
      began=true;break;
     }
+   if(began)break;
+  }
  }else if(z.eliteKind===1){
   // White 50L regulation bag: heavy backstep / feint / linear counter-charge.
   // It retreats only if there is physical room behind its box.
