@@ -28,8 +28,9 @@ class AudioMock{
 }
 const calls=[];
 const bossSprites={cache:[{loading:true},{loading:true}],readyByForm:()=>false,
- requestByForm:n=>calls.push(n)};
-const eliteSprites={cache:[{ready:true},{ready:true},{ready:true}],requestForStage:noop};
+ requestByForm:n=>calls.push(n),draw:()=>false,drawDeath:()=>false,available:()=>false};
+const eliteSprites={cache:[{ready:true},{ready:true},{ready:true}],requestForStage:noop,
+ draw:()=>false,drawDeath:()=>false,available:()=>false};
 const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  window:{AudioContext:AudioMock,addEventListener:noop,ZZLargeBossSprites:bossSprites,
  ZZEliteSprites:eliteSprites},
