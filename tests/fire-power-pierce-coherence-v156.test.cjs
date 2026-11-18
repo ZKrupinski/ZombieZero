@@ -13,6 +13,7 @@ function section(a,b){
  return game.slice(i,j);
 }
 const paths={
+ sample:section('function sampleBallTrail(','function drawHeroBallTrail('),
  status:section('function compactBallFX(){','// Physical tennis, baseball'),
  trail:section('function drawElementalTrailBody(','// V83: fire is a living'),
  flame:section('function drawBurningBallFlames(','// V84: clearly readable cyan-white lightning'),
