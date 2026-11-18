@@ -1,0 +1,23 @@
+name: Probe game art transfer
+on:
+  push:
+    paths: ['.github/workflows/elite-asset-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Probe approved PNG full resolution
+        env:
+          ASSET_URL: 'https://media.canva.com/v2/image-resize/format:PNG/height:175/quality:100/uri:ifs%3A%2F%2FM%2Ff6730651-c79b-4f41-b7f0-47bff5bd76a1/watermark:F/width:200?csig=AAAAAAAAAAAAAAAAAAAAACxQC8SBCuzdMuqoq4fEupy8OFsYjShB0QFFiQVtrsw-&exp=1795001885&osig=AAAAAAAAAAAAAAAAAAAAAJc0AvLvVF9pJ7VP8NBOh9QihruF_xN70QzmlXWgurOB&signer=media-rpc&token=AAIAAU0AJGY2NzMwNjUxLWM3OWItNGY0MS1iN2YwLTQ3YmZmNWJkNzZhMQAAAAABoe5zIUjz4QYkZ1iGf2SGF6xYChb6F1VHT1YJ_KeG9ikqtMn4gQ&x-canva-quality=thumbnail'
+        run: |
+          set +e
+          curl -L --connect-timeout 12 --max-time 40 -sS -o /tmp/thumb.png -w "thumb_http=%{http_code} thumb_bytes=%{size_download}\n" "$ASSET_URL"
+          file /tmp/thumb.png
+          ORIGINAL_URL="${ASSET_URL/height:175/height:1176}"
+          ORIGINAL_URL="${ORIGINAL_URL/width:200/width:1344}"
+          curl -L --connect-timeout 12 --max-time 40 -sS -o /tmp/full.png -w "full_http=%{http_code} full_bytes=%{size_download}\n" "$ORIGINAL_URL"
+          file /tmp/full.png
+          head -c 80 /tmp/full.png | xxd -l 80
