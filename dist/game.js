@@ -828,8 +828,7 @@ function rack(){
   )));
  const bossStage=isBossWave();
  const requestedBossForm=bossIndex()%BOSS_FORMS.length;
- const bossForm=requestedBossForm>=2&&!window.ZZLargeBossSprites?.readyByForm(requestedBossForm)
-  ?requestedBossForm%2:requestedBossForm;
+ const bossForm=requestedBossForm; // Keep the requested identity even if its bitmap is still decoding.
  for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
   if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
   const maxKind=Math.min(4,1+Math.floor(stage/2));
@@ -843,7 +842,7 @@ function rack(){
  insertEliteZombies(foes,stage);
  if(bossStage){
   const hp=Math.round(24+Math.min(stage,10)*4+Math.max(0,stage-10)*1.2);
-  /* Boss form is selected above, after checking bitmap readiness. */
+  /* Boss identity is immutable; its atlas can finish decoding after spawn. */
   foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
