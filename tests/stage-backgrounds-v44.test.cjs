@@ -105,8 +105,8 @@ class AudioMock{
  createGain(){return{gain:{value:1,setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop}}
  createOscillator(){return{frequency:{setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop,start:noop,stop:noop}}
 }
-const images=Array.from({length:18},(_,i)=>({id:i+1,naturalWidth:900,naturalHeight:1420}));
-const art={images,ready:new Array(18).fill(true),count:18};
+const images=Array.from({length:25},(_,i)=>({id:i+1,naturalWidth:900,naturalHeight:1420}));
+const art={images,ready:new Array(25).fill(true),count:25};
 const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  window:{AudioContext:AudioMock,ZZStageArt:art,addEventListener:noop},
  localStorage:{getItem:()=>0,setItem:noop},Path2D:class{},requestAnimationFrame:noop,
@@ -115,13 +115,13 @@ vm.createContext(sandbox);
 vm.runInContext(game+`
 function check(v,m){if(!v)throw Error(m)}
 start();serve();
-check(STAGE_ART_COUNT===18,'exactly 18 backgrounds');
-check(STAGE_PLAYFIELD_VEIL.length===18,'independent playfield contrast for all 18 moods');
-for(let stage=1;stage<=36;stage++){
+check(STAGE_ART_COUNT===25,'original 18 + seven approved arenas');
+check(STAGE_PLAYFIELD_VEIL.length===25,'independent contrast for all 25 scenes');
+for(let stage=1;stage<=50;stage++){
  wave=stage;setStageBackground(true);draws.length=0;background();
  const main=draws.filter(d=>window.ZZStageArt.images.includes(d.args[0]));
- check(main.length===1&&main[0].args[0]===window.ZZStageArt.images[(stage-1)%18],
-  'stage '+stage+' maps to the correct bitmap and cycles every 18 stages');
+ check(main.length===1&&main[0].args[0]===window.ZZStageArt.images[(stage-1)%25],
+  'stage '+stage+' maps to the correct bitmap and cycles every 25 stages');
  check(main[0].args.slice(1).join(',')==='0,0,450,710',
   'native source fits fixed 450x710 board');
 }
