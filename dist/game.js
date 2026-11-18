@@ -1725,6 +1725,12 @@ function applyKnockback(z,impact,n=1){
    }
   if(!valid)continue;
   for(const [actor,pos] of plans){
+   // A chained shove interrupts any existing elite route; never snap back
+   // to the start of a pre-hit dash once the physics tween ends.
+   if(actor.eliteMotion){
+    delete actor.eliteMotion;
+    actor.eliteNextMove=clock+(actor.eliteKind===2?.6:1.1);
+   }
    // Repeated hits restart from the current rendered position, not a
    // previous distant collider destination.
    const before=knockVisualPosition(actor);
