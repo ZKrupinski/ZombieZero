@@ -11,7 +11,7 @@ import base64
 import io
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageStat
 
 WIDTH, HEIGHT = 900, 1420
 ROAD_LEFT, ROAD_RIGHT = 72, 828
@@ -79,13 +79,21 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--binary", action="store_true")
+    parser.add_argument("--verify", action="store_true")
     args = parser.parse_args()
     with Image.open(SOURCE) as image:
         image.load()
         corrected = resample(image)
-    corrected.save(OUTPUT, "WEBP", quality=84, method=6)
+    if not args.verify:
+        corrected.save(OUTPUT, "WEBP", quality=84, method=6)
     with Image.open(OUTPUT) as verify:
         assert verify.size == (WIDTH, HEIGHT)
+        if args.verify:
+            difference = ImageChops.difference(verify.convert("RGB"), corrected)
+            mean_error = ImageStat.Stat(difference).mean
+            assert max(mean_error) < 5.5, (
+                f"committed bitmap does not match source-derived rectification: {mean_error}"
+            )
     print(
         f"ZZ_V157_DONE original={SOURCE} output={OUTPUT} "
         f"size={WIDTH}x{HEIGHT} bytes={OUTPUT.stat().st_size}",
