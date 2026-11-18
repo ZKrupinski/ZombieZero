@@ -544,7 +544,8 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&audio&&so
 
 function tone(f,d=.1,type='square',vol=.08,delay=0,music=false,endFreq=0){if(!audioRunning()||!sound)return;let t=audio.currentTime+delay,o=audio.createOscillator(),v=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(15,endFreq),t+d);o.connect(v);v.connect(music?musicBus:master);v.gain.setValueAtTime(vol,t);v.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d+.01)}
 function noise(d=.09,vol=.08,delay=0,mus=false){if(!audioRunning()||!sound||!audio.createBuffer)return;if(!noiseBuffer){noiseBuffer=audio.createBuffer(1,audio.sampleRate*.5,audio.sampleRate);let a=noiseBuffer.getChannelData(0),hold=0;for(let i=0;i<a.length;i++){if(i%5===0)hold=Math.random()*2-1;a[i]=hold}}let o=audio.createBufferSource(),v=audio.createGain(),t=audio.currentTime+delay;o.buffer=noiseBuffer;o.connect(v);v.connect(mus?musicBus:master);v.gain.setValueAtTime(vol,t);v.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d)}
-function sfx(name){if(!audioRunning()||!sound)return;let now=audio.currentTime;if(now-(lastSfx[name]??-10)<({wall:.085,hit:.065,kill:.065,fire:.15}[name]||0))return;lastSfx[name]=now;
+function sfx(name){if(!audioRunning()||!sound)return;let now=audio.currentTime;if(now-(lastSfx[name]??-10)<({wall:.085,hit:.065,kill:.065,fire:.15,evade:.14}[name]||0))return;lastSfx[name]=now;
+if(name==='evade'){tone(980,.035,'triangle',.052,0,false,550);noise(.028,.018);return;}
 const sounds={launch:[55,67,79],blast:[36,48,55],serve:[72,79,84],wall:[67],racket:[79,86,91],car:[76,83,88],citizen:[84,79,67],return:[72,76,79,84,91],bosshit:[43,55,62],powerhit:[55,67,79],hit:[60,67],kill:[72,76,79],item:[72,76,79,84,88],expire:[72,67],miss:[64,60,55],start:[60,64,67,72,76,79],wave:[60,64,67,72,79,84],boss:[43,50,55,62],bosskill:[60,67,72,76,79,84,88],fire:[55,62],shield:[79,84,91],pause:[72,67],over:[67,64,60,55]};const notes=sounds[name]||[72],rise=['kill','hit','powerhit'].includes(name)?Math.min(7,Math.floor(combo/2)):0,comboGain=1+Math.min(combo,10)*.025,spacing=Math.max(.024,.045-Math.min(combo,10)*.002),accent=['item','return','wave','bosskill','start'].includes(name);
 notes.forEach((n,i)=>{tone(hz(n+rise),accent?.16:.085,'triangle',name==='wall'?.035:.1*comboGain,i*spacing);if(name!=='wall')tone(hz(n+rise),.055,'square',.023*comboGain,i*spacing)});
 if(['racket','car','citizen'].includes(name))tone(500,.065,'square',.045,0,false,1250);
@@ -827,6 +828,7 @@ function nextBossArtLoading(nextWave){
    sprites.cache?.[form-2]?.loading===true;
 }
 function rack(){
+ dodgeGhosts.length=0;
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
  const stage=combatStage();
@@ -1157,10 +1159,12 @@ function endEliteMotion(z,m){
  if(Math.abs(z.x-(ENEMY_LEFT_X+col*ENEMY_PITCH))<8)
   z.col=clamp(col,0,ENEMY_COLUMNS-1);
  z.shortStepHomeX=z.x;
- z.eliteNextMove=clock+ELITE_COOLDOWN[z.eliteKind]+Math.random()*.8;
+ z.eliteNextMove=clock+(ELITE_COOLDOWN[z.eliteKind]??1.5)+Math.random()*.8;
 }
 function moveElite(z,dt){
- if(!Number.isInteger(z.eliteKind))return false;
+ // Paper packaging uses the same collision-safe movement only when
+ // a reactive dodge is triggered; it does not inherit regular elite AI.
+ if(!Number.isInteger(z.eliteKind)&&z.form!==4)return false;
  if(z.eliteMotion){
   const m=z.eliteMotion,step=dt*(has('slow')?.4:1);
   const next=Math.min(m.duration,m.t+step);
@@ -1179,11 +1183,16 @@ function moveElite(z,dt){
    return true;
   }
   const oldX=z.x;
+  if(m.tag==='evade'&&u>=(m.nextGhost||.24)){
+   pushDodgeGhost(z);
+   m.nextGhost=(m.nextGhost||.24)+.27;
+  }
   z.x=nx;z.y=ny;m.t=next;
   z.moveDir=Math.abs(nx-oldX)>.05?Math.sign(nx-oldX):0;
   if(next>=m.duration-1e-5)endEliteMotion(z,m);
   return true;
  }
+ if(!Number.isInteger(z.eliteKind))return false;
  if(!Number.isFinite(z.eliteNextMove)){
   z.eliteNextMove=clock+.55+((z.seed||0)%3)*.29;
   return false;
@@ -1233,6 +1242,94 @@ function moveElite(z,dt){
   z.eliteNextMove=clock+.38+Math.random()*.48;return false;
  }
  return moveElite(z,dt);
+}
+// V150: short, lightweight bitmap echoes are stored only on real evasions.
+// They render behind the new collider position and expire in under 0.2s.
+const DODGE_GHOST_MAX=24,DODGE_GHOST_LIFE=.19;
+const dodgeGhosts=[];
+const DODGE_PROFILES=[
+ {chance:.38,distance:39,duration:.135,cooldown:1.75}, // black trash bag
+ {chance:.16,distance:28,duration:.19,cooldown:2.8},  // heavy white 50L bag
+ {chance:.78,distance:57,duration:.105,cooldown:1.30}, // light water bottle
+];
+const PAPER_DODGE_PROFILE={chance:.72,distance:51,duration:.115,cooldown:1.52};
+function dodgeProfile(z){
+ if(z.boss)return null;
+ if(Number.isInteger(z.eliteKind))return DODGE_PROFILES[z.eliteKind]||null;
+ return z.form===4?PAPER_DODGE_PROFILE:null;
+}
+function pushDodgeGhost(z){
+ if(dodgeGhosts.length>=DODGE_GHOST_MAX)dodgeGhosts.shift();
+ dodgeGhosts.push({z:{...z,eliteMotion:null,recoil:0,hitHold:0,
+   flash:0,burn:0,knockTime:0},t:0,life:DODGE_GHOST_LIFE});
+}
+function drawDodgeGhosts(){
+ for(const ghost of dodgeGhosts){
+  const fade=1-ghost.t/ghost.life;
+  if(fade<=0)continue;
+  g.save();
+  g.globalAlpha=.32*fade*fade;
+  g.filter='brightness(1.5) saturate(.7)';
+  zombie(ghost.z); // original approved bitmap asset, never vector imitation
+  g.restore();
+ }
+}
+// Predict a ball's nearest approach within a short reaction window; never
+// dodge an already intersecting ball or give the enemy invulnerability.
+function reactiveThreat(z,b,radius){
+ if(b.held||b.pierceContacts?.has(z))return null;
+ const cx=z.x+z.w*.5,cy=z.y+z.h*.5;
+ if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&
+    b.y+radius>z.y&&b.y-radius<z.y+z.h)return null;
+ const slow=has('slow')?.66:1,vx=b.vx*slow,vy=b.vy*slow;
+ const speed2=vx*vx+vy*vy;
+ if(speed2<10000)return null;
+ const t=((cx-b.x)*vx+(cy-b.y)*vy)/speed2;
+ if(t<.035||t>.18)return null;
+ const px=b.x+vx*t,py=b.y+vy*t;
+ if(Math.abs(px-cx)>z.w*.5+radius+5||
+    Math.abs(py-cy)>z.h*.5+radius+5)return null;
+ return {x:px,y:py,t};
+}
+function tryReactiveDodges(dt){
+ if(!balls.length)return;
+ const radius=has('power')?12:8;
+ for(const z of foes){
+  const profile=dodgeProfile(z);
+  if(!profile||z.hitHold>0||(z.recoil||0)>.02||
+     (z.knockTime||0)>0||Number.isFinite(z.breakoutTime)||
+     Number.isFinite(z.arrivalTime)||z.eliteMotion?.tag==='evade'||
+     clock<(z.dodgeReadyAt||0)||z.y+z.h>DEFENSE_Y-48)continue;
+  for(const b of balls){
+   if(b.held||b.dodgeSeen?.has(z))continue;
+   const threat=reactiveThreat(z,b,radius);
+   if(!threat)continue;
+   // One chance per incoming ball, not repeated probability rolls every frame.
+   (b.dodgeSeen??=new Set()).add(z);
+   if(Math.random()>profile.chance)break;
+   const center=z.x+z.w*.5;
+   const first=threat.x<center?1:-1;
+   let moved=false;
+   for(const extent of [1,.82]){
+    for(const sign of [first,-first]){
+     const dx=sign*profile.distance*extent;
+     // The new position must actually escape this incoming ball's sweep.
+     if(Math.abs(threat.x-(center+dx))<z.w*.5+radius+4)continue;
+     if(beginEliteMotion(z,dx,-4,profile.duration,'evade',0)){
+      z.dodgeReadyAt=clock+profile.cooldown;
+      z.eliteNextMove=z.dodgeReadyAt;
+      pushDodgeGhost(z);
+      // Move the collider immediately on this frame, before ball collision.
+      moveElite(z,Math.min(dt,.03));
+      sfx('evade');
+      moved=true;break;
+     }
+    }
+    if(moved)break;
+   }
+   if(moved)break;
+  }
+ }
 }
 function march(dt){
  tryStartBreakouts();
@@ -1404,6 +1501,9 @@ function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  balls[0].impactKind='serve';balls[0].impactStrength=.7;
  balls[0].vx=Math.sin(angle)*speed;balls[0].vy=-Math.cos(angle)*speed;
  balls[0].spinDirection=balls[0].vx<0?-1:1;
+ // V150: first serve is a real weapon strike. Reuse the approved 8-frame
+ // hero ATTACK bitmap already played on ball return; never delay ball physics.
+ swing=.22;heroAttackTime=HERO_ATTACK_DURATION;
  syncMulti();sfx('serve');hud();
 }}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('pause-main-menu').hidden=label!=='PAUSED';$('overlay').hidden=false;endlessUI()}
@@ -1925,6 +2025,8 @@ march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
   if(mode!=='playing')return;
  }
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
+// Resolve real-time avoidance before the ball's existing substep collider tests.
+tryReactiveDodges(dt);
 for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
@@ -2106,7 +2208,10 @@ function enemyDeath(z,critical=false){
  const split=largeBossSprite?(critical?.94:.78):eliteSprite?.72:objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  const freeze=Math.max(0,(z.hitShakeUntil||0)-clock);
  enemyDeaths.push({z:{...z,flash:.12},critical,spriteMode,t:0,freeze,split:split+freeze,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
-function updateEnemyVisuals(dt){advanceVisualQueue(hitFlashes,dt);advanceVisualQueue(barrelBlasts,dt);advanceVisualQueue(bazookaBlasts,dt);for(const z of foes){
+function updateEnemyVisuals(dt){
+ for(const ghost of dodgeGhosts)ghost.t+=dt;
+ compactVisualQueue(dodgeGhosts,ghost=>ghost.t<ghost.life);
+ advanceVisualQueue(hitFlashes,dt);advanceVisualQueue(barrelBlasts,dt);advanceVisualQueue(bazookaBlasts,dt);for(const z of foes){
  if(Number.isFinite(z.arrivalTime)){
   z.arrivalTime=Math.min(.62,z.arrivalTime+dt);
   if(z.arrivalTime>=.62)delete z.arrivalTime;
@@ -2899,7 +3004,7 @@ function drawStruckZombie(z){
  zombie(knockVisualPosition(z));g.restore();
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();drawDodgeGhosts();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
