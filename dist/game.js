@@ -701,6 +701,31 @@ const STAGE_SPECIALS=[
  {form:5,at:[28]},          // wooden crate cameo
  {form:2,at:[32]}           // black barrel cameo
 ];
+const ELITE_FIRST_STAGES=[3,5,7];
+function insertEliteZombies(regulars,stage){
+ const atlas=window.ZZEliteSprites;
+ if(!atlas)return;
+ const eligible=ELITE_FIRST_STAGES.map((unlock,i)=>({i,unlock})).filter(e=>stage>=e.unlock&&atlas.cache[e.i]?.ready);
+ if(!eligible.length)return;
+ const available=regulars.filter(z=>!z.boss&&z.form===0);
+ const count=Math.min(stage<5?1:stage<9?2:stage<18?3:4,Math.floor(regulars.length*.15),available.length);
+ if(!count)return;
+ const newest=eligible.find(e=>e.unlock===stage),picks=newest?[newest.i]:[];
+ while(picks.length<count){
+   let dice=Math.random()*eligible.reduce((n,e)=>n+(e.i===0?4:e.i===1?3:2),0);
+   let pick=eligible[0].i;
+   for(const e of eligible)if((dice-=e.i===0?4:e.i===1?3:2)<0){pick=e.i;break}
+   picks.push(pick);
+ }
+ let free=available.slice();
+ for(const kind of picks){
+   if(!free.length)break;
+   const [z]=free.splice(Math.floor(Math.random()*free.length),1);
+   z.eliteKind=kind;
+   z.hp=z.max=Math.min(runMode==='endless'?7:14,zombieHP(0,z.kind,stage)+[2,2,3][kind]);
+   free=free.filter(other=>other.row!==z.row||Math.abs(other.col-z.col)>1);
+ }
+}
 function stageRoster(stage,slots){
  const cap=Math.floor(slots*.42); // >=58% regular green even on short foldable screens.
  const activeSpecs=STAGE_SPECIALS.map(spec=>({
@@ -787,6 +812,7 @@ function rack(){
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
  const stage=combatStage();
+ window.ZZEliteSprites?.requestForStage(stage);
  // A full four-row, mixed-cast opening; HP and movement scale independently.
  const rows=runMode==='endless'
   ?4
@@ -805,6 +831,7 @@ function rack(){
    seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
  }
  setStageForms(foes,stage);
+ insertEliteZombies(foes,stage);
  if(bossStage){
   const hp=Math.round(24+Math.min(stage,10)*4+Math.max(0,stage-10)*1.2);
   const bossForm=bossIndex()%BOSS_FORMS.length;
@@ -1162,7 +1189,7 @@ function beginClear(){
  if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];
  // Begin downloading only the next campaign background at STAGE CLEAR.
  // The 2.8s result celebration is the loading/decoding window.
- if(wave<50)window.ZZStageArt?.load?.(stageArtForWave(wave+1));
+ if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1)}
  for(const b of balls)retireBall(b,'clear');
  balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;
  active={};score+=500;cheerTime=3;sfx('wave');
@@ -1673,7 +1700,7 @@ function fireTargetsNear(z,radius){
 }
 function hit(z,impact=null,piercing=false){
  combo++;
- const critical=!piercing&&criticalEligible(z)&&Math.random()<(z.form===0?CRITICAL_GREEN_CHANCE:CRITICAL_SPECIAL_CHANCE);
+ const critical=!piercing&&criticalEligible(z)&&Math.random()<(z.form===0&&!Number.isInteger(z.eliteKind)?CRITICAL_GREEN_CHANCE:CRITICAL_SPECIAL_CHANCE);
  // Piercing deals two times the normal damage to ALL enemies, including
  // bosses, but never turns a full-health boss into a one-hit kill.
  damage(z,hero().damage*(has('power')?2:1)*(piercing?2:1),false,impact,critical,piercing);
@@ -1919,11 +1946,12 @@ function enemyDeath(z,critical=false){
  enemyAnim(z);
  // The green mascot uses its approved 8+10-frame death atlas, rather than
  // the generic 2-key critical/death poses shared by the other 9 object types.
- const isGreen=!z.boss&&(z.form??0)===0;
- const objectSprite=!isGreen&&window.ZZObjectSprite?.available(z)===true;
+ const eliteSprite=!z.boss&&Number.isInteger(z.eliteKind)&&window.ZZEliteSprites?.available(z)===true;
+ const isGreen=!z.boss&&(z.form??0)===0&&!eliteSprite;
+ const objectSprite=!isGreen&&!eliteSprite&&window.ZZObjectSprite?.available(z)===true;
  const greenSprite=isGreen&&window.ZZGreenDeath?.ready===true;
- const spriteMode=objectSprite||greenSprite;
- const split=objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
+ const spriteMode=eliteSprite||objectSprite||greenSprite;
+ const split=eliteSprite?.72:objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  const freeze=Math.max(0,(z.hitShakeUntil||0)-clock);
  enemyDeaths.push({z:{...z,flash:.12},critical,spriteMode,t:0,freeze,split:split+freeze,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
 function scatterEnemy(d){const z=d.z,sc=z.boss?2:1,a=enemyAnim(z),count=z.boss&&fxEnabled?20:6;for(let i=0;i<count;i++){const part=i<6?i:6,r=fract(Math.sin(a.seed+i*17.31)*4831.71),angle=-Math.PI+r*Math.PI*2,speed=(z.boss?180:70)+r*(z.boss?170:90),center=[[16.5,14],[16.5,35],[-1,28],[34,28],[8,41],[27,41]][i%6];enemyPieces.push({z,part,criticalGreen:!!d.critical,x:z.x+center[0]*sc,y:z.y+center[1]*sc,vx:Math.cos(angle)*speed,vy:-90-Math.abs(Math.sin(angle))*speed,angle:0,spin:(r-.5)*12,t:0,life:z.boss?1.25:.7,sc,color:i%2?TYPES[z.kind].color:ENEMY_CLOTH[z.boss?[3,4,7,1][z.bossForm||0]:z.form||0]})}if(enemyPieces.length>160)enemyPieces.splice(0,enemyPieces.length-160);effect(z.x+z.w/2,z.y+z.h/2,TYPES[z.kind].top,z.boss?150:48);burst(z.x+z.w/2,z.y+z.h/2,'#c9b99a',z.boss?24:8);if(z.boss){sfx('bosskill');haptic([18,25,28])}}
@@ -1995,7 +2023,8 @@ function drawEnemyDeaths(){for(const d of enemyDeaths){
  }
  const elapsed=Math.max(0,d.t-(d.freeze||0));
  const anim={...d,t:elapsed,split:Math.max(.01,d.split-(d.freeze||0))};
- if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true){
+ if(d.spriteMode&&window.ZZEliteSprites?.available(d.z)===true){window.ZZEliteSprites.drawDeath(g,d.z,anim.t,anim.split)}
+  else if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true){
    window.ZZObjectSprite.drawDeath(g,d.z,d.critical,anim.t,anim.split);
  }else if(d.spriteMode&&window.ZZGreenDeath?.ready===true){
    window.ZZGreenDeath.draw(g,d.z,d.critical,anim.t);
@@ -2031,6 +2060,7 @@ if(f===7){rect(2,-5,29,8,'#ecaa78');for(let i=0;i<4;i++)rect(5+i*6,-3,2,5,'#a35b
 }
 // Boss HP is still simulated for combat balance, but has no visible gauge.
 function zombie(z,death=null){
+if(!death&&window.ZZEliteSprites?.draw(g,z,clock))return;
 const originalObject=window.ZZObjectSprite;
 if(!death&&originalObject?.draw(g,z,clock)){
  // The original colours are character identity, not HP tint.
