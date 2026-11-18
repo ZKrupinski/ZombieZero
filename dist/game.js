@@ -2106,9 +2106,9 @@ if(has('slow')){g.strokeStyle='#86f2e050';g.strokeRect(24,22,402,DEFENSE_Y-30)}
 }
 // Eighteen stage-local bitmap scenes. Keep the game world's fixed 450×710
 // coordinates and its collision/defense positions completely unchanged.
-const STAGE_ART_COUNT=18;
+const STAGE_ART_COUNT=25;
 const STAGE_FADE_SECONDS=.9;
-const STAGE_PLAYFIELD_VEIL=[.10,.12,.14,.12,.18,.16,.12,.14,.13,.22,.12,.14,.11,.11,.12,.19,.13,.13];
+const STAGE_PLAYFIELD_VEIL=[.10,.12,.14,.12,.18,.16,.12,.14,.13,.22,.12,.14,.11,.11,.12,.19,.13,.13, .14,.18,.12,.18,.19,.16,.13];
 let stageArtIndex=0,previousArtIndex=-1,stageArtBlend=1;
 function stageArtForWave(n){return ((Math.max(1,n)-1)%STAGE_ART_COUNT)}
 function setStageBackground(immediate=false){

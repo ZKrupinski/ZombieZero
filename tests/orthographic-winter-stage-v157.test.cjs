@@ -17,7 +17,7 @@ assert(loader.includes("13:'bg-14-v157-orthographic.webp'"),
 assert(loader.includes('img.naturalWidth===900&&img.naturalHeight===1420'),
  'game rejects any image whose native dimensions do not match 900x1420');
 assert(game.includes("return ((Math.max(1,n)-1)%STAGE_ART_COUNT)"),
- 'existing 18-stage rotation remains unchanged');
+ 'existing original 18 backgrounds retain their positions in extended rotation');
 assert(game.includes("g.drawImage(art.images[stageArtIndex],0,0,W,H)"),
  'existing stage draws 900x1420 into the 450x710 gameplay canvas');
 assert(html.includes('stage-backgrounds-v57.js?v=66-exact-lanes-v143-stage-stream-v157-winter-ortho'),
@@ -31,7 +31,7 @@ class FakeImage{
  decode(){return Promise.resolve()}
 }
 const context={Image:FakeImage,window:{}};vm.createContext(context);vm.runInContext(loader,context);
-assert.equal(context.window.ZZStageArt.count,18);
+assert.equal(context.window.ZZStageArt.count,25);
 assert.equal(context.window.ZZStageArt.sourceWidth,900);
 assert.equal(context.window.ZZStageArt.sourceHeight,1420);
 assert.deepEqual(fetched,['assets/stages/bg-01.webp'],'only first stage eagerly loads');
