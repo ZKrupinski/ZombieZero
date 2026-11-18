@@ -8,10 +8,10 @@ const art={images:new Array(18),ready:new Array(18).fill(false),loading:new Arra
 const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},window:{AudioContext:AudioMock,addEventListener:noop,ZZStageArt:art},localStorage:{getItem:()=>null,setItem:noop},Path2D:class{},requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console};
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/game.js','utf8'),sandbox);
 const run=s=>vm.runInContext(s,sandbox);
-assert.deepEqual(requested,[0],'initial scene only');
-art.ready[0]=true;art.loading[0]=false;
+assert.deepEqual(requested,[],'the game engine itself makes no eager background requests');
 run("start('campaign')");
-assert.deepEqual(requested,[0],'no advance stage background preload');
+assert.deepEqual(requested,[0],'campaign starts by requesting only the first background');
+art.ready[0]=true;art.loading[0]=false;
 run('foes=[];beginClear()');
 assert.equal(run('mode'),'clearing');
 assert.deepEqual(requested,[0,1],'clear first wave requests only background two');
