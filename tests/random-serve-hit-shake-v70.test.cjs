@@ -14,7 +14,7 @@ function serveSeed(samples){
  math.random=()=>samples.shift()??.5;
  const b={held:true,bounceTime:.12};
  const o={Math:math,mode:'playing',balls:[b],unlockAudio:()=>{},
- syncMulti:()=>{},sfx:()=>{},hud:()=>{}};
+ syncMulti:()=>{},sfx:()=>{},hud:()=>{},swing:0,heroAttackTime:0,HERO_ATTACK_DURATION:.42};
  vm.runInNewContext(shot[0]+';serve()',o,{timeout:1000});
  return b;
 }

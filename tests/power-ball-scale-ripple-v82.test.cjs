@@ -5,7 +5,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const game=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert.equal(game.split("has('power')?12:8").length-1,2,'physics and display both use radius 12, not 16');
+assert(game.split("has('power')?12:8").length-1>=3,'physics, display and predictive dodge use power radius 12');
 assert(!game.includes("has('power')?16:8"),'old powered radius 16 removed');
 assert(game.includes("if(r>8){sx=clamp(sx,.94,1);sy=clamp(sy,.94,1)}"),
  'powered ball sprite may squash inward but never stretch beyond 1.5x');
