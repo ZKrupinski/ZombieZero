@@ -701,7 +701,10 @@ const STAGE_SPECIALS=[
  {form:5,at:[28]},          // wooden crate cameo
  {form:2,at:[32]}           // black barrel cameo
 ];
+// Distinct elite durability/tempo. 50L is the durable bruiser, the bottle is evasive.
 const ELITE_FIRST_STAGES=[3,5,7];
+const ELITE_HP_BONUS=[9,13,7];
+const ELITE_COOLDOWN=[2.7,4.1,1.65];
 function insertEliteZombies(regulars,stage){
  const atlas=window.ZZEliteSprites;
  if(!atlas)return;
@@ -722,7 +725,8 @@ function insertEliteZombies(regulars,stage){
    if(!free.length)break;
    const [z]=free.splice(Math.floor(Math.random()*free.length),1);
    z.eliteKind=kind;
-   z.hp=z.max=Math.min(runMode==='endless'?7:14,zombieHP(0,z.kind,stage)+[2,2,3][kind]);
+   z.hp=z.max=Math.min(runMode==='endless'?24:29,
+     zombieHP(0,z.kind,stage)+ELITE_HP_BONUS[kind]+Math.floor(Math.max(0,stage-6)/13));
    free=free.filter(other=>other.row!==z.row||Math.abs(other.col-z.col)>1);
  }
 }
@@ -806,19 +810,29 @@ function isBossWave(){
  return runMode==='endless'?endlessWaveNumber()%3===0:wave%3===0;
 }
 function bossIndex(){
- return runMode==='endless'?Math.floor((endlessWaveNumber()-1)/3):wave/3-1;
+ return runMode==='endless'?Math.floor((endlessWaveNumber()-1)/3):Math.floor(wave/3)-1;
 }
 function requestBossForWave(nextWave){
  const ordinal=runMode==='endless'?nextWave-50:nextWave;
  if(ordinal>0&&ordinal%3===0)
   window.ZZLargeBossSprites?.requestByForm(Math.floor((ordinal-1)/3)%BOSS_FORMS.length);
 }
+// Only hold the short stage transition if this specific new boss is still decoding.
+function nextBossArtLoading(nextWave){
+ const ordinal=runMode==='endless'?nextWave-50:nextWave;
+ if(ordinal<=0||ordinal%3!==0)return false;
+ const form=Math.floor((ordinal-1)/3)%BOSS_FORMS.length;
+ const sprites=window.ZZLargeBossSprites;
+ return form>=2&&!!sprites&&sprites.readyByForm(form)!==true&&
+   sprites.cache?.[form-2]?.loading===true;
+}
 function rack(){
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
  const stage=combatStage();
  window.ZZEliteSprites?.requestForStage(stage);
- requestBossForWave(wave);
+ // Prefetch only the imminent boss (including its separate right walk).
+ requestBossForWave(wave);requestBossForWave(wave+1);
  // A full four-row, mixed-cast opening; HP and movement scale independently.
  const rows=runMode==='endless'
   ?4
@@ -828,8 +842,8 @@ function rack(){
   )));
  const bossStage=isBossWave();
  const requestedBossForm=bossIndex()%BOSS_FORMS.length;
- const bossForm=requestedBossForm>=2&&!window.ZZLargeBossSprites?.readyByForm(requestedBossForm)
-  ?requestedBossForm%2:requestedBossForm;
+ // Boss identity must never change because of asynchronous PNG decoding.
+ const bossForm=bossStage?requestedBossForm:0;
  for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
   if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
   const maxKind=Math.min(4,1+Math.floor(stage/2));
@@ -842,8 +856,9 @@ function rack(){
  setStageForms(foes,stage);
  insertEliteZombies(foes,stage);
  if(bossStage){
-  const hp=Math.round(24+Math.min(stage,10)*4+Math.max(0,stage-10)*1.2);
-  /* Boss form is selected above, after checking bitmap readiness. */
+  // Tighter boss/elite HP spread: a threat, not the only target left for minutes.
+  const hp=Math.round(26+Math.min(stage,12)*1.45+Math.max(0,stage-12)*.48);
+  // Identity is stable; a pending new-boss bitmap is never substituted.
   foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
@@ -1227,7 +1242,8 @@ function refillEndlessWave(){
 }
 function updateEndlessShift(dt){
  if(!endlessShiftSpawned&&endlessShiftTime+dt>=ENDLESS_SHIFT_SPAWN_AT&&
-    window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]&&endlessBackgroundWait<4){
+    (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||
+     nextBossArtLoading(wave+1))&&endlessBackgroundWait<6){
   endlessShiftTime=ENDLESS_SHIFT_SPAWN_AT;
   endlessBackgroundWait+=dt;return;
  }
@@ -1761,8 +1777,9 @@ if(mode==='clearing'){
  if(clearTime>=2.8){
   // Wait for the specifically requested scene, with a bounded fallback
   // to avoid softlock when the network stops responding.
-  const loading=runMode==='campaign'&&wave<50&&window.ZZStageArt?.loading?.[stageArtForWave(wave+1)];
-  if(!loading||clearTime>=6.8)advanceStage();
+  const loading=runMode==='campaign'&&wave<50&&
+    (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||nextBossArtLoading(wave+1));
+  if(!loading||clearTime>=8.8)advanceStage();
  }
  return;
 }
