@@ -3345,10 +3345,10 @@ function drawBazooka(){
  if(bazookaBlasts.length)luminous(()=>{for(const b of bazookaBlasts){
   const t=clamp(b.t/.39,0,1);
   if(t>=1)continue;
-  drawPixelBurst(b.x,b.y,t,(b.radius??BAZOOKA_RADIUS_MAX)*.94,68,b.seed||0,
+  drawPixelBurst(b.x,b.y,t,(b.radius??88)*.94,68,b.seed||0,
     ['#ffffff','#ffedb3','#ffcb5d','#ff9036','#e96733'],0);
   g.save();g.globalAlpha=Math.max(0,(1-t*4)*.88);
-  const box=(b.radius??BAZOOKA_RADIUS_MAX)*.52*(1-t*.42);
+  const box=(b.radius??88)*.52*(1-t*.42);
   g.fillStyle='#fff7c9';g.fillRect(b.x-box/2,b.y-box/2,box,box);g.restore();
  }});
 }
