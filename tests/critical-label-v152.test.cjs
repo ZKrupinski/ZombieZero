@@ -10,7 +10,7 @@ const popup=game.slice(begin,end);
 assert(popup.includes("const word='CRITICAL!';"),'all critical hits share the CRITICAL! label');
 assert(!game.includes('PIERCE CRIT!'),'old pierce-specific text is removed');
 assert(popup.includes("f.pierce?'#ffda49':'#fff2a3'"),'pierce-specific golden art remains intact');
-assert(popup.includes('g.fillText(word,0,0)'), 'label still rendered');
+assert(popup.includes('arcadeGlowText(word,0,0,12)'), 'label remains rendered with additive glow');
 assert(html.includes('v152-critical-label'),'new game script cache-busted');
 assert(sw.includes('v152-critical-label'),'offline cache bumped');
 console.log('PASS V152: CRITICAL! for piercing and standard crits, original VFX retained');
