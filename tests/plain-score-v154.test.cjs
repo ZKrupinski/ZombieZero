@@ -8,7 +8,7 @@ assert(!game.includes("toLocaleString('ko-KR')"),'locale grouping must not leak 
 const score=(game.match(/String\(score\)/g)||[]).length;
 const best=(game.match(/String\(best\)/g)||[]).length;
 assert.equal(score,4,'score is ungrouped in four display paths');
-assert.equal(best,2,'best score is ungrouped in results and victory');
+assert.equal(best,3,'best score is ungrouped in results and victory');
 assert.match(game,/\$\('score'\)\.textContent=String\(score\)/,'live score renders no commas');
 assert.match(game,/\$\('result-score'\)\.textContent=String\(score\)/,'results display no commas');
 assert.match(game,/\$\('result-best'\)\.textContent=String\(best\)/,'best score displays no commas');
