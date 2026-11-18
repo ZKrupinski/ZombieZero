@@ -2270,6 +2270,13 @@ function drawEnemyDeaths(){
   }
   const elapsed=Math.max(0,d.t-(d.freeze||0));
   const duration=Math.max(.01,d.split-(d.freeze||0));
+  // V155: All bitmap death routes (green / object / elite / boss) share
+  // the same soft fade over the final two of eight animation frames.
+  // Preserve the fully opaque hit-freeze and every approved source atlas.
+  const progress=Math.min(1,elapsed/duration);
+  const deathAlpha=progress<=.75?1:Math.max(0,(1-progress)*4);
+  g.save();
+  g.globalAlpha=(Number.isFinite(g.globalAlpha)?g.globalAlpha:1)*deathAlpha;
   if(d.spriteMode&&window.ZZLargeBossSprites?.available(d.z)===true)
    window.ZZLargeBossSprites.drawDeath(g,d.z,elapsed,duration);
   else if(d.spriteMode&&window.ZZEliteSprites?.available(d.z)===true)
@@ -2278,6 +2285,7 @@ function drawEnemyDeaths(){
    window.ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration);
   else if(d.spriteMode&&window.ZZGreenDeath?.ready===true)
    window.ZZGreenDeath.draw(g,d.z,d.critical,elapsed);
+  g.restore();
  }
 }
 function zombie(z){
