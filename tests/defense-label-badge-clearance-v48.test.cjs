@@ -7,7 +7,7 @@ const code=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const between=(a,b)=>{const x=code.indexOf(a),y=code.indexOf(b,x+a.length);assert(x>=0&&y>x,a+' -> '+b);return code.slice(x,y)};
-const fallback=between('function proceduralBackground(){','const STAGE_ART_COUNT=18');
+const fallback=between('function proceduralBackground(){','const STAGE_ART_COUNT=25');
 const bitmap=between('function background(){','function player(){');
 for(const [name,body] of [['procedural',fallback],['bitmap',bitmap]]){
  assert(!body.includes('DEFENSE LINE / 넘기면 끝!'),name+' removes defense caption');
