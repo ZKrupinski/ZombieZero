@@ -27,7 +27,7 @@ assert(html.includes('src="assets/ip/v2/green-walk.js"'),'green loader before ga
 assert(html.indexOf('src="assets/ip/v2/green-walk.js"')<html.indexOf('src="game.js?v='),'load ordering');
 assert(sw.includes('./assets/ip/v2/green_zombie.png')&&sw.includes('./assets/ip/v2/green-walk.js'),'offline assets');
 assert(sw.includes('shell-v21-visible-loot-chain-knock'),'cache version');
-assert(game.includes('mascot?.draw(g,z,clock)'),'runtime connected');
+assert(game.includes('window.ZZGreenWalk?.draw(g,z,clock)'),'runtime connected');
 assert(game.includes('const isGreen=!z.boss&&(z.form??0)===0'),'green uses dedicated final death 8/10 frames');
 assert(game.includes('function tryStartBreakouts()'),'green diagonal movement now requires sparse-wave gap AI');
 assert(game.includes('z.moveDir=Math.sign(z.x-previousX)'),'left/right animation follows actual lateral velocity');
