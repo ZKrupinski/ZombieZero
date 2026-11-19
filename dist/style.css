@@ -2065,3 +2065,38 @@ html.zz-endless-hud #wave > #wave-number {
  line-height: 1 !important;
  vertical-align: baseline;
 }
+
+
+/* v189: approved selection layout — larger hero art, visually padded
+   sides/top, names and descriptions anchored below the portraits.
+   Artwork, sprite animation, gameplay and results screen unchanged. */
+#overlay[data-screen="selection"] .hero-card{
+  padding:8px 5px 10px!important;
+  gap:3px!important;
+  justify-content:flex-start!important;
+}
+#overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait{
+  /* Sprite cells have transparent insets; this increases visible art
+     without pushing the silhouette into the card's side borders. */
+  width:min(154px,calc(100% + 26px))!important;
+  max-width:none!important;
+  margin:0 auto 1px!important;
+}
+#overlay[data-screen="selection"] .hero-card b{
+  margin-top:auto!important;
+}
+@media(max-height:620px){
+  #overlay[data-screen="selection"] .hero-card{
+    padding:5px 3px 7px!important;
+    gap:2px!important;
+  }
+  #overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait{
+    width:min(108px,calc(100% + 14px))!important;
+    margin-bottom:1px!important;
+  }
+}
+@media(max-height:460px){
+  #overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait{
+    width:min(76px,calc(100% + 10px))!important;
+  }
+}
