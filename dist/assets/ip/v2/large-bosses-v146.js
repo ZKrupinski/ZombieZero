@@ -5,7 +5,7 @@
 const DIR='assets/ip/v2/bosses/';
 const SPECS=[
  {id:'water_jug',name:'대형 생수통 좀비',bossForm:2,file:'water_jug-v146.png',rightFile:'water_jug-right-v147.webp',height:110},
- {id:'large_trash',name:'큰 쓰레기 좀비',bossForm:3,file:'large_trash-v146.png',rightFile:'large_trash-right-v147.webp',height:116}
+ {id:'large_trash',name:'큰 쓰레기 좀비',bossForm:3,file:'large_trash-v146.png',rightFile:'large_trash-right-v147.webp',height:154}
 ];
 const COLS=8,ROWS=5,CELL=256;
 const CLIPS={idle:0,down:1,left:2,right:1,hit:3,death:4};
