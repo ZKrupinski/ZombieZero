@@ -2101,3 +2101,40 @@ html.zz-endless-hud #wave > #wave-number {
     width:min(76px,calc(100% + 10px))!important;
   }
 }
+
+
+/* v191: selection portrait visual centering, and results-only Ria wheel baseline.
+   Preserve original sprite art, animation, card layout, and all gameplay. */
+#overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait {
+  position: relative;
+  margin-left: auto!important;
+  margin-right: auto!important;
+}
+/* Shift the visible subject (not the card) left to compensate for atlas insets. */
+#overlay[data-screen="selection"] #hero-0 .hero-vehicle-portrait {
+  transform:translateX(-4px);
+}
+#overlay[data-screen="selection"] #hero-1 .hero-vehicle-portrait {
+  transform:translateX(-2px);
+}
+#overlay[data-screen="selection"] #hero-2 .hero-vehicle-portrait {
+  transform:translateX(-3px);
+}
+/* Result cards: only Ria moves down, matching the other cars' wheel baseline. */
+#overlay[data-screen="results"] #hero-2 .hero-vehicle-portrait {
+  transform:translateY(3px);
+}
+@media(max-height:620px){
+  #overlay[data-screen="selection"] #hero-0 .hero-vehicle-portrait {
+    transform:translateX(-3px);
+  }
+  #overlay[data-screen="selection"] #hero-1 .hero-vehicle-portrait {
+    transform:translateX(-1px);
+  }
+  #overlay[data-screen="selection"] #hero-2 .hero-vehicle-portrait {
+    transform:translateX(-2px);
+  }
+  #overlay[data-screen="results"] #hero-2 .hero-vehicle-portrait {
+    transform:translateY(2px);
+  }
+}
