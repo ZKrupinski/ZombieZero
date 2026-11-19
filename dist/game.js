@@ -1457,6 +1457,7 @@ function march(dt){
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
  for(const z of sorted){
+  if(z.trashStopUntil>clock){done.push(z);continue}
   if(z.boss&&bossMercyStep(z,dt)){done.push(z);continue;}
   if((clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0))||
      (z.knockTime||0)>0){
@@ -2341,6 +2342,7 @@ function updateEnemyVisuals(dt){
  for(const ghost of dodgeGhosts)ghost.t+=dt;
  compactVisualQueue(dodgeGhosts,ghost=>ghost.t<ghost.life);
  advanceVisualQueue(hitFlashes,dt);advanceVisualQueue(barrelBlasts,dt);advanceVisualQueue(bazookaBlasts,dt);for(const z of foes){
+ if(z.trashStopUntil>clock){z.hitHold=Math.max(0,(z.hitHold||0)-dt);continue}
  if(Number.isFinite(z.arrivalTime)){
   z.arrivalTime=Math.min(.62,z.arrivalTime+dt);
   if(z.arrivalTime>=.62)delete z.arrivalTime;
@@ -3727,7 +3729,12 @@ function drawBossTrashShots(){
  }
  if(spitBloomDraws.length)captureBloom(drawSpitBloom);
 }
-function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(let i=0;i<junk.length;){const j=junk[i];j.t+=dt;if(j.t>=j.duration){junk.splice(i,1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){queueContact(trashContactFX,j.tx,j.ty,0,1,'enemy',j.target,1.25);damage(j.target,.25,true);if(mode!=='playing')return}else{queueContact(trashContactFX,j.tx,j.ty,0,1,'ground','world')}}else i++}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:nextThrowableKind()});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
+function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(let i=0;i<junk.length;){const j=junk[i];j.t+=dt;if(j.t>=j.duration){junk.splice(i,1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){queueContact(trashContactFX,j.tx,j.ty,0,1,'enemy',j.target,1.4375);damage(j.target,.25,true);
+ if(j.target.hp>0&&!(j.target.trashStopUntil>clock)){
+  j.target.trashStopUntil=clock+.08;
+  j.target.hitHold=Math.max(j.target.hitHold||0,.08);
+ }
+ if(mode!=='playing')return}else{queueContact(trashContactFX,j.tx,j.ty,0,1,'ground','world')}}else i++}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:nextThrowableKind()});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
 // 8 distinct approved citizens × 4 frames each. Two separate alpha PNG
 // atlases share a fixed 128×128 cell grid: cheer vs counterattack/sacrifice.
 // Keep the old procedural artwork only as a non-blocking loading fallback.
