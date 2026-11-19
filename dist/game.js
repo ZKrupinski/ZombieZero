@@ -3451,7 +3451,7 @@ function feedback(kind){
  }catch(e){report('오류 '+(e?.name||'unknown'))}
 }
 // QA signal only: physical motor output cannot be measured from JavaScript.
-window.ZZHapticDebug={version:'v182',counts:feedbackDiagnostics};
+window.ZZHapticDebug={version:'v183',counts:feedbackDiagnostics};
 // A direct user-tap test is a separate diagnostic from gameplay events.
 const vibrationTestButton=$('vibration-test');
 const vibrationTestStatus=$('vibration-status');
