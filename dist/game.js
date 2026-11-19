@@ -3356,7 +3356,7 @@ function drawBubbles(){for(const q of bubbles){const a=Math.min(1,q.t/.12,(q.lif
 // V159: One approved 6x6 transparent bitmap sheet for BOTH throwers.
 // Draw only the needed frame: no per-projectile bitmap or gradient allocation.
 const trashThrowersInOrder=[];
-const THROWABLE_COUNT=36,THROWABLE_SIZE_SCALE=1.38,throwableBag=[],bossTrashShots=[];
+const THROWABLE_COUNT=36,THROWABLE_SIZE_SCALE=1.52,throwableBag=[],bossTrashShots=[];
 const TRASH_SHOT_CAP=2,ELITE_THROW_COOLDOWN=[10.5,13.5];
 let eliteTrashSharedReadyAt=0,spitSharedNextAt=0;
 // Campaign grows from stage 3 to 50; endless starts gently, then ramps by wave.
