@@ -3401,8 +3401,8 @@ const HAPTIC_DEBUG=typeof location!=='undefined'&&new URLSearchParams(location.s
 let hapticDebugTag=null;
 function updateFeedbackDiagnostics(){
  const d=feedbackDiagnostics;
- if(vibrationTestStatus&&document.querySelector('#options-dialog')?.open){
-  vibrationTestStatus.textContent='BUILD v184 · 좀비 타격 '+d.hits+'회 / 진동 호출 '
+ if(vibrationTestStatus&&document.querySelector?.('#options-dialog')?.open){
+  vibrationTestStatus.textContent='BUILD v185 · 좀비 타격 '+d.hits+'회 / 진동 호출 '
    +d.hitRequests+'회 (수락 '+d.hitAccepted+', 차단 '+d.hitBlocked+')'
    +' · 마지막 '+(feedbackNames[d.lastHit]||d.lastHit)+': '+d.lastHitResult
    +' · 전체 호출 '+d.attempts+'회';
@@ -3453,25 +3453,25 @@ function feedback(kind){
  }catch(e){report('오류 '+(e?.name||'unknown'))}
 }
 // QA signal only: physical motor output cannot be measured from JavaScript.
-window.ZZHapticDebug={version:'v183',counts:feedbackDiagnostics};
+window.ZZHapticDebug={version:'v185',counts:feedbackDiagnostics};
 // A direct user-tap test is a separate diagnostic from gameplay events.
 const vibrationTestButton=$('vibration-test');
 const vibrationTestStatus=$('vibration-status');
 if(vibrationTestStatus){
- vibrationTestStatus.textContent='BUILD v184 · '+(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
+ vibrationTestStatus.textContent='BUILD v185 · '+(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
 }
 if(vibrationTestButton&&vibrationTestStatus){
  vibrationTestButton.addEventListener('click',()=>{
   if(typeof navigator.vibrate!=='function'){
-   vibrationTestStatus.textContent='BUILD v184 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
+   vibrationTestStatus.textContent='BUILD v185 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
    return;
   }
   try{
    const ok=navigator.vibrate([90,45,135]);
    vibrationTestStatus.textContent=ok
-    ?'BUILD v184 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
-    :'BUILD v184 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
-  }catch(e){vibrationTestStatus.textContent='BUILD v184 · 실행 오류 '+(e?.name||'unknown')}
+    ?'BUILD v185 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
+    :'BUILD v185 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
+  }catch(e){vibrationTestStatus.textContent='BUILD v185 · 실행 오류 '+(e?.name||'unknown')}
  });
 }
 for(const kind of ['hit','powerHit','critical','bossHit']){
