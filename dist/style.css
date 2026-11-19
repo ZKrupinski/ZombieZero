@@ -2064,6 +2064,7 @@ html.zz-endless-hud #wave > #wave-number {
  flex: 0 0 auto;
  line-height: 1 !important;
  vertical-align: baseline;
+ transform: translateY(-1px); /* v190: raise only digits; infinity stays at -3px. */
 }
 
 
