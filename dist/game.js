@@ -589,11 +589,11 @@ if(sub===0||sub===6||sub===8||boss&&sub===10)tone(130,.13,'sine',.31,delay,true,
 if(sub===4||sub===12){noise(.065,.105,delay,true);tone(200,.055,'triangle',.1,delay,true,85)}else noise(sub===14?.06:.018,sub%2===0?.028:.014,delay,true);if(bar===3&&sub>=13){noise(.035,.06,delay,true);tone(hz(root+12+(sub-13)*3),.055,'triangle',.055,delay,true)}
 if(sub===0&&bar%2===0){[0,boss?3:4,7,12].forEach(n=>tone(hz(root+n),step*7,'triangle',.036,delay,true))}beat++;nextBeat+=step;}}
 // V60 cube FX: short explosive square fragments. No circular markers, wedges or spikes.
-function effect(x,y,color,size=45,text='',standardHit=false){
+function effect(x,y,color,size=45,text='',standardHit=false,shakeCamera=true){
  if(!fxEnabled)return;
  fx.push({x,y,color,size,text,t:0,life:text?.85:.26,visualLife:size>=100?.31:.21,seed:Math.random()*6.28,standardHit});
  if(fx.length>45)fx.shift();
- cameraKick=Math.max(cameraKick,size>=120?5.2:size>=70?3.2:size>=45?2:.9);
+ if(shakeCamera)cameraKick=Math.max(cameraKick,size>=120?5.2:size>=70?3.2:size>=45?2:.9);
 }
 // V153: one base glyph + a faint additive text-only glow. Never postprocess
 // the whole board or allocate an offscreen canvas for each HUD label.
@@ -1822,8 +1822,8 @@ function explodeRedBarrel(z){
  const x=z.x+z.w/2,y=z.y+z.h/2;
  barrelBlasts.push({x,y,t:0,life:.34,seed:Math.random()*6.28});
  if(barrelBlasts.length>6)barrelBlasts.shift();
- effect(x,y,'#ffac48',112);burst(x,y,'#ff913b',48);
- sfx('blast');haptic(12);
+ effect(x,y,'#ffac48',112,'',false,false);burst(x,y,'#ff913b',48);
+ sfx('blast');
  // Fire spreads to nearby enemy collision rectangles, not to the player or civilians.
  const victims=foes.map(other=>{
   const dx=x-clamp(x,other.x,other.x+other.w);
@@ -1947,25 +1947,8 @@ function applyKnockback(z,impact,n=1){
    actor.knockChain=actor!==z;
    actor.knockDelay=(pos.chainDepth||0)>0
      ?HIT_FREEZE_NORMAL+((pos.chainDepth||0)-1)*CHAIN_KNOCK_STEP:0;
-   if(actor===z){
-    // Keep contact stun from enemyReaction; collision-only pushes stun too.
-    if((actor.hitShakeUntil||0)<=clock){
-     actor.hitShakeFrom=clock;
-     actor.hitShakeUntil=clock+CHAIN_HIT_FREEZE;
-    }
-    actor.knockFreeze=Math.max(0,actor.hitShakeUntil-clock);
-    delete actor.chainReactAt;
-   }else{
-    // No premature white flash/recoil: each neighbor reacts on its own beat.
-    actor.knockFreeze=CHAIN_HIT_FREEZE;
-    actor.chainReactAt=clock+actor.knockDelay;
-    actor.hitShakeFrom=actor.chainReactAt;
-    actor.hitShakeUntil=actor.chainReactAt+actor.knockFreeze;
-    hitFlashes.push({x:beforeX+actor.w/2,y:beforeY+actor.h/2,
-      groundY:beforeY+actor.h,t:0,delay:actor.knockDelay,
-      life:.40+actor.knockDelay,critical:false,
-      spread:Math.max(actor.w,actor.h),angle:Math.atan2(dirY,dirX)});
-   }
+   // Only a direct hit has a local hit-stop. Neighbors inherit displacement.
+   actor.knockFreeze=actor===z?Math.max(0,(actor.hitShakeUntil||0)-clock):0;
    actor.knockDuration=actor.knockDelay+actor.knockFreeze+KNOCK_TWEEN_LIFE;
    actor.knockTime=actor.knockDuration;
    // Each collider reserves its final safe position immediately; only the
@@ -1996,8 +1979,6 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
    t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),
    piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
-  cameraKick=fxEnabled?Math.max(cameraKick,critical?7.5:z.boss?6:4.7):0;
-  haptic(critical?[25,18,25]:z.boss?20:16);
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
  }
  const hitPosition=knockVisualPosition(z);
@@ -2012,7 +1993,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount,
-  !burning&&z.hp>0&&!critical);
+  !burning&&z.hp>0&&!critical,false);
  score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;
  if(z.hp<=0||critical||burning)burst(hitPosition.x+z.w/2,hitPosition.y+z.h/2,
   burning?'#ff985f':critical?'#fff6be':TYPES[z.kind].color,z.boss?20:burning?3:12);
@@ -2027,7 +2008,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
   recordKill();foes.splice(foes.indexOf(z),1);
   if(!z.boss&&z.form===1)explodeRedBarrel(z);
   drop(z);sfx(z.boss?'boss':'kill');
-  if(z.boss){toast('BOSS DOWN · +1500');haptic([18,25,28])}
+  if(z.boss)toast('BOSS DOWN · +1500');
  }
  hud();if(!foes.length)beginClear();
 }
@@ -2293,20 +2274,17 @@ const BOSS_STAGGER_REARM=.65;
 function enemyReaction(z,n,impact,ballHit=true){
  const length=Math.hypot(impact?.x??0,impact?.y??-1)||1;
  z.impactX=(impact?.x??0)/length;z.impactY=(impact?.y??-1)/length;
- z.recoil=.29;z.hitHold=ballHit?(z.boss?HIT_FREEZE_BOSS:HIT_FREEZE_NORMAL):.025;
+ z.recoil=.29;
  if(z.eliteMotion){
   delete z.eliteMotion;z.eliteNextMove=clock+(z.eliteKind===2?.55:1.1);
  }
+ if(clock<(z.hitShakeUntil||0))return;
+ if(ballHit&&z.boss&&clock<(z.bossStaggerReadyAt||0))return;
  z.hitAt=clock;
- if(ballHit&&(!z.boss||clock>=(z.bossStaggerReadyAt||0))){
+ z.hitHold=ballHit?(z.boss?HIT_FREEZE_BOSS:HIT_FREEZE_NORMAL):.025;
+ if(ballHit){
   z.hitShakeFrom=clock;z.hitShakeUntil=clock+z.hitHold;
   if(z.boss)z.bossStaggerReadyAt=clock+BOSS_STAGGER_REARM;
- }
- if(n>=2||z.boss)for(const other of foes){
-  if(other!==z&&Math.hypot(other.x+other.w/2-z.x-z.w/2,
-   other.y+other.h/2-z.y-z.h/2)<100){
-    other.flinch=.3;other.flinchSide=other.x<z.x?-1:1;
-  }
  }
 }
 function enemyDeath(z,critical=false){
@@ -2332,12 +2310,7 @@ function updateEnemyVisuals(dt){
  }
  z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);
  z.flinch=Math.max(0,(z.flinch||0)-dt);z.knockTime=Math.max(0,(z.knockTime||0)-dt);
- if(Number.isFinite(z.chainReactAt)&&clock>=z.chainReactAt){
-  // A chain victim plays its own white flash, hurt frame, jitter and freeze.
-  z.recoil=Math.max(z.recoil,.29);z.hitHold=Math.max(z.hitHold,z.knockFreeze||CHAIN_HIT_FREEZE);
-  z.flinch=Math.max(z.flinch,.34);z.flash=Math.max(z.flash||0,.23);z.hitAt=clock;
-  delete z.chainReactAt;
- }
+
 }for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
  // Final bitmap already depicts lying down / cute brain debris; do not duplicate
  // the old procedural blast or turn a normal backward fall into a side explosion.
@@ -3767,9 +3740,9 @@ function updateBazooka(dt){
   const radius=r.radius??BAZOOKA_RADIUS_MAX;
   bazookaBlasts.push({x:r.tx,y:r.ty,radius,t:0,life:.39,seed:Math.random()*6.28});
   if(bazookaBlasts.length>6)bazookaBlasts.shift();
-  effect(r.tx,r.ty,'#ffd16c',radius*.94,'BAZOOKA!');
+  effect(r.tx,r.ty,'#ffd16c',radius*.94,'BAZOOKA!',false,false);
   burst(r.tx,r.ty,'#ffae65',Math.round(14+radius*.27));
-  sfx('blast');haptic(Math.round(8+radius*.09));
+  sfx('blast');
   for(const z of [...foes]){const dx=r.tx-clamp(r.tx,z.x,z.x+z.w),dy=r.ty-clamp(r.ty,z.y,z.y+z.h);if(dx*dx+dy*dy<=radius*radius){damage(z,BAZOOKA_DAMAGE,false,{x:z.x+z.w/2-r.tx,y:z.y+z.h/2-r.ty});if(mode!=='playing')return}}
  }
  if(!has('bazooka')||!foes.length||(runMode!=='endless'&&balls[0]?.held))return;
