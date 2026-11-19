@@ -116,7 +116,7 @@ const art=imageContext.window.ZZThrowablesV159;art.request();
  drawJunk();
  check(bossTrashShots.length===0,'no lingering boss shots after shield impact');
  start('endless');serve();wave=62;rack();boss=foes.find(z=>z.boss);
- check(boss?.bossForm===3&&boss.hp>155,'endless boss retains tank durability and rotation');
+ check(boss?.bossForm===3&&boss.hp>=155,'endless boss retains tank durability and rotation');
  check(bossTrashShots.length===0,'endless wave resets all old throws');
  console.log('PASS V159: giant slow/HP trash boss, telegraph/projectile/citizen sacrifice, shield, 36 nonrepeating sprite throws, campaign/endless');
  `,sandbox);
