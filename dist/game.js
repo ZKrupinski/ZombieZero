@@ -3332,23 +3332,34 @@ function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absen
 // Browser vibration has no strength parameter. Duration/pattern control perceived
 // emphasis; short (<20ms) requests can be imperceptible on Android motors.
 const FEEDBACK_PRESETS={
- start:{v:25,s:0,p:1},serve:{v:28,s:.4,p:1},wall:{v:22,s:.28,p:0},
- racket:{v:35,s:.9,p:2},car:{v:40,s:1.3,p:3},
- shield:{v:[36,25,34],s:1.3,p:4},blocked:{v:32,s:.85,p:3},
- hit:{v:38,s:1.15,p:3},powerHit:{v:58,s:1.95,p:5},
- kill:{v:[50,24,54],s:2.15,p:6},
- fireKill:{v:[38,20,45],s:1.7,p:5},
- critical:{v:[110,42,155],s:4.6,p:9},
- bossHit:{v:75,s:2.6,p:6},bossKill:{v:[125,45,175],s:5.2,p:10},
- blast:{v:[80,32,85],s:3.85,p:8},junkHit:{v:39,s:1.0,p:3},
- junkGround:{v:22,s:.25,p:0},citizen:{v:[65,25,75],s:2.75,p:7},
- rescue:{v:[32,25,65],s:1.25,p:4},poisonBlock:{v:48,s:1.6,p:4},
- groggy:{v:[70,28,120],s:3.3,p:9},
- miss:{v:[65,25,55],s:2.8,p:7},
- gameOver:{v:[135,55,160],s:4.8,p:11},
- lastStand:{v:[95,42,110],s:5.0,p:10},
- wave:{v:[35,30,40],s:1.15,p:3},victory:{v:[45,30,85],s:2,p:5},
- item:{v:32,s:.55,p:2},bossSpawn:{v:[60,30,85],s:2.8,p:7}
+ wall:{v:28,s:0.28,p:0},
+ racket:{v:38,s:0.9,p:2},
+ car:{v:45,s:1.3,p:3},
+ hit:{v:105,s:1.4,p:5},
+ powerHit:{v:140,s:2.15,p:7},
+ kill:{v:[115,36,105],s:2.6,p:8},
+ fireKill:{v:[80,28,85],s:1.7,p:6},
+ critical:{v:[180,48,210],s:4.6,p:10},
+ bossHit:{v:145,s:2.9,p:8},
+ bossKill:{v:[190,56,240],s:5.2,p:11},
+ blast:{v:[85,35,90],s:3.85,p:9},
+ junkHit:{v:50,s:1,p:4},
+ junkGround:{v:28,s:0.25,p:0},
+ citizen:{v:[75,30,85],s:2.75,p:8},
+ rescue:{v:[42,26,75],s:1.25,p:4},
+ poisonBlock:{v:58,s:1.6,p:5},
+ groggy:{v:[90,35,140],s:3.3,p:9},
+ miss:{v:[75,30,65],s:2.8,p:8},
+ gameOver:{v:[160,60,200],s:4.8,p:12},
+ lastStand:{v:[105,42,130],s:5,p:11},
+ shield:{v:[45,22,54],s:1.3,p:4},
+ blocked:{v:40,s:0.85,p:3},
+ bossSpawn:{v:[85,32,105],s:2.8,p:8},
+ item:{v:40,s:0.55,p:2},
+ serve:{v:28,s:0.4,p:1},
+ start:{v:25,s:0,p:1},
+ wave:{v:[45,30,45],s:1.15,p:3},
+ victory:{v:[55,35,110],s:2,p:6}
 };
 function cameraFeedback(strength){
  if(!(strength>0))return;
@@ -3360,62 +3371,76 @@ function cameraFeedback(strength){
 }
 // Keep lightweight counters so players can verify that zombie hits reach
 // the vibration API, independently from whether the device motor responds.
-const feedbackDiagnostics={attempts:0,accepted:0,blocked:0,last:'—',result:'not-tested',hits:0,critical:0};
+const feedbackDiagnostics={attempts:0,accepted:0,blocked:0,last:'—',result:'대기',
+ hits:0,critical:0,hitRequests:0,hitAccepted:0,hitBlocked:0,lastHit:'—',lastHitResult:'대기'};
 const feedbackNames={hit:'좀비 일반 피격',powerHit:'강타',kill:'좀비 처치',
  fireKill:'화염 처치',critical:'크리티컬',bossHit:'보스 피격',
  bossKill:'보스 처치',racket:'자동차 공 반사',car:'자동차 충돌'};
+const COMBAT_FEEDBACK_KINDS=new Set(['hit','powerHit','kill','critical','bossHit','bossKill','fireKill']);
 function updateFeedbackDiagnostics(){
  if(!vibrationTestStatus||!document.querySelector('#options-dialog')?.open)return;
  const d=feedbackDiagnostics;
- vibrationTestStatus.textContent='BUILD v181 · 마지막 '+(feedbackNames[d.last]||d.last)
-  +' · 진동 '+d.result+' · 타격 '+d.hits+'회 / 크리티컬 '+d.critical
-  +'회 · 요청 '+d.attempts+'회 (수락 '+d.accepted+' / 제한 '+d.blocked+')';
+ vibrationTestStatus.textContent='BUILD v182 · 좀비 타격 '+d.hits+'회 / 진동 호출 '
+  +d.hitRequests+'회 (수락 '+d.hitAccepted+', 차단 '+d.hitBlocked+')'
+  +' · 마지막 '+(feedbackNames[d.lastHit]||d.lastHit)+': '+d.lastHitResult
+  +' · 전체 호출 '+d.attempts+'회';
 }
 function feedback(kind){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
  cameraFeedback(cfg.s);
- const d=feedbackDiagnostics;
+ const d=feedbackDiagnostics,combat=COMBAT_FEEDBACK_KINDS.has(kind);
  d.last=kind;
- if(kind==='hit'||kind==='powerHit'||kind==='kill'||kind==='critical'||kind==='bossHit'||kind==='bossKill'||kind==='fireKill')d.hits++;
+ if(combat){d.hits++;d.lastHit=kind}
  if(kind==='critical')d.critical++;
+ const report=(status,blocked=false)=>{
+  d.result=status;
+  if(combat){d.lastHitResult=status;if(blocked)d.hitBlocked++}
+  updateFeedbackDiagnostics();
+ };
  if(typeof navigator==='undefined'||typeof navigator.vibrate!=='function'){
-  d.result='API 미지원';updateFeedbackDiagnostics();return;
+  report('API 미지원');return;
  }
- const now=performance.now();
- // Keep a perceptible minimum, cap dense same-priority hits, always allow a
- // stronger event (critical / boss / game over) to interrupt a weak pulse.
- if((now<buzzLockedUntil||now-lastBuzz<95)&&cfg.p<=buzzPriority){
-  d.blocked++;d.result='중복 제한';updateFeedbackDiagnostics();return;
+ if(typeof document!=='undefined'&&document.hidden){report('화면 비활성');return}
+ const now=performance.now(),length=Array.isArray(cfg.v)?cfg.v.reduce((a,b)=>a+b,0):cfg.v;
+ // Max-priority single dispatcher: wall/racket/item never interrupt a zombie hit.
+ if(now<buzzLockedUntil&&cfg.p<=buzzPriority){
+  d.blocked++;report('중복 차단',true);return;
  }
- const length=Array.isArray(cfg.v)?cfg.v.reduce((a,b)=>a+b,0):cfg.v;
+ // Only minor events have additional rate limits; real combat overrides them.
+ if(cfg.p<=2&&now-lastBuzz<135){
+  d.blocked++;report('약한 충격 제한',true);return;
+ }
  try{
-  d.attempts++;
-  if(navigator.vibrate(cfg.v)){
+  d.attempts++;if(combat)d.hitRequests++;
+  const ok=navigator.vibrate(cfg.v);
+  if(ok){
    lastBuzz=now;buzzPriority=cfg.p;
-   buzzLockedUntil=now+Math.max(95,Math.min(400,length+12));
-   d.accepted++;d.result='요청 수락';
-  }else{d.result='요청 거부'}
- }catch(e){d.result='오류 '+(e?.name||'unknown')}
- updateFeedbackDiagnostics();
+   buzzLockedUntil=now+Math.max(95,Math.min(550,length+14));
+   d.accepted++;if(combat)d.hitAccepted++;
+   report('요청 수락');
+  }else report('요청 거부');
+ }catch(e){report('오류 '+(e?.name||'unknown'))}
 }
+// QA signal only: physical motor output cannot be measured from JavaScript.
+window.ZZHapticDebug={version:'v182',counts:feedbackDiagnostics};
 // A direct user-tap test is a separate diagnostic from gameplay events.
 const vibrationTestButton=$('vibration-test');
 const vibrationTestStatus=$('vibration-status');
 if(vibrationTestStatus){
- vibrationTestStatus.textContent='BUILD v181 · '+(typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
+ vibrationTestStatus.textContent='BUILD v182 · '+(typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
 }
 if(vibrationTestButton&&vibrationTestStatus){
  vibrationTestButton.addEventListener('click',()=>{
   if(typeof navigator.vibrate!=='function'){
-   vibrationTestStatus.textContent='BUILD v181 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
+   vibrationTestStatus.textContent='BUILD v182 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
    return;
   }
   try{
    const ok=navigator.vibrate([90,45,135]);
    vibrationTestStatus.textContent=ok
-    ?'BUILD v181 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
-    :'BUILD v181 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
-  }catch(e){vibrationTestStatus.textContent='BUILD v181 · 실행 오류 '+(e?.name||'unknown')}
+    ?'BUILD v182 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
+    :'BUILD v182 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
+  }catch(e){vibrationTestStatus.textContent='BUILD v182 · 실행 오류 '+(e?.name||'unknown')}
  });
 }
 for(const kind of ['hit','powerHit','critical','bossHit']){
