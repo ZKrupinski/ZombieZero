@@ -23,7 +23,7 @@ const state={Math:rng,g,
  clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),
  has:k=>k==='bazooka',supportRisk:()=>3,
  effect:(...a)=>effects.push(a),burst:(...a)=>bursts.push(a),
- damage:(z,n)=>hits.push({z,n}),sfx:()=>{},haptic:()=>{},citizenCue:()=>{},
+ damage:(z,n)=>hits.push({z,n}),sfx:()=>{},haptic:()=>{},feedback:()=>{},citizenCue:()=>{},
  rect:()=>{},luminous:f=>f(),drawPixelBurst:(...a)=>blasts.push(a)
 };
 vm.createContext(state);
