@@ -2139,3 +2139,80 @@ html.zz-endless-hud #wave > #wave-number {
 }
 /* Retain the two button heights, gaps, colors, selected frame and portraits.
    Short screens still use their original compact height media queries. */
+
+
+/* v193: title selection is not gameplay. Remove gameplay HUD there only.
+   Retain the top-right settings menu so vibration and preferences remain reachable;
+   heart, wave/score and pause reappear on entering gameplay. */
+.machine:has(#overlay[data-screen="selection"]:not([hidden])) > .hud .hud-hearts,
+.machine:has(#overlay[data-screen="selection"]:not([hidden])) > .hud .hud-center-stats,
+.machine:has(#overlay[data-screen="selection"]:not([hidden])) > .hud #pause{
+  display:none!important;
+}
+
+/* Fullscreen and windowed selection use the same full-width card/button grid
+   (v192), with a more prominent BI and smaller secondary typography.
+   Never scale the canvas/world or change any character/card stats. */
+#overlay[data-screen="selection"]{
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  justify-content:safe center!important;
+  align-items:center!important;
+}
+#overlay[data-screen="selection"] > .overlay-logo{
+  display:block!important;
+  width:min(72%,310px)!important;
+  max-width:310px!important;
+  height:auto!important;
+  max-height:min(24svh,188px)!important;
+  object-fit:contain!important;
+  margin:0 auto 4px!important;
+  flex:0 0 auto!important;
+}
+#overlay[data-screen="selection"] > .label{
+  font-size:clamp(8px,2.15vw,10px)!important;
+  line-height:1.3!important;
+  letter-spacing:.035em!important;
+  margin:0 auto 1px!important;
+}
+#overlay[data-screen="selection"] > #title{
+  font-size:clamp(21px,5.1vw,25px)!important;
+  line-height:1.14!important;
+  letter-spacing:0!important;
+  margin:2px auto 3px!important;
+  text-align:center!important;
+}
+#overlay[data-screen="selection"] > #message{
+  font-size:10px!important;
+  line-height:1.3!important;
+  margin:0 auto 5px!important;
+}
+/* Tall/short layouts scroll if needed rather than compressing the logo or
+   letting the cards, full-width actions, or footer overlap one another. */
+@media(max-height:620px){
+  #overlay[data-screen="selection"] > .overlay-logo{
+    width:min(64%,265px)!important;
+    max-width:265px!important;
+    max-height:min(20svh,142px)!important;
+    margin-bottom:2px!important;
+  }
+  #overlay[data-screen="selection"] > #title{
+    font-size:21px!important;
+    margin-bottom:2px!important;
+  }
+  #overlay[data-screen="selection"] > #message{
+    font-size:9px!important;
+    margin-bottom:3px!important;
+  }
+}
+@media(max-height:460px){
+  #overlay[data-screen="selection"] > .overlay-logo{
+    width:min(55%,220px)!important;
+    max-width:220px!important;
+    max-height:min(17svh,96px)!important;
+  }
+  #overlay[data-screen="selection"] > #title{
+    font-size:18px!important;
+  }
+}
