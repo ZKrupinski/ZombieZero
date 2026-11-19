@@ -29,3 +29,30 @@ assert.equal(h.stats.hitBlocked,0);
 assert(h.presets.hit.v>=95,'A regular hit must be palpable on most Android motors');
 assert(source.includes("else feedback(critical?'critical'"),'Actual zombie damage path is missing haptics');
 console.log('PASS: zombie hit, kill, critical and boss vibrations survive collision arbitration');
+
+
+// Sustained camera impulse regression: normal zombie impact must be visible
+// across several rendered frames, even if FX visuals are disabled.
+const begin=source.indexOf('const screenShake=');
+const finish=source.indexOf('const feedbackDiagnostics=',begin);
+assert(begin>=0&&finish>begin,'Sustained camera impulse not found');
+let clockMs=1000;
+const cameraHarness=new Function('time',`
+ let cameraKick=0,lastCameraFeedback=0;
+ const performance={now:()=>time()};
+ ${source.slice(begin,finish)}
+ return {cameraFeedback,cameraOffset};
+`)(()=>clockMs);
+cameraHarness.cameraFeedback(1.4);
+let visible=0;
+for(const t of [1000,1016,1032,1048,1064,1080]){
+ clockMs=t;
+ const p=cameraHarness.cameraOffset();
+ if(p&&Math.hypot(p.x,p.y)>1.2)visible++;
+}
+assert(visible>=4,'Normal zombie hits must visibly shake the screen for multiple frames');
+clockMs=1200;
+cameraHarness.cameraFeedback(4.6);
+const q=cameraHarness.cameraOffset();
+assert(q&&Math.hypot(q.x,q.y)>4,'Critical impact must exceed normal contact shake');
+console.log('PASS: sustained camera shake independent of graphics FX');
