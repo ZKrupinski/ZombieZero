@@ -1598,7 +1598,7 @@ function syncMulti(fromHero=false){if(!balls.length||balls[0].held)return;const 
  // First multiball pickup: the hero serves only the extra balls. Stacked
  // dual x triple still splits at the existing ball, including after losses.
  if(fromHero&&balls.length===1&&(n===2||n===3)){
-   const origin=heldBallOffset(),speed=Math.hypot(125,365);
+   const origin=heldBallOffset(),speed=Math.hypot(src.vx,src.vy);
    const side=Math.random()<.5?-1:1;
    for(let i=0,count=n-balls.length;i<count;i++){
      const angle=(.16+Math.random()*.52)*side*(i===0?1:-1);
@@ -3174,7 +3174,14 @@ drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ball
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  if(mode==='endlessShift'||mode==='paused'&&resumeMode==='endlessShift')drawEndlessShift();
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}
-function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();music();requestAnimationFrame(frame)}
+function frame(t){
+ // Keep game time at real pace on busy frames, with bounded collision steps.
+ const elapsed=last?Math.min(.10,Math.max(0,(t-last)/1000)):0;
+ last=t;
+ const steps=Math.max(1,Math.ceil(elapsed*30-1e-9));
+ for(let i=0;i<steps;i++)update(elapsed/steps);
+ draw();music();requestAnimationFrame(frame);
+}
 function heroSprite(x,y,scale=1,win=false){let h=hero();
  const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null,ix=cast&&cast.heroIndex[selectedHero];
  if(atlas&&atlas.complete&&atlas.naturalWidth===256&&Number.isInteger(ix)){
