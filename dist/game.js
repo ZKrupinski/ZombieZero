@@ -126,7 +126,7 @@ function spawnContact(b,x,y,nx,ny,kind){
 }
 function queueContact(queue,x,y,nx,ny,kind,target){
  queue.push({x,y,nx,ny,kind,target,tone:0,
-  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:kind==='enemy'?.30:kind==='ceiling'?.25:.27});
+  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:queue===trashContactFX?.42:kind==='enemy'?.30:kind==='ceiling'?.25:.27});
  if(queue.length>20)queue.splice(0,queue.length-20);
 }
 function contactFace(b,z,r,ox,oy){
@@ -153,12 +153,14 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
   const u=Math.max(0,Math.min(1,f.t/f.life));
   // Hold the bitmap at full strength for several frames before a soft fade.
   // V119 faded from the first tick, making a nominal 0.16s hit nearly invisible.
-  const fade=u<=.28?1:Math.pow(Math.max(0,(1-u)/.72),.86);
+  const trash=queue===trashContactFX,hold=trash?.4:.28;
+  const fade=u<=hold?1:Math.pow(Math.max(0,(1-u)/(1-hold)),.86);
   if(fade<=0)continue;
   g.save();g.translate(f.x,f.y);
   // Point-symmetric balloon shapes do not rotate with the travel direction.
   // The center still covers the exact ball/trail-bend collision vertex.
-  g.globalCompositeOperation='source-over';
+  if(trash)g.scale(1.45,1.45);
+  g.globalCompositeOperation=trash&&u<.18?'lighter':'source-over';
   g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
   if(atlasReady){
    const frame=contactAtlasIndex(f);
@@ -3173,7 +3175,7 @@ function drawStruckZombie(z){
  zombie(knockVisualPosition(z));g.restore();
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawCrowd();drawDodgeGhosts();
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(fxEnabled&&cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
@@ -3587,6 +3589,7 @@ function updateBossTrashShots(dt,previousCar=car){
   if(shot.t<shot.duration){i++;continue}
   bossTrashShots.splice(i,1);
   if(has('shield')){
+   if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,SHIELD_LINE_Y,0,-1,'enemy','world');
    effect(shot.tx,SHIELD_LINE_Y,'#b9f684',36,'BLOCK!');
    burst(shot.tx,SHIELD_LINE_Y,'#b9f684',9);sfx('shield');
   }else{
@@ -3595,7 +3598,10 @@ function updateBossTrashShots(dt,previousCar=car){
     if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,shot.ty,0,-1,'enemy',citizen);
     defeatCitizenByTrash(citizen,shot.type==='spit'?'spit':'trash');
    }
-   else{effect(shot.tx,shot.ty,'#dfb48d',26);burst(shot.tx,shot.ty,'#dbb081',5)}
+   else{
+    if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,shot.ty,0,-1,'enemy','world');
+    effect(shot.tx,shot.ty,'#dfb48d',26);burst(shot.tx,shot.ty,'#dbb081',5);
+   }
   }
  }
  if(balls[0]?.held)return;
@@ -3711,7 +3717,7 @@ function drawBossTrashShots(){
  }
  if(spitBloomDraws.length)captureBloom(drawSpitBloom);
 }
-function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(let i=0;i<junk.length;){const j=junk[i];j.t+=dt;if(j.t>=j.duration){junk.splice(i,1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){queueContact(trashContactFX,j.tx,j.ty,0,1,'enemy',j.target);damage(j.target,.25,true);if(mode!=='playing')return}}else i++}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:nextThrowableKind()});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
+function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(let i=0;i<junk.length;){const j=junk[i];j.t+=dt;if(j.t>=j.duration){junk.splice(i,1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){queueContact(trashContactFX,j.tx,j.ty,0,1,'enemy',j.target);damage(j.target,.25,true);if(mode!=='playing')return}else{queueContact(trashContactFX,j.tx,j.ty,0,1,'enemy','world')}}else i++}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:nextThrowableKind()});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
 // 8 distinct approved citizens × 4 frames each. Two separate alpha PNG
 // atlases share a fixed 128×128 cell grid: cheer vs counterattack/sacrifice.
 // Keep the old procedural artwork only as a non-blocking loading fallback.
