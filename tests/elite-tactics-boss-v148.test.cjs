@@ -50,7 +50,9 @@ check(elite.length===3,'high-level roster retains three elite units');
 check(elite.every(z=>z.hp>=10&&z.hp<=29),'elite HP meaningfully raised, remains below boss');
 wave=11;rack();check(calls.includes(3),'stage 11 queues the actual stage 12 large-trash boss');
 wave=12;rack();boss=foes.find(z=>z.boss);
-check(boss.bossForm===3&&boss.hp===43,'campaign stage 12 selects large-trash boss with reduced HP');
+check(boss.bossForm===3&&boss.hp===155&&boss.w===112&&boss.h===124,
+ 'stage 12 is a huge, easy-to-hit large-trash tank with 155 HP');
+check(boss.hp>3*39,'tanky trash boss outlasts easy-hit water-jug boss');
 check(!isBossWave()===false,'stage 12 is a boss wave');
 start('endless');serve();
 for(const [w,form] of [[53,0],[56,1],[59,2],[62,3],[65,0]]){
