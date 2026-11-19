@@ -1584,7 +1584,7 @@ function updateEndlessShift(dt){
 function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5,spinAngle:0,spinVelocity:0,spinDirection:vx<0?-1:1}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
-function start(selectedMode='campaign'){runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
@@ -1602,7 +1602,7 @@ function backToSelection(){
  bossTrashShots.length=0;
  $('pause-main-menu').hidden=true;
  failureScene=null;lastLostBall=null;lastStandUsed=false;resistFlash=0;
- score=0;wave=1;lives=hero().lives;car=target=225;cameraKick=0;
+ score=0;wave=1;lives=hero().lives;car=target=225;cameraKick=0;screenShake.until=0;
  particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];
  fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;junk=[];
  clearSkills();resetCitizens();setStageBackground(true);rack();resetBalls();hud();
@@ -3189,7 +3189,7 @@ function drawStruckZombie(z){
  zombie(knockVisualPosition(z));g.restore();
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();if(cameraKick>0)g.translate(Math.sin(clock*115)*cameraKick*.7,Math.cos(clock*139)*cameraKick*.4);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
@@ -3361,13 +3361,29 @@ const FEEDBACK_PRESETS={
  wave:{v:[45,30,45],s:1.15,p:3},
  victory:{v:[55,35,110],s:2,p:6}
 };
+// A real-time 5–9-frame shake envelope independent of the graphics FX switch.
+// Previous v182 shake lost most of its intensity before the render frame.
+const screenShake={power:0,started:0,until:0,phase:0};
+let screenShakeFrame=0;
 function cameraFeedback(strength){
  if(!(strength>0))return;
- const now=performance.now(),requested=Math.min(5.4,strength);
- // Max-only composition, with a short cooldown and strong-hit promotion.
- if(now-lastCameraFeedback<75&&requested<=cameraKick)return;
- cameraKick=Math.max(cameraKick,requested);
- lastCameraFeedback=now;
+ const now=performance.now();
+ const power=strength<.5?.8:Math.min(8,1.7+2.4*strength);
+ // Only one envelope. Never sum multiball hits; upgrade for stronger impacts.
+ if(now<screenShake.until&&power<=screenShake.power&&now-screenShake.started<90)return;
+ const life=strength>=4?150:strength>=2?120:100;
+ screenShake.power=power;screenShake.started=now;screenShake.until=now+life;
+ screenShake.phase=(screenShake.phase+1.41)%6.283;
+ cameraKick=power;lastCameraFeedback=now;
+}
+function cameraOffset(){
+ const now=performance.now(),remaining=screenShake.until-now;
+ if(remaining<=0)return null;
+ const life=Math.max(1,screenShake.until-screenShake.started);
+ const fade=Math.pow(Math.min(1,remaining/life),.65);
+ const power=screenShake.power*fade;
+ const phase=screenShake.phase+(++screenShakeFrame)*2.24;
+ return {x:Math.sin(phase)*power*.92,y:Math.cos(phase*1.2)*power*.72};
 }
 // Keep lightweight counters so players can verify that zombie hits reach
 // the vibration API, independently from whether the device motor responds.
@@ -3377,13 +3393,26 @@ const feedbackNames={hit:'좀비 일반 피격',powerHit:'강타',kill:'좀비 �
  fireKill:'화염 처치',critical:'크리티컬',bossHit:'보스 피격',
  bossKill:'보스 처치',racket:'자동차 공 반사',car:'자동차 충돌'};
 const COMBAT_FEEDBACK_KINDS=new Set(['hit','powerHit','kill','critical','bossHit','bossKill','fireKill']);
+// Optional in-game instrumentation: ?hapticDebug=1 displays live hit counts
+// without pausing to open Settings. This is disabled in normal play.
+const HAPTIC_DEBUG=typeof location!=='undefined'&&new URLSearchParams(location.search).get('hapticDebug')==='1';
+let hapticDebugTag=null;
 function updateFeedbackDiagnostics(){
- if(!vibrationTestStatus||!document.querySelector('#options-dialog')?.open)return;
  const d=feedbackDiagnostics;
- vibrationTestStatus.textContent='BUILD v182 · 좀비 타격 '+d.hits+'회 / 진동 호출 '
-  +d.hitRequests+'회 (수락 '+d.hitAccepted+', 차단 '+d.hitBlocked+')'
-  +' · 마지막 '+(feedbackNames[d.lastHit]||d.lastHit)+': '+d.lastHitResult
-  +' · 전체 호출 '+d.attempts+'회';
+ if(vibrationTestStatus&&document.querySelector('#options-dialog')?.open){
+  vibrationTestStatus.textContent='BUILD v183 · 좀비 타격 '+d.hits+'회 / 진동 호출 '
+   +d.hitRequests+'회 (수락 '+d.hitAccepted+', 차단 '+d.hitBlocked+')'
+   +' · 마지막 '+(feedbackNames[d.lastHit]||d.lastHit)+': '+d.lastHitResult
+   +' · 전체 호출 '+d.attempts+'회';
+ }
+ if(!HAPTIC_DEBUG)return;
+ if(!hapticDebugTag){
+  hapticDebugTag=document.createElement('div');
+  hapticDebugTag.setAttribute('role','status');
+  hapticDebugTag.style.cssText='position:fixed;z-index:2147483647;bottom:8px;left:8px;max-width:95vw;pointer-events:none;background:#060f1ee6;color:#e9f5ca;padding:6px 9px;border:1px solid #9fd88b;font:11px/1.45 monospace;border-radius:5px';
+  document.body.appendChild(hapticDebugTag);
+ }
+ hapticDebugTag.textContent='v183 HIT '+d.hits+' / VIBE '+d.hitAccepted+' / BLOCK '+d.hitBlocked+' · '+(feedbackNames[d.lastHit]||d.lastHit)+' · '+d.lastHitResult;
 }
 function feedback(kind){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
@@ -3427,20 +3456,20 @@ window.ZZHapticDebug={version:'v182',counts:feedbackDiagnostics};
 const vibrationTestButton=$('vibration-test');
 const vibrationTestStatus=$('vibration-status');
 if(vibrationTestStatus){
- vibrationTestStatus.textContent='BUILD v182 · '+(typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
+ vibrationTestStatus.textContent='BUILD v183 · '+(typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
 }
 if(vibrationTestButton&&vibrationTestStatus){
  vibrationTestButton.addEventListener('click',()=>{
   if(typeof navigator.vibrate!=='function'){
-   vibrationTestStatus.textContent='BUILD v182 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
+   vibrationTestStatus.textContent='BUILD v183 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
    return;
   }
   try{
    const ok=navigator.vibrate([90,45,135]);
    vibrationTestStatus.textContent=ok
-    ?'BUILD v182 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
-    :'BUILD v182 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
-  }catch(e){vibrationTestStatus.textContent='BUILD v182 · 실행 오류 '+(e?.name||'unknown')}
+    ?'BUILD v183 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
+    :'BUILD v183 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
+  }catch(e){vibrationTestStatus.textContent='BUILD v183 · 실행 오류 '+(e?.name||'unknown')}
  });
 }
 for(const kind of ['hit','powerHit','critical','bossHit']){
