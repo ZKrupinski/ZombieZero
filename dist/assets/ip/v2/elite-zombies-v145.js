@@ -41,6 +41,7 @@ function draw(ctx,z,seconds){
  const s=cache[z.eliteKind];
  let row=CLIPS.down;
  if(z.hitHold>0||(z.recoil||0)>.02)row=CLIPS.hit;
+ else if((z.eliteKind===0||z.eliteKind===1)&&z.throwWindup>0)row=CLIPS.attack;
  else if(z.eliteMotion&&(z.eliteMotion.t<0||
           z.eliteMotion.tag==='dash'||z.eliteMotion.tag==='charge'))row=CLIPS.attack;
  else if(Number.isFinite(z.breakoutTime)&&z.breakoutTime<.20)row=CLIPS.attack;

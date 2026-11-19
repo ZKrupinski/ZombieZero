@@ -749,6 +749,8 @@ function insertEliteZombies(regulars,stage){
    if(!free.length)break;
    const [z]=free.splice(Math.floor(Math.random()*free.length),1);
    z.eliteKind=kind;
+   // Trash-bag elites wait a few seconds before their first ranged attack.
+   if(kind<2)z.throwAt=clock+5.5+Math.random()*3;
    z.hp=z.max=Math.min(runMode==='endless'?24:29,
      zombieHP(0,z.kind,stage)+ELITE_HP_BONUS[kind]+Math.floor(Math.max(0,stage-6)/13));
    free=free.filter(other=>other.row!==z.row||Math.abs(other.col-z.col)>1);
@@ -852,6 +854,7 @@ function nextBossArtLoading(nextWave){
 }
 function rack(){
  bossTrashShots.length=0;
+ eliteTrashSharedReadyAt=clock+4.4;
  dodgeGhosts.length=0;
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
@@ -1192,6 +1195,7 @@ function moveElite(z,dt){
  // Paper packaging uses the same collision-safe movement only when
  // a reactive dodge is triggered; it does not inherit regular elite AI.
  if(!Number.isInteger(z.eliteKind)&&z.form!==4)return false;
+ if((z.eliteKind===0||z.eliteKind===1)&&z.throwWindup>0){z.moveDir=0;return true;}
  if(z.eliteMotion){
   const m=z.eliteMotion,step=dt*(has('slow')?.4:1);
   const next=Math.min(m.duration,m.t+step);
@@ -3333,7 +3337,9 @@ function drawBubbles(){for(const q of bubbles){const a=Math.min(1,q.t/.12,(q.lif
  const tail=citizenBubblePointer(q,{x,y,w,h});g.save();g.globalAlpha=Math.max(0,a);g.fillStyle=q.event==='return'?'#c5ffe5':q.event?'#ffe2ae':'#fff6d8';g.strokeStyle=q.event==='return'?'#287760':q.event?'#974c35':'#28374b';g.lineWidth=q.event?3:2;g.beginPath();g.moveTo(x,y);g.lineTo(x+w,y);g.lineTo(x+w,y+h);g.lineTo(tail.baseX+6,y+h);g.lineTo(tail.tipX,tail.tipY);g.lineTo(tail.baseX-6,y+h);g.lineTo(x,y+h);g.closePath();g.fill();g.stroke();g.fillStyle='#263449';g.font='bold 15px Arial, sans-serif';g.textAlign='center';g.fillText(q.text,x+w/2,y+20);if(q.event){g.font='bold 11px Arial, sans-serif';g.fillText(q.event==='return'?'시민 +1 복귀!':q.event==='bazooka'?'광역 지원 사격!':'공을 지켜냈다!',x+w/2,y+37)}g.restore()}}
 // V159: One approved 6x6 transparent bitmap sheet for BOTH throwers.
 // Draw only the needed frame: no per-projectile bitmap or gradient allocation.
-const THROWABLE_COUNT=36,throwableBag=[],bossTrashShots=[];
+const THROWABLE_COUNT=36,THROWABLE_SIZE_SCALE=1.15,throwableBag=[],bossTrashShots=[];
+const TRASH_SHOT_CAP=2,ELITE_THROW_COOLDOWN=[10.5,13.5];
+let eliteTrashSharedReadyAt=0;
 function nextThrowableKind(){
  if(!throwableBag.length){
   for(let i=0;i<THROWABLE_COUNT;i++)throwableBag.push(i);
@@ -3345,6 +3351,8 @@ function nextThrowableKind(){
  return throwableBag.pop();
 }
 function drawThrowable(kind,x,y,size,turn=0){
+ // Enlarge approved 36-item sheet uniformly, without resizing the source PNG.
+ size*=THROWABLE_SIZE_SCALE;
  const sheet=window.ZZThrowablesV159;
  if(sheet?.draw?.(g,kind,x,y,size,turn))return;
  // Loading fallback is a small solid package, never an old zombie/vector.
@@ -3369,9 +3377,23 @@ function defeatCitizenByTrash(p){
  sfx('citizen');haptic(18);
  return true;
 }
+// Black trash bag + white 50L elite share the approved PNG atlas with the giant boss.
+function eliteTrashThrower(z){return !z.boss&&(z.eliteKind===0||z.eliteKind===1)}
+function trashThrower(z){return (z.boss&&z.bossForm===3)||eliteTrashThrower(z)}
+function trashThrowCooldown(z){
+ return z.boss?6.5+Math.random()*3:ELITE_THROW_COOLDOWN[z.eliteKind]+Math.random()*3;
+}
+function launchTrashShot(z,citizen){
+ const elite=eliteTrashThrower(z);
+ bossTrashShots.push({sx:z.x+z.w*.5,sy:z.y+z.h*(z.boss?.43:.24),
+  tx:citizen.x,ty:citizen.y-13,citizen,kind:z.throwKind,
+  duration:(elite?1.15:1.05)+Math.random()*.22,t:0,
+  arc:(elite?67:56)+Math.random()*28,eliteKind:elite?z.eliteKind:null});
+ sfx('launch');burst(z.x+z.w*.5,z.y+z.h*(z.boss?.38:.22),'#ffc67e',elite?5:7);
+}
 function updateBossTrashShots(dt){
  if(mode!=='playing')return;
- // Shots already airborne continue even if the boss is killed.
+ // Airborne trash persists after its source zombie dies.
  for(const shot of [...bossTrashShots]){
   shot.t=Math.min(shot.duration,shot.t+dt*(has('slow')?.66:1));
   if(shot.t<shot.duration)continue;
@@ -3385,43 +3407,47 @@ function updateBossTrashShots(dt){
    else{effect(shot.tx,shot.ty,'#dfb48d',26);burst(shot.tx,shot.ty,'#dbb081',5)}
   }
  }
- const z=foes.find(e=>e.boss&&e.bossForm===3);
- if(!z||balls[0]?.held)return;
- if(z.throwWindup>0){
-  z.throwWindup=Math.max(0,z.throwWindup-dt*(has('slow')?.4:1));
-  if(z.throwWindup>0)return;
-  const citizen=z.throwTarget;
-  if(citizen?.alive&&bossTrashShots.length<2){
-   bossTrashShots.push({sx:z.x+z.w*.5,sy:z.y+z.h*.43,
-    tx:citizen.x,ty:citizen.y-13,citizen,kind:z.throwKind,
-    duration:1.05+Math.random()*.22,t:0,arc:56+Math.random()*28});
-   sfx('launch');burst(z.x+z.w*.5,z.y+z.h*.38,'#ffc67e',7);
+ if(balls[0]?.held)return;
+ // The giant boss gets priority under the shared two-projectile limit.
+ const throwers=foes.filter(trashThrower).sort((a,b)=>Number(b.boss)-Number(a.boss));
+ for(const z of throwers){
+  const elite=eliteTrashThrower(z);
+  if(z.throwWindup>0){
+   z.throwWindup=Math.max(0,z.throwWindup-dt*(has('slow')?.4:1));
+   if(z.throwWindup>0)continue;
+   const citizen=z.throwTarget;
+   if(citizen?.alive&&bossTrashShots.length<TRASH_SHOT_CAP)launchTrashShot(z,citizen);
+   z.throwTarget=null;
+   z.throwAt=clock+trashThrowCooldown(z);
+   continue;
   }
-  z.throwTarget=null;
-  z.throwAt=clock+6.5+Math.random()*3;
-  return;
+  // No elite throws while dashing, recoiling or in the shared firing cooldown.
+  if(elite&&(z.eliteMotion||z.hitHold>0||(z.recoil||0)>.02||
+    clock<eliteTrashSharedReadyAt))continue;
+  if(clock<(z.throwAt??(z.throwAt=clock+(z.boss?3.7:5.2)+Math.random()*3))||
+    bossTrashShots.length>=TRASH_SHOT_CAP)continue;
+  const alive=citizens.filter(p=>p.alive);
+  if(!alive.length){z.throwAt=clock+4;continue}
+  z.throwTarget=alive[Math.floor(Math.random()*alive.length)];
+  z.throwKind=nextThrowableKind();
+  z.throwWindup=z.boss?.75:z.eliteKind===0?.58:.80;
+  z.throwAt=clock+9;
+  if(elite)eliteTrashSharedReadyAt=clock+6.3+Math.random()*1.9;
+  effect(z.x+z.w*.5,z.y+z.h*.20,'#ffcb71',z.boss?36:24);
+  sfx('serve');
  }
- if(clock<(z.throwAt??(z.throwAt=clock+3.7))||
-    bossTrashShots.length>=2)return;
- const alive=citizens.filter(p=>p.alive);
- if(!alive.length){z.throwAt=clock+4;return;}
- z.throwTarget=alive[Math.floor(Math.random()*alive.length)];
- z.throwKind=nextThrowableKind();
- z.throwWindup=.75;
- z.throwAt=clock+9;
- // The giant deliberately winds up rather than an untelegraphed instant kill.
- effect(z.x+z.w*.5,z.y+z.h*.20,'#ffcb71',36);
- sfx('serve');
 }
 function drawBossTrashShots(){
- const z=foes.find(e=>e.boss&&e.bossForm===3&&e.throwWindup>0);
- if(z){
+ for(const z of foes){
+  if(!trashThrower(z)||!(z.throwWindup>0))continue;
   const sway=Math.sin(clock*16)*2;
-  drawThrowable(z.throwKind,z.x+z.w*.75,z.y-4+sway,40,-.2);
+  const size=z.boss?40:z.eliteKind===0?24:28;
+  drawThrowable(z.throwKind,z.x+z.w*.75,z.y+(z.boss?-4:4)+sway,size,-.2);
  }
  for(const p of bossTrashShots){
   const pos=bossTrashProjectilePosition(p);
-  const size=29+7*(1-Math.abs(2*pos.t-1));
+  const flare=1-Math.abs(2*pos.t-1);
+  const size=p.eliteKind===0?22+5*flare:p.eliteKind===1?24+6*flare:29+7*flare;
   drawThrowable(p.kind,pos.x,pos.y,size,pos.t*Math.PI*5);
  }
 }
