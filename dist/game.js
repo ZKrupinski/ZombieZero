@@ -2019,7 +2019,8 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
     t:0,life:.72,pierce:piercingCritical,textScale});
   if(criticalPopups.length>12)criticalPopups.shift();
  }
- if(!burning)feedback(critical?'critical':z.boss?(z.hp<=0?'bossKill':'bossHit'):(z.hp<=0?'kill':amount>=2?'powerHit':'hit'));
+ if(burning){if(z.hp<=0)feedback('fireKill')}
+ else feedback(critical?'critical':z.boss?(z.hp<=0?'bossKill':'bossHit'):(z.hp<=0?'kill':amount>=2?'powerHit':'hit'));
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount,
@@ -3328,23 +3329,26 @@ const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+
 function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0}bubbles=[];bubbleTimer=.25;lastCitizenLine=''}
 // Gameplay feedback is independent of the FX FULL / LIGHT graphics option.
 // Weak simultaneous hits cannot cancel a longer critical or boss vibration.
+// Browser vibration has no strength parameter. Duration/pattern control perceived
+// emphasis; short (<20ms) requests can be imperceptible on Android motors.
 const FEEDBACK_PRESETS={
- start:{v:8,s:0,p:1},serve:{v:8,s:.4,p:1},wall:{v:5,s:.28,p:0},
- racket:{v:12,s:.9,p:2},car:{v:18,s:1.3,p:3},
- shield:{v:[16,18,16],s:1.3,p:3},blocked:{v:12,s:.85,p:3},
- hit:{v:14,s:1.15,p:2},powerHit:{v:24,s:1.95,p:3},
- kill:{v:[20,18,16],s:2.15,p:4},
- critical:{v:[60,26,85],s:4.6,p:8},
- bossHit:{v:28,s:2.6,p:5},bossKill:{v:[65,38,88],s:5.2,p:9},
- blast:{v:[40,20,32],s:3.85,p:7},junkHit:{v:13,s:1.0,p:2},
- junkGround:{v:5,s:.25,p:0},citizen:{v:[28,20,30],s:2.75,p:6},
- rescue:{v:[15,18,26],s:1.25,p:4},poisonBlock:{v:20,s:1.6,p:4},
- groggy:{v:[32,20,60],s:3.3,p:8},
- miss:{v:[40,22,26],s:2.8,p:6},
- gameOver:{v:[72,42,100],s:4.8,p:10},
- lastStand:{v:[50,30,60],s:5.0,p:9},
- wave:{v:[18,25,18],s:1.15,p:3},victory:{v:[25,20,45],s:2,p:5},
- item:{v:12,s:.55,p:2},bossSpawn:{v:[30,26,42],s:2.8,p:6}
+ start:{v:25,s:0,p:1},serve:{v:28,s:.4,p:1},wall:{v:22,s:.28,p:0},
+ racket:{v:35,s:.9,p:2},car:{v:40,s:1.3,p:3},
+ shield:{v:[36,25,34],s:1.3,p:4},blocked:{v:32,s:.85,p:3},
+ hit:{v:38,s:1.15,p:3},powerHit:{v:58,s:1.95,p:5},
+ kill:{v:[50,24,54],s:2.15,p:6},
+ fireKill:{v:[38,20,45],s:1.7,p:5},
+ critical:{v:[110,42,155],s:4.6,p:9},
+ bossHit:{v:75,s:2.6,p:6},bossKill:{v:[125,45,175],s:5.2,p:10},
+ blast:{v:[80,32,85],s:3.85,p:8},junkHit:{v:39,s:1.0,p:3},
+ junkGround:{v:22,s:.25,p:0},citizen:{v:[65,25,75],s:2.75,p:7},
+ rescue:{v:[32,25,65],s:1.25,p:4},poisonBlock:{v:48,s:1.6,p:4},
+ groggy:{v:[70,28,120],s:3.3,p:9},
+ miss:{v:[65,25,55],s:2.8,p:7},
+ gameOver:{v:[135,55,160],s:4.8,p:11},
+ lastStand:{v:[95,42,110],s:5.0,p:10},
+ wave:{v:[35,30,40],s:1.15,p:3},victory:{v:[45,30,85],s:2,p:5},
+ item:{v:32,s:.55,p:2},bossSpawn:{v:[60,30,85],s:2.8,p:7}
 };
 function cameraFeedback(strength){
  if(!(strength>0))return;
@@ -3354,41 +3358,77 @@ function cameraFeedback(strength){
  cameraKick=Math.max(cameraKick,requested);
  lastCameraFeedback=now;
 }
+// Keep lightweight counters so players can verify that zombie hits reach
+// the vibration API, independently from whether the device motor responds.
+const feedbackDiagnostics={attempts:0,accepted:0,blocked:0,last:'—',result:'not-tested',hits:0,critical:0};
+const feedbackNames={hit:'좀비 일반 피격',powerHit:'강타',kill:'좀비 처치',
+ fireKill:'화염 처치',critical:'크리티컬',bossHit:'보스 피격',
+ bossKill:'보스 처치',racket:'자동차 공 반사',car:'자동차 충돌'};
+function updateFeedbackDiagnostics(){
+ if(!vibrationTestStatus||!document.querySelector('#options-dialog')?.open)return;
+ const d=feedbackDiagnostics;
+ vibrationTestStatus.textContent='BUILD v181 · 마지막 '+(feedbackNames[d.last]||d.last)
+  +' · 진동 '+d.result+' · 타격 '+d.hits+'회 / 크리티컬 '+d.critical
+  +'회 · 요청 '+d.attempts+'회 (수락 '+d.accepted+' / 제한 '+d.blocked+')';
+}
 function feedback(kind){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
  cameraFeedback(cfg.s);
- if(typeof navigator==='undefined'||typeof navigator.vibrate!=='function')return;
+ const d=feedbackDiagnostics;
+ d.last=kind;
+ if(kind==='hit'||kind==='powerHit'||kind==='kill'||kind==='critical'||kind==='bossHit'||kind==='bossKill'||kind==='fireKill')d.hits++;
+ if(kind==='critical')d.critical++;
+ if(typeof navigator==='undefined'||typeof navigator.vibrate!=='function'){
+  d.result='API 미지원';updateFeedbackDiagnostics();return;
+ }
  const now=performance.now();
- if((now<buzzLockedUntil||now-lastBuzz<70)&&cfg.p<=buzzPriority)return;
+ // Keep a perceptible minimum, cap dense same-priority hits, always allow a
+ // stronger event (critical / boss / game over) to interrupt a weak pulse.
+ if((now<buzzLockedUntil||now-lastBuzz<95)&&cfg.p<=buzzPriority){
+  d.blocked++;d.result='중복 제한';updateFeedbackDiagnostics();return;
+ }
  const length=Array.isArray(cfg.v)?cfg.v.reduce((a,b)=>a+b,0):cfg.v;
  try{
+  d.attempts++;
   if(navigator.vibrate(cfg.v)){
    lastBuzz=now;buzzPriority=cfg.p;
-   buzzLockedUntil=now+Math.min(240,Math.max(70,length+6));
-  }
- }catch{}
+   buzzLockedUntil=now+Math.max(95,Math.min(400,length+12));
+   d.accepted++;d.result='요청 수락';
+  }else{d.result='요청 거부'}
+ }catch(e){d.result='오류 '+(e?.name||'unknown')}
+ updateFeedbackDiagnostics();
 }
-// Diagnostics are intentionally explicit: API availability and a successful
-// request do not guarantee that an embedded Android WebView can drive the motor.
+// A direct user-tap test is a separate diagnostic from gameplay events.
 const vibrationTestButton=$('vibration-test');
 const vibrationTestStatus=$('vibration-status');
+if(vibrationTestStatus){
+ vibrationTestStatus.textContent='BUILD v181 · '+(typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
+}
 if(vibrationTestButton&&vibrationTestStatus){
- vibrationTestStatus.textContent='BUILD v180 · '+(typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
  vibrationTestButton.addEventListener('click',()=>{
   if(typeof navigator.vibrate!=='function'){
-   vibrationTestStatus.textContent='BUILD v180 · 진동 API 없음 — Android Chrome에서 직접 열어주세요.';
+   vibrationTestStatus.textContent='BUILD v181 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
    return;
   }
   try{
-   const ok=navigator.vibrate([80,35,130]);
+   const ok=navigator.vibrate([90,45,135]);
    vibrationTestStatus.textContent=ok
-    ?'BUILD v180 · 진동 요청 성공. 느껴지지 않으면 Android Chrome에서 직접 열어주세요.'
-    :'BUILD v180 · 진동 요청 차단됨. 외부 브라우저에서 열거나 무음/진동 설정을 확인하세요.';
-  }catch(e){
-   vibrationTestStatus.textContent='BUILD v180 · 진동 실행 오류 ('+(e?.name||'unknown')+')';
-  }
+    ?'BUILD v181 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
+    :'BUILD v181 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
+  }catch(e){vibrationTestStatus.textContent='BUILD v181 · 실행 오류 '+(e?.name||'unknown')}
  });
 }
+for(const kind of ['hit','powerHit','critical','bossHit']){
+ const button=$('vibration-test-'+kind);
+ if(button)button.addEventListener('click',()=>{
+  lastBuzz=-1e9;buzzLockedUntil=0;buzzPriority=0;
+  feedback(kind);
+ });
+}
+$('options-toggle')?.addEventListener('click',()=>{
+ // Let the native options-open handler finish before reading open state.
+ queueMicrotask(updateFeedbackDiagnostics);
+});
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
 function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
 function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car');return true}
