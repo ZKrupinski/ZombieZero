@@ -64,7 +64,10 @@ function check(cond,msg){if(!cond)throw Error(msg)}
  }
  wave=22;rack();
  for(const z of foes)z.y+=250;
- check(triggerLastStand(),'endgame emergency retreat still works');
+ const shift=DEFENSE_Y-Math.max(...foes.map(z=>z.y+z.h));for(const z of foes)z.y+=shift;
+updateStandDanger(STAND_DANGER_SECONDS-.1);check(!lastStandUsed,'warning precedes retreat');
+updateStandDanger(.11);check(lastStandUsed,'sustained danger triggers retreat');
+resistFlash=0;updateStandRetreat();
  for(let row=0;row<4;row++){
   const group=foes.filter(z=>z.row===row);
   check(Math.max(...group.map(z=>z.y))-Math.min(...group.map(z=>z.y))<.001,

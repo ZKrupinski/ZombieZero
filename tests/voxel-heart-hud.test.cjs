@@ -52,7 +52,7 @@ lives=1;hud();check($('hud-heart-count').textContent==='×1','life count updates
 lives=0;hud();check($('hud-heart-count').textContent==='×0','no hearts remain on game over');
 check($('hud-hearts').style.opacity==='.42','game-over heart dims');
 selectedHero=1;wave=12;score=12345;hud();
-check($('wave').textContent==='12'&&$('score').textContent==='12345',
+check($('wave-number').textContent==='12'&&$('score').textContent==='12345',
  'score and stage remain independent data nodes');
 for(let i=0;i<3;i++){
  selectedHero=i;draws.length=0;player();

@@ -65,8 +65,8 @@ check(a.x>=oldA+24,'the struck zombie visibly slides more than before');
 check(b.x>oldB&&third.x>oldC,'collision transfer ripples through two bystanders');
 check(a.knockTime>0&&b.knockTime>0&&third.knockTime>0,
  'each displaced zombie gets a temporary motion echo');
-check(b.chainReactAt>clock&&third.chainReactAt>b.chainReactAt,
- 'pushed bystanders wait for their own hit reaction rather than reacting instantly');
+check(!b.hitHold&&!third.hitHold&&!b.knockFreeze&&!third.knockFreeze,
+ 'pushed bystanders remain mobile');
 check(a.knockDelay<b.knockDelay&&b.knockDelay<third.knockDelay,'chain stagger progresses target to second to third zombie');
 check(b.hp===9&&third.hp===9,'collision propagation is force only, not extra damage');
 check(!zombieBoxesOverlap(a,{x:a.x,y:a.y},b,{x:b.x,y:b.y},0),

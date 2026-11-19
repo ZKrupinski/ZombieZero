@@ -28,25 +28,25 @@ damage(a,1,false,{x:300,y:0});
 check(a.x>100&&b.x>146&&third.x>193,'existing force chain still reserves collision-safe destinations');
 check(close(knockVisualPosition(a).x,100)&&close(knockVisualPosition(b).x,146)&&close(knockVisualPosition(third).x,193),
  'all rendered zombies first stay at the contact spot');
-check(close(b.hitShakeFrom,a.hitShakeUntil)&&third.hitShakeFrom>b.hitShakeFrom,
+check(b.knockDelay>0&&third.knockDelay>b.knockDelay,
  'each subsequent contact starts after primary launched and with separate cadence');
 check(!b.recoil&&!third.recoil,'no premature bystander recoil before their actual contact');
 check(b.hp===20&&third.hp===20,'chain collision does not apply bonus HP damage');
-check(hitFlashes.some(f=>f.delay>0&&f.life-f.delay>=.4),
- 'secondary hit effects wait for their own contact and play slower');
+check(hitFlashes.length===1&&!hitFlashes[0].delay,
+ 'only the direct hit creates an impact flash');
 clock+=.08;updateEnemyVisuals(.08);
 check(close(knockVisualPosition(a).x,100)&&close(knockVisualPosition(b).x,146),
  'initial freeze displays without moving anyone');
 clock+=.10;updateEnemyVisuals(.10);
 check(knockVisualPosition(a).x>100,'directly struck zombie begins launch after its own stun');
-check(close(knockVisualPosition(b).x,146)&&b.recoil>.2&&b.hitHold>0,
- 'first bystander now shakes and flashes but has not launched');
+check(knockVisualPosition(b).x>146&&!b.recoil&&!b.hitHold,
+ 'first bystander moves without a hit stop');
 check(close(knockVisualPosition(third).x,193)&&!third.recoil,
  'second bystander still waits for its collision');
 clock+=.16;updateEnemyVisuals(.16);
 check(knockVisualPosition(b).x>146,'first bystander launches only after its freeze');
-check(close(knockVisualPosition(third).x,193)&&third.recoil>.2,
- 'second bystander shakes in place after the first already moved');
+check(knockVisualPosition(third).x>193&&!third.recoil&&!third.hitHold,
+ 'second bystander follows without shaking');
 clock+=.11;updateEnemyVisuals(.11);
 check(knockVisualPosition(third).x>193,'second bystander finally launches');
 clock+=1.1;updateEnemyVisuals(1.1);
