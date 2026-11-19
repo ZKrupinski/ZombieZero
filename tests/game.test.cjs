@@ -69,7 +69,7 @@ scenario(citizens[0].x,662);balls.push(newBall(citizens[0].x,662,0,600,false));l
 scenario(28,710);for(const p of citizens)p.alive=false;lives=1;let endCalls=0,originalEnd=end;end=function(r){endCalls++;originalEnd(r)};for(let i=0;i<20;i++)update(.01);check(lives===0&&mode==='over'&&endCalls===1,'empty crowd gameover exactly once');end=originalEnd;
 start();for(let i=0;i<80;i++)updateBubbles(.05);check(bubbles.length<=2&&bubbles.length>0,'cheer frequency/cap');for(let a of bubbles)for(let b of bubbles)if(a!==b){const A=citizenBubbleLayout(a),B=citizenBubbleLayout(b);check(A.x+A.w+7<=B.x||B.x+B.w+7<=A.x||A.y+A.h+7<=B.y||B.y+B.h+7<=A.y,'rendered bubble separation');check(Math.abs(A.y-B.y)>=11,'staggered bubble heights')}check(bubbles.every(q=>{const p=citizenBubbleLayout(q);return p.y>=100&&p.y+p.h<=H-45}),'lower cheers stay within approved screen bounds');let t=bubbles[0].t;mode='paused';update(.5);check(bubbles[0].t===t,'bubble pause');mode='playing';drawBubbles();
 // Device haptics are optional and safely throttled.
-let buzz=0;navigator={vibrate:()=>{buzz++;return true}};touchUsed=true;lastBuzz=0;haptic(10);haptic(10);check(buzz===1,'haptic throttle');navigator={};haptic(10);touchUsed=false;
+let buzz=0;navigator={vibrate:()=>{buzz++;return true}};touchUsed=true;lastBuzz=0;buzzLockedUntil=0;buzzPriority=0;feedback('racket');feedback('racket');check(buzz===1,'priority haptic throttle');navigator={};feedback('racket');touchUsed=false;
 // Kill streak, recovery cooldown, pause, and reused citizen defense.
 start();serve();crowdTimer=999;let reserve=foes[0];reserve.hp=999;reserve.max=999;
 function killOne(){let v={...reserve,hp:1,max:1};foes.push(v);damage(v,1)}
