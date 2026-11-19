@@ -698,7 +698,22 @@ function updateStandRetreat(){
  }
  if(elapsed>=STAND_WAVE_SECONDS+STAND_MOVE_SECONDS)standRetreat.length=0;
 }
-function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=STAND_BANNER_SECONDS;
+const STAND_DANGER_DISTANCE=16,STAND_DANGER_SECONDS=2.8;
+let standDangerTime=0;
+function updateStandDanger(dt){
+ standDangerTime=0;
+ if(wave<20||lastStandUsed)return;
+ for(const z of foes){
+  if(z.y+z.h<DEFENSE_Y-STAND_DANGER_DISTANCE){
+   z.standDangerTime=0;
+   continue;
+  }
+  z.standDangerTime=(z.standDangerTime||0)+dt;
+  standDangerTime=Math.max(standDangerTime,z.standDangerTime);
+ }
+ if(standDangerTime>=STAND_DANGER_SECONDS)triggerLastStand();
+}
+function triggerLastStand(){if(wave<20||lastStandUsed||standDangerTime<STAND_DANGER_SECONDS)return false;standDangerTime=0;lastStandUsed=true;resistFlash=STAND_BANNER_SECONDS;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
  let front=-Infinity,back=Infinity;
  for(const z of sorted){const edge=z.y+z.h;front=Math.max(front,edge);back=Math.min(back,edge);standRetreat.push({z,from:z.y,edge,to:0,delay:0,started:false});}
@@ -723,7 +738,16 @@ function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed
  }
  sfx('bosskill');haptic([20,30,20]);return true}
 function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=String(score);$('result-best').textContent=String(best);overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave')}
-function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
+function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;if(standDangerTime>0){
+  const urgency=Math.min(1,standDangerTime/STAND_DANGER_SECONDS);
+  g.save();g.globalAlpha=.8+.2*Math.sin(clock*(8+urgency*4));
+  rect(20,DEFENSE_Y-3,410,6,'#ff425e');
+  rect(W/2-104,DEFENSE_Y+5,208,23,'#30131cec');
+  g.fillStyle='#fff0c9';g.textAlign='center';g.font='bold 15px Arial,sans-serif';
+  g.fillText('방어선 위기! 좀비를 밀어내세요',W/2,DEFENSE_Y+22);
+  g.restore();return;
+ }
+ g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
 function drawOutcome(){if(resistFlash>0){
  const elapsed=STAND_BANNER_SECONDS-resistFlash;
  const pulse=.5+.5*Math.cos(elapsed*12);
@@ -913,7 +937,7 @@ function nextBossArtLoading(nextWave){
    sprites.cache?.[form-2]?.loading===true;
 }
 function rack(){
- standRetreat.length=0;resistFlash=0;
+ standRetreat.length=0;standDangerTime=0;resistFlash=0;
  bossTrashShots.length=0;
  eliteTrashSharedReadyAt=clock+4.4;spitSharedNextAt=clock+4.8;
  poison=0;poisonGrace=0;groggyTime=0;poisonFlash=0;poisonGaugeAlpha=0;
@@ -2118,7 +2142,7 @@ march(dt);updateBossTrashShots(dt,previousCar);for(const z of [...foes]){z.flash
   damage(z,FIRE_TICK_DAMAGE,true);
   if(mode!=='playing')return;
  }
-}if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(triggerLastStand())return;end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
+}if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&!lastStandUsed){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
 for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
@@ -2155,7 +2179,8 @@ if(b.y>H+20){lastLostBall={x:clamp(b.x,28,422),y:H-11};retireBall(b,'lost');ball
   recordBallTrail(b,b.x,b.y,!!b._trailCorner);b._trailCorner=false;
  }
 }
-if(!balls.length){lives--;effect(car,PY,'#ff7089',85,'MISS');sfx('miss');clearSkills();if(!lives){if(triggerLastStand()){lives=1;resetBalls();active.shield=4;hud();return}hud();end('마지막 공이 떨어져 하트가 모두 소진되었습니다.',{type:'ball',x:lastLostBall?.x||car,y:H-11});return}resetBalls();toast('공 낙하! · 하트 '+lives+'개 남음 · 탭해서 서브')}
+if(!balls.length){lives--;effect(car,PY,'#ff7089',85,'MISS');sfx('miss');clearSkills();if(!lives){hud();end('마지막 공이 떨어져 하트가 모두 소진되었습니다.',{type:'ball',x:lastLostBall?.x||car,y:H-11});return}resetBalls();toast('공 낙하! · 하트 '+lives+'개 남음 · 탭해서 서브');return}
+updateStandDanger(dt);
 }
 function proceduralBackground(){// Readability-first road tones: brighter, largely neutral gray with a restrained
 // warm/cool shift per stage. Keep colored zombie silhouettes in the foreground.
