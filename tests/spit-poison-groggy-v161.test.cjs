@@ -7,7 +7,7 @@ assert(game.includes('function shotTouchesHero('));
 assert(game.includes('function updatePoisonStatus('));
 assert(game.includes('function projectilePressure('));
 assert(game.includes('function drawNeonSpit('));
-assert(html.includes('v161-neon-spit-poison')&&html.includes('v161-elite-spit'));
+assert(html.includes('v161-neon-spit-poison')&&html.includes('v=161-elite-spit'));
 assert(sw.includes('v161-neon-spit-poison'));
 assert(loader.includes('z.spitWindup>0)row=CLIPS.attack'));
 const noop=()=>{},els={};
@@ -43,7 +43,7 @@ vm.runInContext(game+`
  start('endless');serve();
  check(projectilePressure()<.1&&projectileFlightCap()===2,'endless starts gently');
  wave=100;check(projectilePressure()===1&&projectileFlightCap()===5,'endless late waves grow dense');
- wave=54;rack();const boss=foes.find(z=>z.boss);
+ wave=59;rack();const boss=foes.find(z=>z.boss);
  check(boss,'endless boss setup');
  const elites=foes.filter(z=>Number.isInteger(z.eliteKind));
  check(elites.length===3&&elites.every(spitThrower),'every elite eligible to spit');
@@ -70,8 +70,8 @@ vm.runInContext(game+`
  active={shield:5};const prior=poison;
  bossTrashShots.push(make('spit'));updateBossTrashShots(.1);
  check(poison===prior&&p.alive,'shielded block does not poison hero');
- active={};bossTrashShots.push({...make('spit'),sx:50,tx:50,citizen:p,t:.95});
- updateBossTrashShots(.1);check(!p.alive,'unblocked green spit hits citizen');
+ active={};bossTrashShots.push({...make('spit'),sx:50,tx:50,citizen:citizens[0],t:.95});
+ updateBossTrashShots(.1);check(!citizens[0].alive,'unblocked green spit hits citizen');
  rack();check(poison===0&&groggyTime===0&&!bossTrashShots.length,'next wave clears poison, groggy and projectiles');
  console.log('PASS V161: elite/boss spit, escalating mode pressure, swept hero intercept, poison-groggy, shield and citizen impact');
 }

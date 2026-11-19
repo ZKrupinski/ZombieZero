@@ -18,7 +18,7 @@ assert(game.includes('drawHardGroundShadow(p.x,p.y+21,25,6,true,.28)'),
  'citizens have visible contact and directional silhouettes');
 assert(game.includes('drawHardGroundShadow(item.x+2,item.y+FALLING_ITEM_SIZE*.48,30,6,true,.27)'),
  'items have visible projected polygon shadows');
-assert(game.includes('drawCarGroundShadow();player()'),
+assert(game.includes('drawCarGroundShadow();drawPoisonGauge();player()'),
  'car shadow drawn below body with shared anchor');
 assert(!game.includes('drawHardGroundShadow(car,636+VIEW_DELTA'),
  'detached hardcoded car shadow position removed');

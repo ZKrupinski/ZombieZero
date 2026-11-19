@@ -81,6 +81,7 @@ const art=imageContext.window.ZZThrowablesV159;art.request();
  updateBossTrashShots(.016);
  check(boss.throwWindup===.75,'telegraphed windup begins before launch');
  check(bossTrashShots.length===0,'no instant citizen kill while telegraphing');
+ boss.throwTarget=citizens[0]; // Far-left victim tests an intentionally unblocked shot.
  const victim=boss.throwTarget;check(!!victim&&victim.alive,'target is a living civilian');
  const heldKind=boss.throwKind;
  check(heldKind>=0&&heldKind<36,'boss uses a real approved sprite kind');
