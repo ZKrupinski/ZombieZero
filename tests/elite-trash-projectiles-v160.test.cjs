@@ -37,6 +37,7 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console};
 vm.createContext(sandbox);
 vm.runInContext(game+`
+ {
  function check(b,msg){if(!b)throw Error(msg)}
  start();serve();
  let black={...foes[0],eliteKind:0,boss:false,x:120,y:180,w:33,h:44,seed:0,hitHold:0,recoil:0,moveDir:0,throwAt:0};
@@ -68,4 +69,5 @@ vm.runInContext(game+`
  check(bossTrashShots.length===0,'shield clears shot');
  rack();check(!bossTrashShots.length,'wave clears trash');
  console.log('PASS v160 trash-scale, elite animations, thrown attacks, pacing, citizen damage and shield');
+ }
  `,sandbox);
