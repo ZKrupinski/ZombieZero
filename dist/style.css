@@ -2035,3 +2035,18 @@ html.zz-endless-hud .machine>.hud #wave-label{
  .stage .zz-combo-praise{letter-spacing:-.09em!important}
 }
 /* Korean bubble copy is intentionally excluded from the arcade font/glow pass. */
+
+#wave > b { font: inherit; }
+#wave > .wave-infinity { display: none; }
+html.zz-endless-hud .machine > .hud #wave {
+ display: flex !important;
+ justify-content: center;
+ align-items: center;
+ column-gap: .2em;
+}
+html.zz-endless-hud #wave > .wave-infinity {
+ display: block;
+ flex: none;
+ font: bold 1.6em/0.65 Arial, sans-serif;
+ letter-spacing: 0;
+}
