@@ -851,6 +851,7 @@ function nextBossArtLoading(nextWave){
    sprites.cache?.[form-2]?.loading===true;
 }
 function rack(){
+ bossTrashShots.length=0;
  dodgeGhosts.length=0;
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
@@ -870,7 +871,7 @@ function rack(){
  // Boss identity must never change because of asynchronous PNG decoding.
  const bossForm=bossStage?requestedBossForm:0;
  for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
-  if(bossStage&&r<2&&Math.abs(col-4)<=1)continue;
+  if(bossStage&&r<(bossForm===3?3:2)&&Math.abs(col-4)<=1)continue;
   const maxKind=Math.min(4,1+Math.floor(stage/2));
   const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-stage*.12))*(maxKind+1));
   const hp=zombieHP(0,kind,stage);
@@ -882,9 +883,12 @@ function rack(){
  insertEliteZombies(foes,stage);
  if(bossStage){
   // Tighter boss/elite HP spread: a threat, not the only target left for minutes.
-  const hp=Math.round(26+Math.min(stage,12)*1.45+Math.max(0,stage-12)*.48);
+  const baseHP=Math.round(26+Math.min(stage,12)*1.45+Math.max(0,stage-12)*.48);
+  // Easily struck, but a proper durable trash-bag boss with no dodge.
+  const hp=bossForm===3?Math.round(baseHP*3.6):baseHP;
   // Identity is stable; a pending new-boss bitmap is never substituted.
-  foes.push({x:192,y:74,row:-1,col:4,w:66,h:88,hp,max:hp,kind:4,
+  foes.push({x:bossForm===3?169:192,y:74,row:-1,col:4,
+   w:bossForm===3?112:66,h:bossForm===3?124:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   sfx('boss');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
  }
@@ -899,7 +903,7 @@ function enemySpeed(z){
  const seed=Number.isFinite(z.seed)?z.seed:0;
  const pace=Number.isFinite(z.seed)?.80+.43*((seed*.61803398875)%1):1;
  const pulse=Number.isFinite(z.seed)?1+.14*Math.sin(clock*.8+seed*1.73):1;
- return marchBase()*(z.boss?.62:[1.1,1.04,.97,.89,.82][z.kind])*
+ return marchBase()*(z.boss?(z.bossForm===3?.44:.62):[1.1,1.04,.97,.89,.82][z.kind])*
    pace*pulse*(has('slow')?.4:1);
 }
 // Frequent short physical steps blend down/front/left/right animations even
@@ -1081,7 +1085,7 @@ function bossSelectPatrol(z){
 }
 function bossPatrolStep(z,dt){
  z.moveDir=0;
- const speed=BOSS_SWEEP_SPEED*(has('slow')?.4:1);
+ const speed=BOSS_SWEEP_SPEED*(z.bossForm===3?.45:1)*(has('slow')?.4:1);
  if(!Number.isFinite(z.bossHomeY))z.bossHomeY=z.y;
  z.bossHomeY+=enemySpeed(z)*dt;
  const nearDefense=z.bossHomeY+z.h>DEFENSE_Y-60;
@@ -1428,7 +1432,7 @@ function beginEndlessShift(){
  endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));requestBossForWave(wave+1);
  releaseInput();
  // Clear old-stage pickups, buffs, rockets, and all extra balls.
- clearSkills();resetBalls();junk=[];itemPickupFX=[];
+ clearSkills();resetBalls();junk=[];bossTrashShots.length=0;itemPickupFX=[];
  for(const p of citizens)p.shooting=0;
  cheerTime=Math.max(cheerTime,.4);
  hud();sfx('wave');
@@ -1440,7 +1444,7 @@ function beginClear(){
  // The 2.8s result celebration is the loading/decoding window.
  if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1);requestBossForWave(wave+1)}
  for(const b of balls)retireBall(b,'clear');
- balls=[];junk=[];rockets=[];for(const p of citizens)p.shooting=0;
+ balls=[];junk=[];bossTrashShots.length=0;rockets=[];for(const p of citizens)p.shooting=0;
  active={};score+=500;cheerTime=3;sfx('wave');
  effect(225,340,'#edfc8d',130,'STAGE CLEAR');
  $('toast').style.opacity=0;hud();$('status').textContent='';
@@ -1484,7 +1488,7 @@ function updateEndlessShift(dt){
 function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5,spinAngle:0,spinVelocity:0,spinDirection:vx<0?-1:1}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
-function start(selectedMode='campaign'){runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];cameraKick=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
@@ -1499,6 +1503,7 @@ function backToSelection(){
  }
  releaseInput();keys={};mode='menu';runMode='campaign';resumeMode='playing';
  endlessRunStarted=false;endlessSurvival=0;endlessShiftTime=0;endlessShiftSpawned=false;
+ bossTrashShots.length=0;
  $('pause-main-menu').hidden=true;
  failureScene=null;lastLostBall=null;lastStandUsed=false;resistFlash=0;
  score=0;wave=1;lives=hero().lives;car=target=225;cameraKick=0;
@@ -1533,6 +1538,7 @@ function overlay(title,message,button,label){$('overlay').setAttribute('data-tit
 function pause(){releaseInput();if(mode==='playing'||mode==='clearing'||mode==='endlessShift'){resumeMode=mode;mode='paused';sfx('pause');overlay('잠깐,<br><em>숨 고르기.</em>','게임과 스킬 지속시간이 멈췄습니다.','계속하기','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
 function end(reason,detail=null){
  if(mode==='over')return;
+ bossTrashShots.length=0;
  releaseInput();mode='over';best=Math.max(best,score);
  try{localStorage.setItem('zr-best',best)}catch{}
  if(runMode==='endless'){
@@ -2040,7 +2046,7 @@ const previousCar=car;if(keys.ArrowLeft||keys.a)target-=hero().speed*dt;if(keys.
 for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}/* Preserve contacts through pierce expiry; clear only upon physical separation. */sfx('expire');hud()}}skillUI();
 for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65){items.splice(items.indexOf(item),1);activate(item.k,item.x,item.y)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
 if(balls[0]?.held){const o=heldBallOffset();balls[0].x=car+o.x;balls[0].y=PY+o.y;return}
-march(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
+march(dt);updateBossTrashShots(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
  z.burn=Math.max(0,z.burn-dt);z.burnTick+=dt;z.spreadTick+=dt;
  if(z.spreadTick>=.95&&!z.spreadDone){
   z.spreadDone=true;
@@ -3142,7 +3148,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  if(mode==='endlessShift'||mode==='paused'&&resumeMode==='endlessShift')drawEndlessShift();
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}
@@ -3325,7 +3331,101 @@ function citizenBubblePointer(q,place){
 function drawBubbles(){for(const q of bubbles){const a=Math.min(1,q.t/.12,(q.life-q.t)/.3);
  const place=citizenBubbleLayout(q),x=place.x,y=place.y-(q.event?Math.sin(Math.min(1,q.t/.3)*Math.PI)*5:0),w=place.w,h=place.h;
  const tail=citizenBubblePointer(q,{x,y,w,h});g.save();g.globalAlpha=Math.max(0,a);g.fillStyle=q.event==='return'?'#c5ffe5':q.event?'#ffe2ae':'#fff6d8';g.strokeStyle=q.event==='return'?'#287760':q.event?'#974c35':'#28374b';g.lineWidth=q.event?3:2;g.beginPath();g.moveTo(x,y);g.lineTo(x+w,y);g.lineTo(x+w,y+h);g.lineTo(tail.baseX+6,y+h);g.lineTo(tail.tipX,tail.tipY);g.lineTo(tail.baseX-6,y+h);g.lineTo(x,y+h);g.closePath();g.fill();g.stroke();g.fillStyle='#263449';g.font='bold 15px Arial, sans-serif';g.textAlign='center';g.fillText(q.text,x+w/2,y+20);if(q.event){g.font='bold 11px Arial, sans-serif';g.fillText(q.event==='return'?'시민 +1 복귀!':q.event==='bazooka'?'광역 지원 사격!':'공을 지켜냈다!',x+w/2,y+37)}g.restore()}}
-function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(const j of [...junk]){j.t+=dt;if(j.t>=j.duration){junk.splice(junk.indexOf(j),1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){damage(j.target,.25,true);if(mode!=='playing')return}}}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:Math.floor(Math.random()*4)});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
+// V159: One approved 6x6 transparent bitmap sheet for BOTH throwers.
+// Draw only the needed frame: no per-projectile bitmap or gradient allocation.
+const THROWABLE_COUNT=36,throwableBag=[],bossTrashShots=[];
+function nextThrowableKind(){
+ if(!throwableBag.length){
+  for(let i=0;i<THROWABLE_COUNT;i++)throwableBag.push(i);
+  for(let i=throwableBag.length-1;i>0;i--){
+   const j=Math.floor(Math.random()*(i+1));
+   [throwableBag[i],throwableBag[j]]=[throwableBag[j],throwableBag[i]];
+  }
+ }
+ return throwableBag.pop();
+}
+function drawThrowable(kind,x,y,size,turn=0){
+ const sheet=window.ZZThrowablesV159;
+ if(sheet?.draw?.(g,kind,x,y,size,turn))return;
+ // Loading fallback is a small solid package, never an old zombie/vector.
+ g.save();g.translate(x,y);g.rotate(turn);
+ rect(-size*.32,-size*.20,size*.64,size*.40,'#7a5741');
+ rect(-size*.30,-size*.23,size*.6,size*.08,'#e0ae66');
+ g.restore();
+}
+function bossTrashProjectilePosition(p){
+ const t=clamp(p.t/p.duration,0,1);
+ return {x:p.sx+(p.tx-p.sx)*t,
+   y:p.sy+(p.ty-p.sy)*t-Math.sin(Math.PI*t)*p.arc,t};
+}
+function defeatCitizenByTrash(p){
+ if(!p?.alive||mode!=='playing')return false;
+ p.alive=false;p.dying=.8;p.returning=0;p.absent=0;
+ p.shooting=0;p.supportTime=0;
+ bubbles=bubbles.filter(b=>b.citizen!==p);
+ citizenCue(p,false,'으악! 쓰레기다!');
+ effect(p.x,p.y-10,'#ffcf7c',60);
+ burst(p.x,p.y-10,'#ffba66',18);
+ sfx('citizen');haptic(18);
+ return true;
+}
+function updateBossTrashShots(dt){
+ if(mode!=='playing')return;
+ // Shots already airborne continue even if the boss is killed.
+ for(const shot of [...bossTrashShots]){
+  shot.t=Math.min(shot.duration,shot.t+dt*(has('slow')?.66:1));
+  if(shot.t<shot.duration)continue;
+  bossTrashShots.splice(bossTrashShots.indexOf(shot),1);
+  if(has('shield')){
+   effect(shot.tx,SHIELD_LINE_Y,'#b9f684',36,'BLOCK!');
+   burst(shot.tx,SHIELD_LINE_Y,'#b9f684',9);sfx('shield');
+  }else{
+   const citizen=shot.citizen;
+   if(citizen?.alive)defeatCitizenByTrash(citizen);
+   else{effect(shot.tx,shot.ty,'#dfb48d',26);burst(shot.tx,shot.ty,'#dbb081',5)}
+  }
+ }
+ const z=foes.find(e=>e.boss&&e.bossForm===3);
+ if(!z||balls[0]?.held)return;
+ if(z.throwWindup>0){
+  z.throwWindup=Math.max(0,z.throwWindup-dt*(has('slow')?.4:1));
+  if(z.throwWindup>0)return;
+  const citizen=z.throwTarget;
+  if(citizen?.alive&&bossTrashShots.length<2){
+   bossTrashShots.push({sx:z.x+z.w*.5,sy:z.y+z.h*.43,
+    tx:citizen.x,ty:citizen.y-13,citizen,kind:z.throwKind,
+    duration:1.05+Math.random()*.22,t:0,arc:56+Math.random()*28});
+   sfx('launch');burst(z.x+z.w*.5,z.y+z.h*.38,'#ffc67e',7);
+  }
+  z.throwTarget=null;
+  z.throwAt=clock+6.5+Math.random()*3;
+  return;
+ }
+ if(clock<(z.throwAt??(z.throwAt=clock+3.7))||
+    bossTrashShots.length>=2)return;
+ const alive=citizens.filter(p=>p.alive);
+ if(!alive.length){z.throwAt=clock+4;return;}
+ z.throwTarget=alive[Math.floor(Math.random()*alive.length)];
+ z.throwKind=nextThrowableKind();
+ z.throwWindup=.75;
+ z.throwAt=clock+9;
+ // The giant deliberately winds up rather than an untelegraphed instant kill.
+ effect(z.x+z.w*.5,z.y+z.h*.20,'#ffcb71',36);
+ sfx('serve');
+}
+function drawBossTrashShots(){
+ const z=foes.find(e=>e.boss&&e.bossForm===3&&e.throwWindup>0);
+ if(z){
+  const sway=Math.sin(clock*16)*2;
+  drawThrowable(z.throwKind,z.x+z.w*.75,z.y-4+sway,40,-.2);
+ }
+ for(const p of bossTrashShots){
+  const pos=bossTrashProjectilePosition(p);
+  const size=29+7*(1-Math.abs(2*pos.t-1));
+  drawThrowable(p.kind,pos.x,pos.y,size,pos.t*Math.PI*5);
+ }
+}
+function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(const j of [...junk]){j.t+=dt;if(j.t>=j.duration){junk.splice(junk.indexOf(j),1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){damage(j.target,.25,true);if(mode!=='playing')return}}}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:nextThrowableKind()});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
 // 8 distinct approved citizens × 4 frames each. Two separate alpha PNG
 // atlases share a fixed 128×128 cell grid: cheer vs counterattack/sacrifice.
 // Keep the old procedural artwork only as a non-blocking loading fallback.
@@ -3438,7 +3538,12 @@ function drawBazooka(){
  }});
 }
 
-function drawJunk(){for(const j of junk){let t=clamp(j.t/j.duration,0,1),x=j.sx+(j.tx-j.sx)*t,y=j.sy+(j.ty-j.sy)*t-Math.sin(Math.PI*t)*85;g.save();g.translate(x,y);g.rotate(t*10);if(j.kind===0){rect(-4,-6,8,12,'#9fc5cf');rect(-4,-6,8,2,'#eaf6da')}else if(j.kind===1){rect(-7,-2,13,6,'#cbb68e');rect(2,-6,4,5,'#ba9974')}else if(j.kind===2){rect(-4,-7,8,13,'#e8d6b0');rect(-2,-9,4,4,'#758496')}else{rect(-6,-4,12,8,'#c89f65');rect(-3,-6,6,3,'#f1cf84')}g.restore()}}
+function drawJunk(){for(const j of junk){
+ const t=clamp(j.t/j.duration,0,1),
+  x=j.sx+(j.tx-j.sx)*t,
+  y=j.sy+(j.ty-j.sy)*t-Math.sin(Math.PI*t)*85;
+ drawThrowable(j.kind,x,y,24+4*Math.sin(Math.PI*t),t*8);
+}}
 function drawEndlessShift(){
  // A light in-world cue only; never show the stage result card.
  const waveNumber=endlessWaveNumber()+(endlessShiftSpawned?0:1);
