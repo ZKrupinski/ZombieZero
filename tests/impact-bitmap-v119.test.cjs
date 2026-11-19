@@ -21,7 +21,7 @@ class MockImage{
 }
 const g={save(){},restore(){},translate(){},rotate(r){rotations.push(r)},scale(){},
  drawImage(...a){calls.push(a)},set globalCompositeOperation(v){},set globalAlpha(v){alphas.push(v)}};
-const ctx={Math,g,clock:1,Image:MockImage,fxEnabled:true,has:k=>k===skill,clamp:(n,a,b)=>Math.max(a,Math.min(b,n))};
+const ctx={trashContactFX:[],Math,g,clock:1,Image:MockImage,fxEnabled:true,has:k=>k===skill,clamp:(n,a,b)=>Math.max(a,Math.min(b,n))};
 vm.createContext(ctx);
 vm.runInContext(source.slice(start,end),ctx);
 assert.equal(loadedSource,'assets/fx/impact-bursts-mono-v123.png','new monochrome sprite atlas preloaded once');

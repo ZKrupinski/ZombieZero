@@ -10,7 +10,7 @@ assert(draw.includes('drawHeroBallTrail(b,r,trailPath)'),'ball trail kept');
 assert(draw.includes('drawBallSkillTrail(b,r,trailPath)'),'skill trail kept');
 assert(draw.includes('drawHeroBallSprite(b,r,palette.main)'),'ball artwork kept');
 assert(draw.includes('drawEffectLightSpills()'),'additive light retained');
-assert(draw.includes('drawWorldGroundShadows();drawCrowd()'),'enemy ground shadows retained');
+assert(draw.includes('drawWorldGroundShadows();drawTrashContact(\'world\');drawCrowd()'),'enemy ground shadows retained');
 assert(draw.includes('drawCarGroundShadow()'),'car shadow retained');
 assert(s.includes('drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius))'),'colored wake retained');
 assert(s.includes('baseAlpha*.68*fade*variation,30,.82,true)'),'v93 multiball light cache preserved');

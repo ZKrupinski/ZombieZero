@@ -13,8 +13,8 @@ assert(render.includes('fxRenderer.composite(g);drawEffectLightSpills()'),
  'reflections are composited after bitmap FX before interface');
 assert(code.includes('drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius))'),
  'per-ball projected wake integrated in the existing light pass');
-assert(code.includes('groundY:beforeY+actor.h'),
- 'chain reflections retain the actor foot anchor and timing');
+assert(!code.includes('groundY:beforeY+actor.h'),
+ 'indirect knockback does not emit a hit reflection');
 assert(code.includes('groundY:z.y+z.h'),
  'direct hits capture enemy ground contact position');
 const section=(a,b)=>{

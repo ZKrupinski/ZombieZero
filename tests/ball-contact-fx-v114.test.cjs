@@ -6,7 +6,7 @@ assert(begin>0&&end>begin,'v114 contact bitmap implementation present');
 const created=[],drawn=[],angles=[],scales=[];
 const painter={beginPath(){},moveTo(){},lineTo(){},quadraticCurveTo(){},stroke(){},arc(){},fillRect(){},closePath(){},fill(){},save(){},restore(){},translate(){},scale(){}};
 const g={save(){},restore(){},translate(){},scale(x,y){scales.push([x,y])},rotate(a){angles.push(a)},drawImage(...a){drawn.push(a)},set globalCompositeOperation(v){},set globalAlpha(v){}};
-const env={Math,g,clock:1,fxEnabled:true,has:k=>k==='pierce',
+const env={trashContactFX:[],Math,g,clock:1,fxEnabled:true,has:k=>k==='pierce',
  clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),
  document:{createElement(tag){assert.equal(tag,'canvas');const v={getContext:()=>painter};created.push(v);return v}}};
 vm.createContext(env);vm.runInContext(src.slice(begin,end),env);
@@ -49,7 +49,7 @@ const before=drawn.length;
 vm.runInContext('drawContactFX(1)',env);
 assert(drawn.length>before,'LITE mode draws basic contact feedback without FX renderer');
 assert(src.includes("g.drawImage(img,-22,-32)"),'centered comic burst bitmap anchored on collision face');
-assert(src.includes('life:kind===\'enemy\'?.30:kind===\'ceiling\'?.25:.27'),'impacts remain visible longer in V120');
+assert.equal(vm.runInContext("ballContactFX.at(-1).life",env),.27,'wall impact lifetime');
 assert(src.includes("contactAtlasImage.src='assets/fx/impact-bursts-mono-v123.png'"),'monochrome bitmap atlas is preloaded');
 assert(src.includes("spawnContact(b,piercing?f[0]:ox,piercing?f[1]:oy"),'non-piercing hit covers the trail bend vertex');
 console.log('PASS v123 fallback: grayscale contact FX, no directional spin, anchors, timing and LITE visibility.');

@@ -19,7 +19,7 @@ assert(shadowSrc.includes('z.y+z.h-3'),'zombie shadow moved up 5px from original
 assert(shadowSrc.includes('z.boss?15:9.5'),'zombie shadow is taller');
 assert(shadowSrc.includes('foot-4.5,84,11.5'),'car shadow moved up and grows vertically');
 assert(shadowSrc.includes('g.moveTo(cx-w*.77,y-d*.53)'),'contact extends up instead of only down');
-assert(render.includes('drawWorldGroundShadows();drawCrowd()'),'zombie shadows on background');
+assert(render.includes('drawWorldGroundShadows();drawTrashContact(\'world\');drawCrowd()'),'zombie shadows on background');
 assert(!render.includes('drawBallSoftShadow('),'no dark ball shadow draw call');
 assert(!code.includes('function drawBallSoftShadow('),'dark ball-shadow renderer removed');
 const glowPosition=render.indexOf('drawEffectLightSpills()');

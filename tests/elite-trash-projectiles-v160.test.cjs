@@ -3,7 +3,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const game=fs.readFileSync('dist/game.js','utf8');
 const loader=fs.readFileSync('dist/assets/ip/v2/elite-zombies-v145.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
-assert(game.includes('THROWABLE_SIZE_SCALE=1.15'),'all throwables scale up by 15%');
+assert(game.includes('THROWABLE_SIZE_SCALE=1.824'),'approved enlarged throwable size');
 assert(game.includes('TRASH_SHOT_CAP=2'),'shared in-flight projectile cap');
 assert(html.includes('elite-zombies-v145.js?v=161-elite-spit')&&html.includes('v160-larger-elite-throws'));
 assert(sw.includes('v160-larger-elite-throws'));

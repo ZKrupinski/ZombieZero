@@ -75,7 +75,7 @@ assert.match(code,/KNOCK_TWEEN_LIFE=\.27/);assert.match(code,/CHAIN_HIT_FREEZE=\
 assert.match(code,/HIT_FREEZE_NORMAL=\.16,HIT_FREEZE_BOSS=\.19/);
 assert.match(code,/brightness\(2\.25\) saturate\(\.52\)/);
 assert.match(code,/actor\.knockDelay=\(pos\.chainDepth\|\|0\)>0/);
-assert.match(code,/actor\.hitShakeFrom=actor\.chainReactAt/);
+assert.match(code,/actor\.knockFreeze=actor===z\?Math\.max\(0,\(actor\.hitShakeUntil\|\|0\)-clock\):0/);
 assert.match(code,/if\(d\.t<\(d\.freeze\|\|0\)\)/);
 assert.match(code,/function drawStruckZombie\(z\)/);
 const testPath=vm.runInContext(`(function(){

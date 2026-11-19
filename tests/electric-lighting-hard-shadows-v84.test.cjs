@@ -17,7 +17,7 @@ assert(!shadow.includes('blur(')&&shadow.includes('g.lineTo('),'hard-edged polyg
 assert(shadow.includes('drawWorldGroundShadows')&&shadow.includes('drawCarGroundShadow')&&!shadow.includes('drawBallSoftShadow('),
  'zombie and car use hard shadows; the ball no longer has a dark shadow');
 const render=section('function draw(){','function frame(');
-assert(render.includes('background();drawWorldGroundShadows();drawCrowd()'),
+assert(render.includes('background();drawWorldGroundShadows();drawTrashContact(\'world\');drawCrowd()'),
  'world polygons drawn above terrain and below characters');
 assert(render.includes('drawCarGroundShadow();player();drawPoisonGauge()'),
  'car shadow uses measured wheel contact before body render');

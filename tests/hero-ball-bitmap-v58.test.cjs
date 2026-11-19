@@ -27,7 +27,7 @@ assert.equal(images.length,3);
 assert(window.ZZHeroBallsV58.ready.every(Boolean));
 names.forEach((n,i)=>assert(images[i].src.includes(n)));
 assert(game.includes('const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25,y:-30}]'));
-assert(game.includes('balls[0].x=car+o.x;balls[0].y=PY+o.y;return'));
+assert(/balls\[0\]\.x=car\+o\.x;\s*balls\[0\]\.y=PY\+o\.y;\s*return/.test(game));
 assert(game.includes("ballImpact(b,'x'")&&game.includes("ballImpact(b,'y'"));
 assert(game.includes('drawHeroBallSprite(b,r,col)'));
 assert(game.includes('const index=0,spin=b.spinAngle||0'));
