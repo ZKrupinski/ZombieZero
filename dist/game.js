@@ -2127,8 +2127,16 @@ else{
 }
 for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}/* Preserve contacts through pierce expiry; clear only upon physical separation. */sfx('expire');hud()}}skillUI();
 for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65){items.splice(items.indexOf(item),1);activate(item.k,item.x,item.y)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
-if(balls[0]?.held){const o=heldBallOffset();balls[0].x=car+o.x;balls[0].y=PY+o.y;return}
-march(dt);updateBossTrashShots(dt,previousCar);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
+// A held serve pauses enemy marching and new attacks. Shots already airborne
+// still reach the hero, citizens or ground while the next ball is held.
+if(!balls[0]?.held)march(dt);
+updateBossTrashShots(dt,previousCar);
+if(balls[0]?.held){
+ const o=heldBallOffset();
+ balls[0].x=car+o.x;balls[0].y=PY+o.y;
+ return;
+}
+for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
  z.burn=Math.max(0,z.burn-dt);z.burnTick+=dt;z.spreadTick+=dt;
  if(z.spreadTick>=.95&&!z.spreadDone){
   z.spreadDone=true;
