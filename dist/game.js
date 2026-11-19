@@ -1503,6 +1503,7 @@ function backToSelection(){
  }
  releaseInput();keys={};mode='menu';runMode='campaign';resumeMode='playing';
  endlessRunStarted=false;endlessSurvival=0;endlessShiftTime=0;endlessShiftSpawned=false;
+ bossTrashShots.length=0;
  $('pause-main-menu').hidden=true;
  failureScene=null;lastLostBall=null;lastStandUsed=false;resistFlash=0;
  score=0;wave=1;lives=hero().lives;car=target=225;cameraKick=0;
