@@ -749,8 +749,7 @@ function insertEliteZombies(regulars,stage){
    if(!free.length)break;
    const [z]=free.splice(Math.floor(Math.random()*free.length),1);
    z.eliteKind=kind;
-   // Trash-bag elites wait a few seconds before their first ranged attack.
-   if(kind<2)z.throwAt=clock+5.5+Math.random()*3;
+   // Initial throw delay is set lazily when an elite enters active combat.
    z.hp=z.max=Math.min(runMode==='endless'?24:29,
      zombieHP(0,z.kind,stage)+ELITE_HP_BONUS[kind]+Math.floor(Math.max(0,stage-6)/13));
    free=free.filter(other=>other.row!==z.row||Math.abs(other.col-z.col)>1);

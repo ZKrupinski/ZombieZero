@@ -5,7 +5,7 @@ const loader=fs.readFileSync('dist/assets/ip/v2/elite-zombies-v145.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
 assert(game.includes('THROWABLE_SIZE_SCALE=1.15'),'all throwables scale up by 15%');
 assert(game.includes('TRASH_SHOT_CAP=2'),'shared in-flight projectile cap');
-assert(html.includes('v160-elite-trash-throws')&&html.includes('v160-larger-elite-throws'));
+assert(html.includes('v=160-elite-trash-throws')&&html.includes('v160-larger-elite-throws'));
 assert(sw.includes('v160-larger-elite-throws'));
 const atlas={window:{},Image:class{},Math};vm.createContext(atlas);vm.runInContext(loader,atlas);
 const art=atlas.window.ZZEliteSprites,calls=[],gfx={save(){},restore(){},drawImage(...a){calls.push(a)}};
