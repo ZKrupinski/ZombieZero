@@ -680,9 +680,27 @@ function endlessUI(){
   el.onclick=backToSelection;
  }else el.onclick=null;
 }
-function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=1.4;
+const STAND_BANNER_SECONDS=2.45,STAND_WAVE_SECONDS=.64,STAND_MOVE_SECONDS=.66;
+const standRetreat=[];
+function updateStandRetreat(){
+ const elapsed=STAND_BANNER_SECONDS-resistFlash;
+ for(const move of standRetreat){
+  const t=clamp((elapsed-move.delay)/STAND_MOVE_SECONDS,0,1);
+  if(t>0&&!move.started){
+   move.started=true;
+   move.z.flash=.12;move.z.hitAt=clock;
+   burst(move.z.x+move.z.w/2,move.z.y+move.z.h*.75,'#9debea',4);
+  }
+  const ease=t*t*(3-2*t);
+  move.z.y=move.from+(move.to-move.from)*ease;
+ }
+ if(elapsed>=STAND_WAVE_SECONDS+STAND_MOVE_SECONDS)standRetreat.length=0;
+}
+function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed=true;resistFlash=STAND_BANNER_SECONDS;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
- for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.flash=.12;z.recoil=.22;z.hitAt=clock;z.hitHold=.05;placed.push(z);burst(z.x+z.w/2,z.y+z.h/2,'#9debea',8)}
+ let front=-Infinity,back=Infinity;
+ for(const z of sorted){const edge=z.y+z.h;front=Math.max(front,edge);back=Math.min(back,edge);standRetreat.push({z,from:z.y,edge,to:0,delay:0,started:false});}
+ for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.knockTime=0;placed.push(z)}
  // Crowded late-stage boss formations may hit the upper packing boundary and
  // leave a front enemy too close after the first push. Translate the entire
  // already-spaced formation to guarantee a visible 125px recovery window,
@@ -696,10 +714,34 @@ function triggerLastStand(){if(wave<20||lastStandUsed)return false;lastStandUsed
   const retreat=Math.min(extra,available);
   if(retreat>0)for(const z of foes)z.y-=retreat;
  }
- effect(225,DEFENSE_Y,'#b3fff0',140,'LAST STAND!');sfx('bosskill');haptic([20,30,20]);toast('최후의 저항! · 좀비 전원 밀쳐내기 · 이번 판 1회');return true}
+ for(const move of standRetreat){
+  move.to=move.z.y;
+  move.z.y=move.from;
+  move.delay=STAND_WAVE_SECONDS*(front-move.edge)/Math.max(1,front-back);
+ }
+ sfx('bosskill');haptic([20,30,20]);return true}
 function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=String(score);$('result-best').textContent=String(best);overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave')}
-function drawDanger(){if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
-function drawOutcome(){if(resistFlash>0){const t=1-resistFlash/1.4;g.save();g.globalAlpha=(1-t)*.75;g.strokeStyle='#a7ffea';g.lineWidth=8;g.beginPath();g.arc(225,DEFENSE_Y,30+t*560,Math.PI,Math.PI*2);g.stroke();g.fillStyle='#caffef';g.font='400 18px "Press Start 2P",monospace';g.textAlign='center';arcadeGlowText('LAST STAND!',225,400,10);g.font='bold 14px Arial, sans-serif';g.fillText('최후의 저항 · 전원 밀쳐내기',225,426);g.restore()}
+function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;g.save();g.globalAlpha=.55+.25*Math.sin(clock*9);rect(20,DEFENSE_Y-2,410,4,'#ff6278');g.fillStyle='#ffe5ba';g.textAlign='center';g.font='bold 13px Arial, sans-serif';g.fillText('위험! 좀비가 방어선에 접근 중',225,DEFENSE_Y-12);g.restore()}
+function drawOutcome(){if(resistFlash>0){
+ const elapsed=STAND_BANNER_SECONDS-resistFlash;
+ const pulse=.5+.5*Math.cos(elapsed*12);
+ g.save();g.globalAlpha=Math.min(1,resistFlash/.4);
+ rect(20,DEFENSE_Y-5,410,10,'#103735');
+ rect(20,DEFENSE_Y-2,410,4,'#84ffdb');
+ for(let x=22;x<430;x+=24)rect(x,DEFENSE_Y-7,12,3,'#caffef');
+ if(elapsed<1.3){
+  g.save();g.globalAlpha*=.65*(1-elapsed/1.3);
+  g.strokeStyle='#aeffed';g.lineWidth=5;g.beginPath();
+  g.arc(W/2,DEFENSE_Y,18+elapsed*410,Math.PI,2*Math.PI);g.stroke();g.restore();
+ }
+ const y=DEFENSE_Y-54;
+ rect(W/2-112,y-21,224,55,'rgba(8,32,36,.90)');
+ rect(W/2-112,y-21,224,2,'#84ffdb');
+ g.textAlign='center';g.fillStyle='#e3fff5';g.font='400 19px "Press Start 2P",monospace';
+ arcadeGlowText('LAST STAND!',W/2,y,4+pulse*3);
+ g.fillStyle='#9affd6';g.font='bold 17px Arial,sans-serif';
+ g.fillText('방어선 사수!',W/2,y+24);g.restore();
+ }
  if(!failureScene)return;const f=failureScene;g.save();rect(20,16,410,H-20,'#160d2444');g.strokeStyle='#ff6278';g.lineWidth=4;
  if(f.type==='breach'){rect(20,DEFENSE_Y-3,410,6,'#ff546c');g.beginPath();g.arc(f.x,f.y,42+Math.sin(f.t*15)*4,0,Math.PI*2);g.stroke();g.fillStyle='#ffd8ce';g.font='bold 14px Arial, sans-serif';g.textAlign='center';g.fillText('이 적이 방어선을 돌파했습니다',225,DEFENSE_Y+26)}else{g.beginPath();g.moveTo(f.x,H-95);g.lineTo(f.x,H-11);g.stroke();poly([[f.x-12,H-28],[f.x,H-8],[f.x+12,H-28]],'#ff7182');g.textAlign='center';g.font='bold 25px Arial, sans-serif';g.fillStyle='#ff9b9b';g.fillText('♡  0',225,H-55)}
  rect(38,264,374,142,'#251827ed');g.fillStyle='#ffad9f';g.font='bold 25px Arial, sans-serif';g.textAlign='center';g.fillText(f.type==='breach'?'방어선 돌파!':'마지막 공을 놓쳤습니다!',225,299);g.font='bold 14px Arial, sans-serif';g.fillStyle='#fff0d4';g.fillText(f.type==='breach'?'하트가 남아 있어도':'남은 하트가 0이 되어',225,329);g.fillText(f.type==='breach'?'방어선이 뚫리면 패배합니다.':'게임이 종료됩니다.',225,350);g.fillText((runMode==='endless'?'생존 '+survivalClock(endlessSurvival):'STAGE '+wave)+' · SCORE '+String(score),225,382);g.restore()}
@@ -869,6 +911,7 @@ function nextBossArtLoading(nextWave){
    sprites.cache?.[form-2]?.loading===true;
 }
 function rack(){
+ standRetreat.length=0;resistFlash=0;
  bossTrashShots.length=0;
  eliteTrashSharedReadyAt=clock+4.4;spitSharedNextAt=clock+4.8;
  poison=0;poisonGrace=0;groggyTime=0;poisonFlash=0;poisonGaugeAlpha=0;
@@ -2049,6 +2092,7 @@ function update(dt){
   if(sec!==endlessHudSecond){endlessHudSecond=sec;$('survival-time').textContent=survivalClock(endlessSurvival)}
  }
  clock+=dt;updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;advanceVisualQueue(fx,dt);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);compactVisualQueue(particles,particleAlive);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
+if(standRetreat.length){updateStandRetreat();return}
 if(mode==='endlessShift'){updateEndlessShift(dt);return}
 if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt);comboDisplayTime=Math.max(0,comboDisplayTime-dt)}
 updateCrowd(dt);updateEmergencySupport(dt);
