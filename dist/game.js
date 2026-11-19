@@ -3461,9 +3461,10 @@ function blockHostileShot(shot,x,y){
 }
 function drawPoisonGauge(){
  if((mode!=='playing'&&mode!=='paused'&&mode!=='clearing')||poisonGaugeAlpha<=0)return;
- // Small status indicator: lower center of the 108px hero bitmap.
- // No opaque black HUD plate; keep the vehicle and outfit visible beneath it.
- const x=Math.round(car-4),y=Math.round(PY+1),w=8,h=20;
+ // Compact status indicator placed beside each hero's rear/ear silhouette.
+ // Ace and Ruby: right ear; Ria: left ear. Keep the face fully unobstructed.
+ // The translucent plate and current fade curve remain unchanged.
+ const x=Math.round(car+(selectedHero===2?-39:31)),y=Math.round(PY-43),w=8,h=20;
  g.save();g.globalAlpha*=poisonGaugeAlpha;
  g.fillStyle='rgba(8,28,18,0.42)';g.fillRect(x-1,y-1,w+2,h+2);
  g.fillStyle='rgba(32,83,45,0.24)';g.fillRect(x+1,y+1,w-2,h-2);
