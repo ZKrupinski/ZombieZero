@@ -159,7 +159,7 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
   g.save();g.translate(f.x,f.y);
   // Point-symmetric balloon shapes do not rotate with the travel direction.
   // The center still covers the exact ball/trail-bend collision vertex.
-  if(trash)g.scale(1.45,1.45);
+  if(trash)g.scale(.2175,.2175); // 15% of the previous 1.45x impact size.
   g.globalCompositeOperation=trash&&u<.18?'lighter':'source-over';
   g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
   if(atlasReady){
