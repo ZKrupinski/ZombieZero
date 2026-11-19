@@ -3368,6 +3368,27 @@ function feedback(kind){
   }
  }catch{}
 }
+// Diagnostics are intentionally explicit: API availability and a successful
+// request do not guarantee that an embedded Android WebView can drive the motor.
+const vibrationTestButton=$('vibration-test');
+const vibrationTestStatus=$('vibration-status');
+if(vibrationTestButton&&vibrationTestStatus){
+ vibrationTestStatus.textContent='BUILD v180 · '+(typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
+ vibrationTestButton.addEventListener('click',()=>{
+  if(typeof navigator.vibrate!=='function'){
+   vibrationTestStatus.textContent='BUILD v180 · 진동 API 없음 — Android Chrome에서 직접 열어주세요.';
+   return;
+  }
+  try{
+   const ok=navigator.vibrate([80,35,130]);
+   vibrationTestStatus.textContent=ok
+    ?'BUILD v180 · 진동 요청 성공. 느껴지지 않으면 Android Chrome에서 직접 열어주세요.'
+    :'BUILD v180 · 진동 요청 차단됨. 외부 브라우저에서 열거나 무음/진동 설정을 확인하세요.';
+  }catch(e){
+   vibrationTestStatus.textContent='BUILD v180 · 진동 실행 오류 ('+(e?.name||'unknown')+')';
+  }
+ });
+}
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
 function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
 function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car');return true}
