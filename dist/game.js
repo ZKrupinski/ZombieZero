@@ -21,6 +21,9 @@ const HEROES=[
 let touchUsed=false,lastBuzz=0,bubbles=[],bubbleTimer=.25;
 const HERO_ATTACK_DURATION=.42;let heroAttackTime=0;
 let selectedHero=0,clearTime=0,clearBurst=0,resumeMode='playing',crowdTimer=3.5,junk=[],cheerTime=0;
+// V161: catches build poison; a full bar temporarily locks all hero movement.
+const POISON_MAX=100,POISON_SPIT=34,POISON_TRASH=20,POISON_DECAY=5.5,POISON_GROGGY_SECONDS=1.85;
+let poison=0,poisonGrace=0,groggyTime=0,poisonFlash=0;
 let endlessSurvival=0,endlessRunStarted=false,endlessHudSecond=-1,bestEndlessSurvival=0;
 try{bestEndlessSurvival=+(localStorage.getItem('zz-endless-best-seconds')||0)}catch{}
 function survivalClock(seconds){
@@ -551,6 +554,9 @@ function tone(f,d=.1,type='square',vol=.08,delay=0,music=false,endFreq=0){if(!au
 function noise(d=.09,vol=.08,delay=0,mus=false){if(!audioRunning()||!sound||!audio.createBuffer)return;if(!noiseBuffer){noiseBuffer=audio.createBuffer(1,audio.sampleRate*.5,audio.sampleRate);let a=noiseBuffer.getChannelData(0),hold=0;for(let i=0;i<a.length;i++){if(i%5===0)hold=Math.random()*2-1;a[i]=hold}}let o=audio.createBufferSource(),v=audio.createGain(),t=audio.currentTime+delay;o.buffer=noiseBuffer;o.connect(v);v.connect(mus?musicBus:master);v.gain.setValueAtTime(vol,t);v.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d)}
 function sfx(name){if(!audioRunning()||!sound)return;let now=audio.currentTime;if(now-(lastSfx[name]??-10)<({wall:.085,hit:.065,kill:.065,fire:.15,evade:.14}[name]||0))return;lastSfx[name]=now;
 if(name==='evade'){tone(980,.035,'triangle',.052,0,false,550);noise(.028,.018);return;}
+if(name==='spit'){tone(460,.11,'sawtooth',.052,0,false,135);noise(.07,.032);return;}
+if(name==='poison'){tone(190,.24,'triangle',.14,0,false,54);noise(.12,.04);return;}
+if(name==='block'){tone(650,.07,'triangle',.07,0,false,215);return;}
 const sounds={launch:[55,67,79],blast:[36,48,55],serve:[72,79,84],wall:[67],racket:[79,86,91],car:[76,83,88],citizen:[84,79,67],return:[72,76,79,84,91],bosshit:[43,55,62],powerhit:[55,67,79],hit:[60,67],kill:[72,76,79],item:[72,76,79,84,88],expire:[72,67],miss:[64,60,55],start:[60,64,67,72,76,79],wave:[60,64,67,72,79,84],boss:[43,50,55,62],bosskill:[60,67,72,76,79,84,88],fire:[55,62],shield:[79,84,91],pause:[72,67],over:[67,64,60,55]};const notes=sounds[name]||[72],rise=['kill','hit','powerhit'].includes(name)?Math.min(7,Math.floor(combo/2)):0,comboGain=1+Math.min(combo,10)*.025,spacing=Math.max(.024,.045-Math.min(combo,10)*.002),accent=['item','return','wave','bosskill','start'].includes(name);
 notes.forEach((n,i)=>{tone(hz(n+rise),accent?.16:.085,'triangle',name==='wall'?.035:.1*comboGain,i*spacing);if(name!=='wall')tone(hz(n+rise),.055,'square',.023*comboGain,i*spacing)});
 if(['racket','car','citizen'].includes(name))tone(500,.065,'square',.045,0,false,1250);
@@ -853,7 +859,8 @@ function nextBossArtLoading(nextWave){
 }
 function rack(){
  bossTrashShots.length=0;
- eliteTrashSharedReadyAt=clock+4.4;
+ eliteTrashSharedReadyAt=clock+4.4;spitSharedNextAt=clock+4.8;
+ poison=0;poisonGrace=0;groggyTime=0;poisonFlash=0;
  dodgeGhosts.length=0;
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
@@ -1195,6 +1202,7 @@ function moveElite(z,dt){
  // a reactive dodge is triggered; it does not inherit regular elite AI.
  if(!Number.isInteger(z.eliteKind)&&z.form!==4)return false;
  if((z.eliteKind===0||z.eliteKind===1)&&z.throwWindup>0){z.moveDir=0;return true;}
+ if(Number.isInteger(z.eliteKind)&&z.spitWindup>0){z.moveDir=0;return true;}
  if(z.eliteMotion){
   const m=z.eliteMotion,step=dt*(has('slow')?.4:1);
   const next=Math.min(m.duration,m.t+step);
@@ -2045,11 +2053,19 @@ if(mode==='clearing'){
  return;
 }
 if(!foes.length){beginClear();return}
-const previousCar=car;if(keys.ArrowLeft||keys.a)target-=hero().speed*dt;if(keys.ArrowRight||keys.d)target+=hero().speed*dt;target=clamp(target,72,W-72);car+=clamp(target-car,-hero().speed*dt,hero().speed*dt);
+updatePoisonStatus(dt);
+const previousCar=car;
+if(groggyTime>0){target=car;}
+else{
+ if(keys.ArrowLeft||keys.a)target-=hero().speed*dt;
+ if(keys.ArrowRight||keys.d)target+=hero().speed*dt;
+ target=clamp(target,72,W-72);
+ car+=clamp(target-car,-hero().speed*dt,hero().speed*dt);
+}
 for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}/* Preserve contacts through pierce expiry; clear only upon physical separation. */sfx('expire');hud()}}skillUI();
 for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65){items.splice(items.indexOf(item),1);activate(item.k,item.x,item.y)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
 if(balls[0]?.held){const o=heldBallOffset();balls[0].x=car+o.x;balls[0].y=PY+o.y;return}
-march(dt);updateBossTrashShots(dt);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
+march(dt);updateBossTrashShots(dt,previousCar);for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
  z.burn=Math.max(0,z.burn-dt);z.burnTick+=dt;z.spreadTick+=dt;
  if(z.spreadTick>=.95&&!z.spreadDone){
   z.spreadDone=true;
@@ -3110,7 +3126,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();drawPoisonGauge();player();drawGroggyFeedback();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
@@ -3151,7 +3167,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();luminous(()=>drawBossTrashShots(),()=>drawBossTrashShots(true));if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  if(mode==='endlessShift'||mode==='paused'&&resumeMode==='endlessShift')drawEndlessShift();
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}
@@ -3338,7 +3354,17 @@ function drawBubbles(){for(const q of bubbles){const a=Math.min(1,q.t/.12,(q.lif
 // Draw only the needed frame: no per-projectile bitmap or gradient allocation.
 const THROWABLE_COUNT=36,THROWABLE_SIZE_SCALE=1.15,throwableBag=[],bossTrashShots=[];
 const TRASH_SHOT_CAP=2,ELITE_THROW_COOLDOWN=[10.5,13.5];
-let eliteTrashSharedReadyAt=0;
+let eliteTrashSharedReadyAt=0,spitSharedNextAt=0;
+// Campaign grows from stage 3 to 50; endless starts gently, then ramps by wave.
+function projectilePressure(){
+ const equivalent=runMode==='endless'?6+Math.max(0,endlessWaveNumber()-1)*1.05:wave;
+ return clamp((equivalent-3)/47,0,1);
+}
+function projectileFlightCap(){return TRASH_SHOT_CAP+Math.floor(projectilePressure()*3.001)}
+function spitCooldown(z){
+ return (z.boss?11:13.5)*(1-.47*projectilePressure())+Math.random()*2.2;
+}
+function spitThrower(z){return !!z.boss||Number.isInteger(z.eliteKind)}
 function nextThrowableKind(){
  if(!throwableBag.length){
   for(let i=0;i<THROWABLE_COUNT;i++)throwableBag.push(i);
@@ -3365,14 +3391,14 @@ function bossTrashProjectilePosition(p){
  return {x:p.sx+(p.tx-p.sx)*t,
    y:p.sy+(p.ty-p.sy)*t-Math.sin(Math.PI*t)*p.arc,t};
 }
-function defeatCitizenByTrash(p){
+function defeatCitizenByTrash(p,kind='trash'){
  if(!p?.alive||mode!=='playing')return false;
  p.alive=false;p.dying=.8;p.returning=0;p.absent=0;
  p.shooting=0;p.supportTime=0;
  bubbles=bubbles.filter(b=>b.citizen!==p);
- citizenCue(p,false,'으악! 쓰레기다!');
- effect(p.x,p.y-10,'#ffcf7c',60);
- burst(p.x,p.y-10,'#ffba66',18);
+ citizenCue(p,false,kind==='spit'?'으악! 독침이야!':'으악! 쓰레기다!');
+ effect(p.x,p.y-10,kind==='spit'?'#b5ff28':'#ffcf7c',60);
+ burst(p.x,p.y-10,kind==='spit'?'#a6f72f':'#ffba66',18);
  sfx('citizen');haptic(18);
  return true;
 }
@@ -3380,7 +3406,8 @@ function defeatCitizenByTrash(p){
 function eliteTrashThrower(z){return !z.boss&&(z.eliteKind===0||z.eliteKind===1)}
 function trashThrower(z){return (z.boss&&z.bossForm===3)||eliteTrashThrower(z)}
 function trashThrowCooldown(z){
- return z.boss?6.5+Math.random()*3:ELITE_THROW_COOLDOWN[z.eliteKind]+Math.random()*3;
+ const base=z.boss?6.5+Math.random()*3:ELITE_THROW_COOLDOWN[z.eliteKind]+Math.random()*3;
+ return base*(1-.44*projectilePressure());
 }
 function launchTrashShot(z,citizen){
  const elite=eliteTrashThrower(z);
@@ -3390,11 +3417,96 @@ function launchTrashShot(z,citizen){
   arc:(elite?67:56)+Math.random()*28,eliteKind:elite?z.eliteKind:null});
  sfx('launch');burst(z.x+z.w*.5,z.y+z.h*(z.boss?.38:.22),'#ffc67e',elite?5:7);
 }
-function updateBossTrashShots(dt){
+// One projectile list for all hostile trash and neon-green spit.
+function updatePoisonStatus(dt){
+ const wasGroggy=groggyTime;
+ groggyTime=Math.max(0,groggyTime-dt);
+ if(wasGroggy>0&&groggyTime===0){poison=18;poisonGrace=1}
+ poisonGrace=Math.max(0,poisonGrace-dt);
+ if(groggyTime===0&&poisonGrace===0)poison=Math.max(0,poison-POISON_DECAY*dt);
+ poisonFlash=Math.max(0,poisonFlash-dt);
+}
+function shotTouchesHero(shot,from,to,oldCar=car){
+ // Swept segment/AABB: fast projectiles and a rapidly moving car cannot tunnel.
+ const r=shot.type==='spit'?8:13;
+ const left=Math.min(car,oldCar)-38-r,right=Math.max(car,oldCar)+38+r;
+ const top=PY-52-r,bottom=PY+54+r;
+ let tMin=0,tMax=1;
+ for(const [start,delta,min,max] of [[from.x,to.x-from.x,left,right],[from.y,to.y-from.y,top,bottom]]){
+  if(Math.abs(delta)<.00001){if(start<min||start>max)return false;continue}
+  const a=(min-start)/delta,b=(max-start)/delta;
+  tMin=Math.max(tMin,Math.min(a,b));tMax=Math.min(tMax,Math.max(a,b));
+  if(tMin>tMax)return false;
+ }
+ return true;
+}
+function blockHostileShot(shot,x,y){
+ const shielded=has('shield');
+ if(!shielded&&groggyTime<=0){
+  poison=Math.min(POISON_MAX,poison+(shot.type==='spit'?POISON_SPIT:POISON_TRASH));
+  poisonGrace=2.35;poisonFlash=.26;
+  if(poison>=POISON_MAX){
+   poison=POISON_MAX;groggyTime=POISON_GROGGY_SECONDS;target=car;
+   effect(car,PY-74,'#b7ff40',52,'GROGGY!');
+   sfx('poison');haptic([25,30,40]);
+  }else{sfx('block');haptic(12)}
+ }else{sfx(shielded?'shield':'block')}
+ effect(x,y,shielded?'#b9f684':shot.type==='spit'?'#c4ff42':'#f9db99',32);
+ burst(x,y,shot.type==='spit'?'#a3ff3d':'#ffdfab',6);
+}
+function drawPoisonGauge(){
+ if(mode!=='playing'&&mode!=='paused'&&mode!=='clearing')return;
+ const x=Math.round(car+30),y=Math.round(PY-83),height=39;
+ g.save();
+ // Vertical meter sits behind the hero's head and fills from bottom upward.
+ g.fillStyle='#061a15d9';g.fillRect(x-2,y-2,13,height+4);
+ g.fillStyle='#2c5241';g.fillRect(x,y,9,height);
+ const filled=Math.round((height-4)*poison/POISON_MAX);
+ if(filled>0){
+  g.fillStyle=groggyTime>0?'#d3ff46':'#88ff32';
+  g.shadowColor='#8eff32';g.shadowBlur=poisonFlash>0||groggyTime>0?12:5;
+  g.fillRect(x+2,y+height-2-filled,5,filled);
+  g.shadowBlur=0;
+ }
+ g.fillStyle='#b8e8ab';g.fillRect(x-2,y-2,13,2);
+ g.fillRect(x-2,y+height,13,2);
+ if(groggyTime>0&&Math.floor(clock*12)%2===0){
+  g.fillStyle='#ddff8a';g.fillRect(x-3,y-5,15,3);
+ }
+ g.restore();
+}
+function drawGroggyFeedback(){
+ if(groggyTime<=0)return;
+ g.save();g.fillStyle='#d4ff78';g.textAlign='center';
+ g.font='bold 11px Arial, sans-serif';
+ g.shadowColor='#77ff2c';g.shadowBlur=7;
+ g.fillText('GROGGY',car,PY-83);
+ for(let i=0;i<3;i++){
+  const angle=clock*5+i*Math.PI*2/3;
+  g.fillRect(car+Math.cos(angle)*23-3,PY-63+Math.sin(angle)*7-3,6,6);
+ }
+ g.restore();
+}
+function launchSpit(z,citizen){
+ bossTrashShots.push({
+  type:'spit',sx:z.x+z.w*.5,sy:z.y+z.h*.39,
+  tx:citizen.x,ty:citizen.y-13,citizen,
+  duration:1.0+Math.random()*.20,t:0,arc:35+Math.random()*22
+ });
+ sfx('spit');
+}
+function updateBossTrashShots(dt,previousCar=car){
  if(mode!=='playing')return;
- // Airborne trash persists after its source zombie dies.
+ // Process interceptions before arrival. Existing shield protection still works.
  for(const shot of [...bossTrashShots]){
+  const before=bossTrashProjectilePosition(shot);
   shot.t=Math.min(shot.duration,shot.t+dt*(has('slow')?.66:1));
+  const after=bossTrashProjectilePosition(shot);
+  if(shotTouchesHero(shot,before,after,previousCar)){
+   bossTrashShots.splice(bossTrashShots.indexOf(shot),1);
+   blockHostileShot(shot,after.x,after.y);
+   continue;
+  }
   if(shot.t<shot.duration)continue;
   bossTrashShots.splice(bossTrashShots.indexOf(shot),1);
   if(has('shield')){
@@ -3402,12 +3514,13 @@ function updateBossTrashShots(dt){
    burst(shot.tx,SHIELD_LINE_Y,'#b9f684',9);sfx('shield');
   }else{
    const citizen=shot.citizen;
-   if(citizen?.alive)defeatCitizenByTrash(citizen);
+   if(citizen?.alive)defeatCitizenByTrash(citizen,shot.type==='spit'?'spit':'trash');
    else{effect(shot.tx,shot.ty,'#dfb48d',26);burst(shot.tx,shot.ty,'#dbb081',5)}
   }
  }
  if(balls[0]?.held)return;
- // The giant boss gets priority under the shared two-projectile limit.
+ const cap=projectileFlightCap();
+ // Giant trash boss takes priority when the shared projectile budget is tight.
  const throwers=foes.filter(trashThrower).sort((a,b)=>Number(b.boss)-Number(a.boss));
  for(const z of throwers){
   const elite=eliteTrashThrower(z);
@@ -3415,39 +3528,81 @@ function updateBossTrashShots(dt){
    z.throwWindup=Math.max(0,z.throwWindup-dt*(has('slow')?.4:1));
    if(z.throwWindup>0)continue;
    const citizen=z.throwTarget;
-   if(citizen?.alive&&bossTrashShots.length<TRASH_SHOT_CAP)launchTrashShot(z,citizen);
+   if(citizen?.alive&&bossTrashShots.length<cap)launchTrashShot(z,citizen);
    z.throwTarget=null;
    z.throwAt=clock+trashThrowCooldown(z);
+   spitSharedNextAt=Math.max(spitSharedNextAt,clock+.85);
    continue;
   }
-  // No elite throws while dashing, recoiling or in the shared firing cooldown.
-  if(elite&&(z.eliteMotion||z.hitHold>0||(z.recoil||0)>.02||
+  if(elite&&(z.eliteMotion||z.spitWindup>0||z.hitHold>0||(z.recoil||0)>.02||
     clock<eliteTrashSharedReadyAt))continue;
   if(clock<(z.throwAt??(z.throwAt=clock+(z.boss?3.7:5.2)+Math.random()*3))||
-    bossTrashShots.length>=TRASH_SHOT_CAP)continue;
+    bossTrashShots.length>=cap)continue;
   const alive=citizens.filter(p=>p.alive);
   if(!alive.length){z.throwAt=clock+4;continue}
   z.throwTarget=alive[Math.floor(Math.random()*alive.length)];
   z.throwKind=nextThrowableKind();
   z.throwWindup=z.boss?.75:z.eliteKind===0?.58:.80;
   z.throwAt=clock+9;
-  if(elite)eliteTrashSharedReadyAt=clock+6.3+Math.random()*1.9;
+  if(elite)eliteTrashSharedReadyAt=clock+(6.3+Math.random()*1.9)*(1-.38*projectilePressure());
+  spitSharedNextAt=Math.max(spitSharedNextAt,clock+1.2);
   effect(z.x+z.w*.5,z.y+z.h*.20,'#ffcb71',z.boss?36:24);
   sfx('serve');
  }
-}
-function drawBossTrashShots(){
+ // All elites (including water bottle) and all four boss forms may spit.
  for(const z of foes){
-  if(!trashThrower(z)||!(z.throwWindup>0))continue;
-  const sway=Math.sin(clock*16)*2;
-  const size=z.boss?40:z.eliteKind===0?24:28;
-  drawThrowable(z.throwKind,z.x+z.w*.75,z.y+(z.boss?-4:4)+sway,size,-.2);
+  if(!spitThrower(z))continue;
+  if(!Number.isFinite(z.spitAt)){
+   z.spitAt=clock+4.5+Math.random()*4+(z.boss?0:1.5);
+   continue;
+  }
+  if(z.spitWindup>0){
+   z.spitWindup=Math.max(0,z.spitWindup-dt*(has('slow')?.4:1));
+   if(z.spitWindup>0)continue;
+   if(z.spitTarget?.alive&&bossTrashShots.length<cap)launchSpit(z,z.spitTarget);
+   z.spitTarget=null;z.spitAt=clock+spitCooldown(z);
+   continue;
+  }
+  if(clock<z.spitAt||clock<spitSharedNextAt||bossTrashShots.length>=cap||
+    z.throwWindup>0||z.eliteMotion||z.hitHold>0||(z.recoil||0)>.02)continue;
+  const alive=citizens.filter(p=>p.alive);
+  if(!alive.length){z.spitAt=clock+3;continue}
+  z.spitTarget=alive[Math.floor(Math.random()*alive.length)];
+  z.spitWindup=z.boss?.55:.44;
+  spitSharedNextAt=clock+2.35-1.35*projectilePressure();
+  sfx('spit');
+ }
+}
+function drawNeonSpit(x,y,t,angle=0){
+ g.save();g.translate(x,y);g.rotate(angle);
+ g.fillStyle='#74ed20';g.shadowColor='#70ff11';g.shadowBlur=11;
+ g.beginPath();g.ellipse(0,0,11+3*Math.sin(Math.PI*t),7,0,0,Math.PI*2);g.fill();
+ g.shadowBlur=0;g.fillStyle='#dcff72';
+ g.beginPath();g.ellipse(2,-2,5.5,3.2,0,0,Math.PI*2);g.fill();
+ g.fillStyle='#91fb38';g.fillRect(-17,-2,5,4);g.fillRect(-23,0,3,3);
+ g.restore();
+}
+function drawBossTrashShots(spitOnly=false){
+ for(const z of foes){
+  if(!spitOnly&&trashThrower(z)&&z.throwWindup>0){
+   const sway=Math.sin(clock*16)*2,size=z.boss?40:z.eliteKind===0?24:28;
+   drawThrowable(z.throwKind,z.x+z.w*.75,z.y+(z.boss?-4:4)+sway,size,-.2);
+  }
+  if(spitThrower(z)&&z.spitWindup>0){
+   const x=z.x+z.w*.5,y=z.y+z.h*.39;
+   drawNeonSpit(x,y,.15,0);
+  }
  }
  for(const p of bossTrashShots){
   const pos=bossTrashProjectilePosition(p);
-  const flare=1-Math.abs(2*pos.t-1);
-  const size=p.eliteKind===0?22+5*flare:p.eliteKind===1?24+6*flare:29+7*flare;
-  drawThrowable(p.kind,pos.x,pos.y,size,pos.t*Math.PI*5);
+  if(p.type==='spit'){
+   const angle=Math.atan2(p.ty-p.sy,p.tx-p.sx);
+   drawNeonSpit(pos.x,pos.y,pos.t,angle);
+  }else if(!spitOnly){
+   const flare=1-Math.abs(2*pos.t-1);
+   const size=p.eliteKind===0?22+5*flare:p.eliteKind===1?24+6*flare:29+7*flare;
+   drawThrowable(p.kind,pos.x,pos.y,size,pos.t*Math.PI*5);
+  }
  }
 }
 function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(const j of [...junk]){j.t+=dt;if(j.t>=j.duration){junk.splice(junk.indexOf(j),1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){damage(j.target,.25,true);if(mode!=='playing')return}}}if(balls[0]?.held||!foes.length)return;crowdTimer-=dt;if(crowdTimer<=0){crowdTimer=3.5+Math.random()*2;const alive=citizens.filter(p=>p.alive);if(!alive.length)return;let citizen=alive[Math.floor(Math.random()*alive.length)],target=foes[Math.floor(Math.random()*foes.length)];junk.push({sx:citizen.x,sy:citizen.y-15,tx:target.x+target.w/2,ty:target.y+target.h/2,target,t:0,duration:1.4,kind:nextThrowableKind()});citizen.supportTime=.62;cheerTime=1.4;sfx('serve')}}
