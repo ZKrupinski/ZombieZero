@@ -10,7 +10,7 @@ const dispatcher=source.slice(start,stop);
 let now=1000;
 const patterns=[];
 const make=new Function('env',`
- let lastCameraFeedback=0,cameraKick=0,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0;
+ let lastCameraFeedback=0,cameraKick=0,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0,hapticsEnabled=true;
  const performance={now:()=>env.now()},navigator={vibrate:p=>env.vibrate(p)};
  const document={hidden:false,querySelector:()=>null},vibrationTestStatus=null,window={};
  ${dispatcher}
