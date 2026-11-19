@@ -2103,38 +2103,39 @@ html.zz-endless-hud #wave > #wave-number {
 }
 
 
-/* v191: selection portrait visual centering, and results-only Ria wheel baseline.
-   Preserve original sprite art, animation, card layout, and all gameplay. */
-#overlay[data-screen="selection"] .hero-card .hero-vehicle-portrait {
-  position: relative;
-  margin-left: auto!important;
-  margin-right: auto!important;
-}
-/* Shift the visible subject (not the card) left to compensate for atlas insets. */
-#overlay[data-screen="selection"] #hero-0 .hero-vehicle-portrait {
-  transform:translateX(-4px);
-}
-#overlay[data-screen="selection"] #hero-1 .hero-vehicle-portrait {
-  transform:translateX(-2px);
-}
-#overlay[data-screen="selection"] #hero-2 .hero-vehicle-portrait {
-  transform:translateX(-3px);
-}
-/* Result cards: only Ria moves down, matching the other cars' wheel baseline. */
+/* v191 (retained): results Ria wheel baseline only.
+   v192 removes the unneeded visual X nudges: the width mismatch was the cause. */
 #overlay[data-screen="results"] #hero-2 .hero-vehicle-portrait {
   transform:translateY(3px);
 }
 @media(max-height:620px){
-  #overlay[data-screen="selection"] #hero-0 .hero-vehicle-portrait {
-    transform:translateX(-3px);
-  }
-  #overlay[data-screen="selection"] #hero-1 .hero-vehicle-portrait {
-    transform:translateX(-1px);
-  }
-  #overlay[data-screen="selection"] #hero-2 .hero-vehicle-portrait {
-    transform:translateX(-2px);
-  }
   #overlay[data-screen="results"] #hero-2 .hero-vehicle-portrait {
     transform:translateY(2px);
   }
 }
+
+
+/* v192: match selection width in windowed and fullscreen modes.
+   Three hero cards, the stats strip and both actions share the overlay's
+   inner edges. Previously 370px button caps left wide fullscreen gutters. */
+#overlay[data-screen="selection"] #heroes,
+#overlay[data-screen="selection"] .hero-options,
+#overlay[data-screen="selection"] #hero-stats,
+#overlay[data-screen="selection"] > #start,
+#overlay[data-screen="selection"] > #endless {
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+#overlay[data-screen="selection"] .hero-options{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+#overlay[data-screen="selection"] .hero-card{
+  width:100%!important;
+  min-width:0!important;
+}
+/* Retain the two button heights, gaps, colors, selected frame and portraits.
+   Short screens still use their original compact height media queries. */
