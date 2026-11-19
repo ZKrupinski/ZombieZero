@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const source=fs.readFileSync(path.resolve(__dirname,'../dist/game.js'),'utf8');
 const start=source.indexOf('const FEEDBACK_PRESETS={');
-const stop=source.indexOf('// A direct user-tap test',start);
+const stop=source.indexOf('// Game options: persisted device vibration toggle',start);
 assert(start>=0&&stop>start,'Cannot find actual shipped feedback dispatcher');
 const dispatcher=source.slice(start,stop);
 let now=1000;

@@ -3331,6 +3331,9 @@ function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absen
 // Weak simultaneous hits cannot cancel a longer critical or boss vibration.
 // Browser vibration has no strength parameter. Duration/pattern control perceived
 // emphasis; short (<20ms) requests can be imperceptible on Android motors.
+const HAPTICS_STORAGE_KEY='zz-device-haptics-enabled';
+let hapticsEnabled=true;
+try{if(typeof localStorage!=='undefined')hapticsEnabled=localStorage.getItem(HAPTICS_STORAGE_KEY)!=='0'}catch{}
 const FEEDBACK_PRESETS={
  wall:{v:28,s:0.28,p:0},
  racket:{v:38,s:0.9,p:2},
@@ -3401,12 +3404,6 @@ const HAPTIC_DEBUG=typeof location!=='undefined'&&new URLSearchParams(location.s
 let hapticDebugTag=null;
 function updateFeedbackDiagnostics(){
  const d=feedbackDiagnostics;
- if(vibrationTestStatus&&document.querySelector?.('#options-dialog')?.open){
-  vibrationTestStatus.textContent='BUILD v185 · 좀비 타격 '+d.hits+'회 / 진동 호출 '
-   +d.hitRequests+'회 (수락 '+d.hitAccepted+', 차단 '+d.hitBlocked+')'
-   +' · 마지막 '+(feedbackNames[d.lastHit]||d.lastHit)+': '+d.lastHitResult
-   +' · 전체 호출 '+d.attempts+'회';
- }
  if(!HAPTIC_DEBUG)return;
  if(!hapticDebugTag){
   hapticDebugTag=document.createElement('div');
@@ -3414,7 +3411,7 @@ function updateFeedbackDiagnostics(){
   hapticDebugTag.style.cssText='position:fixed;z-index:2147483647;bottom:8px;left:8px;max-width:95vw;pointer-events:none;background:#060f1ee6;color:#e9f5ca;padding:6px 9px;border:1px solid #9fd88b;font:11px/1.45 monospace;border-radius:5px';
   document.body.appendChild(hapticDebugTag);
  }
- hapticDebugTag.textContent='v183 HIT '+d.hits+' / VIBE '+d.hitAccepted+' / BLOCK '+d.hitBlocked+' · '+(feedbackNames[d.lastHit]||d.lastHit)+' · '+d.lastHitResult;
+ hapticDebugTag.textContent='v186 HIT '+d.hits+' / VIBE '+d.hitAccepted+' / BLOCK '+d.hitBlocked+' · '+(feedbackNames[d.lastHit]||d.lastHit)+' · '+d.lastHitResult;
 }
 function feedback(kind){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
@@ -3428,6 +3425,7 @@ function feedback(kind){
   if(combat){d.lastHitResult=status;if(blocked)d.hitBlocked++}
   updateFeedbackDiagnostics();
  };
+ if(!hapticsEnabled){report('사용자 설정 OFF');return}
  if(typeof navigator==='undefined'||typeof navigator.vibrate!=='function'){
   report('API 미지원');return;
  }
@@ -3453,38 +3451,32 @@ function feedback(kind){
  }catch(e){report('오류 '+(e?.name||'unknown'))}
 }
 // QA signal only: physical motor output cannot be measured from JavaScript.
-window.ZZHapticDebug={version:'v185',counts:feedbackDiagnostics};
-// A direct user-tap test is a separate diagnostic from gameplay events.
-const vibrationTestButton=$('vibration-test');
-const vibrationTestStatus=$('vibration-status');
-if(vibrationTestStatus){
- vibrationTestStatus.textContent='BUILD v185 · '+(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'?'진동 API 감지됨':'현재 브라우저에서 진동 API 미지원');
+window.ZZHapticDebug={version:'v186',counts:feedbackDiagnostics};
+// Game options: persisted device vibration toggle; no test controls in settings.
+const hapticsToggle=$('haptics-toggle');
+function syncHapticsToggle(){
+ if(!hapticsToggle)return;
+ const on=hapticsEnabled;
+ hapticsToggle.setAttribute('aria-pressed',String(on));
+ hapticsToggle.setAttribute('aria-label','기기 진동 · '+(on?'켜짐':'꺼짐'));
+ const status=hapticsToggle.querySelector?.('.option-status');
+ if(status){
+  status.textContent=on?'켜짐':'꺼짐';
+  hapticsToggle.dataset.state=on?'on':'off';
+ }else hapticsToggle.textContent=on?'VIBRATION ON':'VIBRATION OFF';
 }
-if(vibrationTestButton&&vibrationTestStatus){
- vibrationTestButton.addEventListener('click',()=>{
-  if(typeof navigator.vibrate!=='function'){
-   vibrationTestStatus.textContent='BUILD v185 · 진동 API 미지원 — Android Chrome에서 직접 열어주세요.';
-   return;
+if(hapticsToggle){
+ syncHapticsToggle();
+ hapticsToggle.addEventListener('click',()=>{
+  hapticsEnabled=!hapticsEnabled;
+  try{if(typeof localStorage!=='undefined')localStorage.setItem(HAPTICS_STORAGE_KEY,hapticsEnabled?'1':'0')}catch{}
+  if(!hapticsEnabled){
+   buzzLockedUntil=0;buzzPriority=0;
+   try{if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function')navigator.vibrate(0)}catch{}
   }
-  try{
-   const ok=navigator.vibrate([90,45,135]);
-   vibrationTestStatus.textContent=ok
-    ?'BUILD v185 · 직접 진동 요청 수락 (실제 진동 감지는 기기에서 확인)'
-    :'BUILD v185 · 요청 거부 — Android Chrome에서 직접 실행하세요.';
-  }catch(e){vibrationTestStatus.textContent='BUILD v185 · 실행 오류 '+(e?.name||'unknown')}
+  syncHapticsToggle();
  });
 }
-for(const kind of ['hit','powerHit','critical','bossHit']){
- const button=$('vibration-test-'+kind);
- if(button)button.addEventListener('click',()=>{
-  lastBuzz=-1e9;buzzLockedUntil=0;buzzPriority=0;
-  feedback(kind);
- });
-}
-$('options-toggle')?.addEventListener('click',()=>{
- // Let the native options-open handler finish before reading open state.
- queueMicrotask(updateFeedbackDiagnostics);
-});
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
 function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
 function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car');return true}

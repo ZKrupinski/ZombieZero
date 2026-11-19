@@ -7,7 +7,7 @@ function inform(title,message){if(mode==='playing'||mode==='clearing')pause();bu
 const options=button('options-dialog'),optionsActions=button('options-actions');
 // No bottom app bar or independent sound/FX row during play.
 // Retain their real controls (and keyboard handlers) inside the options dialog.
-for(const id of ['sound','bgm','fx','fullscreen','install','share','help','share-url']){
+for(const id of ['sound','bgm','fx','haptics-toggle','fullscreen','install','share','help','share-url']){
  const item=button(id);
  if(item)optionsActions.appendChild(item);
 }
@@ -22,24 +22,23 @@ if(typeof MutationObserver!=='undefined'&&optionsActions.querySelector){
   install:'M12 3v12 m-5-5 5 5 5-5 M4 16v5h16v-5',
   share:'M8 12 16 7 M8 12l8 5 M8 12a3 3 0 1 0-6 0 3 3 0 0 0 6 0 M22 5a3 3 0 1 0-6 0 3 3 0 0 0 6 0 M22 19a3 3 0 1 0-6 0 3 3 0 0 0 6 0',
   help:'M9 8a3 3 0 0 1 6 0c0 2-3 2-3 5 M12 17h.01 M22 12a10 10 0 1 0-20 0 10 10 0 0 0 20 0',
-  'collection-shortcut':'M3 4h7v7H3z M14 4h7v7h-7z M3 15h7v7H3z M14 15h7v7h-7z'
+  'haptics-toggle':'M5 9v6h4l5 4V5L9 9H5z M17 9a5 5 0 0 1 0 6 M20 6a9 9 0 0 1 0 12'
  };
- const names={sound:'전체 소리',bgm:'배경음악',fx:'화면 효과',fullscreen:'전체화면',install:'앱 설치',share:'공유하기',help:'도움말','collection-shortcut':'좀비 도감'};
- const descriptions={share:'게임 링크 보내기',help:'조작 · 스킬 안내','collection-shortcut':'10종 애니메이션'};
- optionsActions.appendChild(button('collection-shortcut'));
+ const names={sound:'전체 소리',bgm:'배경음악',fx:'화면 효과','haptics-toggle':'기기 진동',fullscreen:'전체화면',install:'앱 설치',share:'공유하기',help:'도움말'};
+ const descriptions={share:'게임 링크 보내기',help:'조작 · 스킬 안내'};
  function decorate(){
   for(const id of Object.keys(names)){
    const el=button(id);if(!el||el.querySelector('.option-copy'))continue;
    const raw=el.textContent,off=/OFF|LIGHT/.test(raw),retry=raw.includes('재생');
    let state=descriptions[id]||'';
-   if(id==='sound'||id==='bgm')state=retry?'눌러서 재생':off?'꺼짐':'켜짐';
+   if(id==='sound'||id==='bgm'||id==='haptics-toggle')state=retry?'눌러서 재생':off?'꺼짐':'켜짐';
    if(id==='fx')state=off?'가벼운 효과':'전체 효과';
    if(id==='fullscreen')state=raw.includes('복귀')?'기본 화면으로':'화면 가득 보기';
    if(id==='install')state=/설치됨|실행 중/.test(raw)?'설치 완료':'홈 화면에 추가';
    el.classList.add('option-tile');
-   el.dataset.state=(id==='sound'||id==='bgm'||id==='fx')?(retry?'retry':off?'off':'on'):'action';
+   el.dataset.state=(id==='sound'||id==='bgm'||id==='fx'||id==='haptics-toggle')?(retry?'retry':off?'off':'on'):'action';
    el.setAttribute('aria-label',names[id]+' · '+state);
-   if(id==='sound')el.setAttribute('aria-pressed',String(!off));
+   if(id==='sound'||id==='haptics-toggle')el.setAttribute('aria-pressed',String(!off));
    el.innerHTML='<span class="option-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+paths[id]+'"/></svg></span><span class="option-copy"><span class="option-name">'+names[id]+'</span><span class="option-status">'+state+'</span></span>';
   }
  }
@@ -251,11 +250,6 @@ button('help').onclick=()=>{
  if(mode==='playing'||mode==='clearing')pause();
  document.querySelector('.guide').open=true;
  button('help-dialog').showModal();
-};
-button('collection-shortcut').onclick=()=>{
- resumeAfterOptions=false;
- if(options.open)options.close();
- button('object-cast-demo-open')?.click();
 };
 button('help-close').onclick=()=>button('help-dialog').close();button('app-close').onclick=()=>button('app-dialog').close();
 // Prevent vertical browser gestures on the play surface; modal contents keep their own scroll.
