@@ -23,7 +23,7 @@ const HERO_ATTACK_DURATION=.42;let heroAttackTime=0;
 let selectedHero=0,clearTime=0,clearBurst=0,resumeMode='playing',crowdTimer=3.5,junk=[],cheerTime=0;
 // V161: catches build poison; a full bar temporarily locks all hero movement.
 const POISON_MAX=100,POISON_SPIT=34,POISON_TRASH=20,POISON_DECAY=5.5,POISON_GROGGY_SECONDS=1.85;
-let poison=0,poisonGrace=0,groggyTime=0,poisonFlash=0;
+let poison=0,poisonGrace=0,groggyTime=0,poisonFlash=0,poisonGaugeAlpha=0;
 let endlessSurvival=0,endlessRunStarted=false,endlessHudSecond=-1,bestEndlessSurvival=0;
 try{bestEndlessSurvival=+(localStorage.getItem('zz-endless-best-seconds')||0)}catch{}
 function survivalClock(seconds){
@@ -860,7 +860,7 @@ function nextBossArtLoading(nextWave){
 function rack(){
  bossTrashShots.length=0;
  eliteTrashSharedReadyAt=clock+4.4;spitSharedNextAt=clock+4.8;
- poison=0;poisonGrace=0;groggyTime=0;poisonFlash=0;
+ poison=0;poisonGrace=0;groggyTime=0;poisonFlash=0;poisonGaugeAlpha=0;
  dodgeGhosts.length=0;
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
@@ -3126,7 +3126,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();drawPoisonGauge();player();drawGroggyFeedback();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawPoisonGauge();drawGroggyFeedback();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
@@ -3425,6 +3425,11 @@ function updatePoisonStatus(dt){
  poisonGrace=Math.max(0,poisonGrace-dt);
  if(groggyTime===0&&poisonGrace===0)poison=Math.max(0,poison-POISON_DECAY*dt);
  poisonFlash=Math.max(0,poisonFlash-dt);
+ // Ease in while poisoned / groggy; ease out once the toxin fully clears.
+ // The meter has no permanent baseline when clean.
+ const visible=poison>0||groggyTime>0;
+ poisonGaugeAlpha+=( (visible?1:0)-poisonGaugeAlpha)*(1-Math.exp(-dt*(visible?14:9)));
+ if(!visible&&poisonGaugeAlpha<.015)poisonGaugeAlpha=0;
 }
 function shotTouchesHero(shot,from,to,oldCar=car){
  // Swept segment/AABB: fast projectiles and a rapidly moving car cannot tunnel.
@@ -3455,23 +3460,24 @@ function blockHostileShot(shot,x,y){
  burst(x,y,shot.type==='spit'?'#a3ff3d':'#ffdfab',6);
 }
 function drawPoisonGauge(){
- if(mode!=='playing'&&mode!=='paused'&&mode!=='clearing')return;
- const x=Math.round(car+30),y=Math.round(PY-83),height=39;
- g.save();
- // Vertical meter sits behind the hero's head and fills from bottom upward.
- g.fillStyle='#061a15d9';g.fillRect(x-2,y-2,13,height+4);
- g.fillStyle='#2c5241';g.fillRect(x,y,9,height);
- const filled=Math.round((height-4)*poison/POISON_MAX);
+ if((mode!=='playing'&&mode!=='paused'&&mode!=='clearing')||poisonGaugeAlpha<=0)return;
+ // Small status indicator: lower center of the 108px hero bitmap.
+ // No opaque black HUD plate; keep the vehicle and outfit visible beneath it.
+ const x=Math.round(car-4),y=Math.round(PY+1),w=8,h=20;
+ g.save();g.globalAlpha*=poisonGaugeAlpha;
+ g.fillStyle='rgba(8,28,18,0.42)';g.fillRect(x-1,y-1,w+2,h+2);
+ g.fillStyle='rgba(32,83,45,0.24)';g.fillRect(x+1,y+1,w-2,h-2);
+ const filled=Math.round((h-4)*poison/POISON_MAX);
  if(filled>0){
   g.fillStyle=groggyTime>0?'#d3ff46':'#88ff32';
-  g.shadowColor='#8eff32';g.shadowBlur=poisonFlash>0||groggyTime>0?12:5;
-  g.fillRect(x+2,y+height-2-filled,5,filled);
+  g.shadowColor='#8eff32';g.shadowBlur=poisonFlash>0||groggyTime>0?5:2;
+  g.fillRect(x+2,y+h-2-filled,w-4,filled);
   g.shadowBlur=0;
  }
- g.fillStyle='#b8e8ab';g.fillRect(x-2,y-2,13,2);
- g.fillRect(x-2,y+height,13,2);
+ g.fillStyle='rgba(184,232,171,0.48)';
+ g.fillRect(x,y,w,1);g.fillRect(x,y+h-1,w,1);
  if(groggyTime>0&&Math.floor(clock*12)%2===0){
-  g.fillStyle='#ddff8a';g.fillRect(x-3,y-5,15,3);
+  g.fillStyle='#ddff8a';g.fillRect(x,y-2,w,2);
  }
  g.restore();
 }

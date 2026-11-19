@@ -19,7 +19,7 @@ assert(shadow.includes('drawWorldGroundShadows')&&shadow.includes('drawCarGround
 const render=section('function draw(){','function frame(');
 assert(render.includes('background();drawWorldGroundShadows();drawCrowd()'),
  'world polygons drawn above terrain and below characters');
-assert(render.includes('drawCarGroundShadow();drawPoisonGauge();player()'),
+assert(render.includes('drawCarGroundShadow();player();drawPoisonGauge()'),
  'car shadow uses measured wheel contact before body render');
 assert(render.includes('fxRenderer.composite(g);drawEffectLightSpills()'),
  'smooth light spill renders after sprite/effect composite, below the HUD');
