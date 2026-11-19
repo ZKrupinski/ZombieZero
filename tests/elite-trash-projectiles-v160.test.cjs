@@ -34,7 +34,7 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  ZZLargeBossSprites:{cache:[{loading:false},{loading:false}],requestByForm:noop,readyByForm:()=>false,draw:()=>false,available:()=>false},
  ZZThrowablesV159:{request:noop,draw:(g,k,x,y,size)=>(sizes.push(size),true)}},
  localStorage:{getItem:()=>0,setItem:noop},Path2D:class{},
- requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console};
+ requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console,sizes};
 vm.createContext(sandbox);
 vm.runInContext(game+`
  {
