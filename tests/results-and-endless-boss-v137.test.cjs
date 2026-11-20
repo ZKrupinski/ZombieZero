@@ -11,9 +11,9 @@ assert.equal(el('endless').textContent,'ENDLESS WAVE','selection offers endless'
 for(const name of ['campaign','endless']){
  run("selectedHero=2;start('"+name+"');end('RESULTS TEST')");
  assert.equal(run('mode'),'over');
- assert.equal(el('endless').textContent,'메인 메뉴');
+ assert.equal(el('endless').textContent,'MAIN MENU');
  assert.equal(el('endless').hidden,false);
- assert.equal(el('start').innerHTML.includes('다시 시작'),true);
+ assert.equal(el('start').innerHTML.includes('TRY AGAIN'),true);
  el('start').onclick();
  assert.equal(run('mode'),'playing');
  assert.equal(run('runMode'),name);
@@ -63,7 +63,7 @@ assert.equal(run('foes[0].mercyUsed'),undefined,'campaign boss unaffected');
 run("start('campaign');wave=50;mode='playing';foes=[];beginClear();advanceStage()");
 assert.equal(run('mode'),'over');
 assert.equal(el('label').textContent,'VICTORY');
-assert.equal(el('endless').textContent,'메인 메뉴');
+assert.equal(el('endless').textContent,'MAIN MENU');
 el('endless').onclick();
 assert.equal(run('mode'),'menu');
 assert.equal(el('endless').textContent,'ENDLESS WAVE');
