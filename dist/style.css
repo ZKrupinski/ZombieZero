@@ -2845,3 +2845,135 @@ html.landscape-game #overlay[data-screen="pause"]>#pause-main-menu{
 }
 /* No category tabs/pager, no internal scroll containers. */
 #upgrade-dialog .zz-upgrade-tabs,#upgrade-dialog .zz-upgrade-pager{display:none!important}
+
+
+/* v197: use exact, unchanged game PNG sprites — NEVER redraw the cast.
+   Approved hero-idle-v55.png: 8 columns × 3 rows (Ace, Ruby, Ria).
+   Approved v2 zombie atlases: 8 columns × 4 rows, frame 0 at top-left. */
+#upgrade-dialog .zz-upgrade-header{
+ position:relative!important;
+ box-sizing:border-box!important;
+ display:block!important;
+ flex:0 0 auto!important;
+ height:clamp(73px,11dvh,100px)!important;
+ min-height:clamp(73px,11dvh,100px)!important;
+ width:100%!important;
+ padding:0!important;
+ overflow:hidden!important;
+ background:linear-gradient(180deg,#233c46,#2f564c 68%,#1b363a)!important;
+ border-bottom:2px solid #a4b992;
+}
+#upgrade-dialog .zz-upgrade-heading{
+ position:absolute!important;
+ top:5px!important;
+ left:50%!important;
+ transform:translateX(-50%)!important;
+ z-index:3!important;
+ max-width:59%!important;
+ padding:2px 9px 5px!important;
+ box-sizing:border-box!important;
+ text-align:center!important;
+ white-space:nowrap!important;
+ border-radius:0 0 6px 6px;
+ background:linear-gradient(180deg,#182a3de8,#263a42e5);
+ box-shadow:0 1px 6px #0008;
+ pointer-events:none;
+}
+#upgrade-dialog .zz-upgrade-heading small{
+ display:block!important;
+ font:800 clamp(7px,1.9vw,10px)/1 monospace!important;
+ letter-spacing:.04em!important;
+ color:#bfe69a!important;
+}
+#upgrade-dialog .zz-upgrade-heading h2{
+ margin:1px 0!important;
+ font:900 clamp(16px,4.2vw,25px)/1 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:-.035em!important;
+ color:#f9f4cf!important;
+ white-space:nowrap!important;
+ text-shadow:1px 2px 0 #132528,0 0 5px #f3f49e55;
+}
+#upgrade-dialog .zz-upgrade-heading h2 span{
+ font-size:clamp(9px,2.4vw,13px)!important;
+ color:#dcf6ca!important;
+}
+#upgrade-dialog .zz-original-heroes,
+#upgrade-dialog .zz-original-zombies{
+ position:absolute!important;
+ display:flex!important;
+ align-items:flex-end!important;
+ height:auto!important;
+ bottom:0!important;
+ z-index:2!important;
+ pointer-events:none!important;
+ overflow:visible!important;
+}
+#upgrade-dialog .zz-original-heroes{left:clamp(0px,.6vw,7px)!important}
+#upgrade-dialog .zz-original-zombies{right:clamp(39px,8vw,53px)!important}
+#upgrade-dialog .zz-original-hero,
+#upgrade-dialog .zz-original-zombie{
+ display:block!important;
+ flex:none!important;
+ background-repeat:no-repeat!important;
+ background-color:transparent!important;
+ image-rendering:auto!important;
+ filter:drop-shadow(0px 2px 2px #071c24cf);
+ border:0!important;
+ padding:0!important;
+ margin:0!important;
+}
+#upgrade-dialog .zz-original-hero{
+ width:clamp(48px,12vw,76px)!important;
+ height:clamp(48px,12vw,76px)!important;
+ aspect-ratio:1!important;
+ background-image:url('assets/ip/hero-idle-v55.png?v=55-approved-cast')!important;
+ background-size:800% 300%!important;
+ background-position-x:0%!important;
+}
+#upgrade-dialog .zz-original-ace{background-position-y:0%!important}
+#upgrade-dialog .zz-original-ruby{background-position-y:50%!important;margin-left:clamp(-17px,-3vw,-10px)!important}
+#upgrade-dialog .zz-original-ria{background-position-y:100%!important;margin-left:clamp(-17px,-3vw,-10px)!important}
+#upgrade-dialog .zz-original-zombie{
+ width:clamp(42px,9vw,58px)!important;
+ height:clamp(42px,9vw,58px)!important;
+ aspect-ratio:1!important;
+ background-size:800% 400%!important;
+ background-position:0% 0%!important;
+}
+#upgrade-dialog .zz-original-green{
+ background-image:url('assets/ip/v2/green_zombie.png')!important;
+}
+#upgrade-dialog .zz-original-red{
+ background-image:url('assets/ip/v2/red_brain_cube.png')!important;
+ margin-left:clamp(-14px,-2vw,-7px)!important;
+}
+#upgrade-dialog .zz-upgrade-header>#upgrade-close{
+ position:absolute!important;
+ z-index:4!important;
+ right:6px!important;
+ top:7px!important;
+ width:35px!important;
+ height:35px!important;
+ min-height:35px!important;
+ padding:0!important;
+ border:1px solid #90b8a9!important;
+ background:#19353ee8!important;
+ color:#f9fbe8!important;
+ font-size:20px!important;
+}
+@media(max-width:400px){
+ #upgrade-dialog .zz-upgrade-heading{left:51%!important;max-width:57%!important;padding:3px 5px!important}
+ #upgrade-dialog .zz-original-hero{width:49px!important;height:49px!important}
+ #upgrade-dialog .zz-original-zombie{width:40px!important;height:40px!important}
+ #upgrade-dialog .zz-original-zombies{right:37px!important}
+ #upgrade-dialog .zz-upgrade-heading h2{font-size:17px!important}
+ #upgrade-dialog .zz-upgrade-heading h2 span{font-size:10px!important}
+}
+@media(max-height:670px){
+ #upgrade-dialog .zz-upgrade-header{
+  height:clamp(59px,9.5dvh,73px)!important;
+  min-height:clamp(59px,9.5dvh,73px)!important;
+ }
+ #upgrade-dialog .zz-original-hero{width:clamp(41px,8dvh,55px)!important;height:clamp(41px,8dvh,55px)!important}
+ #upgrade-dialog .zz-original-zombie{width:clamp(35px,7dvh,46px)!important;height:clamp(35px,7dvh,46px)!important}
+}
