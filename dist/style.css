@@ -2276,11 +2276,11 @@ html.landscape-game .stage #overlay{
 }
 /* 9:16 reference selection — proportional spaces bound to contained board
    scale rather than physical CSS pixels of a tiny browser window. */
-html.portrait-play #overlay[data-screen="selection"],
-html.portrait-play #overlay[data-screen="results"],
-html.landscape-game #overlay[data-screen="selection"],
-html.landscape-game #overlay[data-screen="results"]{
- display:flex!important;flex-direction:column!important;
+html.portrait-play #overlay[data-screen="selection"]:not([hidden]),
+html.portrait-play #overlay[data-screen="results"]:not([hidden]),
+html.landscape-game #overlay[data-screen="selection"]:not([hidden]),
+html.landscape-game #overlay[data-screen="results"]:not([hidden]){
+ flex-direction:column!important;
  justify-content:center!important;align-items:center!important;
  overflow:hidden!important;
  padding:calc(9px * var(--ui-scale,1)) calc(11px * var(--ui-scale,1))
