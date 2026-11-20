@@ -1,0 +1,83 @@
+/* Use the fitted game board as the measuring box, including in fullscreen.
+   Layered important rules take precedence over the older fixed viewport skins. */
+@layer portrait-board {
+ #upgrade-dialog {
+   width:min(100vw,56.25dvh,600px)!important;
+   height:auto!important; aspect-ratio:9/16; max-width:100vw!important; max-height:100dvh!important;
+   container-type:inline-size; margin:auto!important; box-sizing:border-box!important;
+   border:1px solid #717b99!important; border-radius:1.2cqw!important;
+   background:linear-gradient(145deg,#1d1838,#0b1124 35%,#161930)!important;
+ }
+ #upgrade-dialog[open] {
+   display:grid!important;
+   grid-template-rows:13% 6.5% 3.6% minmax(0,1fr) 13.5% 3%!important;
+ }
+ #upgrade-dialog :is(.zz-upgrade-header,.zz-upgrade-wallet,.zz-upgrade-columns-heading,.zz-upgrade-detail,.zz-upgrade-hint){
+   height:auto!important;min-height:0!important;box-sizing:border-box!important;
+ }
+ .zz-upgrade-header {
+   background:url('assets/ui/upgrade-skyline-v200.webp') center bottom / auto 80% repeat-x,linear-gradient(#322259,#79538b 74%,#262946)!important;
+ }
+ .zz-upgrade-heading {
+   width:47%!important; height:84%!important; top:auto!important; bottom:0!important;
+   background:url('assets/ui/upgrade-marquee-v200.webp') center bottom / contain no-repeat!important;
+ }
+ .zz-original-hero {width:11cqw!important;height:11cqw!important}
+ .zz-original-ruby,.zz-original-ria {margin-left:-2.7cqw!important}
+ .zz-original-zombies {right:1cqw!important}
+ .zz-original-zombie {width:11cqw!important;height:11cqw!important}
+ #upgrade-close {width:8cqw!important;height:8cqw!important;top:.8cqw!important;right:.8cqw!important;background-size:contain!important}
+ .zz-upgrade-wallet {
+   background:url('assets/ui/upgrade-wallet-v200.webp') center / contain no-repeat!important;
+   padding-right:4cqw!important;
+ }
+ .zz-upgrade-wallet strong {font-size:3.4cqw!important;min-width:0!important}
+ .zz-upgrade-columns-heading {background-size:auto 90%!important}
+ .zz-upgrade-list.zz-upgrade-overview {padding:.7cqw!important;gap:.7cqw!important;background:none!important}
+ .zz-group-weapon {--edge:#e579a6;--base:#41223b}
+ .zz-group-citizen {--edge:#7ccc95;--base:#183e37}
+ .zz-group-survival {--edge:#bb94ef;--base:#302a4a}
+ .zz-upgrade-overview .zz-upgrade-column {
+   grid-template-rows:none!important;grid-auto-rows:minmax(0,1fr);gap:.65cqw!important;padding:.65cqw!important;
+   border:1px solid var(--edge)!important; border-radius:1.4cqw!important;
+   background:linear-gradient(120deg,var(--base),#101525)!important;
+ }
+ .zz-upgrade-column h3 {display:none!important}
+ .zz-upgrade-overview .zz-upgrade-card {
+   gap:.65cqw!important;padding:.8cqw!important;border-radius:1cqw!important;
+   border:1px solid color-mix(in srgb,var(--edge) 58%,#19192e)!important;
+   background:linear-gradient(155deg,var(--base),#101524 90%)!important;
+   box-shadow:inset 0 1px 0 #ffffff22,0 1px 2px #0008!important;
+ }
+ .zz-upgrade-overview .zz-upgrade-card.selected {
+   border-color:#ffe36c!important;box-shadow:inset 0 0 1.8cqw #ffc83835,0 0 .65cqw #ffdd67!important;
+ }
+ .zz-upgrade-card::before,.zz-upgrade-detail::before {display:none!important}
+ .zz-upgrade-card:focus-visible,#upgrade-detail-buy:focus-visible {outline:2px solid white!important;outline-offset:-3px}
+ .zz-upgrade-overview .zz-upgrade-icon {width:7.4cqw!important;height:7.4cqw!important;flex:0 0 7.4cqw!important}
+ .zz-upgrade-passive {font-size:4.8cqw!important;color:#e3ffd1!important}
+ .zz-upgrade-compact-copy {gap:.7cqw!important;padding:0!important}
+ .zz-upgrade-compact-copy>b {font-size:2.95cqw!important;line-height:1.2!important}
+ .zz-upgrade-joke {order:3;font-size:2.17cqw!important;line-height:1.2!important;color:#e2d7c9!important}
+ .zz-upgrade-mini-level {font-size:2cqw!important;gap:.55cqw!important}
+ .zz-upgrade-pips {gap:.28cqw!important}
+ .zz-upgrade-pips>i {flex:0 0 1.9cqw!important;width:1.9cqw!important;height:1.7cqw!important}
+ .zz-upgrade-detail {
+   grid-template-columns:10cqw minmax(0,1fr) 25cqw!important;grid-template-rows:auto auto!important;
+   align-content:center;gap:.9cqw 1.5cqw!important;margin:0 .8cqw!important;padding:2cqw!important;
+   background:linear-gradient(120deg,#253750,#101d32 65%,#292743)!important;
+   border:2px ridge #afb8d8!important;border-radius:1.3cqw!important;
+ }
+ #upgrade-detail-icon {grid-area:1/1/3/2}
+ #upgrade-detail-icon .zz-upgrade-icon {display:grid!important;place-items:center;width:10cqw!important;height:10cqw!important;margin:0!important}
+ .zz-upgrade-detail-top,.zz-upgrade-detail-effects {grid-column:2!important;width:auto!important;padding:0!important;gap:.8cqw!important}
+ .zz-upgrade-detail-top strong {font-size:4cqw!important}
+ .zz-upgrade-detail-top>span {font-size:2.4cqw!important}
+ .zz-upgrade-detail-effects {font-size:2.65cqw!important;line-height:1.28!important;word-break:keep-all}
+ #upgrade-detail-buy {
+   grid-column:3!important;align-self:center!important;height:11cqw!important;min-height:0!important;
+   padding:.7cqw!important;font-size:3.1cqw!important;background:linear-gradient(#fff17c,#ffbf23 66%,#ed9118)!important;
+   border:2px ridge #ffe399!important;border-radius:1.35cqw!important;box-shadow:0 2px 0 #653b24!important;
+ }
+ .zz-upgrade-hint {display:grid;place-items:center;padding:0!important;background:#151b2e!important;font-size:2.25cqw!important}
+}

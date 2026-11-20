@@ -151,6 +151,8 @@
   const n=level(d.id),max=n>=MAX_LEVEL,c=cost(d.id),affordable=state.chips>=c;
   const title=$('upgrade-detail-name'),rank=$('upgrade-detail-level');
   const current=$('upgrade-detail-current'),next=$('upgrade-detail-next'),buy=$('upgrade-detail-buy');
+  const icon=$('upgrade-detail-icon');
+  if(icon)icon.innerHTML=iconHTML(d);
   if(title)title.textContent=funnyNames[d.id]||d.name;
   if(rank)rank.textContent='LV '+n+' / 5';
   if(current)current.textContent=example(d.id,n);
@@ -163,8 +165,7 @@
  }
  function renderList(){
   const list=$('upgrade-list');if(!list)return;
-  // The three category columns share nine fixed rows, leaving every
-  // WEAPON/CITIZEN/SURVIVAL skill visible with no tab or page switching.
+  // Each category distributes its available height among its own skills.
   list.innerHTML=GROUPS.map(group=>{
    const entries=defs.filter(d=>d.group===group.id).map(d=>{
     const n=level(d.id),max=n===MAX_LEVEL,selected=d.id===selectedSkill;
@@ -197,6 +198,7 @@
    const card=event.target.closest?.('button[data-select]');
    if(!card||!map[card.dataset.select])return;
    selectedSkill=card.dataset.select;renderList();
+   list.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
   });
   $('upgrade-detail-buy')?.addEventListener('click',()=>{
    if(purchase(selectedSkill))renderList();
