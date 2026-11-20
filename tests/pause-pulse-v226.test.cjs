@@ -13,6 +13,9 @@ assert(css.includes('v226: Large animated PAUSED heading'),'pixel title version 
 assert(css.includes("animation:zz-paused-sign-pulse 2.45s ease-in-out infinite!important"),'soft pulse present');
 assert(css.includes('0 0 23px #ffc04f73'),'gold bloom effect present');
 assert(css.includes('@media(prefers-reduced-motion:reduce)'),'reduced motion respected');
-assert(html.includes('v=226-pause-pulse-clean'),'browser reloads new stylesheet');
+assert(html.includes('v=227-clear-pause-panel'),'browser reloads new stylesheet');
+assert(css.includes('background:rgba(11,20,28,.32)!important'),'game scene remains visible outside pause panel');
+assert(css.includes('rgba(40,66,73,.34)')&&css.includes('rgba(14,29,39,.43)'),'panel has translucent gradient');
+assert(!css.includes('backdrop-filter:blur('),'pause screen avoids expensive backdrop blur');
 assert(sw.includes('v226-pulse-no-glyphs'),'PWA shell cache invalidated');
 console.log('PASS v226: enlarged PAUSED, gentle blinking bloom, clean RESUME/MAIN MENU glyphs');
