@@ -6,7 +6,7 @@ const css=fs.readFileSync('dist/menu-zombie-palette-v211.css','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(game.includes("overlay('PAUSED','좀비도"),'pause heading has no exclamation');
 assert(!game.includes("overlay('PAUSED!'"),'old title removed');
-assert(game.includes("button+(label==='PAUSED'?'':' <span>↗</span>')"),'RESUME omits arrow without affecting replay');
+assert(game.includes("button+(['PAUSED','GAME OVER'].includes(label)?'':' <span>↗</span>')"),'RESUME and TRY AGAIN omit decorative arrows');
 assert.match(html,/>MAIN MENU<\/button>/,'MAIN MENU has no house icon');
 assert(!html.includes('MAIN MENU <span'),'no decorative main menu glyph');
 assert(css.includes('v226: Large animated PAUSED heading'),'pixel title version available');
