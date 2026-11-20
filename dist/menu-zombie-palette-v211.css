@@ -582,3 +582,26 @@ html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-por
  padding:0!important;
  line-height:1!important;
 }
+
+
+/* v225: Pause title pixel arcade font, matching the menu actions and HUD. */
+#overlay[data-screen="pause"] > #title {
+  font-family:'Press Start 2P','Courier New',monospace!important;
+  font-size:clamp(21px,calc(28px * var(--ui-scale,1)),30px)!important;
+  font-weight:400!important;
+  font-synthesis:none!important;
+  line-height:1.42!important;
+  letter-spacing:0!important;
+  white-space:nowrap!important;
+  -webkit-text-stroke:.78px currentColor!important;
+  paint-order:stroke fill!important;
+  color:#f2cf68!important;
+  text-shadow:0 3px 0 #1d3038,0 0 6px #ffe18880,0 0 12px #ffd35c4a!important;
+  margin:0 auto calc(7px * var(--ui-scale,1))!important;
+}
+@media(max-width:360px){
+  #overlay[data-screen="pause"] > #title{
+    font-size:clamp(18px,calc(24px * var(--ui-scale,1)),26px)!important;
+    -webkit-text-stroke:.58px currentColor!important;
+  }
+}
