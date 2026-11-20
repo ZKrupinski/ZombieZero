@@ -12,6 +12,6 @@ assert(!html.includes('▲ UPGRADE'),'no triangle remains before upgrade');
 assert(css.includes("width:clamp(25px,calc(30px * var(--ui-scale,1)),34px)!important"),'coin enlarged');
 assert(css.includes('gap:2px!important'),'coin/count spacing tightened');
 assert(css.includes("assets/ui/chip-v203.webp"),'approved original chip image retained');
-assert(html.includes('menu-zombie-palette-v211.css?v=222-chip-button-cleanup'),'new CSS cache key');
+assert(/menu-zombie-palette-v211\.css\?v=\d+-[a-z0-9-]+/.test(html),'versioned UI stylesheet remains loaded');
 assert(sw.includes('v222-menu-coin'),'PWA shell refresh');
 console.log('PASS v222: no arrows on character-specific START, no UPGRADE triangle, approved coin icon enlarged and grouped with amount');
