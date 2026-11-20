@@ -33,11 +33,13 @@ assert(env.bubbles[0].w>=112,'event bubble keeps readable minimum width');
 assert(env.bubbles[0].x>=22&&env.bubbles[0].x+env.bubbles[0].w<=428,'event bubble remains on screen');
 env.bubbles=[];env.bubbleTimer=0;
 vm.runInContext('updateBubbles(.016)',env);
-assert.equal(env.bubbles.length,1,'ambient cheering still occurs');
+assert.equal(env.bubbles.length,0,'no idle speech without a real gameplay event');
+vm.runInContext("updateBubbles(.016,'critical')",env);
+assert.equal(env.bubbles.length,1,'critical hit generates a citizen response');
 const q=env.bubbles[0];
-assert(cheers.includes(q.text),'ambient line is from updated pool');
-assert(q.w>=80&&q.w<=152,'ambient width adjusts to text length');
-assert(q.x>=22&&q.x+q.w<=428,'ambient bubble stays within canvas');
+assert(vm.runInContext('CITIZEN_REACTIONS.critical',env).includes(q.text),'reaction line fits the critical event');
+assert(q.w>=80&&q.w<=152,'event-reaction width adjusts to text length');
+assert(q.x>=22&&q.x+q.w<=428,'event-reaction bubble stays within canvas');
 assert.equal(q.carAtBirth,225,'car-relative placement is anchored at bubble birth');
 const previousRandomLine=vm.runInContext('lastCitizenLine',env);
 env.bubbles=[];env.bubbleTimer=0;
@@ -48,4 +50,4 @@ assert.equal(vm.runInContext('lastCitizenLine',env),previousRandomLine,'scripted
 assert(src.includes('drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();'),
  'dialogue remains over game effects and badges');
 assert(src.includes('function citizenBubblePointer(q,place){'),'fixed tail placement retained');
-console.log('PASS v124: requested Korean lines, varied cheers, no consecutive duplicates, responsive on-screen bubbles, scripted event cues.');
+console.log('PASS v215/v124: no idle chatter, critical-event humor, responsive bubbles, scripted support/return cues.');
