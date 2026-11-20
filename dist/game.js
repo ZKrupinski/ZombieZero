@@ -789,7 +789,7 @@ function hud(){
  $('wave-label').textContent=runMode==='endless'?'WAVE':'현재 스테이지';
  $('score').textContent=String(score);
   // Long scores scale gently within their fixed HUD column, never ellipsize.
-  $('score').style?.setProperty?.('--zz-score-shrink',String(Math.min(1,8/Math.max(8,score.toString().length))));
+  $('score').style?.setProperty?.('--zz-score-shrink',String(Math.min(1,6/Math.max(6,score.toString().length))));
  $('wave-number').textContent=runMode==='endless'?String(wave-50):String(wave).padStart(2,'0');
  $('progress').textContent=runMode==='endless'?'':(wave-1)+'/50 스테이지 클리어';
  // Only one prominent 3D voxel heart in the upper-left; a high-contrast
