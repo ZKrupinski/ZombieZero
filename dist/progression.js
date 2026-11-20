@@ -35,7 +35,9 @@
   {id:'sweetSpot',group:'survival',name:'라켓 스위트스폿',tag:'RACKET',symbol:'◇'},
   {id:'earlyWarning',group:'survival',name:'위기 감지',tag:'WARNING',symbol:'!'}
  ];
- const shortNames={bazooka:'바주카 시간',citizenArmor:'시민 맷집',citizenPower:'시민 공격',bazookaPower:'바주카 화력',bazookaReload:'바주카 장전',poisonResist:'중독 내성',comboFocus:'콤보 집중',itemMagnet:'아이템 회수',sweetSpot:'스위트스폿',earlyWarning:'위기 감지'};
+ const funnyNames={dual:'공 하나 더!',triple:'공 셋이야!',power:'빡센볼!',fire:'화르륵볼!',slow:'질질볼!',pierce:'뚫어뻥샷!',shield:'철벽막!',bazooka:'오래쏴!',rescue:'번개구조!',citizenArmor:'안죽어요!',citizenCrit:'대박투척!',citizenPower:'더쎈시민!',bazookaPower:'크게쏴!',bazookaReload:'빨리쏴!',lastStand:'한판더!',poisonResist:'침참기!',detox:'독빼기!',recover:'멘탈회복!',mental:'깡다구!',comboFocus:'끊지마!',itemMagnet:'줍줍왕!',sweetSpot:'찰떡존!',earlyWarning:'위험띵!'};
+ const skillJokes={dual:'공이 하나 더!',triple:'공이 세 개!',power:'한 방이 묵직!',fire:'좀비 구이!',slow:'좀비 느릿!',pierce:'줄줄이 뻥!',shield:'잠깐 무적!',bazooka:'바주카 오래!',rescue:'시민 후다닥!',citizenArmor:'한 번 더!',citizenCrit:'가끔 대박!',citizenPower:'투척 더 아프게!',bazookaPower:'더 세고 넓게!',bazookaReload:'장전 후딱!',lastStand:'아직 안 끝났어!',poisonResist:'침 맞아도 버텨!',detox:'독이 쏙쏙!',recover:'회복 재빨리!',mental:'그로기 짧게!',comboFocus:'콤보 끊지 마!',itemMagnet:'멀리서도 줍줍!',sweetSpot:'라켓 더 넓게!',earlyWarning:'위험 미리 경고!'};
+
  const map=Object.fromEntries(defs.map(d=>[d.id,d]));
  let state={version:1,chips:0,levels:{},claims:{},runSeq:0};
  function int(x,min,max){return Number.isFinite(Number(x))?Math.max(min,Math.min(max,Math.trunc(Number(x)))):min}
@@ -149,7 +151,7 @@
   const n=level(d.id),max=n>=MAX_LEVEL,c=cost(d.id),affordable=state.chips>=c;
   const title=$('upgrade-detail-name'),rank=$('upgrade-detail-level');
   const current=$('upgrade-detail-current'),next=$('upgrade-detail-next'),buy=$('upgrade-detail-buy');
-  if(title)title.textContent=d.name;
+  if(title)title.textContent=funnyNames[d.id]||d.name;
   if(rank)rank.textContent='LV '+n+' / 5';
   if(current)current.textContent=example(d.id,n);
   if(next)next.textContent=max?'성장 완료':example(d.id,n+1);
@@ -170,7 +172,7 @@
     return '<button type="button" class="zz-upgrade-card'+(selected?' selected':'')+
      '" data-select="'+d.id+'" aria-pressed="'+String(selected)+'"'+
      ' aria-label="'+d.name+', 레벨 '+n+'/5, '+(max?'최대 강화':'다음 강화 '+cost(d.id)+' Z-CHIP')+'">'+
-     iconHTML(d)+'<span class="zz-upgrade-compact-copy"><b>'+(shortNames[d.id]||d.name)+'</b>'+
+     iconHTML(d)+'<span class="zz-upgrade-compact-copy"><b>'+(funnyNames[d.id]||d.name)+'</b>'+ '<small class="zz-upgrade-joke">'+(skillJokes[d.id]||'')+'</small>'+
      '<span class="zz-upgrade-mini-level">LV '+n+'<span class="zz-upgrade-pips">'+pips+
      '</span></span></span></button>';
    }).join('');
