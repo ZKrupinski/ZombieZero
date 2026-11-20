@@ -683,7 +683,7 @@ function endlessUI(){
   el.setAttribute('aria-label','선택한 캐릭터로 엔드리스 모드 시작');
   el.onclick=()=>start('endless');
  }else if(mode==='over'){
-  el.textContent='메인 메뉴';
+  el.textContent='MAIN MENU';
   el.setAttribute('aria-label','캐릭터 선택 화면으로 돌아가기');
   el.onclick=backToSelection;
  }else el.onclick=null;
@@ -748,7 +748,7 @@ function triggerLastStand(){if(wave<20||!standReady()||standDangerTime<STAND_DAN
   move.delay=STAND_WAVE_SECONDS*(front-move.edge)/Math.max(1,front-back);
  }
  sfx('bosskill');feedback('lastStand');return true}
-function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=String(score);$('result-best').textContent=String(best);overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave');feedback('victory')}
+function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=String(score);$('result-best').textContent=String(best);overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','PLAY AGAIN','VICTORY');endlessUI();sfx('wave');feedback('victory')}
 function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;if(standDangerTime>0){
   const urgency=Math.min(1,standDangerTime/STAND_DANGER_SECONDS);
   g.save();g.globalAlpha=.8+.2*Math.sin(clock*(8+urgency*4));
@@ -1646,7 +1646,7 @@ function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  syncMulti();sfx('serve');feedback('serve');hud();
 }}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+' <span>↗</span>';$('label').textContent=label;$('pause-main-menu').hidden=label!=='PAUSED';if(['GAME OVER','VICTORY'].includes(label)){const earned=Math.max(0,(window.ZZProgression?.chips?.()??menuRunChipsAtStart)-menuRunChipsAtStart);if($('result-earned-chip'))$('result-earned-chip').textContent='+'+String(earned);}$('overlay').hidden=false;endlessUI()}
-function pause(){releaseInput();if(mode==='playing'||mode==='clearing'||mode==='endlessShift'){resumeMode=mode;mode='paused';sfx('pause');overlay('PAUSED!','좀비도 잠깐 쉬는 중...<br>게임과 스킬 시간은 정지합니다.','계속하기','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
+function pause(){releaseInput();if(mode==='playing'||mode==='clearing'||mode==='endlessShift'){resumeMode=mode;mode='paused';sfx('pause');overlay('PAUSED!','좀비도 잠깐 쉬는 중...<br>게임과 스킬 시간은 정지합니다.','RESUME','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
 function end(reason,detail=null){
  if(mode==='over')return;
  bossTrashShots.length=0;
@@ -1665,7 +1665,7 @@ function end(reason,detail=null){
  }
  $('result-score').textContent=String(score);
  $('result-best').textContent=String(best);
- overlay('GAME OVER!',reason,'다시 시작','GAME OVER');sfx('over');feedback('gameOver');
+ overlay('GAME OVER!',reason,'TRY AGAIN','GAME OVER');sfx('over');feedback('gameOver');
  if(detail){failureScene={...detail,t:0};$('overlay').hidden=true;cameraFeedback(4.8)}
 }
 // A visual retirement is distinct from a missed-heart penalty. Expiring
