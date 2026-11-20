@@ -35,6 +35,7 @@
   {id:'sweetSpot',group:'survival',name:'라켓 스위트스폿',tag:'RACKET',symbol:'◇'},
   {id:'earlyWarning',group:'survival',name:'위기 감지',tag:'WARNING',symbol:'!'}
  ];
+ const shortNames={bazooka:'바주카 시간',citizenArmor:'시민 맷집',citizenPower:'시민 공격',bazookaPower:'바주카 화력',bazookaReload:'바주카 장전',poisonResist:'중독 내성',comboFocus:'콤보 집중',itemMagnet:'아이템 회수',sweetSpot:'스위트스폿',earlyWarning:'위기 감지'};
  const map=Object.fromEntries(defs.map(d=>[d.id,d]));
  let state={version:1,chips:0,levels:{},claims:{},runSeq:0};
  function int(x,min,max){return Number.isFinite(Number(x))?Math.max(min,Math.min(max,Math.trunc(Number(x)))):min}
@@ -169,7 +170,7 @@
     return '<button type="button" class="zz-upgrade-card'+(selected?' selected':'')+
      '" data-select="'+d.id+'" aria-pressed="'+String(selected)+'"'+
      ' aria-label="'+d.name+', 레벨 '+n+'/5, '+(max?'최대 강화':'다음 강화 '+cost(d.id)+' Z-CHIP')+'">'+
-     iconHTML(d)+'<span class="zz-upgrade-compact-copy"><b>'+d.name+'</b>'+
+     iconHTML(d)+'<span class="zz-upgrade-compact-copy"><b>'+(shortNames[d.id]||d.name)+'</b>'+
      '<span class="zz-upgrade-mini-level">LV '+n+'<span class="zz-upgrade-pips">'+pips+
      '</span></span></span></button>';
    }).join('');
