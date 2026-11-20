@@ -2639,3 +2639,209 @@ html.landscape-game #overlay[data-screen="pause"]>#pause-main-menu{
  .zz-help-instruction{padding:5px 7px}
  .zz-help-instruction p{font-size:10px!important;line-height:1.25!important}
 }
+
+
+/* v196: ALL 23 SKILLS ON ONE 9:16 SCREEN — three category columns.
+   Selection only changes the dedicated, touch-sized purchase area beneath. */
+#upgrade-dialog.zz-upgrade-dialog{
+ width:min(98vw,600px)!important;
+ height:min(98dvh,900px)!important;
+ max-height:98dvh!important;
+ min-height:0!important;
+ padding:0!important;
+ display:none;
+ overflow:hidden!important;
+}
+#upgrade-dialog.zz-upgrade-dialog[open]{display:flex!important;flex-direction:column!important}
+#upgrade-dialog .zz-upgrade-header{padding:8px 12px!important;min-height:43px!important;flex:none!important}
+#upgrade-dialog .zz-upgrade-header small{font-size:8px!important;line-height:1.05!important}
+#upgrade-dialog .zz-upgrade-header h2{font-size:clamp(17px,3.5vw,22px)!important;margin:1px 0!important}
+#upgrade-dialog .zz-upgrade-header h2 span{font-size:11px!important}
+#upgrade-dialog .zz-upgrade-header button{width:35px!important;height:35px!important;min-height:35px!important}
+#upgrade-dialog .zz-upgrade-wallet{flex:none!important;min-height:28px!important;padding:4px 12px!important}
+#upgrade-dialog .zz-upgrade-wallet strong{font-size:16px!important}
+#upgrade-dialog .zz-upgrade-wallet i{width:18px!important;height:18px!important;font-size:11px!important}
+.zz-upgrade-columns-heading{
+ flex:none;text-align:center;letter-spacing:.12em;
+ background:#142d31;color:#94b7a6;padding:3px!important;
+ font:800 8px/1.15 monospace;
+}
+#upgrade-dialog .zz-upgrade-list.zz-upgrade-overview{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ grid-auto-rows:auto!important;
+ align-content:stretch!important;
+ flex:1 1 auto!important;
+ min-height:0!important;
+ overflow:hidden!important;
+ gap:clamp(3px,1vw,7px)!important;
+ padding:clamp(4px,.8vw,7px)!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-column{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:22px repeat(9,minmax(0,1fr))!important;
+ align-content:stretch!important;
+ gap:clamp(2px,.4dvh,4px)!important;
+ min-height:0!important;
+ min-width:0!important;
+ overflow:hidden!important;
+ padding:3px!important;
+ border:1px solid #476d67;
+ border-radius:6px;
+ background:linear-gradient(180deg,#1b353c,#132832);
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-column h3{
+ display:flex!important;flex-direction:column!important;justify-content:center!important;
+ align-items:center!important;gap:1px!important;
+ min-width:0!important;margin:0!important;
+ border-radius:3px;
+ color:#f1f9cb;
+ font:900 clamp(10px,2.65vw,13px)/1.05 Arial,sans-serif!important;
+ text-align:center;
+ letter-spacing:.025em;
+ background:#365449;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-column h3 small{
+ display:block!important;min-width:0!important;
+ font:600 clamp(7px,1.7vw,9px)/1.1 Arial,sans-serif!important;
+ color:#c4dcc6;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-group-weapon h3{background:#3b5152}
+#upgrade-dialog .zz-upgrade-overview .zz-group-citizen h3{background:#42634d}
+#upgrade-dialog .zz-upgrade-overview .zz-group-survival h3{background:#4b4c68}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-card{
+ display:flex!important;flex-direction:row!important;
+ justify-content:flex-start!important;align-items:center!important;
+ box-sizing:border-box!important;
+ grid-column:1!important;grid-row:auto!important;
+ flex:none!important;min-height:0!important;height:100%!important;
+ width:100%!important;
+ gap:clamp(2px,.6vw,5px)!important;
+ margin:0!important;padding:2px 3px!important;
+ border:1px solid #4b7468!important;border-radius:4px!important;
+ background:#243d42!important;color:#edf6df!important;
+ box-shadow:none!important;overflow:hidden!important;
+ text-align:left!important;
+ cursor:pointer;touch-action:manipulation;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-card.selected,
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-card[aria-pressed="true"]{
+ border-color:#d4f58d!important;
+ background:#3c604c!important;
+ box-shadow:inset 0 0 0 1px #d6f69c72!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-card:focus-visible{
+ outline:2px solid #f1ffaf;outline-offset:-2px;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-icon{
+ display:grid!important;place-items:center!important;
+ flex:0 0 clamp(19px,5vw,29px)!important;
+ width:clamp(19px,5vw,29px)!important;
+ height:clamp(19px,5vw,29px)!important;
+ min-width:0!important;max-width:none!important;
+ grid-column:auto!important;grid-row:auto!important;
+ border:0!important;margin:0!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-passive{
+ font-size:clamp(15px,3.7vw,21px)!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-compact-copy{
+ display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+ justify-content:center!important;
+ min-width:0!important;max-width:100%!important;
+ gap:clamp(1px,.35dvh,3px)!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-compact-copy>b{
+ display:-webkit-box!important;-webkit-box-orient:vertical;
+ -webkit-line-clamp:2;overflow:hidden;
+ font:800 clamp(9px,2.5vw,12px)/1.12 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:-.045em!important;
+ word-break:keep-all;overflow-wrap:anywhere!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-mini-level{
+ display:flex!important;align-items:center!important;
+ gap:clamp(2px,.45vw,4px)!important;
+ font:700 clamp(8px,2vw,10px)/1 monospace!important;
+ color:#c9e99e;
+ white-space:nowrap!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips{
+ display:flex!important;align-items:center!important;gap:2px!important;
+ flex:none!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips>i{
+ display:block!important;flex:0 0 auto!important;
+ width:clamp(3px,1vw,6px)!important;
+ height:5px!important;margin:0!important;
+ border:1px solid #65836c;border-radius:1px;background:#132b31;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips>i.filled{
+ background:#e8fa8a!important;border-color:#f2ffac!important;
+}
+#upgrade-dialog .zz-upgrade-detail{
+ flex:0 0 auto!important;
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+ grid-template-rows:auto auto!important;
+ gap:5px 10px!important;
+ min-height:0!important;
+ padding:clamp(7px,1.15dvh,11px) clamp(10px,2.5vw,17px)!important;
+ background:linear-gradient(115deg,#2e5047,#1a3937);
+ border-top:1px solid #8fb785;
+}
+#upgrade-dialog .zz-upgrade-detail-top{
+ grid-column:1!important;grid-row:1!important;
+ display:flex!important;align-items:center!important;justify-content:flex-start!important;
+ gap:8px!important;min-width:0;
+}
+#upgrade-dialog .zz-upgrade-detail-top strong{
+ color:#f0ffb1;font:900 clamp(13px,3.6vw,18px)/1.2 Arial,'Noto Sans KR',sans-serif!important;
+ overflow-wrap:anywhere;
+}
+#upgrade-dialog .zz-upgrade-detail-top>span{
+ white-space:nowrap;color:#b5dfaa;font:800 11px/1.2 monospace!important;
+}
+#upgrade-dialog .zz-upgrade-detail-effects{
+ grid-column:1!important;grid-row:2!important;
+ display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+ gap:3px 6px!important;min-width:0;
+ color:#d6e6d5;font:600 clamp(10px,2.6vw,12px)/1.25 Arial,'Noto Sans KR',sans-serif!important;
+}
+#upgrade-dialog .zz-upgrade-detail-effects strong{color:#e7ffad}
+#upgrade-dialog #upgrade-detail-buy{
+ grid-column:2!important;grid-row:1/3!important;
+ align-self:center!important;
+ width:clamp(86px,24vw,132px)!important;height:clamp(50px,7.8dvh,67px)!important;
+ min-height:0!important;padding:5px!important;margin:0!important;
+ border:1px solid #efffb8;border-radius:5px;
+ background:#d6ef8e;color:#1e3829;
+ font:900 clamp(13px,3.4vw,17px)/1.2 Arial,sans-serif!important;
+ white-space:normal!important;
+}
+#upgrade-dialog #upgrade-detail-buy:disabled{
+ background:#506158;color:#b8c5b0;border-color:#7b9284;opacity:.75;cursor:not-allowed;
+}
+#upgrade-dialog .zz-upgrade-hint{
+ flex:0 0 auto!important;
+ padding:4px!important;min-height:0!important;
+ font:600 9px/1.2 Arial,sans-serif!important;
+}
+/* On short 9:16 phones keep each of nine slots visible. */
+@media(max-height:670px){
+ #upgrade-dialog.zz-upgrade-dialog{height:99dvh!important;max-height:99dvh!important}
+ #upgrade-dialog .zz-upgrade-header{min-height:37px!important;padding:5px 10px!important}
+ #upgrade-dialog .zz-upgrade-wallet{min-height:25px!important;padding:3px 10px!important}
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-column{
+  grid-template-rows:19px repeat(9,minmax(0,1fr))!important;
+  gap:2px!important;padding:2px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-card{padding:1px 2px!important}
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-icon{
+  width:20px!important;height:20px!important;flex-basis:20px!important;
+ }
+ #upgrade-dialog .zz-upgrade-detail{padding:6px 9px!important}
+ #upgrade-dialog #upgrade-detail-buy{height:48px!important}
+}
+/* No category tabs/pager, no internal scroll containers. */
+#upgrade-dialog .zz-upgrade-tabs,#upgrade-dialog .zz-upgrade-pager{display:none!important}
