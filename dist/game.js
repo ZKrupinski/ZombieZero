@@ -1660,7 +1660,7 @@ function end(reason,detail=null){
  }
  $('result-score').textContent=String(score);
  $('result-best').textContent=String(best);
- overlay('GAME OVER!',reason,'다시 도전','GAME OVER');sfx('over');feedback('gameOver');
+ overlay('GAME OVER!',reason,'다시 시작','GAME OVER');sfx('over');feedback('gameOver');
  if(detail){failureScene={...detail,t:0};$('overlay').hidden=true;cameraFeedback(4.8)}
 }
 // A visual retirement is distinct from a missed-heart penalty. Expiring
@@ -3281,7 +3281,7 @@ function portrait(h){
  // Public hero names: Ace / Ruby / Ria. The Liam sprite ID remains stable.
  return '<span class="hero-portrait hero-vehicle-portrait row-'+i+'" role="img" aria-label="'+h.name+' · 차량과 전용 무기"></span>';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML='GAME START <span>▶</span>'}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML=hero().name+'로 시작 <span>↗</span>'}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
