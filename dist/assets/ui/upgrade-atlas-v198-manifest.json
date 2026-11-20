@@ -1,0 +1,283 @@
+{
+  "source": "upgrade-atlas-v198.png",
+  "size": [
+    1448,
+    1086
+  ],
+  "source_sha256": "8501871d56190d4994f6e0dfbf1bf6e1805d08a5fe92bad2a86fcff97f468475",
+  "assets": {
+    "sign": {
+      "file": "upgrade-sign-v198.webp",
+      "source_rect": [
+        63,
+        0,
+        613,
+        190
+      ],
+      "size": [
+        550,
+        190
+      ]
+    },
+    "wallet": {
+      "file": "upgrade-wallet-v198.webp",
+      "source_rect": [
+        617,
+        10,
+        1304,
+        111
+      ],
+      "size": [
+        687,
+        101
+      ]
+    },
+    "count": {
+      "file": "upgrade-count-v198.webp",
+      "source_rect": [
+        668,
+        109,
+        1296,
+        184
+      ],
+      "size": [
+        628,
+        75
+      ]
+    },
+    "weapon-tab": {
+      "file": "upgrade-weapon-tab-v198.webp",
+      "source_rect": [
+        17,
+        192,
+        335,
+        282
+      ],
+      "size": [
+        318,
+        90
+      ]
+    },
+    "citizen-tab": {
+      "file": "upgrade-citizen-tab-v198.webp",
+      "source_rect": [
+        330,
+        194,
+        644,
+        284
+      ],
+      "size": [
+        314,
+        90
+      ]
+    },
+    "survival-tab": {
+      "file": "upgrade-survival-tab-v198.webp",
+      "source_rect": [
+        644,
+        192,
+        965,
+        284
+      ],
+      "size": [
+        321,
+        92
+      ]
+    },
+    "weapon-column": {
+      "file": "upgrade-weapon-column-v198.webp",
+      "source_rect": [
+        18,
+        284,
+        337,
+        754
+      ],
+      "size": [
+        319,
+        470
+      ]
+    },
+    "citizen-column": {
+      "file": "upgrade-citizen-column-v198.webp",
+      "source_rect": [
+        333,
+        280,
+        648,
+        756
+      ],
+      "size": [
+        315,
+        476
+      ]
+    },
+    "survival-column": {
+      "file": "upgrade-survival-column-v198.webp",
+      "source_rect": [
+        647,
+        283,
+        966,
+        751
+      ],
+      "size": [
+        319,
+        468
+      ]
+    },
+    "weapon-row": {
+      "file": "upgrade-weapon-row-v198.webp",
+      "source_rect": [
+        970,
+        285,
+        1409,
+        362
+      ],
+      "size": [
+        439,
+        77
+      ]
+    },
+    "weapon-selected": {
+      "file": "upgrade-weapon-selected-v198.webp",
+      "source_rect": [
+        969,
+        362,
+        1411,
+        444
+      ],
+      "size": [
+        442,
+        82
+      ]
+    },
+    "citizen-row": {
+      "file": "upgrade-citizen-row-v198.webp",
+      "source_rect": [
+        970,
+        445,
+        1409,
+        525
+      ],
+      "size": [
+        439,
+        80
+      ]
+    },
+    "citizen-selected": {
+      "file": "upgrade-citizen-selected-v198.webp",
+      "source_rect": [
+        970,
+        522,
+        1409,
+        601
+      ],
+      "size": [
+        439,
+        79
+      ]
+    },
+    "survival-row": {
+      "file": "upgrade-survival-row-v198.webp",
+      "source_rect": [
+        971,
+        599,
+        1409,
+        679
+      ],
+      "size": [
+        438,
+        80
+      ]
+    },
+    "survival-selected": {
+      "file": "upgrade-survival-selected-v198.webp",
+      "source_rect": [
+        971,
+        678,
+        1409,
+        750
+      ],
+      "size": [
+        438,
+        72
+      ]
+    },
+    "detail": {
+      "file": "upgrade-detail-v198.webp",
+      "source_rect": [
+        16,
+        755,
+        1020,
+        934
+      ],
+      "size": [
+        1004,
+        179
+      ]
+    },
+    "gold-button": {
+      "file": "upgrade-gold-button-v198.webp",
+      "source_rect": [
+        734,
+        790,
+        983,
+        892
+      ],
+      "size": [
+        249,
+        102
+      ]
+    },
+    "close": {
+      "file": "upgrade-close-v198.webp",
+      "source_rect": [
+        1005,
+        189,
+        1112,
+        283
+      ],
+      "size": [
+        107,
+        94
+      ]
+    },
+    "barrier": {
+      "file": "upgrade-barrier-v198.webp",
+      "source_rect": [
+        1051,
+        992,
+        1257,
+        1040
+      ],
+      "size": [
+        206,
+        48
+      ]
+    },
+    "spotlights": {
+      "file": "upgrade-spotlights-v198.webp",
+      "source_rect": [
+        10,
+        932,
+        145,
+        1048
+      ],
+      "size": [
+        135,
+        116
+      ]
+    },
+    "footer": {
+      "file": "upgrade-footer-v198.webp",
+      "source_rect": [
+        104,
+        1042,
+        802,
+        1085
+      ],
+      "size": [
+        698,
+        43
+      ]
+    }
+  }
+}
