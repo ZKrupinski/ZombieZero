@@ -14,9 +14,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+      - name: Install image decoder
+        run: python -m pip install --quiet pillow
       - name: Fetch original atlas from uploaded asset
         env:
-          SIGNED_MEDIA_URL: "https://media.canva.com/v2/image-resize/format:PNG/height:150/quality:100/uri:ifs%3A%2F%2FM%2F0a795589-2a33-4d40-8304-68a01b637c36/watermark:F/width:200?csig=AAAAAAAAAAAAAAAAAAAAAJH3SxD6PLgtf1nj_fA2mYmOsi4ew6cvKQstqc9rUovr&exp=1795164761&osig=AAAAAAAAAAAAAAAAAAAAAKfe0tGfr9-pPuOPDzsKTKluzqpW9MphHE_qMyNoB-HF&signer=media-rpc&token=AAIAAU0AJDBhNzk1NTg5LTJhMzMtNGQ0MC04MzA0LTY4YTAxYjYzN2MzNgAAAAABofgoa6i92zQFXK3yA7OlhAfw_lWUO5a4GuPDQd55o0nqZ34U_g&x-canva-quality=thumbnail"
+          SIGNED_MEDIA_URL: "https://media.canva.com/v2/image-resize/format:PNG/height:1086/quality:100/uri:ifs%3A%2F%2FM%2F0a795589-2a33-4d40-8304-68a01b637c36/watermark:F/width:1448"
         run: |
           python - <<'PY'
           import os,urllib.request,urllib.error,io
