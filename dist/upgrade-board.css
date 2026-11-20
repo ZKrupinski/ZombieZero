@@ -176,4 +176,63 @@
  #upgrade-detail-level {font-size:3.5cqw!important}
  #upgrade-preview-pips {grid-column:1/-1;max-width:33cqw;gap:.6cqw!important}
  .zz-upgrade-detail-effects {align-self:start;line-height:1.16!important}
+
+  /* v208: The left/weapon column is the only column with a smaller title.
+     Avoid clipping longer comic skill names; preserve other columns. */
+  #upgrade-dialog .zz-upgrade-overview .zz-group-weapon .zz-upgrade-compact-copy > b {
+    font-size:7.8cqw!important;
+    line-height:1.14!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+  }
+
+  /* v208: Fill the complete usable height of the selected-skill tray.
+     Both outside columns stretch; the middle copy retains flexible width. */
+  #upgrade-dialog .zz-upgrade-detail {
+    grid-template-columns:min(100cqh,23cqw) minmax(0,1fr) 25cqw!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+    align-items:stretch!important;
+  }
+  #upgrade-dialog #upgrade-detail-icon {
+    grid-area:1/1/3/2!important;
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    align-self:stretch!important;
+    justify-self:stretch!important;
+    display:grid!important;
+    place-items:stretch!important;
+  }
+  #upgrade-dialog #upgrade-detail-icon .zz-upgrade-icon {
+    display:block!important;
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    aspect-ratio:auto!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+  }
+  #upgrade-dialog #upgrade-detail-buy {
+    grid-column:3!important;
+    grid-row:1/3!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    align-self:stretch!important;
+    justify-self:stretch!important;
+    justify-content:space-evenly!important;
+    padding:.6cqw!important;
+    margin:0!important;
+  }
+  #upgrade-dialog #upgrade-detail-buy::before {
+    width:10cqw!important;
+    height:10cqw!important;
+    max-height:56%!important;
+  }
 }
