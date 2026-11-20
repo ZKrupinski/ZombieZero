@@ -5,7 +5,7 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const begin=game.indexOf('// V124: Short arcade crowd reactions');
 const end=game.indexOf('// A deliberately SHORT pointer',begin);
-assert(begin>0&&end>begin,'reuse current citizen quotes, random scheduling and real screen-space layout');
+assert(begin>0&&end>begin,'reuse original quote pool, event scheduling and exact screen-space layout');
 const script=game.slice(begin,end);
 const rng=Object.create(Math);
 let seed=20271117;
@@ -21,12 +21,15 @@ const separate=(a,b)=>{
  return A.x+A.w+7<=B.x||B.x+B.w+7<=A.x||
         A.y+A.h+7<=B.y||B.y+B.h+7<=A.y;
 };
+ctx.bubbleTimer=0;
+vm.runInContext('updateBubbles(.016)',ctx);
+assert.equal(ctx.bubbles.length,0,'no speech during normal idle gameplay');
 const offsets=new Set();
 let pairs=0;
 for(let i=0;i<100;i++){
  ctx.bubbles=[];ctx.bubbleTimer=0;
- vm.runInContext('updateBubbles(.016)',ctx);
- assert.equal(ctx.bubbles.length,1,'initial ambient cheer still appears');
+ vm.runInContext("updateBubbles(.016,'combo')",ctx);
+ assert.equal(ctx.bubbles.length,1,'combo event triggers one citizen comment');
  const first=ctx.bubbles[0];
  assert.equal(first.event,undefined,'ordinary ambient cheer has no special event flag');
  const shift=first.y-first.citizen.y+61;
@@ -36,8 +39,8 @@ for(let i=0;i<100;i++){
  assert(a.y>=100&&a.y+a.h<=665,'low cheers stay above citizen head/tail');
  assert.equal(first.carAtBirth,225,'speech remains fixed to the original car position');
  ctx.bubbleTimer=0;
- vm.runInContext('updateBubbles(.016)',ctx);
- assert(ctx.bubbles.length>=1&&ctx.bubbles.length<=2,'existing maximum of two simultaneous balloons retained');
+ vm.runInContext("updateBubbles(.016,'item')",ctx);
+ assert(ctx.bubbles.length>=1&&ctx.bubbles.length<=2,'event reactions keep at most two simultaneous balloons');
  if(ctx.bubbles.length===2){
   pairs++;
   const other=ctx.bubbles[1],b=layout(other);
@@ -48,18 +51,18 @@ for(let i=0;i<100;i++){
  }
 }
 assert(pairs>40,'different citizens can still display simultaneous staggered cheers');
-assert(offsets.size>=3,'normal speech heights actually vary');
-assert([...offsets].some(x=>x>0),'some speech appears below the previous fixed V128 level');
+assert(offsets.size>=3,'event speech heights actually vary');
+assert([...offsets].some(x=>x>0),'some event speech appears below the previous fixed V128 level');
 ctx.bubbles=[];ctx.bubbleTimer=0;
 vm.runInContext('citizenCue(citizens[0],true)',ctx);
 assert.equal(ctx.bubbles.length,1,'special return event retained');
 assert.equal(ctx.bubbles[0].y,citizens[0].y-86,'special event positions are unchanged');
 assert.equal(ctx.bubbles[0].event,'return','special event semantics preserved');
 assert(game.includes('if(bubbleTimer>0||bubbles.length>=2)return'),
- 'bubble count remains capped at two');
+ 'event bubble count remains capped at two');
 assert(game.includes('const initialCar=Number.isFinite(q.carAtBirth)?q.carAtBirth:carX'),
  'existing no-stretch car-at-birth anchor retained');
 assert(game.includes('tipY:place.y+place.h+16'),'pointer stays short for every random position');
 assert(html.includes('v129-staggered-cheers')&&sw.includes('v129-staggered-cheers'),
  'game script and PWA cache versions updated together');
-console.log('PASS v129: real varied lower cheek-level placement, 100 random scenarios, non-overlap, 11px stagger, mobile bounds and original event behavior.');
+console.log('PASS v215/v129: zero idle chatter; 100 event-driven placements, random staggering, non-overlap and fixed tails.');
