@@ -1,0 +1,69 @@
+/* HUD v215: endless score must remain fully visible as it grows.
+   Keep the established three-item single-line HUD, the infinity symbol
+   and the adjacent pause/options touch targets. */
+html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats,
+html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats {
+ display:grid!important;
+ grid-template-columns:minmax(0,40fr) minmax(0,26fr) minmax(0,34fr)!important;
+ align-items:start!important;
+ gap:calc(3px * var(--ui-scale,1))!important;
+ overflow:visible!important;
+}
+html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats .score-compact,
+html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats .score-compact {
+ grid-column:1!important;
+ min-width:0!important;
+ width:100%!important;
+ max-width:none!important;
+ margin:0!important;
+ overflow:visible!important;
+ text-align:left!important;
+}
+html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats .wave,
+html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats .wave {
+ grid-column:2!important;
+ min-width:0!important;
+ width:100%!important;
+ max-width:none!important;
+ overflow:visible!important;
+ text-align:center!important;
+}
+html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats .survival-compact,
+html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats .survival-compact {
+ grid-column:3!important;
+ min-width:0!important;
+ width:100%!important;
+ max-width:none!important;
+ overflow:visible!important;
+ text-align:right!important;
+}
+html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats #score,
+html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats #score {
+ display:block!important;
+ width:max-content!important;
+ max-width:100%!important;
+ font-family:Arial,'Noto Sans KR',sans-serif!important;
+ font-size:max(9px,calc(15px * var(--ui-scale,1) * var(--zz-score-shrink,1)))!important;
+ font-weight:900!important;
+ font-variant-numeric:tabular-nums!important;
+ letter-spacing:-.035em!important;
+ line-height:1.28!important;
+ color:#f4f1de!important;
+ white-space:nowrap!important;
+ overflow:visible!important;
+ text-overflow:clip!important;
+ mix-blend-mode:normal!important;
+ filter:none!important;
+ text-shadow:0 1px 1px #091927!important;
+}
+html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats .score-compact small,
+html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats .score-compact small{
+ overflow:visible!important;text-overflow:clip!important;
+}
+@media(max-width:330px){
+ html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats,
+ html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats {
+  grid-template-columns:minmax(0,40fr) minmax(0,26fr) minmax(0,34fr)!important;
+  gap:2px!important;
+ }
+}
