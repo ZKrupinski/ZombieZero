@@ -605,3 +605,32 @@ html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-por
     -webkit-text-stroke:.58px currentColor!important;
   }
 }
+
+
+/* v226: Large animated PAUSED heading; keep the game's bold pixel type. */
+#overlay[data-screen="pause"] > #title{
+ font-family:'Press Start 2P','Courier New',monospace!important;
+ font-size:clamp(27px,calc(35px * var(--ui-scale,1)),37px)!important;
+ font-weight:400!important;
+ font-synthesis:none!important;
+ line-height:1.35!important;
+ letter-spacing:0!important;
+ white-space:nowrap!important;
+ -webkit-text-stroke:.85px currentColor!important;
+ color:#ffdd76!important;
+ text-shadow:0 3px 0 #202a32,0 0 5px #ffdc78,0 0 12px #ffcd6bba,0 0 23px #ffc04f73!important;
+ animation:zz-paused-sign-pulse 2.45s ease-in-out infinite!important;
+}
+@keyframes zz-paused-sign-pulse{
+ 0%,38%,62%,100%{opacity:1;filter:brightness(1.10)}
+ 44%,54%{opacity:.72;filter:brightness(.77)}
+ 59%{opacity:1;filter:brightness(1.22)}
+}
+@media(max-width:360px){
+ #overlay[data-screen="pause"] > #title{
+  font-size:clamp(23px,calc(30px * var(--ui-scale,1)),32px)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay[data-screen="pause"] > #title{animation:none!important;opacity:1!important;filter:none!important}
+}
