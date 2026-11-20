@@ -42,19 +42,18 @@ html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats #score {
  display:block!important;
  width:max-content!important;
  max-width:100%!important;
- font-family:Arial,'Noto Sans KR',sans-serif!important;
- font-size:max(9px,calc(15px * var(--ui-scale,1) * var(--zz-score-shrink,1)))!important;
- font-weight:900!important;
+ font-family:'Press Start 2P','Courier New',monospace!important;
+ font-size:max(8px,calc(14px * var(--ui-scale,1) * var(--zz-score-shrink,1)))!important;
+ font-weight:400!important;
+ font-synthesis:none!important;
  font-variant-numeric:tabular-nums!important;
- letter-spacing:-.035em!important;
+ letter-spacing:-.055em!important;
  line-height:1.28!important;
  color:#f4f1de!important;
  white-space:nowrap!important;
  overflow:visible!important;
  text-overflow:clip!important;
- mix-blend-mode:normal!important;
- filter:none!important;
- text-shadow:0 1px 1px #091927!important;
+ text-shadow:0 1px 0 #081b20,0 0 3px #fff3b6bb,0 0 8px #ffe37573,0 0 14px #ffc34c3d!important;
 }
 html.portrait-play.zz-endless-hud .machine>.hud>.hud-center-stats .score-compact small,
 html.landscape-game.zz-endless-hud .machine>.hud>.hud-center-stats .score-compact small{
