@@ -13,7 +13,7 @@ assert(css.includes('v226: Large animated PAUSED heading'),'pixel title version 
 assert(css.includes("animation:zz-paused-sign-pulse 2.45s ease-in-out infinite!important"),'soft pulse present');
 assert(css.includes('0 0 23px #ffc04f73'),'gold bloom effect present');
 assert(css.includes('@media(prefers-reduced-motion:reduce)'),'reduced motion respected');
-assert(html.includes('v=227-clear-pause-panel'),'browser reloads new stylesheet');
+assert(/menu-zombie-palette-v211\.css\?v=\d+-[a-z0-9-]+/.test(html),'browser loads versioned stylesheet');
 assert(css.includes('background:rgba(11,20,28,.32)!important'),'game scene remains visible outside pause panel');
 assert(css.includes('rgba(40,66,73,.34)')&&css.includes('rgba(14,29,39,.43)'),'panel has translucent gradient');
 assert(!css.includes('backdrop-filter:blur('),'pause screen avoids expensive backdrop blur');
