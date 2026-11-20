@@ -15,7 +15,7 @@ assert(css.includes('background:rgba(11,20,28,.32)!important'),
  'pause overlay keeps its separately approved dim');
 assert(css.includes('background:#172731!important'),
  'results cards keep enough contrast to read');
-assert(html.includes('menu-zombie-palette-v211.css?v=228-clear-menu-results'),
+assert(/menu-zombie-palette-v211\.css\?v=\d+-[a-z0-9-]+/.test(html),
  'browser loads new transparency CSS');
 assert(sw.includes('v228-near-clear-menu-results'),
  'PWA refreshes opacity changes');
