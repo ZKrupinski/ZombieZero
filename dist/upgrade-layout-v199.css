@@ -1,0 +1,337 @@
+/* ZOMBIE ZERO v199: full 9:16 upgrade-screen overlap repair.
+   Keep the approved v198 raster metal frames, columns, sign, and buttons.
+   The source atlas row artwork has baked LV/icons/pips. Its interior MUST be
+   masked beneath live game data so labels and progress are never doubled. */
+
+/* The approved atlas stays underneath all interactable, accessible text. */
+#upgrade-dialog .zz-upgrade-list.zz-upgrade-overview{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  gap:clamp(3px,.9vw,7px)!important;
+  padding:4px clamp(3px,.75vw,7px) 7px!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-column{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:clamp(29px,4.6dvh,41px) repeat(9,minmax(0,1fr))!important;
+  gap:clamp(2px,.4dvh,4px)!important;
+  padding:4px 4px 7px!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-column h3{
+  min-width:0!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+/* The atlas's static LV and five pips are printed IN the raster row images.
+   A full-coverage opaque insert masks these markings, leaving the illustrated
+   outer neon/metal edging visible. Live game values are rendered once above it. */
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-card{
+  position:relative!important;
+  isolation:isolate;
+  display:flex!important;
+  align-items:center!important;
+  flex-direction:row!important;
+  justify-content:flex-start!important;
+  min-height:0!important;
+  height:100%!important;
+  padding:clamp(3px,.45dvh,5px) clamp(4px,.65vw,6px)!important;
+  gap:clamp(3px,.65vw,6px)!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  border:0!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-card::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  inset:clamp(2px,.28dvh,3px) clamp(3px,.55vw,5px);
+  pointer-events:none;
+  border-radius:4px;
+  background:linear-gradient(180deg,#223047 0%,#15243c 53%,#1b2e46 100%);
+  box-shadow:inset 0 1px 0 #8eb6d129,inset 0 -1px 0 #030b27;
+}
+#upgrade-dialog .zz-group-weapon .zz-upgrade-card::before{
+  background:linear-gradient(180deg,#3b293f 0%,#241c35 57%,#2b213a 100%);
+  border:1px solid #dc8bba23;
+}
+#upgrade-dialog .zz-group-citizen .zz-upgrade-card::before{
+  background:linear-gradient(180deg,#224e45 0%,#123b37 57%,#17443c 100%);
+  border:1px solid #95e5a02e;
+}
+#upgrade-dialog .zz-group-survival .zz-upgrade-card::before{
+  background:linear-gradient(180deg,#383459 0%,#20243f 57%,#2c2d53 100%);
+  border:1px solid #b4a9fc30;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-card.selected::before{
+  background:linear-gradient(180deg,#3d5a48,#223d34 60%,#315847);
+  border:1px solid #defd9b9c;
+  box-shadow:inset 0 0 9px #bbf95a2b;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-icon{
+  position:relative!important;
+  z-index:1!important;
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 clamp(23px,6vw,34px)!important;
+  width:clamp(23px,6vw,34px)!important;
+  height:clamp(23px,6vw,34px)!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background-color:transparent!important;
+  box-shadow:0 1px 4px #0007!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-passive{
+  border:1px solid #c9e0bb55!important;
+  border-radius:5px!important;
+  background:radial-gradient(circle at 45% 32%,#618177,#2d4350 82%)!important;
+  font-size:clamp(17px,4.4vw,25px)!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-compact-copy{
+  position:relative!important;
+  z-index:1!important;
+  display:flex!important;
+  flex:1 1 0!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:flex-start!important;
+  gap:clamp(1px,.15dvh,2px)!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  margin:0!important;
+  padding:0 1px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-compact-copy>b{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font:900 clamp(10px,2.65vw,14px)/1.13 Arial,'Noto Sans KR',sans-serif!important;
+  letter-spacing:-.05em!important;
+  color:#fcfbf2!important;
+  text-shadow:1px 1px 1px #070a1a!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-joke{
+  display:block!important;
+  width:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font:700 clamp(8px,1.93vw,10px)/1.14 Arial,'Noto Sans KR',sans-serif!important;
+  letter-spacing:-.04em!important;
+  color:#ffe29d!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-mini-level{
+  display:flex!important;
+  flex:none!important;
+  justify-content:flex-start!important;
+  align-items:center!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-height:0!important;
+  gap:clamp(3px,.6vw,6px)!important;
+  overflow:visible!important;
+  color:#fff6af!important;
+  font:900 clamp(9px,2.2vw,11px)/1 monospace!important;
+  white-space:nowrap!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  flex:none!important;
+  gap:clamp(2px,.4vw,3px)!important;
+  min-width:0!important;
+  margin:0!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips>i{
+  display:block!important;
+  flex:0 0 clamp(7px,1.45vw,9px)!important;
+  box-sizing:border-box!important;
+  width:clamp(7px,1.45vw,9px)!important;
+  height:clamp(9px,1.7dvh,12px)!important;
+  min-height:0!important;
+  border:1px solid #b1b8d7!important;
+  border-radius:2px!important;
+  background:#17192c!important;
+  box-shadow:inset 0 0 3px #9aa7bd30!important;
+}
+#upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips>i.filled{
+  border-color:#edff88!important;
+  background:linear-gradient(180deg,#eaff77 0%,#abf51b 50%,#39c713 100%)!important;
+  box-shadow:0 0 5px 1px #b5ff37b9,inset 0 0 3px #fff8b9!important;
+}
+
+/* The detail atlas includes a decorative blank icon square AND a fixed arrow
+   panel. Neither is a second actionable icon or an actual stat label.
+   Cover only the inside of the art, preserving its outer metal and floodlights,
+   and lay out selected-skill data + action in two non-overlapping columns. */
+#upgrade-dialog .zz-upgrade-detail{
+  position:relative!important;
+  isolation:isolate;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) clamp(105px,27%,152px)!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:clamp(3px,.6dvh,6px) clamp(8px,1.5vw,13px)!important;
+  height:clamp(100px,15dvh,132px)!important;
+  min-height:0!important;
+  padding:clamp(12px,1.75dvh,18px) clamp(10px,2vw,15px)!important;
+  background-image:url('assets/ui/upgrade-detail-v198.webp')!important;
+  background-position:center!important;
+  background-size:100% 100%!important;
+  background-repeat:no-repeat!important;
+  overflow:hidden!important;
+}
+#upgrade-dialog .zz-upgrade-detail::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:clamp(13px,2.5vw,19px);
+  right:29%;
+  top:14%;
+  bottom:15%;
+  border:1px solid #6688a0a0;
+  border-radius:6px;
+  background:linear-gradient(120deg,#14283df6,#1d354aF6 52%,#152a42fb);
+  box-shadow:inset 0 0 12px #0b1527a8,0 1px 0 #a0c7e029;
+  pointer-events:none;
+}
+#upgrade-dialog .zz-upgrade-detail-top,
+#upgrade-dialog .zz-upgrade-detail-effects{
+  position:relative!important;
+  z-index:1!important;
+  grid-column:1!important;
+  min-width:0!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0 clamp(4px,.9vw,8px)!important;
+  overflow:visible!important;
+}
+#upgrade-dialog .zz-upgrade-detail-top{
+  grid-row:1!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:baseline!important;
+  justify-content:flex-start!important;
+  gap:clamp(3px,.7vw,7px)!important;
+}
+#upgrade-dialog .zz-upgrade-detail-top strong{
+  max-width:100%!important;
+  white-space:normal!important;
+  font:900 clamp(14px,3.4vw,20px)/1.12 Arial,'Noto Sans KR',sans-serif!important;
+  color:#f3fb99!important;
+  text-shadow:1px 2px 0 #0c182a,0 0 6px #d8ee6f69!important;
+}
+#upgrade-dialog .zz-upgrade-detail-top>span{
+  white-space:nowrap!important;
+  font:800 clamp(10px,2.4vw,13px)/1.1 monospace!important;
+  color:#e9f3d4!important;
+}
+#upgrade-dialog .zz-upgrade-detail-effects{
+  grid-row:2!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  align-content:center!important;
+  justify-content:flex-start!important;
+  gap:2px 5px!important;
+  font:700 clamp(10px,2.3vw,12px)/1.2 Arial,'Noto Sans KR',sans-serif!important;
+  color:#f0eee6!important;
+}
+#upgrade-dialog .zz-upgrade-detail-effects strong{
+  color:#daff77!important;
+}
+#upgrade-dialog .zz-upgrade-detail-effects span[aria-hidden="true"]{
+  color:#faffb5!important;
+  font-size:15px!important;
+}
+#upgrade-dialog #upgrade-detail-buy{
+  position:relative!important;
+  z-index:2!important;
+  grid-column:2!important;
+  grid-row:1/3!important;
+  align-self:stretch!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:50px!important;
+  margin:0!important;
+  padding:5px 9px!important;
+  font:900 clamp(13px,3.4vw,20px)/1.15 Arial,sans-serif!important;
+  letter-spacing:-.035em!important;
+  border:0!important;
+  color:#2c2309!important;
+  border-radius:5px!important;
+  background-image:url('assets/ui/upgrade-gold-button-v198.webp')!important;
+  background-repeat:no-repeat!important;
+  background-position:center!important;
+  background-size:100% 100%!important;
+}
+#upgrade-dialog #upgrade-detail-buy:disabled{
+  filter:grayscale(.68) brightness(.83)!important;
+  color:#33313d!important;
+}
+@media(max-width:410px){
+ #upgrade-dialog .zz-upgrade-list.zz-upgrade-overview{
+  gap:2px!important;
+  padding:2px 3px 4px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-column{
+  padding:2px 2px 4px!important;
+  gap:2px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-card{
+  gap:2px!important;
+  padding:2px 3px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-icon{
+  flex-basis:22px!important;
+  width:22px!important;
+  height:22px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-compact-copy>b{
+  font-size:10px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-joke{
+  font-size:8px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips>i{
+  flex-basis:7px!important;
+  width:7px!important;
+ }
+ #upgrade-dialog .zz-upgrade-detail{
+  padding:10px 10px!important;
+  grid-template-columns:minmax(0,1fr) 110px!important;
+ }
+ #upgrade-dialog .zz-upgrade-detail::before{right:31%!important}
+}
+@media(max-height:660px){
+ #upgrade-dialog .zz-upgrade-detail{height:96px!important;padding:10px 10px!important}
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-column{
+  grid-template-rows:26px repeat(9,minmax(0,1fr))!important;
+  gap:1px!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-compact-copy{
+  gap:0!important;
+ }
+ #upgrade-dialog .zz-upgrade-overview .zz-upgrade-joke{
+  font-size:7.5px!important;
+ }
+}
