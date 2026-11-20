@@ -25,4 +25,14 @@ assert(html.indexOf('menu-pages.js?v=')>html.indexOf('app.js?v='),'help controll
 assert(html.indexOf('menu-pages.js?v=')<html.indexOf('cast-demo.js?v='),'help navigation loads before sprite demo');
 assert(sw.includes("'./menu-pages.js'"),'PWA keeps menu controller offline');
 assert(app.includes("const scale=Math.min(width/450,height/710)"),'game world scale remains unchanged for fair physics');
+assert(css.includes('/* v197: use exact, unchanged game PNG sprites'),'uses original approved cast');
+assert(css.includes('assets/ip/hero-idle-v55.png?v=55-approved-cast'),'approved 3-hero sprite atlas');
+assert(css.includes('background-size:800% 300%'),'approved eight-by-three hero atlas cells');
+assert(css.includes('.zz-original-ace{background-position-y:0%'),'Ace first row');
+assert(css.includes('.zz-original-ruby{background-position-y:50%'),'Ruby middle row');
+assert(css.includes('.zz-original-ria{background-position-y:100%'),'Ria final row');
+assert(css.includes('assets/ip/v2/green_zombie.png')&&css.includes('assets/ip/v2/red_brain_cube.png'),'zombies use unchanged original PNG atlases');
+assert(html.includes('zz-original-heroes')&&html.includes('zz-original-zombies'),'original sprites included in upgrade header');
+assert.equal((html.match(/class="zz-original-hero zz-original-/g)||[]).length,3,'all three actual game heroes');
+assert.equal((html.match(/class="zz-original-zombie zz-original-/g)||[]).length,2,'original zombie sprites');
 console.log('PASS: 9:16 selection/results, 23-skill one-screen overview, paged guide/gallery and unchanged contained game physics');
