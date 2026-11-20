@@ -34,7 +34,13 @@
    padding-right:4cqw!important;
  }
  .zz-upgrade-wallet strong {font-size:3.4cqw!important;min-width:0!important}
- .zz-upgrade-columns-heading {background-size:auto 90%!important}
+ .zz-upgrade-columns-heading {
+   display:grid!important;place-items:center;background:none!important;
+ }
+ .zz-upgrade-columns-heading span {
+   padding:.35cqw 3cqw;border:1px solid #dfb756;border-radius:1cqw;
+   background:#16172c;color:#ffe68b;font:800 2.25cqw/1.1 Arial,sans-serif;letter-spacing:.09em;
+ }
  .zz-upgrade-list.zz-upgrade-overview {padding:.7cqw!important;gap:.7cqw!important;background:none!important}
  .zz-group-weapon {--edge:#e579a6;--base:#41223b}
  .zz-group-citizen {--edge:#7ccc95;--base:#183e37}

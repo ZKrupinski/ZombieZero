@@ -714,7 +714,7 @@ function updateStandDanger(dt){
  standDangerTime=0;
  if(wave<20||!standReady())return;
  for(const z of foes){
-  if(z.y+z.h<DEFENSE_Y-STAND_DANGER_DISTANCE-growth('earlyWarning')*8){
+  if(z.y+z.h<DEFENSE_Y-STAND_DANGER_DISTANCE){
    z.standDangerTime=0;
    continue;
   }
@@ -749,7 +749,7 @@ function triggerLastStand(){if(wave<20||!standReady()||standDangerTime<STAND_DAN
  }
  sfx('bosskill');feedback('lastStand');return true}
 function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=String(score);$('result-best').textContent=String(best);overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave');feedback('victory')}
-function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70-growth('earlyWarning')*8)return;if(standDangerTime>0){
+function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;if(standDangerTime>0){
   const urgency=Math.min(1,standDangerTime/STAND_DANGER_SECONDS);
   g.save();g.globalAlpha=.8+.2*Math.sin(clock*(8+urgency*4));
   rect(20,DEFENSE_Y-3,410,6,'#ff425e');

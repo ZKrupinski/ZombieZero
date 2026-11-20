@@ -25,7 +25,7 @@ const sandbox={
 vm.createContext(sandbox);
 vm.runInContext(source,sandbox);
 let api=sandbox.window.ZZProgression;
-assert(api&&api.defs.length===23,'all 23 growth upgrades exist');
+assert(api&&api.defs.length===22,'all 22 growth upgrades exist');
 assert.equal(api.chips(),0);
 assert.equal(api.level('dual'),0);
 assert.equal(api.purchase('dual'),false,'insufficient chips cannot buy');
@@ -52,7 +52,7 @@ assert(nodes['upgrade-dialog'].open,'native dialog opens');
 assert(nodes['upgrade-list'].innerHTML.includes('더블볼'),'weapon column renders');
 assert(nodes['upgrade-list'].innerHTML.includes('안죽어요!'),'citizen column renders with approved comic label');
 assert(nodes['upgrade-list'].innerHTML.includes('최후의 저항'),'survival column renders');
-assert.equal((nodes['upgrade-list'].innerHTML.match(/data-select="/g)||[]).length,23,'all 23 skills visible simultaneously');
+assert.equal((nodes['upgrade-list'].innerHTML.match(/data-select="/g)||[]).length,22,'all 22 skills visible simultaneously');
 assert.equal((nodes['upgrade-list'].innerHTML.match(/zz-upgrade-column /g)||[]).length,3,'exactly 3 groups');
 listeners['upgrade-list:click']({target:{closest:()=>({dataset:{select:'citizenArmor'}})}});
 assert.equal(nodes['upgrade-detail-name'].textContent,'안죽어요!');
@@ -94,7 +94,7 @@ for(const def of api.defs){
  for(let lv=api.level(def.id)+1;lv<=5;lv++)assert.equal(api.purchase(def.id),true,def.id+' Lv'+lv);
  assert.equal(api.purchase(def.id),false,'cannot exceed Lv5 '+def.id);
 }
-assert.equal(api.defs.reduce((sum,d)=>sum+api.level(d.id),0),23*5);
+assert.equal(api.defs.reduce((sum,d)=>sum+api.level(d.id),0),22*5);
 assert.equal(api.duration('fire',1),13);
 assert.equal(api.duration('fire',1.25),16.25);
 assert.equal(api.rescueKills(),4);
@@ -114,10 +114,18 @@ assert.equal(api.groggySeconds(),1.35);
 assert.equal(api.comboSeconds(),7.2);
 assert.equal(api.pickupWidth(),85);
 assert.equal(api.paddleBonus(),10);
-assert.equal(api.warningBonus(),40);
+assert.equal(api.purchase('earlyWarning'),false);
+assert.deepEqual(Array.from(api.defs.filter(d=>d.group==='citizen').slice(-2),d=>d.id),['itemMagnet','sweetSpot']);
+const retired=JSON.parse(store.get('zz-growth-v1'));
+retired.levels.earlyWarning=3;
+store.set('zz-growth-v1',JSON.stringify(retired));
+vm.runInContext(source,sandbox);
+assert.equal(sandbox.window.ZZProgression.chips(),retired.chips+100);
+
 vm.runInContext(source,sandbox);
 api=sandbox.window.ZZProgression;
+assert.equal(api.chips(),retired.chips+100,'refund occurs once');
 assert.equal(api.level('citizenArmor'),5,'max ranks survive reload');
 assert.equal(api.level('lastStand'),5,'last stand persists');
 
-console.log('PASS v196: 23 upgrades in 3 visible columns, selected purchase detail, permanent wallet and gameplay hooks');
+console.log('PASS v196: 22 upgrades in 3 visible columns, selected purchase detail, permanent wallet and gameplay hooks');

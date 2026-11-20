@@ -31,12 +31,11 @@
   {id:'recover',group:'survival',name:'빠른 안정화',tag:'RECOVER',symbol:'⌛'},
   {id:'mental',group:'survival',name:'정신력',tag:'GROGGY',symbol:'◆'},
   {id:'comboFocus',group:'survival',name:'콤보 집중력',tag:'COMBO',symbol:'×'},
-  {id:'itemMagnet',group:'survival',name:'보급품 회수',tag:'PICKUP',symbol:'⊕'},
-  {id:'sweetSpot',group:'survival',name:'라켓 스위트스폿',tag:'RACKET',symbol:'◇'},
-  {id:'earlyWarning',group:'survival',name:'위기 감지',tag:'WARNING',symbol:'!'}
+  {id:'itemMagnet',group:'citizen',name:'보급품 회수',tag:'PICKUP',symbol:'⊕'},
+  {id:'sweetSpot',group:'citizen',name:'라켓 스위트스폿',tag:'RACKET',symbol:'◇'},
  ];
- const funnyNames={dual:'공 하나 더!',triple:'공 셋이야!',power:'빡센볼!',fire:'화르륵볼!',slow:'질질볼!',pierce:'뚫어뻥샷!',shield:'철벽막!',bazooka:'오래쏴!',rescue:'번개구조!',citizenArmor:'안죽어요!',citizenCrit:'대박투척!',citizenPower:'더쎈시민!',bazookaPower:'크게쏴!',bazookaReload:'빨리쏴!',lastStand:'한판더!',poisonResist:'침참기!',detox:'독빼기!',recover:'멘탈회복!',mental:'깡다구!',comboFocus:'끊지마!',itemMagnet:'줍줍왕!',sweetSpot:'찰떡존!',earlyWarning:'위험띵!'};
- const skillJokes={dual:'공이 하나 더!',triple:'공이 세 개!',power:'한 방이 묵직!',fire:'좀비 구이!',slow:'좀비 느릿!',pierce:'줄줄이 뻥!',shield:'잠깐 무적!',bazooka:'바주카 오래!',rescue:'시민 후다닥!',citizenArmor:'한 번 더!',citizenCrit:'가끔 대박!',citizenPower:'투척 더 아프게!',bazookaPower:'더 세고 넓게!',bazookaReload:'장전 후딱!',lastStand:'아직 안 끝났어!',poisonResist:'침 맞아도 버텨!',detox:'독이 쏙쏙!',recover:'회복 재빨리!',mental:'그로기 짧게!',comboFocus:'콤보 끊지 마!',itemMagnet:'멀리서도 줍줍!',sweetSpot:'라켓 더 넓게!',earlyWarning:'위험 미리 경고!'};
+ const funnyNames={dual:'공 하나 더!',triple:'공 셋이야!',power:'빡센볼!',fire:'화르륵볼!',slow:'질질볼!',pierce:'뚫어뻥샷!',shield:'철벽막!',bazooka:'오래쏴!',rescue:'번개구조!',citizenArmor:'안죽어요!',citizenCrit:'대박투척!',citizenPower:'더쎈시민!',bazookaPower:'크게쏴!',bazookaReload:'빨리쏴!',lastStand:'한판더!',poisonResist:'침참기!',detox:'독빼기!',recover:'멘탈회복!',mental:'깡다구!',comboFocus:'끊지마!',itemMagnet:'줍줍왕!',sweetSpot:'찰떡존!'};
+ const skillJokes={dual:'공이 하나 더!',triple:'공이 세 개!',power:'한 방이 묵직!',fire:'좀비 구이!',slow:'좀비 느릿!',pierce:'줄줄이 뻥!',shield:'잠깐 무적!',bazooka:'바주카 오래!',rescue:'시민 후다닥!',citizenArmor:'한 번 더!',citizenCrit:'가끔 대박!',citizenPower:'투척 더 아프게!',bazookaPower:'더 세고 넓게!',bazookaReload:'장전 후딱!',lastStand:'아직 안 끝났어!',poisonResist:'침 맞아도 버텨!',detox:'독이 쏙쏙!',recover:'회복 재빨리!',mental:'그로기 짧게!',comboFocus:'콤보 끊지 마!',itemMagnet:'멀리서도 줍줍!',sweetSpot:'라켓 더 넓게!'};
 
  const map=Object.fromEntries(defs.map(d=>[d.id,d]));
  let state={version:1,chips:0,levels:{},claims:{},runSeq:0};
@@ -52,6 +51,11 @@
     const entries=Object.keys(raw.claims).slice(-1600);
     for(const k of entries)if(raw.claims[k])state.claims[k]=1;
    }
+   const retiredRank=int(raw.levels?.earlyWarning,0,MAX_LEVEL);
+   if(retiredRank){
+    state.chips=int(state.chips+PRICES.slice(0,retiredRank).reduce((sum,price)=>sum+price,0),0,1e9);
+    save();
+   }
   }catch{}
  }
  function save(){
@@ -60,7 +64,7 @@
  }
  read();
  let runKey='',runMode='',selectedSkill='dual';
- // All 23 upgrades are visible in one fixed 9:16 catalogue. Selecting an
+ // All 22 upgrades are visible in one fixed 9:16 catalogue. Selecting an
  // entry opens its effects and one generously sized purchase button below.
  const $=id=>document.getElementById(id);
  function level(id){return map[id]?int(state.levels[id],0,MAX_LEVEL):0}
@@ -114,7 +118,6 @@
  function comboSeconds(){return 6+level('comboFocus')*.24}
  function pickupWidth(){return 65+level('itemMagnet')*4}
  function paddleBonus(){return level('sweetSpot')*2}
- function warningBonus(){return level('earlyWarning')*8}
  function example(id,l){
   if(baseDuration[id]!==undefined)return (baseDuration[id]*(1+l*.06)).toFixed(1).replace(/\.0$/,'')+'초 지속';
   switch(id){
@@ -132,7 +135,6 @@
    case 'comboFocus':return '콤보 유지 '+(6+l*.24).toFixed(2)+'초';
    case 'itemMagnet':return '아이템 판정 +'+(l*4)+'px';
    case 'sweetSpot':return '반사 폭 +'+(l*4)+'px';
-   case 'earlyWarning':return '위기 경고 +'+(l*8)+'px';
   }
   return '';
  }
@@ -210,7 +212,7 @@
   version:1,defs,level,chips,cost,purchase,startRun,grant,refresh,open,
   duration,rescueKills,rescueAbsent,citizenGuardChance,citizenCriticalChance,citizenDamage,
   bazookaDamage,bazookaRadiusBonus,bazookaInterval,lastStandDistance,lastStandUses,
-  poisonFactor,detoxRate,poisonGrace,groggySeconds,comboSeconds,pickupWidth,paddleBonus,warningBonus,
+  poisonFactor,detoxRate,poisonGrace,groggySeconds,comboSeconds,pickupWidth,paddleBonus,
   debug:()=>({chips:state.chips,levels:{...state.levels},runKey,claims:Object.keys(state.claims).length})
  };
 })();
