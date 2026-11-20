@@ -56,8 +56,9 @@
   catch{return false}
  }
  read();
- let runKey='',runMode='',activeTab='weapon',activePage=0;
- const PAGE_SIZE=3; // one portrait 9:16 page; never overflow a scroll container
+ let runKey='',runMode='',selectedSkill='dual';
+ // All 23 upgrades are visible in one fixed 9:16 catalogue. Selecting an
+ // entry opens its effects and one generously sized purchase button below.
  const $=id=>document.getElementById(id);
  function level(id){return map[id]?int(state.levels[id],0,MAX_LEVEL):0}
  function cost(id){const n=level(id);return n>=MAX_LEVEL?0:PRICES[n]}
@@ -142,60 +143,60 @@
   if(wallet)wallet.textContent=state.chips.toLocaleString('ko-KR');
   const panel=$('upgrade-list');if(panel&&$('upgrade-dialog')?.open)renderList();
  }
+ function renderDetail(){
+  const d=map[selectedSkill]||defs[0];
+  const n=level(d.id),max=n>=MAX_LEVEL,c=cost(d.id),affordable=state.chips>=c;
+  const title=$('upgrade-detail-name'),rank=$('upgrade-detail-level');
+  const current=$('upgrade-detail-current'),next=$('upgrade-detail-next'),buy=$('upgrade-detail-buy');
+  if(title)title.textContent=d.name;
+  if(rank)rank.textContent='LV '+n+' / 5';
+  if(current)current.textContent=example(d.id,n);
+  if(next)next.textContent=max?'성장 완료':example(d.id,n+1);
+  if(buy){
+   buy.disabled=max||!affordable;
+   buy.textContent=max?'MAX LEVEL':'강화 · '+c+' Z';
+   buy.setAttribute('aria-label',d.name+(max?' 최고 레벨':' 강화 '+c+' Z-CHIP'));
+  }
+ }
  function renderList(){
   const list=$('upgrade-list');if(!list)return;
-  const group=defs.filter(d=>d.group===activeTab);
-  const pageCount=Math.max(1,Math.ceil(group.length/PAGE_SIZE));
-  activePage=Math.max(0,Math.min(pageCount-1,activePage));
-  const html=group.slice(activePage*PAGE_SIZE,(activePage+1)*PAGE_SIZE).map(d=>{
-   const n=level(d.id),max=n===MAX_LEVEL,c=cost(d.id);
-   const progress=Array.from({length:5},(_,i)=>'<i'+(i<n?' class="filled"':'')+'></i>').join('');
-   const detail=max?'MAX LEVEL':(example(d.id,n)+'  →  '+example(d.id,n+1));
-   return '<article class="zz-upgrade-card" data-upgrade-id="'+d.id+'">'+iconHTML(d)+
-    '<div class="zz-upgrade-info"><span class="zz-upgrade-eyebrow">'+d.tag+'</span><h3>'+d.name+'</h3>'+
-    '<div class="zz-upgrade-level"><span>LV '+n+'/5</span><div class="zz-upgrade-pips">'+progress+'</div></div>'+
-    '<p>'+detail+'</p></div><button type="button" class="zz-upgrade-buy" data-buy="'+d.id+'" '+
-    (max||state.chips<c?'disabled':'')+' aria-label="'+d.name+' 강화">'+
-    (max?'MAX':c+' <small>Z</small>')+'</button></article>';
+  // The three category columns share nine fixed rows, leaving every
+  // WEAPON/CITIZEN/SURVIVAL skill visible with no tab or page switching.
+  list.innerHTML=GROUPS.map(group=>{
+   const entries=defs.filter(d=>d.group===group.id).map(d=>{
+    const n=level(d.id),max=n===MAX_LEVEL,selected=d.id===selectedSkill;
+    const pips=Array.from({length:5},(_,i)=>'<i'+(i<n?' class="filled"':'')+'></i>').join('');
+    return '<button type="button" class="zz-upgrade-card'+(selected?' selected':'')+
+     '" data-select="'+d.id+'" aria-pressed="'+String(selected)+'"'+
+     ' aria-label="'+d.name+', 레벨 '+n+'/5, '+(max?'최대 강화':'다음 강화 '+cost(d.id)+' Z-CHIP')+'">'+
+     iconHTML(d)+'<span class="zz-upgrade-compact-copy"><b>'+d.name+'</b>'+
+     '<span class="zz-upgrade-mini-level">LV '+n+'<span class="zz-upgrade-pips">'+pips+
+     '</span></span></span></button>';
+   }).join('');
+   return '<section class="zz-upgrade-column zz-group-'+group.id+'" aria-label="'+group.subtitle+'">'+
+    '<h3><span>'+group.name+'</span><small>'+group.subtitle+'</small></h3>'+entries+'</section>';
   }).join('');
-  list.innerHTML=html;
-  const pageStatus=$('upgrade-page-status'),prev=$('upgrade-page-prev'),next=$('upgrade-page-next');
-  if(pageStatus)pageStatus.textContent=(activePage+1)+' / '+pageCount;
-  if(prev)prev.disabled=activePage===0;
-  if(next)next.disabled=activePage>=pageCount-1;
-  const tabs=$('upgrade-tabs');
-  if(tabs)for(const tab of tabs.querySelectorAll('[data-growth-tab]')){
-   const selected=tab.dataset.growthTab===activeTab;
-   tab.classList.toggle('active',selected);
-   tab.setAttribute('aria-selected',String(selected));
-  }
+  renderDetail();
  }
  function open(){
   const modal=$('upgrade-dialog'),overlay=$('overlay');
   if(!modal||!overlay||overlay.hidden||!['selection','results'].includes(overlay.dataset.screen))return false;
-  if(!modal.open){activeTab='weapon';activePage=0;renderList();refresh();modal.showModal();}
+  if(!modal.open){selectedSkill='dual';renderList();refresh();modal.showModal();}
   return true;
  }
  function close(){const modal=$('upgrade-dialog');if(modal?.open)modal.close()}
  function initUI(){
-  const launch=$('upgrade-open'),dialog=$('upgrade-dialog'),tabs=$('upgrade-tabs'),list=$('upgrade-list');
-  if(!launch||!dialog||!tabs||!list)return;
+  const launch=$('upgrade-open'),dialog=$('upgrade-dialog'),list=$('upgrade-list');
+  if(!launch||!dialog||!list)return;
   launch.addEventListener('click',open);
   $('upgrade-close')?.addEventListener('click',close);
-  tabs.addEventListener('click',event=>{
-   const tab=event.target.closest?.('[data-growth-tab]');if(!tab)return;
-   if(!GROUPS.some(g=>g.id===tab.dataset.growthTab))return;
-   activeTab=tab.dataset.growthTab;activePage=0;renderList();
-  });
-  $('upgrade-page-prev')?.addEventListener('click',()=>{activePage=Math.max(0,activePage-1);renderList()});
-  $('upgrade-page-next')?.addEventListener('click',()=>{
-   const pages=Math.max(1,Math.ceil(defs.filter(d=>d.group===activeTab).length/PAGE_SIZE));
-   activePage=Math.min(pages-1,activePage+1);renderList();
-  });
   list.addEventListener('click',event=>{
-   const button=event.target.closest?.('button[data-buy]');
-   if(!button||button.disabled)return;
-   purchase(button.dataset.buy);
+   const card=event.target.closest?.('button[data-select]');
+   if(!card||!map[card.dataset.select])return;
+   selectedSkill=card.dataset.select;renderList();
+  });
+  $('upgrade-detail-buy')?.addEventListener('click',()=>{
+   if(purchase(selectedSkill))renderList();
   });
   refresh();
  }
