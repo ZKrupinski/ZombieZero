@@ -14,7 +14,7 @@ function node(id){
   showModal(){this.open=true},close(){this.open=false}
  };
 }
-const ids=['upgrade-open','upgrade-close','upgrade-dialog','upgrade-tabs','upgrade-list','upgrade-chip-count','upgrade-wallet','overlay'];
+const ids=['upgrade-open','upgrade-close','upgrade-dialog','upgrade-list','upgrade-chip-count','upgrade-wallet','overlay','upgrade-detail-name','upgrade-detail-level','upgrade-detail-current','upgrade-detail-next','upgrade-detail-buy'];
 const nodes=Object.fromEntries(ids.map(id=>[id,node(id)]));
 nodes.overlay.dataset.screen='selection';
 const sandbox={
@@ -49,9 +49,16 @@ assert.equal(api.bazookaInterval(),3);
 assert.equal(api.pickupWidth(),65);
 assert.equal(api.open(),true,'shop opens in character selection');
 assert(nodes['upgrade-dialog'].open,'native dialog opens');
-assert(nodes['upgrade-list'].innerHTML.includes('더블볼'),'weapon tab renders existing skills');
-listeners['upgrade-tabs:click']({target:{closest:()=>({dataset:{growthTab:'citizen'}})}});
-assert(nodes['upgrade-list'].innerHTML.includes('시민 방어훈련'),'citizen tab renders');
+assert(nodes['upgrade-list'].innerHTML.includes('더블볼'),'weapon column renders');
+assert(nodes['upgrade-list'].innerHTML.includes('시민 맷집'),'citizen column renders');
+assert(nodes['upgrade-list'].innerHTML.includes('최후의 저항'),'survival column renders');
+assert.equal((nodes['upgrade-list'].innerHTML.match(/data-select="/g)||[]).length,23,'all 23 skills visible simultaneously');
+assert.equal((nodes['upgrade-list'].innerHTML.match(/zz-upgrade-column /g)||[]).length,3,'exactly 3 groups');
+listeners['upgrade-list:click']({target:{closest:()=>({dataset:{select:'citizenArmor'}})}});
+assert.equal(nodes['upgrade-detail-name'].textContent,'시민 방어훈련');
+assert.equal(nodes['upgrade-detail-level'].textContent,'LV 0 / 5');
+assert(nodes['upgrade-detail-next'].textContent.includes('20%'),'details show next effect');
+assert.equal(nodes['upgrade-detail-buy'].disabled,false,'cost affordable');
 nodes['upgrade-dialog'].close();
 nodes.overlay.dataset.screen='pause';
 assert.equal(api.open(),false,'shop remains unavailable during a live pause');
@@ -113,4 +120,4 @@ api=sandbox.window.ZZProgression;
 assert.equal(api.level('citizenArmor'),5,'max ranks survive reload');
 assert.equal(api.level('lastStand'),5,'last stand persists');
 
-console.log('PASS v194: 23 upgrades, 3-tab shop, permanent wallet, purchase, duplicate reward protection, campaign/endless and gameplay hooks');
+console.log('PASS v196: 23 upgrades in 3 visible columns, selected purchase detail, permanent wallet and gameplay hooks');
