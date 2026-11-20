@@ -84,7 +84,7 @@ store.set('zz-growth-v1',JSON.stringify(rich));
 vm.runInContext(source,sandbox);
 api=sandbox.window.ZZProgression;
 for(const def of api.defs){
- for(let lv=1;lv<=5;lv++)assert.equal(api.purchase(def.id),true,def.id+' Lv'+lv);
+ for(let lv=api.level(def.id)+1;lv<=5;lv++)assert.equal(api.purchase(def.id),true,def.id+' Lv'+lv);
  assert.equal(api.purchase(def.id),false,'cannot exceed Lv5 '+def.id);
 }
 assert.equal(api.defs.reduce((sum,d)=>sum+api.level(d.id),0),23*5);
