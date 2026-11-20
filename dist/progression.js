@@ -56,7 +56,8 @@
   catch{return false}
  }
  read();
- let runKey='',runMode='',activeTab='weapon';
+ let runKey='',runMode='',activeTab='weapon',activePage=0;
+ const PAGE_SIZE=3; // one portrait 9:16 page; never overflow a scroll container
  const $=id=>document.getElementById(id);
  function level(id){return map[id]?int(state.levels[id],0,MAX_LEVEL):0}
  function cost(id){const n=level(id);return n>=MAX_LEVEL?0:PRICES[n]}
@@ -143,7 +144,10 @@
  }
  function renderList(){
   const list=$('upgrade-list');if(!list)return;
-  const html=defs.filter(d=>d.group===activeTab).map(d=>{
+  const group=defs.filter(d=>d.group===activeTab);
+  const pageCount=Math.max(1,Math.ceil(group.length/PAGE_SIZE));
+  activePage=Math.max(0,Math.min(pageCount-1,activePage));
+  const html=group.slice(activePage*PAGE_SIZE,(activePage+1)*PAGE_SIZE).map(d=>{
    const n=level(d.id),max=n===MAX_LEVEL,c=cost(d.id);
    const progress=Array.from({length:5},(_,i)=>'<i'+(i<n?' class="filled"':'')+'></i>').join('');
    const detail=max?'MAX LEVEL':(example(d.id,n)+'  →  '+example(d.id,n+1));
@@ -155,6 +159,10 @@
     (max?'MAX':c+' <small>Z</small>')+'</button></article>';
   }).join('');
   list.innerHTML=html;
+  const pageStatus=$('upgrade-page-status'),prev=$('upgrade-page-prev'),next=$('upgrade-page-next');
+  if(pageStatus)pageStatus.textContent=(activePage+1)+' / '+pageCount;
+  if(prev)prev.disabled=activePage===0;
+  if(next)next.disabled=activePage>=pageCount-1;
   const tabs=$('upgrade-tabs');
   if(tabs)for(const tab of tabs.querySelectorAll('[data-growth-tab]')){
    const selected=tab.dataset.growthTab===activeTab;
@@ -165,7 +173,7 @@
  function open(){
   const modal=$('upgrade-dialog'),overlay=$('overlay');
   if(!modal||!overlay||overlay.hidden||!['selection','results'].includes(overlay.dataset.screen))return false;
-  if(!modal.open){activeTab='weapon';renderList();refresh();modal.showModal();}
+  if(!modal.open){activeTab='weapon';activePage=0;renderList();refresh();modal.showModal();}
   return true;
  }
  function close(){const modal=$('upgrade-dialog');if(modal?.open)modal.close()}
@@ -177,7 +185,12 @@
   tabs.addEventListener('click',event=>{
    const tab=event.target.closest?.('[data-growth-tab]');if(!tab)return;
    if(!GROUPS.some(g=>g.id===tab.dataset.growthTab))return;
-   activeTab=tab.dataset.growthTab;renderList();
+   activeTab=tab.dataset.growthTab;activePage=0;renderList();
+  });
+  $('upgrade-page-prev')?.addEventListener('click',()=>{activePage=Math.max(0,activePage-1);renderList()});
+  $('upgrade-page-next')?.addEventListener('click',()=>{
+   const pages=Math.max(1,Math.ceil(defs.filter(d=>d.group===activeTab).length/PAGE_SIZE));
+   activePage=Math.min(pages-1,activePage+1);renderList();
   });
   list.addEventListener('click',event=>{
    const button=event.target.closest?.('button[data-buy]');
