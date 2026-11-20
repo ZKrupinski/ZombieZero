@@ -543,3 +543,42 @@ html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-por
 #overlay[data-screen] > #upgrade-open[data-upgrade-load="error"]{
  cursor:pointer!important;
 }
+
+
+/* v222: clean start and chip badge alignment.
+   Keep the existing artwork/9:16 layout; join the enlarged approved bitmap
+   Z-CHIP icon with the numerical balance so it reads as a single badge. */
+#overlay[data-screen="selection"] > #upgrade-open .zz-chip-amount,
+#overlay[data-screen="results"] > #upgrade-open .zz-chip-amount {
+ display:inline-flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ flex:0 0 auto!important;
+ gap:2px!important;
+ margin:0!important;
+ padding:0!important;
+ white-space:nowrap!important;
+ line-height:1!important;
+}
+#overlay[data-screen="selection"] > #upgrade-open .zz-chip-amount .zz-chip-mark,
+#overlay[data-screen="results"] > #upgrade-open .zz-chip-amount .zz-chip-mark {
+ display:inline-block!important;
+ flex:0 0 auto!important;
+ width:clamp(25px,calc(30px * var(--ui-scale,1)),34px)!important;
+ height:clamp(25px,calc(30px * var(--ui-scale,1)),34px)!important;
+ margin:0!important;
+ padding:0!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent url('assets/ui/chip-v203.webp') center / contain no-repeat!important;
+ box-shadow:none!important;
+ font-size:0!important;
+ line-height:1!important;
+}
+#overlay[data-screen="selection"] > #upgrade-open .zz-chip-amount strong,
+#overlay[data-screen="results"] > #upgrade-open .zz-chip-amount strong {
+ display:inline-block!important;
+ margin:0!important;
+ padding:0!important;
+ line-height:1!important;
+}
