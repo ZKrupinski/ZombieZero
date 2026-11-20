@@ -749,7 +749,7 @@ function triggerLastStand(){if(wave<20||!standReady()||standDangerTime<STAND_DAN
  }
  sfx('bosskill');feedback('lastStand');return true}
 function finishCampaign(){$('result-stage-label').textContent='도달 스테이지';endlessUnlocked=true;try{localStorage.setItem('zb-endless-unlocked','1')}catch{}mode='over';best=Math.max(best,score);try{localStorage.setItem('zr-best',best)}catch{}$('result-stage').textContent='50 스테이지 완주';$('result-cleared').textContent='50개 스테이지 클리어';$('result-score').textContent=String(score);$('result-best').textContent=String(best);overlay('50 STAGES<br><em>CLEAR!</em>','도시를 지켜냈습니다! 메인 메뉴에서 다음 도전을 선택하세요.','다시 시작','VICTORY');endlessUI();sfx('wave');feedback('victory')}
-function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70)return;if(standDangerTime>0){
+function drawDanger(){if(standRetreat.length)return;if(mode!=='playing'||balls[0]?.held||!foes.length)return;const nearest=foes.reduce((a,b)=>a.y+a.h>b.y+b.h?a:b);if(nearest.y+nearest.h<DEFENSE_Y-70-growth('earlyWarning')*8)return;if(standDangerTime>0){
   const urgency=Math.min(1,standDangerTime/STAND_DANGER_SECONDS);
   g.save();g.globalAlpha=.8+.2*Math.sin(clock*(8+urgency*4));
   rect(20,DEFENSE_Y-3,410,6,'#ff425e');
@@ -2143,7 +2143,7 @@ else{
  car+=clamp(target-car,-hero().speed*dt,hero().speed*dt);
 }
 for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}/* Preserve contacts through pierce expiry; clear only upon physical separation. */sfx('expire');hud()}}skillUI();
-for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65){items.splice(items.indexOf(item),1);activate(item.k,item.x,item.y)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
+for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65+growth('itemMagnet')*4){items.splice(items.indexOf(item),1);activate(item.k,item.x,item.y)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
 // A held serve pauses enemy marching and new attacks. Shots already airborne
 // still reach the hero, citizens or ground while the next ball is held.
 if(!balls[0]?.held)march(dt);
@@ -2196,7 +2196,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    break;
   }
  }
-if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
+if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1,'shield');sfx('shield');feedback('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
@@ -3678,7 +3678,7 @@ function updatePoisonStatus(dt){
  groggyTime=Math.max(0,groggyTime-dt);
  if(wasGroggy>0&&groggyTime===0){poison=18;poisonGrace=1}
  poisonGrace=Math.max(0,poisonGrace-dt);
- if(groggyTime===0&&poisonGrace===0)poison=Math.max(0,poison-POISON_DECAY*dt);
+ if(groggyTime===0&&poisonGrace===0)poison=Math.max(0,poison-POISON_DECAY*(1+growth('detox')*.12)*dt);
  poisonFlash=Math.max(0,poisonFlash-dt);
  // Ease in while poisoned / groggy; ease out once the toxin fully clears.
  // The meter has no permanent baseline when clean.
@@ -3703,10 +3703,10 @@ function shotTouchesHero(shot,from,to,oldCar=car){
 function blockHostileShot(shot,x,y){
  const shielded=has('shield');
  if(!shielded&&groggyTime<=0){
-  poison=Math.min(POISON_MAX,poison+(shot.type==='spit'?POISON_SPIT:POISON_TRASH));
-  poisonGrace=2.35;poisonFlash=.26;
+  poison=Math.min(POISON_MAX,poison+(shot.type==='spit'?POISON_SPIT:POISON_TRASH)*(1-growth('poisonResist')*.06));
+  poisonGrace=2.35-growth('recover')*.22;poisonFlash=.26;
   if(poison>=POISON_MAX){
-   poison=POISON_MAX;groggyTime=POISON_GROGGY_SECONDS;target=car;
+   poison=POISON_MAX;groggyTime=POISON_GROGGY_SECONDS-growth('mental')*.1;target=car;
    effect(car,PY-74,'#b7ff40',52,'GROGGY!');
    sfx('poison');feedback('groggy');
   }else{sfx('block');feedback('poisonBlock')}
@@ -3963,15 +3963,15 @@ function updateBazooka(dt){
   effect(r.tx,r.ty,'#ffd16c',radius*.94,'BAZOOKA!',false,false);feedback('blast');
   burst(r.tx,r.ty,'#ffae65',Math.round(14+radius*.27));
   sfx('blast');
-  for(const z of [...foes]){const dx=r.tx-clamp(r.tx,z.x,z.x+z.w),dy=r.ty-clamp(r.ty,z.y,z.y+z.h);if(dx*dx+dy*dy<=radius*radius){damage(z,BAZOOKA_DAMAGE,false,{x:z.x+z.w/2-r.tx,y:z.y+z.h/2-r.ty});if(mode!=='playing')return}}
+  for(const z of [...foes]){const dx=r.tx-clamp(r.tx,z.x,z.x+z.w),dy=r.ty-clamp(r.ty,z.y,z.y+z.h);if(dx*dx+dy*dy<=radius*radius){damage(z,BAZOOKA_DAMAGE+(typeof growth==='function'?growth('bazookaPower')*.4:0),false,{x:z.x+z.w/2-r.tx,y:z.y+z.h/2-r.ty});if(mode!=='playing')return}}
  }
  if(!has('bazooka')||!foes.length||(runMode!=='endless'&&balls[0]?.held))return;
  if(runMode==='endless'&&foes.some(z=>z.boss)&&supportRisk()<2)return;
  bazookaTimer-=dt;if(bazookaTimer>0)return;
  const alive=citizens.filter(p=>p.alive);if(!alive.length)return;
  const p=alive[Math.floor(Math.random()*alive.length)],z=foes[Math.floor(Math.random()*foes.length)],tx=z.x+z.w/2,ty=z.y+z.h/2;
- p.shooting=1.15;p.aim=Math.atan2(ty-(p.y-16),tx-p.x);bazookaTimer=3;
- rockets.push({sx:p.x,sy:p.y-16,tx,ty,radius:rollBazookaRadius(),t:0,duration:.7});citizenCue(p,false,'한 방 간다!');sfx('launch');burst(p.x,p.y-16,'#ffd16c',6);
+ p.shooting=1.15;p.aim=Math.atan2(ty-(p.y-16),tx-p.x);bazookaTimer=3-(typeof growth==='function'?growth('bazookaReload')*.08:0);
+ rockets.push({sx:p.x,sy:p.y-16,tx,ty,radius:rollBazookaRadius()+(typeof growth==='function'?Math.round(growth('bazookaPower')*1.6):0),t:0,duration:.7});citizenCue(p,false,'한 방 간다!');sfx('launch');burst(p.x,p.y-16,'#ffd16c',6);
 }
 function drawBazooka(){
  for(const p of citizens){
