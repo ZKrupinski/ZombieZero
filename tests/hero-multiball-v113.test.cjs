@@ -9,7 +9,7 @@ function run(count,active,key,held=false,random=.4){
   SKILLS:{dual:{duration:16,color:'blue'},triple:{duration:16,color:'purple'}},hero:()=>({duration:1}),
   has:k=>env.active[k]>0,clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),hud(){},retireBall(){},
   HERO_ATTACK_DURATION:.42,heroAttackTime:0,swing:0,sounds:[],sfx(k){this;env.sounds.push(k)},
-  itemPickupFX:[],effect(){},burst(){},feedback(){}};
+  itemPickupFX:[],effect(){},burst(){},feedback(){},growth(){return 0}};
  vm.createContext(env);vm.runInContext(newBall+functions,env);
  env.balls=Array.from({length:count},(_,i)=>env.newBall(100+i*20,180+i*15,125,-365,held));
  const originals=env.balls.map(b=>({...b})),refs=env.balls.slice();
