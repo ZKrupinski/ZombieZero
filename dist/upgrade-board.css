@@ -119,6 +119,10 @@
  .zz-upgrade-overview .zz-upgrade-icon {--icon:min(100cqh,45cqw);width:var(--icon)!important;height:var(--icon)!important;flex:0 0 var(--icon)!important;box-shadow:none!important}
  .zz-upgrade-overview .zz-upgrade-compact-copy {align-items:flex-end!important;text-align:right!important;gap:1.6cqw!important;padding-right:1.3cqw!important}
  .zz-upgrade-overview .zz-upgrade-compact-copy>b {font-size:9.4cqw!important}
+ .zz-upgrade-overview .zz-group-weapon .zz-upgrade-compact-copy>b {
+   font-size:8.6cqw!important;white-space:normal!important;word-break:keep-all;
+   overflow-wrap:anywhere;text-overflow:clip!important
+ }
  .zz-upgrade-overview .zz-upgrade-joke {font-size:7cqw!important}
  .zz-upgrade-overview .zz-upgrade-mini-level {font-family:var(--arcade)!important;font-size:6.7cqw!important;line-height:1.2!important;font-weight:400!important;justify-content:flex-end!important;flex-wrap:wrap!important;gap:1.1cqw!important}
  .zz-upgrade-overview .zz-upgrade-pips {gap:.8cqw!important}
@@ -161,9 +165,11 @@
  }
  #upgrade-preview-pips>i.preview {background-image:url('assets/ui/lamp-next-v206.webp')!important}
  .zz-upgrade-overview .zz-upgrade-compact-copy {gap:.75cqw!important}
- .zz-upgrade-detail {grid-template-columns:12cqw minmax(0,1fr) 25cqw!important;
-   grid-template-rows:auto auto!important;gap:.7cqw 1.6cqw!important;align-content:center;padding:1.3cqw 1.8cqw!important}
- #upgrade-detail-icon .zz-upgrade-icon {width:12cqw!important;height:12cqw!important}
+ .zz-upgrade-detail {container-type:size;grid-template-columns:auto minmax(0,1fr) 25cqw!important;
+   grid-template-rows:auto auto!important;gap:.7cqw 1.6cqw!important;align-content:stretch;padding:.65cqw 1.3cqw!important}
+ #upgrade-detail-icon {align-self:stretch;display:grid;place-items:center;width:100cqh}
+ #upgrade-detail-icon .zz-upgrade-icon {width:100cqh!important;height:100cqh!important;max-width:none!important;max-height:none!important}
+ #upgrade-detail-buy {height:auto!important;align-self:stretch!important;min-height:0!important}
  .zz-upgrade-detail-top {align-self:end;align-items:stretch!important;gap:.7cqw!important}
  .zz-upgrade-detail-top .rank-preview {display:grid;grid-template-columns:auto 1fr;align-items:center;gap:.5cqw 1.2cqw}
  .rank-preview small {font-size:2.6cqw}
