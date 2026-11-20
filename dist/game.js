@@ -1532,6 +1532,7 @@ const ENDLESS_SHIFT_SECONDS=1.8,ENDLESS_SHIFT_SPAWN_AT=.35;
 let endlessShiftTime=0,endlessShiftSpawned=false,endlessBackgroundWait=0;
 function beginEndlessShift(){
  if(runMode!=='endless'||mode!=='playing')return;
+ resetCitizenSpeech();
  window.ZZProgression?.grant?.('wave',wave-50,10);
  mode='endlessShift';endlessShiftTime=0;endlessShiftSpawned=false;
  endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));requestBossForWave(wave+1);
@@ -1544,7 +1545,7 @@ function beginEndlessShift(){
 }
 function beginClear(){
  if(runMode==='endless'){beginEndlessShift();return}
- if(mode!=='playing')return;window.ZZProgression?.grant?.('wave',wave,10);mode='clearing';clearTime=0;clearBurst=0;items=[];
+ if(mode!=='playing')return;resetCitizenSpeech();window.ZZProgression?.grant?.('wave',wave,10);mode='clearing';clearTime=0;clearBurst=0;items=[];
  // Begin downloading only the next campaign background at STAGE CLEAR.
  // The 2.8s result celebration is the loading/decoding window.
  if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1);requestBossForWave(wave+1)}
@@ -1555,6 +1556,7 @@ function beginClear(){
  $('toast').style.opacity=0;hud();$('status').textContent='';
 }
 function advanceStage(){
+ resetCitizenSpeech();
  if(runMode==='endless'){beginEndlessShift();return}
  if(runMode==='campaign'&&wave===50){finishCampaign();return}
  wave++;setStageBackground();
@@ -1567,6 +1569,7 @@ function advanceStage(){
 // Original assets and the 9x4 formation are preserved, with staggered fade-in.
 function refillEndlessWave(){
  if(runMode!=='endless'||mode!=='endlessShift'||endlessShiftSpawned!==true)return;
+ resetCitizenSpeech();
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);
  rack();
@@ -1708,6 +1711,7 @@ function activate(k,x=car,y=PY-24){
  if(k==='dual'||k==='triple')syncMulti(true);
  if(k==='bazooka'){bazookaTimer=0;lastSupportAt=clock}
  sfx('item');feedback('item');
+ citizenReaction('item');
  // A brief bitmap pickup confirmation at the actual caught-item position.
  // Do not grow or restyle the already-approved tiny equipped badges.
  itemPickupFX.push({k,x,y,t:0,life:.62});
@@ -2021,7 +2025,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
  }
  const hitPosition=knockVisualPosition(z);
- if(critical){
+ if(critical){citizenReaction('critical');
   // Sample once, at the hit. A piercing combo uses varied, slightly smaller
   // CRITICAL! titles to avoid stacking giant identical words across the lane.
   const textScale=piercingCritical?.75+Math.random()*.28:.90+Math.random()*.15;
@@ -2047,7 +2051,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
   enemyDeath(z,critical);
    if(z.boss)window.ZZProgression?.grant?.('boss',wave,25);
   if(critical)burst(z.x+z.w/2,z.y+8,'#fff0ad',17);
-  recordKill();foes.splice(foes.indexOf(z),1);
+  recordKill();if(z.boss)citizenReaction('boss');foes.splice(foes.indexOf(z),1);
   if(!z.boss&&z.form===1)explodeRedBarrel(z);
   drop(z);sfx(z.boss?'boss':'kill');
   if(z.boss)toast('BOSS DOWN · +1500');
@@ -3287,6 +3291,7 @@ function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('h
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
 function recordKill(){
  killCombo=killTimer>0?killCombo+1:1;killTimer=6+growth('comboFocus')*.24;comboPop=.22;comboDisplayTime=1.45;
+ if([5,10,20,30,50].includes(killCombo))citizenReaction('combo');
  if(killCombo%(growth('rescue')>=3?4:5)!==0)return;
  const p=citizens.filter(p=>!p.alive&&p.absent>=8-growth('rescue')*.5).sort((a,b)=>b.absent-a.absent)[0];
  if(!p)return;
@@ -3531,6 +3536,15 @@ const CHEERS=['파이팅!','막아줘!','멋져!','최고야!','조심해!','가
  '가보자고!','어우야!','오, 제법인데?','짜릿하다!',
  '실화냐?','이게 되네?','이거지 이거!','오우~ 예!',
  '대박 사건!','공 좀 친다!','얼씨구!','화끈하다!'];
+// V215: Only real gameplay events produce ambient-style short reactions.
+const CITIZEN_REACTIONS={
+ critical:['쫌 치는데?','캬~ 시원해!','오늘 폼 뭐야?','나이스 샷!','대박 사건!','이게 되네?'],
+ combo:['씩스쎄븐~!','확간다','통쾌!','이거지 이거!','짜릿하다!','오우~ 예!'],
+ item:['오, 보급이다!','이 맛이지!','득템이다!','선물 왔어요!','아이템 좋다!'],
+ boss:['보스 잡았다!','드디어 끝났어!','오늘 폼 뭐야?','대박 사건!']
+};
+function resetCitizenSpeech(){bubbles=[];bubbleTimer=0;lastCitizenLine=''}
+function citizenReaction(kind){if(mode==='playing')updateBubbles(0,kind)}
 // V129: Small vertical variation keeps spontaneous cheers from forming one
 // ruler-straight row. Check FINAL clamped/car-shifted rectangles, not raw x/y.
 // A second cheer must be staggered by >=11px and clear all nearby balloons.
@@ -3543,17 +3557,18 @@ function citizenCheerFits(q){
          a.y+a.h+7<=b.y||b.y+b.h+7<=a.y;
  });
 }
-function updateBubbles(dt){
+function updateBubbles(dt,reaction=null){
  bubbles=bubbles.filter(q=>(q.t+=dt)<q.life&&(q.event||q.citizen.alive));
- bubbleTimer-=dt;
+ bubbleTimer=Math.max(0,bubbleTimer-dt);
+ // No automatic idle or clear-screen dialogue; a real gameplay event is required.
+ if(!reaction||mode!=='playing')return;
  if(bubbleTimer>0||bubbles.length>=2)return;
- bubbleTimer=.7+Math.random()*.4;
- const said=mode==='clearing'?'고마워!':pickCitizenLine(CHEERS);
- const w=citizenBubbleWidth(said);
+ const lines=CITIZEN_REACTIONS[reaction];
+ if(!lines)return;
+ const said=pickCitizenLine(lines),w=citizenBubbleWidth(said);
  const crowd=citizens.filter(p=>p.alive&&Math.abs(p.x-car)>76&&
   !bubbles.some(q=>q.citizen===p));
  if(!crowd.length)return;
- // Original p.y-61 is the baseline; positive values lower the balloon.
  const stagger=[-8,-2,4,10,16,21];
  const firstCitizen=Math.floor(Math.random()*crowd.length);
  const firstOffset=Math.floor(Math.random()*stagger.length);
@@ -3569,6 +3584,7 @@ function updateBubbles(dt){
  }
  if(!chosen)return;
  bubbles.push({...chosen,t:0,life:1.6,text:said});
+ bubbleTimer=2.7; // 2.7s between comments even if many zombies fall at once.
  cheerTime=Math.max(cheerTime,1);
 }
 // V79: speech placement depends on the car position ONLY when the bubble
