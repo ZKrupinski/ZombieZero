@@ -213,10 +213,121 @@
   }).join('');
   renderDetail();
  }
+ // v221: Decode all upgrade CSS images and original bitmap sprites before
+ // opening the native dialog. The 9:16 upgrade artwork itself is unchanged.
+ const UPGRADE_IMAGES=[
+  'assets/ui/upgrade-sign-v198.webp',
+  'assets/ui/upgrade-close-v198.webp',
+  'assets/ui/upgrade-wallet-v198.webp',
+  'assets/ui/upgrade-count-v198.webp',
+  'assets/ui/upgrade-weapon-column-v198.webp',
+  'assets/ui/upgrade-citizen-column-v198.webp',
+  'assets/ui/upgrade-survival-column-v198.webp',
+  'assets/ui/upgrade-weapon-tab-v198.webp',
+  'assets/ui/upgrade-citizen-tab-v198.webp',
+  'assets/ui/upgrade-survival-tab-v198.webp',
+  'assets/ui/upgrade-weapon-row-v198.webp',
+  'assets/ui/upgrade-citizen-row-v198.webp',
+  'assets/ui/upgrade-survival-row-v198.webp',
+  'assets/ui/upgrade-weapon-selected-v198.webp',
+  'assets/ui/upgrade-citizen-selected-v198.webp',
+  'assets/ui/upgrade-survival-selected-v198.webp',
+  'assets/ui/upgrade-detail-v198.webp',
+  'assets/ui/upgrade-gold-button-v198.webp',
+  'assets/ui/upgrade-footer-v198.webp',
+  'assets/ui/upgrade-spotlights-v198.webp',
+  'assets/ui/upgrade-barrier-v198.webp',
+  'assets/ui/upgrade-skyline-v200.webp',
+  'assets/ui/upgrade-marquee-v200.webp',
+  'assets/ui/passive-icons-v203.webp',
+  'assets/ui/close-v203.webp',
+  'assets/ui/purse-v203.webp',
+  'assets/ui/chip-v203.webp',
+  'assets/ui/promote-v203.webp',
+  'assets/ui/upgrade-horde-v206.webp',
+  'assets/ui/lamp-off-v206.webp',
+  'assets/ui/lamp-on-v206.webp',
+  'assets/ui/lamp-next-v206.webp',
+  'assets/ip/item-icons-v56.png?v=56-clean-alpha-crates',
+  'assets/ip/hero-idle-v55.png?v=55-approved-cast',
+  'assets/ip/v2/green_zombie.png',
+  'assets/ip/v2/red_brain_cube.png'
+ ];
+ let upgradeAssetsReady=false,upgradeAssetsPromise=null,upgradeOpenBusy=false;
+ function loadUpgradeImage(src){
+  const Img=window.Image||(typeof Image==='function'?Image:null);
+  if(!Img)return Promise.resolve(); // DOM-free regression test shim
+  function attempt(){
+   return new Promise((resolve,reject)=>{
+    const img=new Img();let finished=false;
+    const timer=setTimeout(()=>done(false),25000);
+    function done(ok){
+     if(finished)return;
+     finished=true;clearTimeout(timer);
+     img.onload=null;img.onerror=null;
+     if(ok)resolve();else reject(new Error('Failed upgrade image: '+src));
+    }
+    img.onload=()=>{
+     try{
+      if(typeof img.decode==='function')Promise.resolve(img.decode()).then(()=>done(true),()=>done(false));
+      else done(true);
+     }catch{done(false)}
+    };
+    img.onerror=()=>done(false);
+    img.src=src;
+   });
+  }
+  return attempt().catch(()=>attempt());
+ }
+ function ensureUpgradeAssets(){
+  if(upgradeAssetsReady)return Promise.resolve();
+  if(!upgradeAssetsPromise){
+   upgradeAssetsPromise=(async()=>{
+    if(document.fonts&&typeof document.fonts.load==='function'){
+     await document.fonts.load("12px 'Press Start 2P'");
+     await document.fonts.ready;
+    }
+    await Promise.all(UPGRADE_IMAGES.map(loadUpgradeImage));
+    upgradeAssetsReady=true;
+   })().catch(error=>{upgradeAssetsPromise=null;throw error});
+  }
+  return upgradeAssetsPromise;
+ }
+ function upgradeLaunchState(state){
+  const launch=$('upgrade-open');
+  if(!launch)return;
+  if(state){
+   launch.dataset.upgradeLoad=state;
+   launch.disabled=state==='loading';
+   launch.setAttribute('aria-busy',String(state==='loading'));
+  }else{
+   delete launch.dataset.upgradeLoad;
+   launch.disabled=false;
+   launch.setAttribute('aria-busy','false');
+  }
+ }
  function open(){
   const modal=$('upgrade-dialog'),overlay=$('overlay');
   if(!modal||!overlay||overlay.hidden||!['selection','results'].includes(overlay.dataset.screen))return false;
-  if(!modal.open){selectedSkill='dual';renderList();refresh();modal.showModal();}
+  if(modal.open||upgradeOpenBusy)return true;
+  // In DOM-free tests there is no Image constructor, so keep old sync logic.
+  if(!window.Image&&typeof Image!=='function'){
+   selectedSkill='dual';renderList();refresh();modal.showModal();return true;
+  }
+  upgradeOpenBusy=true;
+  upgradeLaunchState('loading');
+  ensureUpgradeAssets().then(()=>{
+   // Do not open if the player began a run during the download.
+   if(overlay.hidden||!['selection','results'].includes(overlay.dataset.screen)||modal.open)return;
+   selectedSkill='dual';renderList();refresh();modal.showModal();
+   upgradeLaunchState(null);
+  }).catch(error=>{
+   console.warn('Upgrade resources not ready:',error);
+   upgradeLaunchState('error'); // retry on next tap, no incomplete modal
+  }).finally(()=>{
+   upgradeOpenBusy=false;
+   if($('upgrade-open')?.dataset.upgradeLoad==='loading')upgradeLaunchState(null);
+  });
   return true;
  }
  function close(){const modal=$('upgrade-dialog');if(modal?.open)modal.close()}
