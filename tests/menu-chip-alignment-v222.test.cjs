@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+const html=fs.readFileSync('dist/index.html','utf8');
+const game=fs.readFileSync('dist/game.js','utf8');
+const css=fs.readFileSync('dist/menu-zombie-palette-v211.css','utf8');
+const sw=fs.readFileSync('dist/sw.js','utf8');
+assert.match(html,/<button id="start">LET&#39;S ROLL, ACE!<\/button>/,'initial start has no arrow');
+assert.match(game,/if\(mode==='menu'\)\$\('start'\)\.innerHTML="LET'S ROLL, "\+\(\['ACE','RUBY','RIA'\]\[selectedHero\]\|\|'HERO'\)\+'!'/,'all selected hero labels have no arrow');
+assert.match(html,/<button id="upgrade-open"[^>]*>UPGRADE <span class="zz-chip-amount"><span class="zz-chip-mark">Z<\/span><strong id="upgrade-chip-count">0<\/strong><\/span><\/button>/,'upgrade has no triangle and coin/count grouped');
+assert(!html.includes('▲ UPGRADE'),'no triangle remains before upgrade');
+assert(css.includes("width:clamp(25px,calc(30px * var(--ui-scale,1)),34px)!important"),'coin enlarged');
+assert(css.includes('gap:2px!important'),'coin/count spacing tightened');
+assert(css.includes("assets/ui/chip-v203.webp"),'approved original chip image retained');
+assert(html.includes('menu-zombie-palette-v211.css?v=222-chip-button-cleanup'),'new CSS cache key');
+assert(sw.includes('v222-menu-coin'),'PWA shell refresh');
+console.log('PASS v222: no arrows on character-specific START, no UPGRADE triangle, approved coin icon enlarged and grouped with amount');
