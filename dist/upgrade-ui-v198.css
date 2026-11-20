@@ -292,3 +292,18 @@
   #upgrade-dialog .zz-upgrade-detail{height:clamp(78px,13dvh,92px)!important}
   #upgrade-dialog .zz-upgrade-overview .zz-upgrade-joke{font-size:7px!important}
 }
+
+/* Approved atlas hazard/barrier and stage spotlights (not CSS approximations). */
+#upgrade-dialog .zz-upgrade-header::before{
+ content:"";position:absolute;left:0;bottom:0;z-index:1;
+ width:clamp(52px,14vw,95px);height:clamp(48px,9dvh,85px);
+ background:url('assets/ui/upgrade-spotlights-v198.webp') left bottom/contain no-repeat;
+ pointer-events:none;
+}
+#upgrade-dialog .zz-upgrade-columns-heading{position:relative!important}
+#upgrade-dialog .zz-upgrade-columns-heading::before{
+ content:"";position:absolute;left:0;bottom:0;
+ width:clamp(20px,6vw,43px);height:100%;
+ background:url('assets/ui/upgrade-barrier-v198.webp') left center/100% 100% no-repeat;
+ opacity:.88;pointer-events:none;
+}
