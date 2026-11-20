@@ -789,7 +789,7 @@ function hud(){
  $('wave-label').textContent=runMode==='endless'?'WAVE':'현재 스테이지';
  $('score').textContent=String(score);
   // Long scores scale gently within their fixed HUD column, never ellipsize.
-  $('score').style?.setProperty?.('--zz-score-shrink',String(Math.min(1,8/Math.max(8,String(score).length))));
+  $('score').style?.setProperty?.('--zz-score-shrink',String(Math.min(1,8/Math.max(8,score.toString().length))));
  $('wave-number').textContent=runMode==='endless'?String(wave-50):String(wave).padStart(2,'0');
  $('progress').textContent=runMode==='endless'?'':(wave-1)+'/50 스테이지 클리어';
  // Only one prominent 3D voxel heart in the upper-left; a high-contrast
@@ -1713,7 +1713,7 @@ function activate(k,x=car,y=PY-24){
  if(k==='dual'||k==='triple')syncMulti(true);
  if(k==='bazooka'){bazookaTimer=0;lastSupportAt=clock}
  sfx('item');feedback('item');
- citizenReaction('item');
+ if(typeof citizenReaction==='function')citizenReaction('item');
  // A brief bitmap pickup confirmation at the actual caught-item position.
  // Do not grow or restyle the already-approved tiny equipped badges.
  itemPickupFX.push({k,x,y,t:0,life:.62});
