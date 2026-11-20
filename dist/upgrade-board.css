@@ -231,8 +231,8 @@
     margin:0!important;
   }
   #upgrade-dialog #upgrade-detail-buy::before {
-    width:10cqw!important;
-    height:10cqw!important;
-    max-height:56%!important;
+    width:14cqw!important;
+    height:14cqw!important;
+    max-height:67%!important;
   }
 }
