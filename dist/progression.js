@@ -35,6 +35,30 @@
   {id:'sweetSpot',group:'survival',name:'라켓 스위트스폿',tag:'RACKET',passiveIcon:7},
  ];
  const funnyNames={dual:'공 하나 더!',triple:'공 셋이야!',power:'빡센볼!',fire:'화르륵볼!',slow:'질질볼!',pierce:'뚫어뻥샷!',shield:'철벽막!',bazooka:'오래쏴!',rescue:'번개구조!',citizenArmor:'안죽어요!',citizenCrit:'대박투척!',citizenPower:'강한시민!',bazookaPower:'크게쏴!',bazookaReload:'빨리쏴!',lastStand:'한판더!',poisonResist:'침참기!',detox:'독빼기!',recover:'멘탈회복!',mental:'깡다구!',comboFocus:'끊지마!',itemMagnet:'줍줍왕!',sweetSpot:'찰떡존!'};
+ const detailJokes={
+   dual:'공이 하나 더! 사장님, 인원 충원 대신 공을 뽑았습니다.',
+   triple:'공이 세 개! 좀비보다 공들이 더 정신없이 출근합니다.',
+   power:'한 방이 묵직! 이 공은 헬스장 3개월치를 끊었습니다.',
+   fire:'좀비 구이! 주문하지 않아도 불맛 서비스가 나갑니다.',
+   slow:'좀비 느릿! 적들만 월요일 아침 출근 속도로 움직입니다.',
+   pierce:'줄줄이 뻥! 앞줄 뒤줄 구분 없이 일괄 배송합니다.',
+   shield:'잠깐 무적! 놓친 공도 바닥에서 반품 처리됩니다.',
+   bazooka:'바주카 오래! 퇴근하려던 시민에게 야근을 부탁합니다.',
+   rescue:'시민 후다닥! 도망갔던 발보다 복귀하는 발이 빠릅니다.',
+   citizenArmor:'한 번 더! 시민들이 안전교육을 드디어 수료했습니다.',
+   citizenCrit:'가끔 대박! 썩은 과일에도 치명적인 재능이 있습니다.',
+   citizenPower:'투척 더 아프게! 시민들의 불만이 근력으로 바뀝니다.',
+   bazookaPower:'더 세고 넓게! 폭발 반경만큼 시민의 자신감도 팽창!',
+   bazookaReload:'장전 후딱! 시민의 두 손이 자동 장전기로 진화합니다.',
+   lastStand:'아직 안 끝났어! 엔딩인 줄 알았지? 추가 근무다!',
+   poisonResist:'침 맞아도 버텨! 우산 대신 굳센 멘탈을 펼칩니다.',
+   detox:'독이 쏙쏙! 몸속 독소에게 조기 퇴근을 명령합니다.',
+   recover:'회복 재빨리! 비틀거려도 휴게시간은 초 단위입니다.',
+   mental:'그로기 짧게! 기절도 눈치 보며 빨리 끝냅니다.',
+   comboFocus:'콤보 끊지 마! 연속 처치에는 퇴근 종이 없습니다.',
+   itemMagnet:'멀리서도 줍줍! 허리는 안 굽혀도 보상은 챙깁니다.',
+   sweetSpot:'라켓 더 넓게! 빗맞힌 공도 맞은 척해 줍니다.'
+ };
  const skillJokes={dual:'공이 하나 더!',triple:'공이 세 개!',power:'한 방이 묵직!',fire:'좀비 구이!',slow:'좀비 느릿!',pierce:'줄줄이 뻥!',shield:'잠깐 무적!',bazooka:'바주카 오래!',rescue:'시민 후다닥!',citizenArmor:'한 번 더!',citizenCrit:'가끔 대박!',citizenPower:'투척 더 아프게!',bazookaPower:'더 세고 넓게!',bazookaReload:'장전 후딱!',lastStand:'아직 안 끝났어!',poisonResist:'침 맞아도 버텨!',detox:'독이 쏙쏙!',recover:'회복 재빨리!',mental:'그로기 짧게!',comboFocus:'콤보 끊지 마!',itemMagnet:'멀리서도 줍줍!',sweetSpot:'라켓 더 넓게!'};
 
  const map=Object.fromEntries(defs.map(d=>[d.id,d]));
@@ -154,9 +178,10 @@
   const n=level(d.id),max=n>=MAX_LEVEL,c=cost(d.id),affordable=state.chips>=c;
   const title=$('upgrade-detail-name'),rank=$('upgrade-detail-level');
   const current=$('upgrade-detail-current'),next=$('upgrade-detail-next'),buy=$('upgrade-detail-buy');
-  const icon=$('upgrade-detail-icon');
+  const icon=$('upgrade-detail-icon'),flavor=$('upgrade-detail-joke');
   if(icon)icon.innerHTML=iconHTML(d);
   if(title)title.textContent=funnyNames[d.id]||d.name;
+   if(flavor)flavor.textContent=detailJokes[d.id]||skillJokes[d.id]||'';
   const preview=Math.min(n+1,MAX_LEVEL);
   if(rank)rank.textContent=max?'MAX 5/5':'LV'+preview+'/5';
   const meter=$('upgrade-preview-pips');
