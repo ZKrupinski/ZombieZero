@@ -509,3 +509,37 @@ html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-por
   font-size:clamp(11px,calc(13px * var(--ui-scale,1)),14px)!important;
  }
 }
+
+
+/* v221: Show a button-local loading state while every UPGRADE image decodes.
+   The full-screen modal must never appear with missing temporary sprite art. */
+#overlay[data-screen] > #upgrade-open[data-upgrade-load]{
+ position:relative!important;
+ isolation:isolate!important;
+ opacity:1!important;
+ overflow:hidden!important;
+}
+#overlay[data-screen] > #upgrade-open[data-upgrade-load]::after{
+ content:"LOADING UPGRADE..."!important;
+ position:absolute!important;
+ inset:0!important;
+ z-index:10!important;
+ display:grid!important;
+ place-items:center!important;
+ background:linear-gradient(180deg,#537f88,#244856)!important;
+ color:#f8f7e7!important;
+ border-radius:inherit!important;
+ font:400 clamp(10px,calc(12px * var(--ui-scale,1)),14px)/1.2 'Press Start 2P','Courier New',monospace!important;
+ letter-spacing:0!important;
+ -webkit-text-stroke:.55px currentColor!important;
+ text-shadow:0 1px #10323d,0 0 7px #dbffc18c!important;
+ pointer-events:none!important;
+}
+#overlay[data-screen] > #upgrade-open[data-upgrade-load="error"]::after{
+ content:"LOAD FAILED · RETRY"!important;
+ background:linear-gradient(180deg,#976447,#5e3935)!important;
+ color:#fff4dc!important;
+}
+#overlay[data-screen] > #upgrade-open[data-upgrade-load="error"]{
+ cursor:pointer!important;
+}
