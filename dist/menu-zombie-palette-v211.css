@@ -273,3 +273,44 @@
 #overlay[data-screen="pause"]>.selection-copyright{display:none!important}
 #overlay[data-screen="pause"]>#pause-main-menu[hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){#overlay[data-screen] button{transition:none!important}}
+
+
+/* RESULTS ART RESTORE v216: the approved 8×3 hero idle bitmap is a background
+   on an empty span, so auto height without aspect-ratio collapsed it to 0.
+   Keep the original PNG, frame indices, and character design unchanged. */
+html.portrait-play #overlay[data-screen="results"] .hero-card .hero-vehicle-portrait,
+html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-portrait,
+#overlay[data-screen="results"] .hero-card .hero-vehicle-portrait{
+ display:block!important;
+ aspect-ratio:1 / 1!important;
+ height:auto!important;
+ min-height:0!important;
+ flex:0 0 auto!important;
+ background-size:800% 300%!important;
+ background-repeat:no-repeat!important;
+ background-position-x:0%!important;
+ image-rendering:auto!important;
+ animation:none!important;
+}
+#overlay[data-screen="results"] .hero-card .hero-vehicle-portrait.row-0{
+ background-position-y:0%!important;
+}
+#overlay[data-screen="results"] .hero-card .hero-vehicle-portrait.row-1{
+ background-position-y:50%!important;
+}
+#overlay[data-screen="results"] .hero-card .hero-vehicle-portrait.row-2{
+ background-position-y:100%!important;
+ transform:translateY(3px)!important; /* preserve Ria's approved wheel baseline */
+}
+@media(max-height:620px){
+ #overlay[data-screen="results"] .hero-card .hero-vehicle-portrait.row-2{
+  transform:translateY(2px)!important;
+ }
+}
+
+/* Results are not live gameplay: hide every HUD member (hearts, score, wave,
+   timer, pause and settings). When overlay closes, normal HUD returns. */
+.machine:has(#overlay[data-screen="results"]:not([hidden])) > .hud{
+ visibility:hidden!important;
+ pointer-events:none!important;
+}
