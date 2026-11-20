@@ -30,7 +30,8 @@
  .zz-original-zombie {width:11cqw!important;height:11cqw!important}
  #upgrade-close {width:8cqw!important;height:8cqw!important;top:.8cqw!important;right:.8cqw!important;background-size:contain!important}
  .zz-upgrade-wallet {
-   background:url('assets/ui/upgrade-wallet-v200.webp') center / contain no-repeat!important;
+   background:linear-gradient(110deg,#20324c,#111a32 70%)!important;
+   justify-content:space-between!important;border-block:1px solid #8592ac!important;padding-left:2cqw!important;
    padding-right:4cqw!important;
  }
  .zz-upgrade-wallet strong {font-size:3.4cqw!important;min-width:0!important}
@@ -88,4 +89,16 @@
    border:2px ridge #ffe399!important;border-radius:1.35cqw!important;box-shadow:0 2px 0 #653b24!important;
  }
  .zz-upgrade-hint {display:grid;place-items:center;padding:0!important;background:#151b2e!important;font-size:2.25cqw!important}
+
+ .zz-passive-art {background-image:url('assets/ui/passive-icons-v203.webp')!important;background-size:700% 200%!important;background-repeat:no-repeat!important;box-shadow:none!important}
+ #upgrade-close {background-image:url('assets/ui/close-v203.webp')!important;box-shadow:none!important}
+ .zz-upgrade-wallet>span,.zz-upgrade-wallet strong {visibility:visible!important;display:flex!important;align-items:center;gap:1cqw;font-size:3.3cqw!important;color:#fff1cc!important}
+ .zz-upgrade-wallet>span::before,.zz-upgrade-wallet strong::before,#upgrade-detail-buy::before {
+   content:"";display:inline-block;width:5cqw;height:5cqw;flex:none;background:center / contain no-repeat;
+ }
+ .zz-upgrade-wallet>span::before {background-image:url('assets/ui/purse-v203.webp');width:7cqw;height:7cqw}
+ .zz-upgrade-wallet strong::before {background-image:url('assets/ui/chip-v203.webp')}
+ #upgrade-detail-buy {display:flex!important;align-items:center;justify-content:center;gap:.5cqw}
+ #upgrade-detail-buy::before {background-image:url('assets/ui/promote-v203.webp')}
+ #upgrade-open .zz-chip-mark {background:transparent url('assets/ui/chip-v203.webp') center / contain no-repeat!important;font-size:0!important;border:0!important;box-shadow:none!important;width:20px;height:20px}
 }

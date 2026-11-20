@@ -19,20 +19,20 @@
   {id:'pierce',group:'weapon',name:'관통샷',tag:'PIERCE',atlas:6},
   {id:'shield',group:'weapon',name:'보호막',tag:'SHIELD',atlas:7},
   {id:'bazooka',group:'weapon',name:'시민 바주카 지속시간',tag:'ROCKET',atlas:0},
-  {id:'rescue',group:'citizen',name:'신속 구조',tag:'RESCUE',symbol:'↩'},
-  {id:'citizenArmor',group:'citizen',name:'시민 방어훈련',tag:'ARMOR',symbol:'▣'},
-  {id:'citizenCrit',group:'citizen',name:'행운의 투척',tag:'LUCK',symbol:'✦'},
-  {id:'citizenPower',group:'citizen',name:'전투 지원훈련',tag:'DAMAGE',symbol:'★'},
-  {id:'bazookaPower',group:'citizen',name:'바주카 개조',tag:'BLAST',symbol:'✸'},
-  {id:'bazookaReload',group:'citizen',name:'신속 재장전',tag:'RELOAD',symbol:'↻'},
-  {id:'lastStand',group:'survival',name:'최후의 저항',tag:'LAST STAND',symbol:'⇧'},
-  {id:'poisonResist',group:'survival',name:'중독 저항',tag:'RESIST',symbol:'◈'},
-  {id:'detox',group:'survival',name:'해독 능력',tag:'DETOX',symbol:'✚'},
-  {id:'recover',group:'survival',name:'빠른 안정화',tag:'RECOVER',symbol:'⌛'},
-  {id:'mental',group:'survival',name:'정신력',tag:'GROGGY',symbol:'◆'},
-  {id:'comboFocus',group:'survival',name:'콤보 집중력',tag:'COMBO',symbol:'×'},
-  {id:'itemMagnet',group:'citizen',name:'보급품 회수',tag:'PICKUP',symbol:'⊕'},
-  {id:'sweetSpot',group:'citizen',name:'라켓 스위트스폿',tag:'RACKET',symbol:'◇'},
+  {id:'rescue',group:'citizen',name:'신속 구조',tag:'RESCUE',passiveIcon:0},
+  {id:'citizenArmor',group:'citizen',name:'시민 방어훈련',tag:'ARMOR',passiveIcon:1},
+  {id:'citizenCrit',group:'citizen',name:'행운의 투척',tag:'LUCK',passiveIcon:2},
+  {id:'citizenPower',group:'citizen',name:'전투 지원훈련',tag:'DAMAGE',passiveIcon:3},
+  {id:'bazookaPower',group:'citizen',name:'바주카 개조',tag:'BLAST',passiveIcon:4},
+  {id:'bazookaReload',group:'citizen',name:'신속 재장전',tag:'RELOAD',passiveIcon:5},
+  {id:'lastStand',group:'survival',name:'최후의 저항',tag:'LAST STAND',passiveIcon:8},
+  {id:'poisonResist',group:'survival',name:'중독 저항',tag:'RESIST',passiveIcon:9},
+  {id:'detox',group:'survival',name:'해독 능력',tag:'DETOX',passiveIcon:10},
+  {id:'recover',group:'survival',name:'빠른 안정화',tag:'RECOVER',passiveIcon:11},
+  {id:'mental',group:'survival',name:'정신력',tag:'GROGGY',passiveIcon:12},
+  {id:'comboFocus',group:'survival',name:'콤보 집중력',tag:'COMBO',passiveIcon:13},
+  {id:'itemMagnet',group:'citizen',name:'보급품 회수',tag:'PICKUP',passiveIcon:6},
+  {id:'sweetSpot',group:'survival',name:'라켓 스위트스폿',tag:'RACKET',passiveIcon:7},
  ];
  const funnyNames={dual:'공 하나 더!',triple:'공 셋이야!',power:'빡센볼!',fire:'화르륵볼!',slow:'질질볼!',pierce:'뚫어뻥샷!',shield:'철벽막!',bazooka:'오래쏴!',rescue:'번개구조!',citizenArmor:'안죽어요!',citizenCrit:'대박투척!',citizenPower:'더쎈시민!',bazookaPower:'크게쏴!',bazookaReload:'빨리쏴!',lastStand:'한판더!',poisonResist:'침참기!',detox:'독빼기!',recover:'멘탈회복!',mental:'깡다구!',comboFocus:'끊지마!',itemMagnet:'줍줍왕!',sweetSpot:'찰떡존!'};
  const skillJokes={dual:'공이 하나 더!',triple:'공이 세 개!',power:'한 방이 묵직!',fire:'좀비 구이!',slow:'좀비 느릿!',pierce:'줄줄이 뻥!',shield:'잠깐 무적!',bazooka:'바주카 오래!',rescue:'시민 후다닥!',citizenArmor:'한 번 더!',citizenCrit:'가끔 대박!',citizenPower:'투척 더 아프게!',bazookaPower:'더 세고 넓게!',bazookaReload:'장전 후딱!',lastStand:'아직 안 끝났어!',poisonResist:'침 맞아도 버텨!',detox:'독이 쏙쏙!',recover:'회복 재빨리!',mental:'그로기 짧게!',comboFocus:'콤보 끊지 마!',itemMagnet:'멀리서도 줍줍!',sweetSpot:'라켓 더 넓게!'};
@@ -140,7 +140,8 @@
  }
  function iconHTML(d){
   if(d.atlas!==undefined)return '<span class="zz-upgrade-icon zz-upgrade-bitmap" style="background-position:'+((d.atlas/7)*100).toFixed(4)+'% 50%" aria-hidden="true"></span>';
-  return '<span class="zz-upgrade-icon zz-upgrade-passive" aria-hidden="true">'+d.symbol+'</span>';
+  const col=d.passiveIcon%7,row=Math.floor(d.passiveIcon/7);
+  return '<span class="zz-upgrade-icon zz-passive-art" style="background-position:'+col*100/6+'% '+row*100+'%" aria-hidden="true"></span>';
  }
  function refresh(){
   const balance=$('upgrade-chip-count'),wallet=$('upgrade-wallet');
