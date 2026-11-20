@@ -1413,7 +1413,8 @@ function reactiveThreat(z,b,radius){
  const cx=z.x+z.w*.5,cy=z.y+z.h*.5;
  if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&
     b.y+radius>z.y&&b.y-radius<z.y+z.h)return null;
- const slow=has('slow')?.66:1,vx=b.vx*slow,vy=b.vy*slow;
+ // SLOW affects enemy movement, never the player's ball velocity.
+ const vx=b.vx,vy=b.vy;
  const speed2=vx*vx+vy*vy;
  if(speed2<10000)return null;
  const t=((cx-b.x)*vx+(cy-b.y)*vy)/speed2;
@@ -2177,7 +2178,7 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&standReady()){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
-for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
+for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
