@@ -103,7 +103,7 @@
  #upgrade-open .zz-chip-mark {background:transparent url('assets/ui/chip-v203.webp') center / contain no-repeat!important;font-size:0!important;border:0!important;box-shadow:none!important;width:20px;height:20px}
 
  #upgrade-dialog {--arcade:'Press Start 2P','Courier New',monospace}
- .zz-horde {position:absolute;inset:0;pointer-events:none;background:url('assets/ui/upgrade-horde-v204.webp') left bottom / 800% auto no-repeat;animation:horde-march 1.16s steps(8,jump-none) infinite}
+ .zz-horde {position:absolute;inset:0;pointer-events:none;background:url('assets/ui/upgrade-horde-v206.webp') left bottom / 800% auto no-repeat;animation:horde-march 1.16s steps(8,jump-none) infinite}
  @keyframes horde-march {from{background-position-x:0%}to{background-position-x:100%}}
  .zz-upgrade-heading {height:60%!important;width:44%!important}
  .zz-upgrade-wallet>span,.zz-upgrade-wallet strong {font-family:var(--arcade)!important;font-weight:400!important}
@@ -141,4 +141,33 @@
  #upgrade-detail-buy.bought {animation:upgrade-pulse .34s ease-out}
  @keyframes upgrade-pulse {0%,40%{filter:brightness(1.5);box-shadow:0 0 2.4cqw #ffd02e}20%{transform:translateX(-1.5px)}52%{transform:translateX(1.5px)}100%{transform:none}}
  @media(prefers-reduced-motion:reduce){.zz-horde{animation:none}#upgrade-detail-buy.bought{animation:none}}
+
+ /* The crowd and skyline form a single scene behind the marquee. */
+ .zz-upgrade-header::before,.zz-upgrade-columns-heading::before {content:none!important}
+ .zz-upgrade-header {background:url('assets/ui/upgrade-skyline-v200.webp') center 18% / auto 64% repeat-x,linear-gradient(#32284e,#785474 43%,#423447 66%,#272333 100%)!important}
+ .zz-upgrade-overview .zz-upgrade-mini-level {
+   display:grid!important;grid-template-columns:1fr;justify-items:end;gap:.6cqw!important
+ }
+ .zz-upgrade-overview .zz-upgrade-pips,#upgrade-preview-pips {
+   display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));width:100%!important;gap:.7cqw!important
+ }
+ .zz-upgrade-overview .zz-upgrade-pips>i,#upgrade-preview-pips>i {
+   display:block!important;width:100%!important;height:auto!important;aspect-ratio:8/5;
+   border:0!important;border-radius:0!important;box-shadow:none!important;
+   background:transparent url('assets/ui/lamp-off-v206.webp') center / contain no-repeat!important
+ }
+ .zz-upgrade-overview .zz-upgrade-pips>i.filled,#upgrade-preview-pips>i.filled {
+   background-image:url('assets/ui/lamp-on-v206.webp')!important
+ }
+ #upgrade-preview-pips>i.preview {background-image:url('assets/ui/lamp-next-v206.webp')!important}
+ .zz-upgrade-overview .zz-upgrade-compact-copy {gap:.75cqw!important}
+ .zz-upgrade-detail {grid-template-columns:12cqw minmax(0,1fr) 25cqw!important;
+   grid-template-rows:auto auto!important;gap:.7cqw 1.6cqw!important;align-content:center;padding:1.3cqw 1.8cqw!important}
+ #upgrade-detail-icon .zz-upgrade-icon {width:12cqw!important;height:12cqw!important}
+ .zz-upgrade-detail-top {align-self:end;align-items:stretch!important;gap:.7cqw!important}
+ .zz-upgrade-detail-top .rank-preview {display:grid;grid-template-columns:auto 1fr;align-items:center;gap:.5cqw 1.2cqw}
+ .rank-preview small {font-size:2.6cqw}
+ #upgrade-detail-level {font-size:3.5cqw!important}
+ #upgrade-preview-pips {grid-column:1/-1;max-width:33cqw;gap:.6cqw!important}
+ .zz-upgrade-detail-effects {align-self:start;line-height:1.16!important}
 }

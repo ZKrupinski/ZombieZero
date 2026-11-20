@@ -33,5 +33,5 @@ assert(css.includes('.zz-original-ruby{background-position-y:50%'),'Ruby middle 
 assert(css.includes('.zz-original-ria{background-position-y:100%'),'Ria final row');
 assert(css.includes('assets/ip/v2/green_zombie.png')&&css.includes('assets/ip/v2/red_brain_cube.png'),'zombies use unchanged original PNG atlases');
 assert(html.includes('class="zz-horde"')&&!html.includes('class="zz-original-heroes"'),'zombie army header');
-assert(fs.existsSync('dist/assets/ui/upgrade-horde-v204.webp'),'eight-frame army strip exists');
+assert(fs.existsSync('dist/assets/ui/upgrade-horde-v206.webp'),'eight-frame army strip exists');
 console.log('PASS: 9:16 selection/results, 23-skill one-screen overview, paged guide/gallery and unchanged contained game physics');

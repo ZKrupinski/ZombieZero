@@ -158,7 +158,7 @@
   if(icon)icon.innerHTML=iconHTML(d);
   if(title)title.textContent=funnyNames[d.id]||d.name;
   const preview=Math.min(n+1,MAX_LEVEL);
-  if(rank)rank.textContent=max?'MAX 5/5':'LV '+preview+'/5';
+  if(rank)rank.textContent=max?'MAX 5/5':'LV'+preview+'/5';
   const meter=$('upgrade-preview-pips');
   if(meter)meter.innerHTML=Array.from({length:MAX_LEVEL},(_,i)=>'<i class="'+(i<n?'filled':i<preview?'preview':'')+'"></i>').join('');
   if(current)current.textContent=example(d.id,n);
@@ -180,7 +180,7 @@
      '" data-select="'+d.id+'" aria-pressed="'+String(selected)+'"'+
      ' aria-label="'+d.name+', 레벨 '+n+'/5, '+(max?'최대 강화':'다음 강화 '+cost(d.id)+' Z-CHIP')+'">'+
      iconHTML(d)+'<span class="zz-upgrade-compact-copy"><b>'+(funnyNames[d.id]||d.name)+'</b>'+ '<small class="zz-upgrade-joke">'+(skillJokes[d.id]||'')+'</small>'+
-     '<span class="zz-upgrade-mini-level">LV '+n+'<span class="zz-upgrade-pips">'+pips+
+     '<span class="zz-upgrade-mini-level">LV'+n+'<span class="zz-upgrade-pips">'+pips+
      '</span></span></span></button>';
    }).join('');
    return '<section class="zz-upgrade-column zz-group-'+group.id+'" aria-label="'+group.subtitle+'">'+
