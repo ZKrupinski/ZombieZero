@@ -76,4 +76,41 @@ for(const text of [
 assert(html.includes('id="upgrade-open"')&&html.includes('id="upgrade-dialog"'));
 assert(html.indexOf('progression.js?v=')<html.indexOf('game.js?v='),'growth module loads before game');
 assert(sw.includes("'./progression.js'"),'PWA caches progression');
+
+// Fully upgraded profile: numeric end-caps must match the stored design.
+const rich=JSON.parse(store.get('zz-growth-v1'));
+rich.chips=30000;
+store.set('zz-growth-v1',JSON.stringify(rich));
+vm.runInContext(source,sandbox);
+api=sandbox.window.ZZProgression;
+for(const def of api.defs){
+ for(let lv=1;lv<=5;lv++)assert.equal(api.purchase(def.id),true,def.id+' Lv'+lv);
+ assert.equal(api.purchase(def.id),false,'cannot exceed Lv5 '+def.id);
+}
+assert.equal(api.defs.reduce((sum,d)=>sum+api.level(d.id),0),23*5);
+assert.equal(api.duration('fire',1),13);
+assert.equal(api.duration('fire',1.25),16.25);
+assert.equal(api.rescueKills(),4);
+assert.equal(api.rescueAbsent(),5.5);
+assert.equal(api.citizenGuardChance(),1);
+assert.equal(api.citizenCriticalChance(),.15);
+assert.equal(api.citizenDamage(),.5);
+assert.equal(api.bazookaDamage(),10);
+assert.equal(api.bazookaRadiusBonus(),8);
+assert.equal(api.bazookaInterval(),2.6);
+assert.equal(api.lastStandDistance(),170);
+assert.equal(api.lastStandUses(),3);
+assert(Math.abs(api.poisonFactor()-.7)<1e-10);
+assert.equal(api.detoxRate(),8.8);
+assert.equal(api.poisonGrace(),1.25);
+assert.equal(api.groggySeconds(),1.35);
+assert.equal(api.comboSeconds(),7.2);
+assert.equal(api.pickupWidth(),85);
+assert.equal(api.paddleBonus(),10);
+assert.equal(api.warningBonus(),40);
+vm.runInContext(source,sandbox);
+api=sandbox.window.ZZProgression;
+assert.equal(api.level('citizenArmor'),5,'max ranks survive reload');
+assert.equal(api.level('lastStand'),5,'last stand persists');
+
 console.log('PASS v194: 23 upgrades, 3-tab shop, permanent wallet, purchase, duplicate reward protection, campaign/endless and gameplay hooks');
