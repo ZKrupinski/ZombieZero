@@ -1,0 +1,197 @@
+/* ZOMBIE ZERO — permanent progression v189. Shared by Campaign and Endless.
+   Load before game.js. No gameplay changes until a skill is purchased. */
+'use strict';
+(function(){
+ const STORE_KEY='zz-growth-v1';
+ const MAX_LEVEL=5;
+ const PRICES=[15,30,55,90,145];
+ const GROUPS=[
+  {id:'weapon',name:'WEAPON',subtitle:'액티브 스킬'},
+  {id:'citizen',name:'CITIZEN',subtitle:'시민 지원'},
+  {id:'survival',name:'SURVIVAL',subtitle:'생존 훈련'}
+ ];
+ const defs=[
+  {id:'dual',group:'weapon',name:'더블볼',tag:'BALL',atlas:1},
+  {id:'triple',group:'weapon',name:'트리플볼',tag:'BALL',atlas:2},
+  {id:'power',group:'weapon',name:'파워볼',tag:'POWER',atlas:3},
+  {id:'fire',group:'weapon',name:'화염볼',tag:'FIRE',atlas:4},
+  {id:'slow',group:'weapon',name:'슬로우',tag:'TIME',atlas:5},
+  {id:'pierce',group:'weapon',name:'관통샷',tag:'PIERCE',atlas:6},
+  {id:'shield',group:'weapon',name:'보호막',tag:'SHIELD',atlas:7},
+  {id:'bazooka',group:'weapon',name:'시민 바주카 지속시간',tag:'ROCKET',atlas:0},
+  {id:'rescue',group:'citizen',name:'신속 구조',tag:'RESCUE',symbol:'↩'},
+  {id:'citizenArmor',group:'citizen',name:'시민 방어훈련',tag:'ARMOR',symbol:'▣'},
+  {id:'citizenCrit',group:'citizen',name:'행운의 투척',tag:'LUCK',symbol:'✦'},
+  {id:'citizenPower',group:'citizen',name:'전투 지원훈련',tag:'DAMAGE',symbol:'★'},
+  {id:'bazookaPower',group:'citizen',name:'바주카 개조',tag:'BLAST',symbol:'✸'},
+  {id:'bazookaReload',group:'citizen',name:'신속 재장전',tag:'RELOAD',symbol:'↻'},
+  {id:'lastStand',group:'survival',name:'최후의 저항',tag:'LAST STAND',symbol:'⇧'},
+  {id:'poisonResist',group:'survival',name:'중독 저항',tag:'RESIST',symbol:'◈'},
+  {id:'detox',group:'survival',name:'해독 능력',tag:'DETOX',symbol:'✚'},
+  {id:'recover',group:'survival',name:'빠른 안정화',tag:'RECOVER',symbol:'⌛'},
+  {id:'mental',group:'survival',name:'정신력',tag:'GROGGY',symbol:'◆'},
+  {id:'comboFocus',group:'survival',name:'콤보 집중력',tag:'COMBO',symbol:'×'},
+  {id:'itemMagnet',group:'survival',name:'보급품 회수',tag:'PICKUP',symbol:'⊕'},
+  {id:'sweetSpot',group:'survival',name:'라켓 스위트스폿',tag:'RACKET',symbol:'◇'},
+  {id:'earlyWarning',group:'survival',name:'위기 감지',tag:'WARNING',symbol:'!'}
+ ];
+ const map=Object.fromEntries(defs.map(d=>[d.id,d]));
+ let state={version:1,chips:0,levels:{},claims:{},runSeq:0};
+ function int(x,min,max){return Number.isFinite(Number(x))?Math.max(min,Math.min(max,Math.trunc(Number(x)))):min}
+ function read(){
+  try{
+   const raw=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
+   if(!raw||raw.version!==1)return;
+   state.chips=int(raw.chips,0,1e9);
+   state.runSeq=int(raw.runSeq,0,1e9);
+   for(const d of defs)state.levels[d.id]=int(raw.levels&&raw.levels[d.id],0,5);
+   if(raw.claims&&typeof raw.claims==='object'){
+    const entries=Object.keys(raw.claims).slice(-1600);
+    for(const k of entries)if(raw.claims[k])state.claims[k]=1;
+   }
+  }catch{}
+ }
+ function save(){
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(state));return true}
+  catch{return false}
+ }
+ read();
+ let runKey='',runMode='',activeTab='weapon';
+ const $=id=>document.getElementById(id);
+ function level(id){return map[id]?int(state.levels[id],0,MAX_LEVEL):0}
+ function cost(id){const n=level(id);return n>=MAX_LEVEL?0:PRICES[n]}
+ function chips(){return state.chips}
+ function startRun(mode){
+  state.runSeq=(state.runSeq+1)%1e9;
+  runMode=mode;
+  runKey=Date.now().toString(36)+'-'+state.runSeq+'-'+Math.floor(Math.random()*1e8).toString(36);
+  save();refresh();
+ }
+ function grant(kind,wave,amount){
+  if(!runKey||!['campaign','endless'].includes(runMode))return false;
+  const stage=int(wave,1,100000);
+  const key=runKey+':'+kind+':'+stage;
+  if(state.claims[key])return false;
+  state.claims[key]=1;
+  state.chips=int(state.chips+int(amount,0,1000),0,1e9);
+  // Keep the newest 1600 awards. Run keys never recycle, so older runs are safe.
+  const keys=Object.keys(state.claims);
+  if(keys.length>1600)for(const old of keys.slice(0,keys.length-1600))delete state.claims[old];
+  save();refresh();
+  return true;
+ }
+ function purchase(id){
+  if(!map[id]||level(id)>=MAX_LEVEL||state.chips<cost(id))return false;
+  state.chips-=cost(id);state.levels[id]=level(id)+1;save();refresh();
+  try{window.ZZProgressionSound?.()}catch{}
+  return true;
+ }
+ const baseDuration={bazooka:12,dual:16,triple:16,power:14,fire:10,slow:12,pierce:10,shield:18};
+ function duration(skill,hero=1){
+  const base=baseDuration[skill];
+  return (base===undefined?0:base*(1+level(skill)*.06))*(Number.isFinite(hero)?hero:1);
+ }
+ function rescueKills(){return level('rescue')>=3?4:5}
+ function rescueAbsent(){return 8-level('rescue')*.5}
+ function citizenGuardChance(){return level('citizenArmor')*.2}
+ function citizenCriticalChance(){return level('citizenCrit')*.03}
+ function citizenDamage(){return .25+level('citizenPower')*.05}
+ function bazookaDamage(){return 8+level('bazookaPower')*.4}
+ function bazookaRadiusBonus(){return Math.round(level('bazookaPower')*1.6)}
+ function bazookaInterval(){return 3-level('bazookaReload')*.08}
+ const standDistances=[60,80,100,120,145,170];
+ function lastStandDistance(){return standDistances[level('lastStand')]}
+ function lastStandUses(){return level('lastStand')>=5?3:level('lastStand')>=3?2:1}
+ function poisonFactor(){return 1-level('poisonResist')*.06}
+ function detoxRate(){return 5.5*(1+level('detox')*.12)}
+ function poisonGrace(){return 2.35-level('recover')*.22}
+ function groggySeconds(){return 1.85-level('mental')*.10}
+ function comboSeconds(){return 6+level('comboFocus')*.24}
+ function pickupWidth(){return 65+level('itemMagnet')*4}
+ function paddleBonus(){return level('sweetSpot')*2}
+ function warningBonus(){return level('earlyWarning')*8}
+ function example(id,l){
+  if(baseDuration[id]!==undefined)return (baseDuration[id]*(1+l*.06)).toFixed(1).replace(/\.0$/,'')+'초 지속';
+  switch(id){
+   case 'rescue':return (l>=3?4:5)+'킬 복귀 · 대기 '+(8-l*.5).toFixed(1)+'초';
+   case 'citizenArmor':return l===0?'기본 1회 피격 희생':Math.round(l*20)+'% 확률로 첫 피격 방어';
+   case 'citizenCrit':return '크리티컬 '+l*3+'% · 피해 3배';
+   case 'citizenPower':return '시민 투척 피해 '+(.25+l*.05).toFixed(2);
+   case 'bazookaPower':return '바주카 피해 '+(8+l*.4).toFixed(1)+' · 반경 +'+Math.round(l*1.6)+'px';
+   case 'bazookaReload':return '발사 간격 '+(3-l*.08).toFixed(2)+'초';
+   case 'lastStand':return '밀어내기 '+standDistances[l]+'px · '+(l>=5?3:l>=3?2:1)+'회/웨이브';
+   case 'poisonResist':return '중독 누적량 -'+l*6+'%';
+   case 'detox':return '해독 '+(5.5*(1+l*.12)).toFixed(2)+'/초';
+   case 'recover':return '회복 대기 '+(2.35-l*.22).toFixed(2)+'초';
+   case 'mental':return '그로기 '+(1.85-l*.1).toFixed(2)+'초';
+   case 'comboFocus':return '콤보 유지 '+(6+l*.24).toFixed(2)+'초';
+   case 'itemMagnet':return '아이템 판정 +'+(l*4)+'px';
+   case 'sweetSpot':return '반사 폭 +'+(l*4)+'px';
+   case 'earlyWarning':return '위기 경고 +'+(l*8)+'px';
+  }
+  return '';
+ }
+ function iconHTML(d){
+  if(d.atlas!==undefined)return '<span class="zz-upgrade-icon zz-upgrade-bitmap" style="background-position:'+((d.atlas/7)*100).toFixed(4)+'% 50%" aria-hidden="true"></span>';
+  return '<span class="zz-upgrade-icon zz-upgrade-passive" aria-hidden="true">'+d.symbol+'</span>';
+ }
+ function refresh(){
+  const balance=$('upgrade-chip-count'),wallet=$('upgrade-wallet');
+  if(balance)balance.textContent=state.chips.toLocaleString('ko-KR');
+  if(wallet)wallet.textContent=state.chips.toLocaleString('ko-KR');
+  const panel=$('upgrade-list');if(panel&&$('upgrade-dialog')?.open)renderList();
+ }
+ function renderList(){
+  const list=$('upgrade-list');if(!list)return;
+  const html=defs.filter(d=>d.group===activeTab).map(d=>{
+   const n=level(d.id),max=n===MAX_LEVEL,c=cost(d.id);
+   const progress=Array.from({length:5},(_,i)=>'<i'+(i<n?' class="filled"':'')+'></i>').join('');
+   const detail=max?'MAX LEVEL':(example(d.id,n)+'  →  '+example(d.id,n+1));
+   return '<article class="zz-upgrade-card" data-upgrade-id="'+d.id+'">'+iconHTML(d)+
+    '<div class="zz-upgrade-info"><span class="zz-upgrade-eyebrow">'+d.tag+'</span><h3>'+d.name+'</h3>'+
+    '<div class="zz-upgrade-level"><span>LV '+n+'/5</span><div class="zz-upgrade-pips">'+progress+'</div></div>'+
+    '<p>'+detail+'</p></div><button type="button" class="zz-upgrade-buy" data-buy="'+d.id+'" '+
+    (max||state.chips<c?'disabled':'')+' aria-label="'+d.name+' 강화">'+
+    (max?'MAX':c+' <small>Z</small>')+'</button></article>';
+  }).join('');
+  list.innerHTML=html;
+  const tabs=$('upgrade-tabs');
+  if(tabs)for(const tab of tabs.querySelectorAll('[data-growth-tab]')){
+   const selected=tab.dataset.growthTab===activeTab;
+   tab.classList.toggle('active',selected);
+   tab.setAttribute('aria-selected',String(selected));
+  }
+ }
+ function open(){
+  const modal=$('upgrade-dialog'),overlay=$('overlay');
+  if(!modal||!overlay||overlay.hidden||!['selection','results'].includes(overlay.dataset.screen))return false;
+  if(!modal.open){activeTab='weapon';renderList();refresh();modal.showModal();}
+  return true;
+ }
+ function close(){const modal=$('upgrade-dialog');if(modal?.open)modal.close()}
+ function initUI(){
+  const launch=$('upgrade-open'),dialog=$('upgrade-dialog'),tabs=$('upgrade-tabs'),list=$('upgrade-list');
+  if(!launch||!dialog||!tabs||!list)return;
+  launch.addEventListener('click',open);
+  $('upgrade-close')?.addEventListener('click',close);
+  tabs.addEventListener('click',event=>{
+   const tab=event.target.closest?.('[data-growth-tab]');if(!tab)return;
+   if(!GROUPS.some(g=>g.id===tab.dataset.growthTab))return;
+   activeTab=tab.dataset.growthTab;renderList();
+  });
+  list.addEventListener('click',event=>{
+   const button=event.target.closest?.('button[data-buy]');
+   if(!button||button.disabled)return;
+   purchase(button.dataset.buy);
+  });
+  refresh();
+ }
+ if(typeof document!=='undefined')initUI();
+ window.ZZProgression={
+  version:1,defs,level,chips,cost,purchase,startRun,grant,refresh,open,
+  duration,rescueKills,rescueAbsent,citizenGuardChance,citizenCriticalChance,citizenDamage,
+  bazookaDamage,bazookaRadiusBonus,bazookaInterval,lastStandDistance,lastStandUses,
+  poisonFactor,detoxRate,poisonGrace,groggySeconds,comboSeconds,pickupWidth,paddleBonus,warningBonus,
+  debug:()=>({chips:state.chips,levels:{...state.levels},runKey,claims:Object.keys(state.claims).length})
+ };
+})();
