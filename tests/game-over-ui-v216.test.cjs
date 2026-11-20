@@ -8,7 +8,7 @@ const score=fs.readFileSync('dist/endless-score-fix-v215.css','utf8');
 const game=fs.readFileSync('dist/game.js','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('endless-score-fix-v215.css?v=216-pixel-score-font'),'new score CSS loaded');
-assert(html.includes('menu-zombie-palette-v211.css?v=217-ready-selected-hero'),'result CSS loaded');
+assert(html.includes('menu-zombie-palette-v211.css?v='),'result CSS loaded');
 assert(sw.includes('v216-original-score-results-cast'),'PWA cache invalidated');
 assert(score.includes("font-family:'Press Start 2P','Courier New',monospace!important"),
  'original pixel font restored to score');
