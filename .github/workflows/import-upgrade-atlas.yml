@@ -1,0 +1,53 @@
+name: Import approved ZombieZero upgrade atlas
+on:
+  push:
+    paths:
+      - '.github/workflows/import-upgrade-atlas.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Fetch original atlas from uploaded asset
+        env:
+          SIGNED_MEDIA_URL: "https://media.canva.com/v2/image-resize/format:PNG/height:150/quality:100/uri:ifs%3A%2F%2FM%2F0a795589-2a33-4d40-8304-68a01b637c36/watermark:F/width:200?csig=AAAAAAAAAAAAAAAAAAAAAJH3SxD6PLgtf1nj_fA2mYmOsi4ew6cvKQstqc9rUovr&exp=1795164761&osig=AAAAAAAAAAAAAAAAAAAAAKfe0tGfr9-pPuOPDzsKTKluzqpW9MphHE_qMyNoB-HF&signer=media-rpc&token=AAIAAU0AJDBhNzk1NTg5LTJhMzMtNGQ0MC04MzA0LTY4YTAxYjYzN2MzNgAAAAABofgoa6i92zQFXK3yA7OlhAfw_lWUO5a4GuPDQd55o0nqZ34U_g&x-canva-quality=thumbnail"
+        run: |
+          python - <<'PY'
+          import os,urllib.request,urllib.error,io
+          from PIL import Image
+          base=os.environ['SIGNED_MEDIA_URL']
+          options=[
+            ('native',base.replace('height:150','height:1086').replace('width:200','width:1448').replace('&x-canva-quality=thumbnail','')),
+            ('native-with-thumb-token',base.replace('height:150','height:1086').replace('width:200','width:1448')),
+            ('native-without-csig',base.replace('height:150','height:1086').replace('width:200','width:1448').split('?')[0]),
+            ('thumbnail',base)
+          ]
+          success=False
+          for tag,url in options:
+            try:
+              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+              with urllib.request.urlopen(req,timeout=18) as response:
+                data=response.read()
+              image=Image.open(io.BytesIO(data))
+              print('probe',tag,'size',image.size,'bytes',len(data))
+              if image.width>=1200 and image.height>=850:
+                os.makedirs('dist/assets/ui',exist_ok=True)
+                with open('dist/assets/ui/upgrade-atlas-v198.png','wb') as f:f.write(data)
+                success=True
+                break
+            except Exception as e:print('probe',tag,'failed',str(e)[:110])
+          if not success:raise SystemExit('Original-resolution atlas unavailable; refusing to deploy blurry thumbnail')
+          PY
+      - name: Preserve approved original atlas in repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/assets/ui/upgrade-atlas-v198.png
+          git commit -m "Import approved transparent full-resolution upgrade UI atlas"
+          git push origin HEAD:main
