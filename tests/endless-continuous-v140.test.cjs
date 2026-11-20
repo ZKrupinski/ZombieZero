@@ -77,7 +77,7 @@ assert.equal(el('result-stage-label').textContent,'생존 시간');
 assert.equal(el('result-stage').textContent,'01:23');
 assert(el('result-cleared').textContent.includes('최장 01:23'));
 assert.equal(saved['zz-endless-best-seconds'],'83.2','personal survival best persists');
-assert.equal(el('endless').textContent,'메인 메뉴');
+assert.equal(el('endless').textContent,'MAIN MENU');
 r("start('endless')");
 assert.equal(r('endlessSurvival'),0,'new run starts a fresh clock');
 r("start('campaign')");
