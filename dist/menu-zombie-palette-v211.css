@@ -204,19 +204,19 @@
   color:#a6bcb8!important;text-shadow:none!important;
 }
 
-/* PAUSE — semi-transparent so frozen gameplay remains visible. */
+/* PAUSE — v227: translucent glass-like panel leaves the frozen gameplay visible; no backdrop blur to protect mobile FPS. */
 #overlay[data-screen="pause"]{
   isolation:isolate;
-  background:rgba(11,20,28,.65)!important;
+  background:rgba(11,20,28,.32)!important;
   overflow:hidden!important;
   padding:calc(38px * var(--ui-scale,1)) calc(18px * var(--ui-scale,1))!important;
 }
 #overlay[data-screen="pause"]::before{
   content:"";position:absolute;pointer-events:none;z-index:0;
   left:7%;right:7%;top:21%;bottom:18%;
-  border:3px solid #778c90;border-radius:9px;
-  background:linear-gradient(155deg,#32454ce9,#1c2d36f3 65%,#172732f1);
-  box-shadow:inset 0 3px #ffffff1b,0 8px 25px #070e14b3;
+  border:2px solid rgba(146,179,180,.68);border-radius:9px;
+  background:linear-gradient(155deg,rgba(40,66,73,.34),rgba(19,34,43,.39) 66%,rgba(14,29,39,.43));
+  box-shadow:inset 0 1px rgba(236,252,245,.11),0 5px 15px rgba(2,12,19,.32);
 }
 #overlay[data-screen="pause"]>.overlay-logo{
   flex:none!important;width:min(38%,calc(140px * var(--ui-scale,1)))!important;
