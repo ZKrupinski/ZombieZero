@@ -235,4 +235,90 @@
     height:14cqw!important;
     max-height:67%!important;
   }
+ 
+  /* v210: Give the list more real height without squeezing the chip contents. */
+  #upgrade-dialog[open] {
+    grid-template-rows:15.6% 6.1% 1.6% minmax(0,1fr) 15.4% 1.8%!important;
+  }
+  #upgrade-dialog .zz-upgrade-wallet {
+    min-height:0!important;
+    padding-block:.25cqw!important;
+    align-items:center!important;
+  }
+  #upgrade-dialog .zz-upgrade-wallet>span::before {
+    width:8cqw!important;height:8cqw!important;
+  }
+  #upgrade-dialog .zz-upgrade-wallet strong::before {
+    width:7.4cqw!important;height:7.4cqw!important;
+  }
+  #upgrade-dialog .zz-upgrade-wallet>span {font-size:3.1cqw!important}
+  #upgrade-dialog .zz-upgrade-wallet strong {font-size:clamp(11px,4.4cqw,48px)!important}
+
+  /* Keep the label, punchline, LV and final lamp fully inside every row. */
+  #upgrade-dialog .zz-upgrade-overview .zz-upgrade-column {
+    gap:.4cqw!important;
+    padding:.45cqw!important;
+  }
+  #upgrade-dialog .zz-upgrade-overview .zz-upgrade-card {
+    padding:.22cqw .35cqw!important;
+    gap:.28cqw!important;
+  }
+  #upgrade-dialog .zz-upgrade-overview .zz-upgrade-compact-copy {
+    height:100%!important;
+    min-height:0!important;
+    padding:0 .35cqw .35cqw 0!important;
+    gap:.15cqw!important;
+    justify-content:space-evenly!important;
+  }
+  #upgrade-dialog .zz-upgrade-overview .zz-upgrade-joke {
+    font-size:6.5cqw!important;
+    line-height:1.1!important;
+    white-space:nowrap!important;
+    text-overflow:clip!important;
+  }
+  #upgrade-dialog .zz-upgrade-overview .zz-upgrade-mini-level {
+    gap:.22cqw!important;
+    font-size:6.3cqw!important;
+    line-height:1.1!important;
+  }
+  #upgrade-dialog .zz-upgrade-overview .zz-upgrade-pips>i {
+    aspect-ratio:2/1!important;
+  }
+
+  /* A separate longer joke lives below the actual level-up statistics. */
+  #upgrade-dialog .zz-upgrade-detail {
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+    gap:.45cqw 1.3cqw!important;
+    padding:.6cqw 1.25cqw!important;
+  }
+  #upgrade-dialog #upgrade-detail-icon {grid-area:1/1/4/2!important}
+  #upgrade-dialog .zz-upgrade-detail-top {
+    grid-column:2!important;
+    grid-row:1!important;
+    gap:.35cqw!important;
+  }
+  #upgrade-dialog .zz-upgrade-detail-effects {
+    grid-column:2!important;
+    grid-row:2!important;
+    gap:.3cqw!important;
+    font-size:2.45cqw!important;
+    line-height:1.15!important;
+  }
+  #upgrade-dialog .zz-upgrade-detail-joke {
+    display:block!important;
+    grid-column:2!important;
+    grid-row:3!important;
+    align-self:center!important;
+    margin:0!important;
+    min-width:0!important;
+    padding:0!important;
+    color:#ffd899!important;
+    font:700 clamp(9px,2.38cqw,12px)/1.18 Arial,'Noto Sans KR',sans-serif!important;
+    letter-spacing:-.03em!important;
+    white-space:normal!important;
+    word-break:keep-all!important;
+    overflow-wrap:anywhere!important;
+    text-shadow:0 1px 1px #11152c!important;
+  }
+  #upgrade-dialog #upgrade-detail-buy {grid-row:1/4!important}
 }
