@@ -239,6 +239,7 @@ button('options-toggle').onclick=()=>{
  if(resumeAfterOptions)pause();
  options.showModal();
 };
+button('pause-settings')?.addEventListener('click',()=>button('options-toggle')?.click());
 button('options-close').onclick=()=>options.close();
 options.addEventListener?.('close',()=>{
  if(resumeAfterOptions&&mode==='paused'&&!button('help-dialog').open&&!button('app-dialog').open)pause();
