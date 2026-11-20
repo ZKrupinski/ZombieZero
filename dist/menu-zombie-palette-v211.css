@@ -634,3 +634,62 @@ html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-por
 @media(prefers-reduced-motion:reduce){
  #overlay[data-screen="pause"] > #title{animation:none!important;opacity:1!important;filter:none!important}
 }
+
+
+/* v229 GAME OVER: eliminate the red backing plate and put the approved BI's
+   sharp vermilion back into a large, bold 9:16 arcade title. Only defeat is
+   affected: victory, pause, hero cards, score and button layout are unchanged.
+   Glow compositing is screen-style (additive-like); the main glyph stays crisp. */
+#overlay[data-screen="results"][data-outcome="GAME OVER"] > #title {
+ position:relative!important;
+ isolation:isolate!important;
+ display:block!important;
+ box-sizing:border-box!important;
+ width:100%!important;
+ max-width:none!important;
+ padding:calc(8px * var(--ui-scale,1)) 0!important;
+ margin:calc(3px * var(--ui-scale,1)) auto calc(10px * var(--ui-scale,1))!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ font-family:'Press Start 2P','Courier New',monospace!important;
+ font-size:clamp(26px,calc(36px * var(--ui-scale,1)),42px)!important;
+ font-weight:400!important;
+ font-synthesis:none!important;
+ line-height:1.28!important;
+ letter-spacing:-.025em!important;
+ white-space:nowrap!important;
+ color:#ff3725!important;
+ -webkit-text-stroke:.9px #56160f!important;
+ paint-order:stroke fill!important;
+ text-shadow:0 3px 0 #57170e,0 0 6px #ff593de0,0 0 15px #ff341cba,0 0 28px #f82a197d!important;
+ animation:zz-gameover-red-alert .56s steps(2,end) infinite!important;
+}
+#overlay[data-screen="results"][data-outcome="GAME OVER"] > #title::before {
+ content:"GAME OVER";
+ position:absolute;
+ inset:0;
+ z-index:-1;
+ color:#ff4930;
+ opacity:.76;
+ pointer-events:none;
+ mix-blend-mode:screen;
+ filter:blur(5px);
+ text-shadow:0 0 16px #ff4429,0 0 28px #ff2414;
+}
+@keyframes zz-gameover-red-alert {
+ 0%,100% {opacity:1;filter:brightness(1.18)}
+ 50% {opacity:.67;filter:brightness(.93)}
+}
+@media(max-width:360px){
+ #overlay[data-screen="results"][data-outcome="GAME OVER"] > #title{
+  font-size:clamp(21px,calc(27px * var(--ui-scale,1)),30px)!important;
+  -webkit-text-stroke:.65px #56160f!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay[data-screen="results"][data-outcome="GAME OVER"] > #title{
+  animation:none!important;opacity:1!important;filter:none!important;
+ }
+}
