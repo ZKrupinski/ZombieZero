@@ -11,7 +11,7 @@ const calls=[],g={
  fillRect(x,y,w,h){calls.push({x,y,w,h,fill:this.fillStyle,alpha:this.globalAlpha})}
 };
 const state={g,Math,mode:'playing',clock:0,PY:584,car:225,selectedHero:0,poison:0,POISON_MAX:100,
- POISON_DECAY:5.5,poisonGrace:0,groggyTime:0,poisonFlash:0,poisonGaugeAlpha:0};
+ POISON_DECAY:5.5,poisonGrace:0,groggyTime:0,poisonFlash:0,poisonGaugeAlpha:0,growth(){return 0}};
 vm.createContext(state);vm.runInContext(updater+gauge,state);
 const run=(s)=>vm.runInContext(s,state);
 run('drawPoisonGauge()');assert.equal(calls.length,0,'clean hero has no visible meter or backdrop');
