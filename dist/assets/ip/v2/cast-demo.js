@@ -17,6 +17,25 @@ function setup(){
   const label=document.createElement('strong');label.textContent=key==='green_zombie'?'그린 좀비':atlas.names[key];
   card.append(c,label);grid.append(card);canvases.push({key,c});
  }
+ // Four original bitmap characters per fixed-height 9:16 page. No scrolling.
+ const PAGE_SIZE=4;
+ let page=0;
+ const pager=document.createElement('nav');
+ pager.className='object-cast-pager';
+ pager.setAttribute('aria-label','좀비 애니메이션 도감 페이지');
+ pager.innerHTML='<button type="button" class="object-cast-prev">◀ 이전</button><span class="object-cast-page" role="status" aria-live="polite"></span><button type="button" class="object-cast-next">다음 ▶</button>';
+ grid.after(pager);
+ const prev=pager.querySelector('.object-cast-prev'),next=pager.querySelector('.object-cast-next'),status=pager.querySelector('.object-cast-page');
+ function showPage(){
+  const pageCount=Math.max(1,Math.ceil(canvases.length/PAGE_SIZE));
+  page=Math.max(0,Math.min(pageCount-1,page));
+  canvases.forEach(({c},i)=>{c.parentElement.hidden=i<page*PAGE_SIZE||i>=(page+1)*PAGE_SIZE});
+  status.textContent=(page+1)+' / '+pageCount;
+  prev.disabled=page===0;next.disabled=page===pageCount-1;
+ }
+ prev.addEventListener('click',()=>{page--;showPage()});
+ next.addEventListener('click',()=>{page++;showPage()});
+ showPage();
  const modes=[['down','정면 하강'],['left','좌하 이동'],['right','우하 이동'],['hurt','피격'],['normal','일반 사망'],['critical','크리티컬 사망']];
  let mode='down',started=0,raf=0;
  for(const [value,label] of modes){
@@ -30,6 +49,7 @@ function setup(){
   if(!started)started=timestamp;
   const seconds=(timestamp-started)/1000;
   for(const {key,c} of canvases){
+   if(c.parentElement.hidden)continue;
    const ctx=c.getContext('2d');if(!ctx)continue;
    ctx.clearRect(0,0,c.width,c.height);
    const isGreen=key==='green_zombie';
@@ -84,7 +104,7 @@ function setup(){
   }
   raf=requestAnimationFrame(render);
  }
- function open(){if(!dialog.open){dialog.showModal();started=0;raf=requestAnimationFrame(render)}}
+ function open(){if(!dialog.open){page=0;showPage();dialog.showModal();started=0;raf=requestAnimationFrame(render)}}
  function close(){dialog.close();if(raf)cancelAnimationFrame(raf);raf=0}
  trigger.addEventListener('click',open);
  dialog.querySelector('#object-cast-demo-close').onclick=close;
