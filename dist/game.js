@@ -34,6 +34,7 @@ function survivalClock(seconds){
  return String(Math.floor(whole/60)).padStart(2,'0')+':'+String(whole%60).padStart(2,'0');
 }
 const hero=()=>HEROES[selectedHero];
+const growth=id=>window.ZZProgression?.level?.(id)||0;
 // V60 approved 192px idle atlas -> 108px game artwork, top-left = (car-54, PY-59).
 // Tennis racket face (58,76), pink bat tip (54,75), hammer head (141,75).
 // Balls sit on the UPWARD rim (face-safe), not in the character's hand or face.
@@ -671,6 +672,7 @@ function skillUI(){
 }
 let DEFENSE_Y=565;
 let runMode='campaign',endlessUnlocked=false,lastStandUsed=false,resistFlash=0,failureScene=null,lastLostBall=null;
+let lastStandCount=0,lastStandLastAt=-1e9;
 try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
 // Selection opens endless; results return to the character picker.
 function endlessUI(){
@@ -703,12 +705,16 @@ function updateStandRetreat(){
  if(elapsed>=STAND_WAVE_SECONDS+STAND_MOVE_SECONDS)standRetreat.length=0;
 }
 const STAND_DANGER_DISTANCE=16,STAND_DANGER_SECONDS=2.8;
+function standReady(){
+ if(!window.ZZProgression)return !lastStandUsed;
+ return lastStandCount<window.ZZProgression.lastStandUses()&&clock-lastStandLastAt>=15&&standRetreat.length===0;
+}
 let standDangerTime=0;
 function updateStandDanger(dt){
  standDangerTime=0;
- if(wave<20||lastStandUsed)return;
+ if(wave<20||!standReady())return;
  for(const z of foes){
-  if(z.y+z.h<DEFENSE_Y-STAND_DANGER_DISTANCE){
+  if(z.y+z.h<DEFENSE_Y-STAND_DANGER_DISTANCE-growth('earlyWarning')*8){
    z.standDangerTime=0;
    continue;
   }
@@ -717,18 +723,19 @@ function updateStandDanger(dt){
  }
  if(standDangerTime>=STAND_DANGER_SECONDS)triggerLastStand();
 }
-function triggerLastStand(){if(wave<20||lastStandUsed||standDangerTime<STAND_DANGER_SECONDS)return false;standDangerTime=0;lastStandUsed=true;resistFlash=STAND_BANNER_SECONDS;
+function triggerLastStand(){if(wave<20||!standReady()||standDangerTime<STAND_DANGER_SECONDS)return false;standDangerTime=0;lastStandCount++;lastStandLastAt=clock;lastStandUsed=window.ZZProgression?lastStandCount>=window.ZZProgression.lastStandUses():true;resistFlash=STAND_BANNER_SECONDS;
+ const standDistance=window.ZZProgression?.lastStandDistance?.()??180;
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
  let front=-Infinity,back=Infinity;
  for(const z of sorted){const edge=z.y+z.h;front=Math.max(front,edge);back=Math.min(back,edge);standRetreat.push({z,from:z.y,edge,to:0,delay:0,started:false});}
- for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-180);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.knockTime=0;placed.push(z)}
+ for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-standDistance);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.knockTime=0;placed.push(z)}
  // Crowded late-stage boss formations may hit the upper packing boundary and
  // leave a front enemy too close after the first push. Translate the entire
  // already-spaced formation to guarantee a visible 125px recovery window,
  // preserving collision order and every zombie's HP.
  if(foes.length){
   const furthest=Math.max(...foes.map(z=>z.y+z.h));
-  const extra=Math.max(0,furthest-(DEFENSE_Y-125));
+  const extra=Math.max(0,furthest-(DEFENSE_Y-(window.ZZProgression?Math.min(standDistance,125):125)));
   // Never pull the highest zombie above its original first-spawn line.
   // Compress the formation as far as possible without floating over the scenery.
   const available=Math.max(0,Math.min(...foes.map(z=>z.y-ENEMY_TOP_Y)));
@@ -942,6 +949,7 @@ function nextBossArtLoading(nextWave){
 }
 function rack(){
  standRetreat.length=0;standDangerTime=0;resistFlash=0;
+ if(window.ZZProgression){lastStandCount=0;lastStandUsed=false;lastStandLastAt=-1e9;}
  bossTrashShots.length=0;
  eliteTrashSharedReadyAt=clock+4.4;spitSharedNextAt=clock+4.8;
  poison=0;poisonGrace=0;groggyTime=0;poisonFlash=0;poisonGaugeAlpha=0;
@@ -1524,6 +1532,7 @@ const ENDLESS_SHIFT_SECONDS=1.8,ENDLESS_SHIFT_SPAWN_AT=.35;
 let endlessShiftTime=0,endlessShiftSpawned=false,endlessBackgroundWait=0;
 function beginEndlessShift(){
  if(runMode!=='endless'||mode!=='playing')return;
+ window.ZZProgression?.grant?.('wave',wave-50,10);
  mode='endlessShift';endlessShiftTime=0;endlessShiftSpawned=false;
  endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));requestBossForWave(wave+1);
  releaseInput();
@@ -1535,7 +1544,7 @@ function beginEndlessShift(){
 }
 function beginClear(){
  if(runMode==='endless'){beginEndlessShift();return}
- if(mode!=='playing')return;mode='clearing';clearTime=0;clearBurst=0;items=[];
+ if(mode!=='playing')return;window.ZZProgression?.grant?.('wave',wave,10);mode='clearing';clearTime=0;clearBurst=0;items=[];
  // Begin downloading only the next campaign background at STAGE CLEAR.
  // The 2.8s result celebration is the loading/decoding window.
  if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1);requestBossForWave(wave+1)}
@@ -1584,7 +1593,7 @@ function updateEndlessShift(dt){
 function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5,spinAngle:0,spinVelocity:0,spinDirection:vx<0?-1:1}}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
-function start(selectedMode='campaign'){runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
@@ -1694,7 +1703,7 @@ function syncMulti(fromHero=false){if(!balls.length||balls[0].held)return;const 
  }
  while(balls.length<n){const angles=[-1.1,...balls.map(b=>clamp(Math.atan2(b.vx,Math.abs(b.vy)),-1.1,1.1)),1.1].sort((a,b)=>a-b);let gap=0,a=0;for(let i=1;i<angles.length;i++)if(angles[i]-angles[i-1]>gap){gap=angles[i]-angles[i-1];a=(angles[i]+angles[i-1])/2}const sp=Math.max(350,Math.hypot(src.vx,src.vy));balls.push(newBall(src.x,src.y,Math.sin(a)*sp,-Math.cos(a)*sp,false))}if(balls.length>n){for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}hud()}
 function activate(k,x=car,y=PY-24){
- active[k]=SKILLS[k].duration*hero().duration;
+ active[k]=SKILLS[k].duration*hero().duration*(1+growth(k)*.06);
  if(k==='dual'||k==='triple')syncMulti(true);
  if(k==='bazooka'){bazookaTimer=0;lastSupportAt=clock}
  sfx('item');feedback('item');
@@ -2157,7 +2166,7 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
   damage(z,FIRE_TICK_DAMAGE,true);
   if(mode!=='playing')return;
  }
-}if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&!lastStandUsed){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
+}if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&standReady()){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
 for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,rate=has('slow')?.66:1,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt*rate,Math.abs(car-previousCar))/4)),d=dt*rate/steps;
@@ -3275,11 +3284,11 @@ function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('h
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
 function recordKill(){
- killCombo=killTimer>0?killCombo+1:1;killTimer=6;comboPop=.22;comboDisplayTime=1.45;
- if(killCombo%5!==0)return;
- const p=citizens.filter(p=>!p.alive&&p.absent>=8).sort((a,b)=>b.absent-a.absent)[0];
+ killCombo=killTimer>0?killCombo+1:1;killTimer=6+growth('comboFocus')*.24;comboPop=.22;comboDisplayTime=1.45;
+ if(killCombo%(growth('rescue')>=3?4:5)!==0)return;
+ const p=citizens.filter(p=>!p.alive&&p.absent>=8-growth('rescue')*.5).sort((a,b)=>b.absent-a.absent)[0];
  if(!p)return;
- p.alive=true;p.dying=0;p.absent=0;p.returning=1.1;cheerTime=1.8;
+ p.alive=true;p.dying=0;p.absent=0;p.returning=1.1;p.guardSpent=false;p.guardUntil=0;cheerTime=1.8;
  citizenCue(p,true);effect(p.x,p.y-12,'#91f4d0',65);burst(p.x,p.y-10,'#91f4d0',24);sfx('return');feedback('rescue');toast('시민 +1 복귀! · '+killCombo+' COMBO');
 }
 // The original 5-kill citizen returns remain unchanged; the banner uses
@@ -3321,7 +3330,7 @@ function drawKillCombo(){
  const fade=Math.min(1,comboDisplayTime/.48);
  el.style.opacity=String(Math.max(0,Math.min(1,fade)));
  el.style.setProperty?.('--combo-quiet',String(Math.max(0,Math.min(1,(1.45-comboDisplayTime)/1.45))));
- el.style.setProperty?.('--combo-progress',String(Math.max(0,Math.min(1,killTimer/6))));
+ el.style.setProperty?.('--combo-progress',String(Math.max(0,Math.min(1,killTimer/(6+growth('comboFocus')*.24)))));
 }
 // Keep all 18 original supporters and sprites, but bring their save hitboxes
 // inside the same side walls where the ball now legitimately travels.
