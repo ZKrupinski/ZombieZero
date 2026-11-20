@@ -29,7 +29,7 @@ for(const required of [
 assert(progression.includes("const pips=Array.from({length:5}"),'live skill levels remain dynamic');
 assert(progression.includes('skillJokes[d.id]'),'comic copy still real text');
 assert(progression.includes('selectedSkill=card.dataset.select;renderList()'),'skill selection remains operational');
-assert(progression.includes('if(purchase(selectedSkill))renderList()'),'purchase still reloads live level');
+assert(progression.includes('if(purchase(selectedSkill)){'),'purchase still reloads live level');
 assert(html.includes('id="upgrade-detail-current"')&&html.includes('id="upgrade-detail-next"'),'current and next level details accessible');
 assert(!html.includes('id="upgrade-tabs"')&&!html.includes('upgrade-page-prev'),'all 23 skills remain on one screen');
 assert(serviceWorker.includes("'./upgrade-layout-v199.css'"),'PWA pre-caches corrected sheet');

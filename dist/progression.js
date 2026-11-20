@@ -157,7 +157,10 @@
   const icon=$('upgrade-detail-icon');
   if(icon)icon.innerHTML=iconHTML(d);
   if(title)title.textContent=funnyNames[d.id]||d.name;
-  if(rank)rank.textContent='LV '+n+' / 5';
+  const preview=Math.min(n+1,MAX_LEVEL);
+  if(rank)rank.textContent=max?'MAX 5/5':'LV '+preview+'/5';
+  const meter=$('upgrade-preview-pips');
+  if(meter)meter.innerHTML=Array.from({length:MAX_LEVEL},(_,i)=>'<i class="'+(i<n?'filled':i<preview?'preview':'')+'"></i>').join('');
   if(current)current.textContent=example(d.id,n);
   if(next)next.textContent=max?'성장 완료':example(d.id,n+1);
   if(buy){
@@ -204,7 +207,12 @@
    list.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
   });
   $('upgrade-detail-buy')?.addEventListener('click',()=>{
-   if(purchase(selectedSkill))renderList();
+   if(purchase(selectedSkill)){
+    const button=$('upgrade-detail-buy');
+    button.classList.remove('bought');
+    void button.offsetWidth;
+    button.classList.add('bought');
+   };
   });
   refresh();
  }

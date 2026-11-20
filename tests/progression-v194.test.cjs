@@ -56,7 +56,7 @@ assert.equal((nodes['upgrade-list'].innerHTML.match(/data-select="/g)||[]).lengt
 assert.equal((nodes['upgrade-list'].innerHTML.match(/zz-upgrade-column /g)||[]).length,3,'exactly 3 groups');
 listeners['upgrade-list:click']({target:{closest:()=>({dataset:{select:'citizenArmor'}})}});
 assert.equal(nodes['upgrade-detail-name'].textContent,'안죽어요!');
-assert.equal(nodes['upgrade-detail-level'].textContent,'LV 0 / 5');
+assert.equal(nodes['upgrade-detail-level'].textContent,'LV 1/5');
 assert(nodes['upgrade-detail-next'].textContent.includes('20%'),'details show next effect');
 assert.equal(nodes['upgrade-detail-buy'].disabled,false,'cost affordable');
 nodes['upgrade-dialog'].close();
