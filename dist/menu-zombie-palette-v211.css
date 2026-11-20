@@ -224,6 +224,7 @@
   margin:0 auto calc(5px * var(--ui-scale,1))!important;
 }
 #overlay[data-screen="pause"]>.label{
+  display:none!important;
   color:#aad0bf!important;letter-spacing:.15em!important;
   font-size:clamp(8px,calc(10px * var(--ui-scale,1)),11px)!important;
   margin:0 0 calc(5px * var(--ui-scale,1))!important;
