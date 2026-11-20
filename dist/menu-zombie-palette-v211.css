@@ -24,15 +24,15 @@
   outline:2px solid #f7eed0!important;outline-offset:2px!important;
 }
 #overlay[data-screen] button:enabled:active{transform:translateY(2px);filter:brightness(.95)}
-/* MENU — calm industrial scene with the same warm/chilly balance as the zombies. */
+/* MENU — v228: near-clear original-zombie backdrop, keeping solid hero cards and actions for readability. */
 #overlay[data-screen="selection"]{
-  background:linear-gradient(180deg,#425c64f4 0%,#2c424df6 24%,#1a2c38f9 60%,#101d29fa 100%)!important;
+  background:linear-gradient(180deg,rgba(28,47,55,.12) 0%,rgba(16,32,45,.16) 58%,rgba(9,21,33,.23) 100%)!important;
   isolation:isolate;
 }
 #overlay[data-screen="selection"]::before{
   content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:linear-gradient(90deg,#a7d56a13,transparent 22%,transparent 78%,#73b7bd12),
-    linear-gradient(0deg,#0a131e91,transparent 45%);
+  background:linear-gradient(90deg,rgba(167,213,106,.035),transparent 22%,transparent 78%,rgba(115,183,189,.035)),
+    linear-gradient(0deg,rgba(10,19,30,.12),transparent 44%);
 }
 #overlay[data-screen="selection"]>.label{
   color:#d3dfd8!important;text-shadow:none!important;
@@ -112,9 +112,9 @@
   color:#b2cabc!important;text-shadow:0 1px 2px #102127!important;
 }
 
-/* RESULTS — red barrel headline, yellow brain-cube score, green reward. */
+/* RESULTS — v228: near-clear playfield behind the solid results HUD, original UI and rewards. */
 #overlay[data-screen="results"]{
-  background:linear-gradient(180deg,#30444bf3,#1c303bf8 38%,#0f1c29fa 100%)!important;
+  background:linear-gradient(180deg,rgba(27,45,56,.14),rgba(13,29,42,.17) 38%,rgba(9,22,34,.24) 100%)!important;
 }
 #overlay[data-screen="results"]>.overlay-logo{
   display:block!important;flex:none!important;
