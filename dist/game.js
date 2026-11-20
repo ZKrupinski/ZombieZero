@@ -1749,7 +1749,7 @@ function updateEmergencySupport(dt){
   let citizen=citizens.find(p=>p.alive);
   if(!citizen){
    citizen=citizens[0];
-   if(citizen){citizen.alive=true;citizen.dying=0;citizen.absent=0;citizen.returning=1.1;citizen.shooting=0}
+   if(citizen){citizen.alive=true;citizen.dying=0;citizen.absent=0;citizen.returning=1.1;citizen.shooting=0;citizen.guardSpent=false;citizen.guardUntil=0}
   }
   if(!citizen)return;
   endlessEmergencyUsed=true;supportDangerTime=0;
@@ -2044,6 +2044,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  }
  if(z.hp<=0){
   enemyDeath(z,critical);
+   if(z.boss)window.ZZProgression?.grant?.('boss',wave,25);
   if(critical)burst(z.x+z.w/2,z.y+8,'#fff0ad',17);
   recordKill();foes.splice(foes.indexOf(z),1);
   if(!z.boss&&z.form===1)explodeRedBarrel(z);
@@ -3335,7 +3336,18 @@ function drawKillCombo(){
 // Keep all 18 original supporters and sprites, but bring their save hitboxes
 // inside the same side walls where the ball now legitimately travels.
 const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,phase:i*.9,alive:true,dying:0,supportTime:0}));
-function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0}bubbles=[];bubbleTimer=.25;lastCitizenLine=''}
+function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0;p.guardSpent=false;p.guardUntil=0}bubbles=[];bubbleTimer=.25;lastCitizenLine=''}
+// One additional absorbed civilian hit; LV1..5 = 20/40/60/80/100%
+// chance to block the first hit. Protection expires on the next real impact.
+function tryCitizenGuard(p){
+ if(!p?.alive)return false;
+ if((p.guardUntil||0)>clock)return true;
+ const rank=growth('citizenArmor');
+ if(rank<=0||p.guardSpent||Math.random()>=rank*.2)return false;
+ p.guardSpent=true;p.guardUntil=clock+.6;p.supportTime=.46;
+ effect(p.x,p.y-16,'#b4f7aa',34);burst(p.x,p.y-16,'#b4f7aa',7);
+ sfx('shield');feedback('shield');return true;
+}
 // Gameplay feedback is independent of the FX FULL / LIGHT graphics option.
 // Weak simultaneous hits cannot cancel a longer critical or boss vibration.
 // Browser vibration has no strength parameter. Duration/pattern control perceived
@@ -3489,7 +3501,7 @@ if(hapticsToggle){
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
 function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
 function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car');return true}
-function citizenCollision(b,r){if(b.vy<=0)return false;for(const p of citizens){if(!p.alive)continue;const box={x:p.x-10,y:p.y-13,w:20,h:34};if(!circleRect(b.x,b.y,r,box))continue;p.alive=false;p.dying=.8;p.returning=0;p.absent=0;bubbles=bubbles.filter(q=>q.citizen!==p);upwardBounce(b,p.x,16,box.y,r);citizenCue(p,false);effect(p.x,box.y,'#ffb16f',65);burst(p.x,p.y-10,'#ffda86',22);sfx('citizen');feedback('citizen');return true}return false}
+function citizenCollision(b,r){if(b.vy<=0)return false;for(const p of citizens){if(!p.alive)continue;const box={x:p.x-10,y:p.y-13,w:20,h:34};if(!circleRect(b.x,b.y,r,box))continue;if(tryCitizenGuard(p)){upwardBounce(b,p.x,16,box.y,r);return true}p.alive=false;p.dying=.8;p.returning=0;p.absent=0;bubbles=bubbles.filter(q=>q.citizen!==p);upwardBounce(b,p.x,16,box.y,r);citizenCue(p,false);effect(p.x,box.y,'#ffb16f',65);burst(p.x,p.y-10,'#ffda86',22);sfx('citizen');feedback('citizen');return true}return false}
 // V124: Short arcade crowd reactions with dynamic speech width.
 // A measured approximation avoids per-frame canvas text measurement.
 let lastCitizenLine='';
@@ -3634,6 +3646,7 @@ function bossTrashProjectilePosition(p){
 }
 function defeatCitizenByTrash(p,kind='trash'){
  if(!p?.alive||mode!=='playing')return false;
+ if(tryCitizenGuard(p))return false;
  p.alive=false;p.dying=.8;p.returning=0;p.absent=0;
  p.shooting=0;p.supportTime=0;
  bubbles=bubbles.filter(b=>b.citizen!==p);
@@ -3889,7 +3902,10 @@ function drawBossTrashShots(){
  }
  if(spitBloomDraws.length)captureBloom(drawSpitBloom);
 }
-function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(let i=0;i<junk.length;){const j=junk[i];j.t+=dt;if(j.t>=j.duration){junk.splice(i,1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){queueContact(trashContactFX,j.tx,j.ty,0,1,'enemy',j.target,1.4375);damage(j.target,.25,true);feedback('junkHit');
+function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0)p.dying=Math.max(0,p.dying-dt);if(!p.alive&&mode==='playing')p.absent=(p.absent||0)+dt;p.returning=Math.max(0,(p.returning||0)-dt);p.supportTime=Math.max(0,(p.supportTime||0)-dt);}cheerTime=Math.max(0,cheerTime-dt);if(mode==='clearing')return;updateBazooka(dt);if(mode!=='playing')return;for(let i=0;i<junk.length;){const j=junk[i];j.t+=dt;if(j.t>=j.duration){junk.splice(i,1);burst(j.tx,j.ty,'#d9c28b',4);if(foes.includes(j.target)&&Math.hypot(j.target.x+j.target.w/2-j.tx,j.target.y+j.target.h/2-j.ty)<32){queueContact(trashContactFX,j.tx,j.ty,0,1,'enemy',j.target,1.4375);const citizenCrit=Math.random()<growth('citizenCrit')*.03;
+ const citizenDamage=(.25+growth('citizenPower')*.05)*(citizenCrit?3:1);
+ damage(j.target,citizenDamage,true);
+ if(citizenCrit){effect(j.tx,j.ty,'#fff5ad',31);burst(j.tx,j.ty,'#ffe899',7);sfx('hit');feedback('critical')}else feedback('junkHit');
  if(j.target.hp>0&&!(j.target.trashStopUntil>clock)){
   j.target.trashStopUntil=clock+.08;
   j.target.hitHold=Math.max(j.target.hitHold||0,.08);
