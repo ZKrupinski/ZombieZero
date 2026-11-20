@@ -366,3 +366,77 @@ html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-por
 @media(prefers-reduced-motion:reduce){
  #overlay[data-screen="selection"] .hero-card{transition:none!important}
 }
+
+
+/* v218: in-game arcade typography for ALL menu action buttons.
+   Press Start 2P is already loaded by index.html and used for the HUD;
+   the Korean fallback stays readable. Do not apply font effects to sprites. */
+#overlay[data-screen="selection"] > #start,
+#overlay[data-screen="selection"] > #endless,
+#overlay[data-screen="selection"] > #upgrade-open,
+#overlay[data-screen="results"] > #start,
+#overlay[data-screen="results"] > #endless,
+#overlay[data-screen="results"] > #upgrade-open,
+#overlay[data-screen="pause"] > #start,
+#overlay[data-screen="pause"] > #pause-settings,
+#overlay[data-screen="pause"] > #pause-main-menu {
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ gap:calc(7px * var(--ui-scale,1))!important;
+ font-family:'Press Start 2P','Noto Sans KR','Courier New',monospace!important;
+ font-size:clamp(12px,calc(15px * var(--ui-scale,1)),17px)!important;
+ font-weight:400!important;
+ font-synthesis:none!important;
+ line-height:1.33!important;
+ letter-spacing:-.045em!important;
+ white-space:nowrap!important;
+ text-align:center!important;
+ text-shadow:0 2px 0 #0c2125,0 0 4px #ffffed8c,0 0 9px #f2eaa04d!important;
+}
+/* Start yellow: crisp dark lettering and a warm light edge. */
+#overlay[data-screen="selection"] > #start,
+#overlay[data-screen="results"] > #start,
+#overlay[data-screen="pause"] > #start {
+ color:#18272d!important;
+ text-shadow:0 1px 0 #fff7c1dd,0 2px 0 #96733385,0 0 5px #ffe47d65!important;
+}
+/* Zombie-green and coolant-cyan reinforce the game's own palette. */
+#overlay[data-screen="selection"] > #endless {
+ color:#fffce7!important;
+ text-shadow:0 2px 0 #203923,0 0 5px #e1ffb49c,0 0 10px #b2ef7066!important;
+}
+#overlay[data-screen="selection"] > #upgrade-open,
+#overlay[data-screen="results"] > #upgrade-open {
+ color:#f7fff1!important;
+ text-shadow:0 2px 0 #102d37,0 0 5px #b6f3ef95,0 0 9px #8cdce170!important;
+}
+#overlay[data-screen="results"] > #endless,
+#overlay[data-screen="pause"] > #pause-main-menu {
+ color:#192d36!important;
+ text-shadow:0 1px 0 #f4fff3b0,0 0 5px #c8f6f280!important;
+}
+#overlay[data-screen="pause"] > #pause-settings{
+ color:#f5fff9!important;
+ text-shadow:0 2px 0 #12353e,0 0 6px #a1e9ef94!important;
+}
+/* The gold coin/chip tally should not disappear into its action button. */
+#overlay[data-screen="selection"] > #upgrade-open strong,
+#overlay[data-screen="results"] > #upgrade-open strong {
+ font-family:'Press Start 2P','Courier New',monospace!important;
+ font-size:clamp(12px,calc(14px * var(--ui-scale,1)),16px)!important;
+ font-weight:400!important;
+ color:#ffe486!important;
+ text-shadow:0 1px 0 #342b13,0 0 5px #ffef9cb2!important;
+}
+@media(max-width:360px){
+ #overlay[data-screen="selection"] > #start,
+ #overlay[data-screen="selection"] > #endless,
+ #overlay[data-screen="selection"] > #upgrade-open,
+ #overlay[data-screen="results"] > #start,
+ #overlay[data-screen="results"] > #endless,
+ #overlay[data-screen="results"] > #upgrade-open {
+  font-size:clamp(11px,calc(13px * var(--ui-scale,1)),14px)!important;
+  gap:calc(4px * var(--ui-scale,1))!important;
+ }
+}
