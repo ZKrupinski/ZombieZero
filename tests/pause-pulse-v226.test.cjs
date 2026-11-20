@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const game=fs.readFileSync('dist/game.js','utf8');
+const html=fs.readFileSync('dist/index.html','utf8');
+const css=fs.readFileSync('dist/menu-zombie-palette-v211.css','utf8');
+const sw=fs.readFileSync('dist/sw.js','utf8');
+assert(game.includes("overlay('PAUSED','좀비도"),'pause heading has no exclamation');
+assert(!game.includes("overlay('PAUSED!'"),'old title removed');
+assert(game.includes("button+(label==='PAUSED'?'':' <span>↗</span>')"),'RESUME omits arrow without affecting replay');
+assert.match(html,/>MAIN MENU<\/button>/,'MAIN MENU has no house icon');
+assert(!html.includes('MAIN MENU <span'),'no decorative main menu glyph');
+assert(css.includes('v226: Large animated PAUSED heading'),'pixel title version available');
+assert(css.includes("animation:zz-paused-sign-pulse 2.45s ease-in-out infinite!important"),'soft pulse present');
+assert(css.includes('0 0 23px #ffc04f73'),'gold bloom effect present');
+assert(css.includes('@media(prefers-reduced-motion:reduce)'),'reduced motion respected');
+assert(html.includes('v=226-pause-pulse-clean'),'browser reloads new stylesheet');
+assert(sw.includes('v226-pulse-no-glyphs'),'PWA shell cache invalidated');
+console.log('PASS v226: enlarged PAUSED, gentle blinking bloom, clean RESUME/MAIN MENU glyphs');
