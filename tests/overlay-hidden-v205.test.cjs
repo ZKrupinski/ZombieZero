@@ -11,3 +11,9 @@ for (const rule of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{
     }
   }
 }
+
+for (const orientation of ['portrait-play','landscape-game']) {
+  for (const screen of ['selection','results']) {
+    assert.ok(css.includes('html.' + orientation + ' #overlay[data-screen="' + screen + '"]:not([hidden])'));
+  }
+}
