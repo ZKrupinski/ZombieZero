@@ -440,3 +440,37 @@ html.landscape-game #overlay[data-screen="results"] .hero-card .hero-vehicle-por
   gap:calc(4px * var(--ui-scale,1))!important;
  }
 }
+
+
+/* v219: Bold pixel menu labels without redrawing fonts or compressing glyphs.
+   Press Start 2P is a regular-weight face: a narrow same-color outline gives
+   it bold-looking strokes while keeping small pixel holes legible. */
+#overlay[data-screen="selection"] > #start,
+#overlay[data-screen="selection"] > #endless,
+#overlay[data-screen="selection"] > #upgrade-open,
+#overlay[data-screen="results"] > #start,
+#overlay[data-screen="results"] > #endless,
+#overlay[data-screen="results"] > #upgrade-open,
+#overlay[data-screen="pause"] > #start,
+#overlay[data-screen="pause"] > #pause-settings,
+#overlay[data-screen="pause"] > #pause-main-menu {
+ letter-spacing:0!important;
+ -webkit-text-stroke:.72px currentColor!important;
+ paint-order:stroke fill!important;
+}
+#overlay[data-screen="selection"] > #upgrade-open strong,
+#overlay[data-screen="results"] > #upgrade-open strong{
+ letter-spacing:0!important;
+ -webkit-text-stroke:.68px currentColor!important;
+ paint-order:stroke fill!important;
+}
+@media(max-width:360px){
+ #overlay[data-screen="selection"] > #start,
+ #overlay[data-screen="selection"] > #endless,
+ #overlay[data-screen="selection"] > #upgrade-open,
+ #overlay[data-screen="results"] > #start,
+ #overlay[data-screen="results"] > #endless,
+ #overlay[data-screen="results"] > #upgrade-open {
+  -webkit-text-stroke:.56px currentColor!important;
+ }
+}
