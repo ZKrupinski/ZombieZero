@@ -1169,3 +1169,270 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
   font-size:12px!important;
  }
 }
+
+
+/* v254 — GAME OVER: the same five full hero cards as the title.
+   Previously the result view hid the virtual wheel and left obsolete
+   card buttons visible as blank panels. Hide those obsolete buttons and
+   give the real reel a compact result-sized presentation. */
+#overlay[data-screen="results"] #heroes{
+ display:block!important;flex:0 0 auto!important;
+ width:100%!important;max-width:100%!important;
+ height:clamp(168px,23svh,226px)!important;
+ min-height:0!important;
+ margin:3px auto 2px!important;
+ box-sizing:border-box!important;
+ overflow:hidden!important;
+}
+#overlay[data-screen="results"] #heroes .hero-options{
+ display:block!important;
+ position:relative!important;
+ width:100%!important;
+ height:100%!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:hidden!important;
+ perspective:800px;
+ isolation:isolate;
+ touch-action:pan-y!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card:not(.hero-reel-proxy){
+ display:none!important;
+ pointer-events:none!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy:not([hidden]){
+ box-sizing:border-box!important;
+ display:flex!important;
+ position:absolute!important;
+ left:50%!important;top:50%!important;
+ transform-origin:center center!important;
+ width:41%!important;
+ max-width:none!important;min-width:0!important;
+ height:calc(100% - 10px)!important;
+ max-height:none!important;min-height:0!important;
+ padding:4px 4px 5px!important;
+ border:2px solid #526e7d!important;
+ border-radius:8px!important;
+ background:linear-gradient(165deg,#324d60,#1c3545 65%,#112633)!important;
+ box-shadow:0 5px 0 #091c25,0 8px 12px #071b258f!important;
+ container-type:size!important;
+ gap:0!important;
+ justify-content:flex-end!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ overflow:hidden!important;
+ backface-visibility:hidden;
+ will-change:transform,opacity;
+ cursor:pointer;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-focus="true"]{
+ border-color:#d9f89e!important;
+ box-shadow:0 0 0 1px #d0f2a975,0 7px 15px #061921ad!important;
+}
+#overlay[data-screen="results"] #heroes .reel-arrow{
+ z-index:280!important;
+ width:clamp(23px,5vw,29px)!important;
+ height:clamp(42px,7svh,57px)!important;
+ font-size:22px!important;
+ background:#102937c8!important;
+ border-color:#718e9bad!important;
+}
+#overlay[data-screen="results"] #heroes .reel-arrow[data-step="-1"]{left:0!important}
+#overlay[data-screen="results"] #heroes .reel-arrow[data-step="1"]{right:0!important}
+
+/* v254 copied structural rules for the same full-card content in results. */
+/* v248 — five *complete* portrait cards, not one complete card and
+   four abbreviated previews. Only main selection; no results/garage edits. */
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy:not([hidden]){
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ justify-content:flex-end!important;
+ gap:0!important;
+ padding:5px 4px 5px!important;
+ overflow:hidden!important;
+ isolation:isolate!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork{
+ box-sizing:border-box!important;
+ display:block!important;
+ flex:1 1 auto!important;
+ min-height:0!important;
+ position:relative!important;
+ width:100%!important;
+ overflow:visible!important;
+ isolation:isolate!important;
+ margin:0!important;
+ padding:0!important;
+ pointer-events:none!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait{
+ display:block!important;
+ box-sizing:border-box!important;
+ position:absolute!important;
+ top:1px!important;
+ left:50%!important;
+ transform:translateX(-50%)!important;
+ transform-origin:center top!important;
+ width:min(calc(100% - 2px),calc(100cqh - 59px))!important;
+ min-width:0!important;
+ max-width:none!important;
+ height:auto!important;
+ aspect-ratio:1/1!important;
+ margin:0!important;
+ padding:0!important;
+ flex:none!important;
+ overflow:visible!important;
+ background-size:800% 300%!important;
+ background-repeat:no-repeat!important;
+ clip-path:none!important;
+ z-index:1!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait{
+ background:url('assets/ip/tow-mechanic.webp') center / contain no-repeat!important;
+ animation:none!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-id{
+ box-sizing:border-box!important;
+ display:flex!important;
+ position:absolute!important;
+ right:2px!important;
+ bottom:2px!important;
+ z-index:3!important;
+ flex-direction:column!important;
+ align-items:flex-end!important;
+ justify-content:flex-end!important;
+ width:auto!important;
+ max-width:100%!important;
+ padding:0 1px!important;
+ margin:0!important;
+ line-height:1!important;
+ text-align:right!important;
+ color:#fff6dd!important;
+ pointer-events:none!important;
+ filter:drop-shadow(0 1px 2px #061322cc);
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-id>b{
+ display:block!important;
+ flex:none!important;
+ margin:0!important;
+ padding:0!important;
+ color:#fff5cd!important;
+ font:900 clamp(13px,calc(16px * var(--ui-scale,1)),19px)/1.04 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:-.02em!important;
+ text-align:right!important;
+ text-shadow:1px 2px 1px #08222b,0 0 5px #00151d!important;
+ white-space:nowrap!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-id>small{
+ display:block!important;
+ flex:none!important;
+ margin:2px 0 0!important;
+ padding:0!important;
+ color:#d1e7d0!important;
+ font:700 clamp(8px,calc(9px * var(--ui-scale,1)),10px)/1 Arial,'Noto Sans KR',sans-serif!important;
+ white-space:nowrap!important;
+ text-align:right!important;
+ text-shadow:0 1px 2px #061620!important;
+}
+/* Self-contained lower gauge plate. It is present on all five cards, and
+   moves together with the portrait, title, and card border. */
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom{
+ box-sizing:border-box!important;
+ display:block!important;
+ position:relative!important;
+ flex:0 0 auto!important;
+ width:100%!important;
+ min-width:0!important;
+ height:auto!important;
+ padding:2px 2px 3px!important;
+ margin:0!important;
+ z-index:4!important;
+ border:1px solid #607985!important;
+ border-radius:4px!important;
+ background:linear-gradient(180deg,#122d3be9,#0b2531f2)!important;
+ box-shadow:inset 0 1px #b7dae024!important;
+ pointer-events:none!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom>.hero-mini-stats,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy:not([data-reel-focus="true"]) .hero-reel-bottom>.hero-mini-stats{
+ box-sizing:border-box!important;
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ width:100%!important;
+ max-width:none!important;
+ min-width:0!important;
+ gap:1px!important;
+ margin:0!important;
+ padding:1px 2px!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ opacity:1!important;
+ transform:none!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-stat{
+ height:10px!important;
+ min-height:0!important;
+ gap:1px!important;
+ grid-template-columns:11px 21px minmax(0,1fr) 19px 21px!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-track,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-track>.hero-stat-cell{
+ height:6px!important;
+}
+
+
+/* The result reel is shorter than the title reel; keep a readable silhouette
+   and all four real stats for each selectable survivor. */
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait{
+ width:min(calc(100% - 2px),calc(100cqh - 60px))!important;
+ margin:0!important;top:0!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom{
+ padding:1px!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-stat{
+ grid-template-columns:10px 20px minmax(0,1fr) 19px 19px!important;
+ height:9px!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-track,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-track>.hero-stat-cell{
+ height:5px!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-id>b{
+ font-size:clamp(12px,calc(16px * var(--ui-scale,1)),18px)!important;
+}
+@media(max-height:670px){
+ #overlay[data-screen="results"] #heroes{
+  height:clamp(140px,20svh,180px)!important;
+ }
+ #overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+  > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait{
+  width:min(calc(100% - 2px),calc(100cqh - 54px))!important;
+ }
+}
