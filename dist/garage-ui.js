@@ -225,6 +225,14 @@
    snap(target);
   }
   for(const event of ['pointerup','pointercancel','lostpointercapture'])root.addEventListener(event,release);
+  // Capture the synthetic click produced by releasing a touch gesture on a
+  // hero button BEFORE the button's native onclick can select the wrong hero.
+  root.addEventListener('click',e=>{
+   if(programmatic||lastSwipe<0||!Number.isFinite(e.timeStamp))return;
+   if(e.timeStamp>=lastSwipe&&e.timeStamp-lastSwipe<350&&!e.target.closest('[data-step]')){
+    e.preventDefault?.();e.stopImmediatePropagation?.();lastSwipe=-1;
+   }
+  },true);
   root.addEventListener('click',e=>{
    if(programmatic||!enabled())return;
    const arrow=e.target.closest('[data-step]');
