@@ -156,6 +156,19 @@
    }
    root.dataset.fiveReel='true';
   }
+  // Full card UI for every reel position: original 192px bitmap portrait,
+  // character name overlaid on the lower right of the artwork and the same
+  // equipment stat box that appears on the centered card. No new art assets.
+  function heroReelCardMarkup(hero,source){
+   const model=HEROES[hero];
+   const art=source.querySelector?.('.hero-vehicle-portrait')?.outerHTML||
+    source.innerHTML.match(/<span[^>]*class="[^"]*hero-vehicle-portrait[^"]*"[^>]*><\/span>/)?.[0]||
+    source.innerHTML;
+   const stats=source.querySelector?.('.hero-mini-stats')?.outerHTML||'';
+   return '<div class="hero-reel-artwork">'+art+
+    '<div class="hero-reel-id"><b>'+model.name+'</b><small>'+(model.role||'')+'</small></div>'+
+    '</div><div class="hero-reel-bottom">'+stats+'</div>';
+  }
   function syncFiveReel(){
    ensureFiveReel();
    if(!proxies.length)return;
@@ -166,8 +179,9 @@
     const hero=heroes[((Math.max(0,origin)+offset)%count+count)%count];
     const source=$('hero-'+hero);
     if(!source)continue;
-    if(node.dataset.reelHero!==String(hero)||node.innerHTML!==source.innerHTML){
-     node.innerHTML=source.innerHTML;
+    const markup=heroReelCardMarkup(hero,source);
+    if(node.dataset.reelHero!==String(hero)||node.innerHTML!==markup){
+     node.innerHTML=markup;
      node.dataset.reelHero=String(hero);
     }
     node.setAttribute('aria-label',source.textContent?.trim()||('캐릭터 '+(hero+1)));
