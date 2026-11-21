@@ -42,7 +42,8 @@ for(let id=0;id<4;id++){
   'all slots keep their full stats panel, not just selected slot '+id);
 }
 assert(shapes[2].includes('hero-stat-cell boost'),'gear upgrades remain visible on side cards');
-const body=css.slice(css.indexOf('/* v248 — five *complete* portrait cards'));
+const body=css.slice(css.indexOf('/* v248 — five *complete* portrait cards'),css.indexOf('/* v254 — GAME OVER:'));
+assert(css.includes('/* v254 — GAME OVER:'),'result screen reuses complete-card carousel');
 assert(body.startsWith('/* v248'),'late CSS is active');
 assert(body.includes('> .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait'),
  'responsive art stays fully within portrait window');
@@ -61,7 +62,7 @@ assert(body.includes('[data-reel-hero="3"]')&&body.includes('tow-mechanic.webp')
  'special one-frame mechanic art never uses mistaken 8x3 sprite source');
 assert(body.includes('#overlay[data-screen="selection"]')&&!body.includes('#overlay[data-screen="results"]'),
  'garage and death/result screens are untouched');
-assert(html.includes('garage.css?v=14-v248-complete-hero-cards')&&
- html.includes('garage-ui.js?v=12-v248-complete-hero-cards'),'mobile receives updated UI and styles');
+assert(html.includes('garage.css?v=15-v254-gameover-reel')&&
+ html.includes('garage-ui.js?v=13-v254-gameover-reel'),'mobile receives updated UI and styles');
 assert(sw.includes('v248-complete-hero-cards'),'PWA cache refreshed');
 console.log('PASS v248: fullscreen-safe large intact car art, lower-right overlaid name and stats box on ALL 5 cards, real upgraded stats and mechanic sprite.');
