@@ -134,13 +134,77 @@
   const reduce=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const stride=()=>Math.max(90,Math.min(190,(surface()?.clientWidth||320)*.47));
   const indexOf=(id)=>roster().indexOf(id);
-  const items=()=>Array.from(surface()?.querySelectorAll?.('[data-reel-hero],.hero-card')||[]);
+  const fiveReel=selector==='.hero-options';
+  // Five visible positions, plus one offscreen handoff on either side.
+  // Slots are virtual; with fewer than five owned heroes the wheel cycles
+  // existing heroes, and automatically shows five distinct once recruited.
+  let proxies=[];
+  function ensureFiveReel(){
+   if(!fiveReel)return;
+   const stage=surface();
+   if(!stage?.appendChild||typeof document==='undefined'||!document.createElement)return;
+   if(proxies.length&&proxies.every(node=>node.parentNode===stage))return;
+   proxies=[];
+   for(let offset=-3;offset<=3;offset++){
+    const node=document.createElement('div');
+    node.className='hero-card hero-reel-proxy';
+    node.dataset.reelOffset=String(offset);
+    node.setAttribute('role','button');
+    node.tabIndex=offset===0?0:-1;
+    node.setAttribute('aria-label','캐릭터 선택');
+    stage.appendChild(node);proxies.push(node);
+   }
+   root.dataset.fiveReel='true';
+  }
+  function syncFiveReel(){
+   ensureFiveReel();
+   if(!proxies.length)return;
+   const heroes=roster(),count=heroes.length,origin=indexOf(current());
+   if(!count)return;
+   for(const node of proxies){
+    const offset=Number(node.dataset.reelOffset);
+    const hero=heroes[((Math.max(0,origin)+offset)%count+count)%count];
+    const source=$('hero-'+hero);
+    if(!source)continue;
+    if(node.dataset.reelHero!==String(hero)||node.innerHTML!==source.innerHTML){
+     node.innerHTML=source.innerHTML;
+     node.dataset.reelHero=String(hero);
+    }
+    node.setAttribute('aria-label',source.textContent?.trim()||('캐릭터 '+(hero+1)));
+    node.setAttribute('aria-current',offset===0?'true':'false');
+    node.tabIndex=offset===0?0:-1;
+   }
+  }
+  const items=()=>Array.from(surface()?.querySelectorAll?.(
+   fiveReel&&$('overlay')?.dataset.screen==='selection'?'.hero-reel-proxy':
+   fiveReel?'.hero-card:not(.hero-reel-proxy)':'[data-reel-hero],.hero-card'
+  )||[]);
   function itemHero(item){
    return item.dataset?.reelHero!==undefined?Number(item.dataset.reelHero):Number(item.id?.slice(5));
   }
   function paint(progress=0){
    const heroes=roster(),count=heroes.length,origin=indexOf(current()),step=stride();
    if(!count)return;
+   if(fiveReel&&$('overlay')?.dataset.screen==='selection'){
+    ensureFiveReel();
+    const width=surface()?.clientWidth||320;
+    for(const node of proxies){
+     const offset=Number(node.dataset.reelOffset);
+     const relative=offset-progress,distance=Math.abs(relative);
+     const first=Math.min(1,distance),second=Math.min(1,Math.max(0,distance-1));
+     const spread=distance<=1?distance*.265:.265+(distance-1)*.215;
+     const dx=Math.sign(relative)*spread*width;
+     const scale=1-first*.30-second*.20;
+     const turn=-relative*10,drop=Math.min(distance,2)*7;
+     node.style.transform='translate(-50%, -50%) translate3d('+dx.toFixed(1)+'px,'+drop.toFixed(1)+'px,0) scale('+scale.toFixed(3)+') rotateY('+turn.toFixed(1)+'deg)';
+     node.style.opacity=distance<2.72?Math.min(1,Math.max(0,(2.72-distance)*3)).toFixed(3):'0';
+     node.style.zIndex=String(200-Math.round(distance*50));
+     node.style.filter='brightness('+(1-.12*Math.min(distance,2)).toFixed(2)+')';
+     node.style.pointerEvents=distance<2.45?'auto':'none';
+     node.dataset.reelFocus=distance<.48?'true':'false';
+    }
+    return;
+   }
    for(const node of items()){
     const id=itemHero(node),at=heroes.indexOf(id);
     if(at<0){node.style.display='none';continue}
@@ -160,7 +224,7 @@
     node.dataset.reelFocus=distance<.49?'true':'false';
    }
   }
-  function refresh(){if(pointer===null&&coast===0)paint(0)}
+  function refresh(){if(pointer===null&&coast===0){if(fiveReel)syncFiveReel();paint(0)}}
   function stop(){cancelAnimationFrame(coast);coast=0;progressUnits=0;paint(0)}
   function commit(target){
    const heroes=roster(),at=indexOf(current());
@@ -170,7 +234,7 @@
     programmatic=true;
     try{select(id)}finally{programmatic=false}
    }
-   progressUnits=0;paint(0);
+   progressUnits=0;if(fiveReel)syncFiveReel();paint(0);
   }
   function snap(target){
    cancelAnimationFrame(coast);coast=0;
@@ -249,6 +313,14 @@
    if(lastSwipe>=0&&Number.isFinite(e.timeStamp)&&e.timeStamp>=lastSwipe&&e.timeStamp-lastSwipe<350){
     e.preventDefault?.();e.stopImmediatePropagation?.();lastSwipe=-1;return;
    }
+   // Proxies are virtual slots: tapping either of the two side positions
+   // uses that exact offset, not the shortest hero-ID distance (which would
+   // jump in a 3-character looping roster).
+   if(fiveReel&&card.dataset.reelOffset!==undefined){
+    const offset=Number(card.dataset.reelOffset);
+    if(offset!==0){stop();snap(offset)}
+    return;
+   }
    // Tapping a rear card is equivalent to spinning it to the center.
    const at=indexOf(itemHero(card)),currentAt=indexOf(current());
    if(at>=0&&currentAt>=0&&at!==currentAt){
@@ -266,6 +338,7 @@
    if(!enabled()||!e.target.closest(selector)||!['ArrowLeft','ArrowRight'].includes(e.key))return;
    e.preventDefault();e.stopPropagation();stop();snap(e.key==='ArrowLeft'?-1:1);
   });
+  if(fiveReel)syncFiveReel();
   paint(0);
   window.addEventListener?.('resize',refresh);
   // Main selector may start hidden before the title fades out.
@@ -276,6 +349,7 @@
   return {refresh,paint};
  }
  const menuReel=bindReel($('heroes'),'.hero-options',()=>selectedHero,i=>$('hero-'+i).click(),()=>['menu','over'].includes(mode));
+ window.ZZRefreshHeroReel=menuReel.refresh;
  const garageReel=bindReel($('garage-body'),'.garage-driver',()=>garageHero,i=>{garageHero=i;note.textContent='';render()},()=>$('garage-dialog').open);
  refreshGarageReel=garageReel.refresh;
  for(const [prefix,page] of [['garage','parts'],['radio','signal']]){
