@@ -11,7 +11,7 @@ const garage=fs.readFileSync('dist/garage.js','utf8');
 for(const phrase of ['name:\'속도\'','name:\'첫타\'','name:\'체력\'','name:\'수비\'','gear(\'steer\')','gear(\'heavy\')','gear(\'wide\')','sweetSpot']){
  assert(garage.includes(phrase),'true game stat and equipment formula: '+phrase);
 }
-assert(game.includes("if(mode==='menu')el.innerHTML+=heroMiniStats(h)"),'compact meters only on selection');
+assert(game.includes("if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h)"),'compact meters on both selection and game-over retry screens');
 assert(game.includes("el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>'"),
  'original art, hero names and result text retained');
 assert(css.includes('v241 — full-height character spotlight on main selection ONLY'),'selection-specific styling');
