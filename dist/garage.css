@@ -998,3 +998,174 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  width:min(96%,calc(83px * var(--ui-scale,1)))!important;
  margin-left:auto!important;margin-right:auto!important;
 }
+
+
+/* v248 — five *complete* portrait cards, not one complete card and
+   four abbreviated previews. Only main selection; no results/garage edits. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy:not([hidden]){
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ justify-content:flex-end!important;
+ gap:0!important;
+ padding:5px 4px 5px!important;
+ overflow:hidden!important;
+ isolation:isolate!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork{
+ box-sizing:border-box!important;
+ display:block!important;
+ flex:1 1 auto!important;
+ min-height:0!important;
+ position:relative!important;
+ width:100%!important;
+ overflow:visible!important;
+ isolation:isolate!important;
+ margin:0!important;
+ padding:0!important;
+ pointer-events:none!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait{
+ display:block!important;
+ box-sizing:border-box!important;
+ position:absolute!important;
+ top:1px!important;
+ left:50%!important;
+ transform:translateX(-50%)!important;
+ transform-origin:center top!important;
+ width:min(calc(100% - 2px),calc(100cqh - 59px))!important;
+ min-width:0!important;
+ max-width:none!important;
+ height:auto!important;
+ aspect-ratio:1/1!important;
+ margin:0!important;
+ padding:0!important;
+ flex:none!important;
+ overflow:visible!important;
+ background-size:800% 300%!important;
+ background-repeat:no-repeat!important;
+ clip-path:none!important;
+ z-index:1!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait{
+ background:url('assets/ip/tow-mechanic.webp') center / contain no-repeat!important;
+ animation:none!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-id{
+ box-sizing:border-box!important;
+ display:flex!important;
+ position:absolute!important;
+ right:2px!important;
+ bottom:2px!important;
+ z-index:3!important;
+ flex-direction:column!important;
+ align-items:flex-end!important;
+ justify-content:flex-end!important;
+ width:auto!important;
+ max-width:100%!important;
+ padding:0 1px!important;
+ margin:0!important;
+ line-height:1!important;
+ text-align:right!important;
+ color:#fff6dd!important;
+ pointer-events:none!important;
+ filter:drop-shadow(0 1px 2px #061322cc);
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-id>b{
+ display:block!important;
+ flex:none!important;
+ margin:0!important;
+ padding:0!important;
+ color:#fff5cd!important;
+ font:900 clamp(13px,calc(16px * var(--ui-scale,1)),19px)/1.04 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:-.02em!important;
+ text-align:right!important;
+ text-shadow:1px 2px 1px #08222b,0 0 5px #00151d!important;
+ white-space:nowrap!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-id>small{
+ display:block!important;
+ flex:none!important;
+ margin:2px 0 0!important;
+ padding:0!important;
+ color:#d1e7d0!important;
+ font:700 clamp(8px,calc(9px * var(--ui-scale,1)),10px)/1 Arial,'Noto Sans KR',sans-serif!important;
+ white-space:nowrap!important;
+ text-align:right!important;
+ text-shadow:0 1px 2px #061620!important;
+}
+/* Self-contained lower gauge plate. It is present on all five cards, and
+   moves together with the portrait, title, and card border. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom{
+ box-sizing:border-box!important;
+ display:block!important;
+ position:relative!important;
+ flex:0 0 auto!important;
+ width:100%!important;
+ min-width:0!important;
+ height:auto!important;
+ padding:2px 2px 3px!important;
+ margin:0!important;
+ z-index:4!important;
+ border:1px solid #607985!important;
+ border-radius:4px!important;
+ background:linear-gradient(180deg,#122d3be9,#0b2531f2)!important;
+ box-shadow:inset 0 1px #b7dae024!important;
+ pointer-events:none!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom>.hero-mini-stats,
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy:not([data-reel-focus="true"]) .hero-reel-bottom>.hero-mini-stats{
+ box-sizing:border-box!important;
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ width:100%!important;
+ max-width:none!important;
+ min-width:0!important;
+ gap:1px!important;
+ margin:0!important;
+ padding:1px 2px!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ opacity:1!important;
+ transform:none!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-stat{
+ height:10px!important;
+ min-height:0!important;
+ gap:1px!important;
+ grid-template-columns:11px 21px minmax(0,1fr) 19px 21px!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-track,
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-bottom .hero-mini-track>.hero-stat-cell{
+ height:6px!important;
+}
+/* Tall mobile/fullscreen screens can use extra artwork area, while short
+   screens never clip hair above the upper card edge. */
+@media(max-height:630px){
+ #overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+  > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait{
+  width:min(calc(100% - 2px),calc(100cqh - 60px))!important;
+ }
+}
+@media(max-height:465px){
+ #overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+  > .hero-card.hero-reel-proxy .hero-reel-id>b{
+  font-size:12px!important;
+ }
+}
