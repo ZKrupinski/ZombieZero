@@ -890,3 +890,26 @@ html.landscape-game #overlay[data-screen="selection"]:not([hidden]){
   width:min(calc(100% + 4px),calc(100cqh - 68px))!important;
  }
 }
+
+
+/* v244 cascade lock: these selectors deliberately outrank older v241
+   full-width .hero-card:not([hidden]) rules. */
+#overlay[data-screen="selection"] #heroes .hero-options>.hero-card.hero-reel-proxy:not([hidden]){
+ width:41%!important;max-width:none!important;min-width:0!important;
+ height:calc(100% - 9px)!important;min-height:0!important;
+ position:absolute!important;display:flex!important;
+ padding:clamp(3px,.6svh,6px) 4px 6px!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options>.hero-card.hero-reel-proxy .hero-vehicle-portrait{
+ width:min(calc(100% + 4px),calc(100cqh - 84px))!important;
+ max-width:none!important;min-width:0!important;
+ height:auto!important;aspect-ratio:1/1!important;
+ margin:auto auto 0!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options>.hero-card.hero-reel-proxy .hero-mini-stats{
+ width:100%!important;max-width:100%!important;padding:3px!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options>.hero-card.hero-reel-proxy:not([data-reel-focus="true"]) .hero-mini-stats,
+#overlay[data-screen="selection"] #heroes .hero-options>.hero-card.hero-reel-proxy:not([data-reel-focus="true"])>small{
+ display:none!important;
+}
