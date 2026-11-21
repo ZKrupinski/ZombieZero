@@ -24,7 +24,7 @@ function chunk(name,payload){
  len.writeUInt32BE(payload.length);crc.writeUInt32BE(crc32(Buffer.concat([type,payload])));
  return Buffer.concat([len,type,payload,crc]);
 }
-function decodePNG(file){
+function decodePNG(file,expectedH=H){
  const b=fs.readFileSync(file);
  if(b.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')throw Error('not PNG');
  let off=8,w=0,h=0,depth=0,color=0;const data=[];
@@ -33,7 +33,7 @@ function decodePNG(file){
   if(type==='IHDR'){w=body.readUInt32BE(0);h=body.readUInt32BE(4);depth=body[8];color=body[9];}
   else if(type==='IDAT')data.push(body);else if(type==='IEND')break;
  }
- if(w!==W||h!==H||depth!==8||color!==6)throw Error('approved 1536×1024 RGBA source required');
+ if(w!==W||h!==expectedH||depth!==8||color!==6)throw Error('RGBA PNG dimensions mismatch: '+w+'×'+h);
  const raw=zlib.inflateSync(Buffer.concat(data)),stride=w*4,result=new Uint8Array(w*h*4);
  let p=0;let prev=new Uint8Array(stride);
  for(let y=0;y<h;y++){
