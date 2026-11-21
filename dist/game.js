@@ -3732,13 +3732,57 @@ function trashThrowCooldown(z){
  const base=z.boss?6.5+Math.random()*3:ELITE_THROW_COOLDOWN[z.eliteKind]+Math.random()*3;
  return base*(1-.44*projectilePressure());
 }
+// V250: held trash belongs to the ZOMBIE'S VISIBLE pose, never its eagerly
+// committed knockback collider destination. Share the same tween and 60fps
+// hit-shake used by drawStruckZombie; there is no independent follower lerp.
+function zombieHandVisualPosition(z){
+ const pos=knockVisualPosition(z);
+ let shakeX=0,shakeY=0;
+ if(clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0)){
+  const t=clock-(z.hitShakeFrom||clock);
+  const duration=Math.max(.001,(z.hitShakeUntil||clock)-(z.hitShakeFrom||clock));
+  const shake=hitShakeOffset(t,duration,!!z.boss);
+  shakeX=shake.x;shakeY=shake.y;
+ }
+ return {x:pos.x+shakeX,y:pos.y+shakeY};
+}
+function heldTrashAnchor(z){
+ const pos=zombieHandVisualPosition(z);
+ return {x:pos.x+z.w*.75,y:pos.y+(z.boss?-4:4)};
+}
+// Hand-key animation (one complete windup, no textures or frame allocations):
+// invisible pull-up -> quick high overshoot -> sharp catch -> tiny settle.
+// Progress comes from the real throwWindup timer, including slow-motion.
+const TRASH_RAISE_KEYS=[
+ {t:0,y:17,s:.72,a:0,r:-.48},
+ {t:.18,y:-6,s:.90,a:.85,r:-.28},
+ {t:.46,y:-28,s:1.08,a:1,r:.11},
+ {t:.55,y:-31,s:1.08,a:1,r:.14},
+ {t:.74,y:4,s:1,a:1,r:-.28},
+ {t:.86,y:-3,s:1,a:1,r:-.18},
+ {t:1,y:0,s:1,a:1,r:-.20}
+];
+function raisedTrashPose(progress){
+ const p=clamp(progress,0,1);
+ for(let i=1;i<TRASH_RAISE_KEYS.length;i++){
+  const b=TRASH_RAISE_KEYS[i],a=TRASH_RAISE_KEYS[i-1];
+  if(p>b.t&&i<TRASH_RAISE_KEYS.length-1)continue;
+  const t=clamp((p-a.t)/(b.t-a.t),0,1);
+  const u=t*t*(3-2*t),lerp=(x,y)=>x+(y-x)*u;
+  return {y:lerp(a.y,b.y),scale:lerp(a.s,b.s),
+   alpha:lerp(a.a,b.a),turn:lerp(a.r,b.r)};
+ }
+ return {y:0,scale:1,alpha:1,turn:-.2};
+}
 function launchTrashShot(z,citizen){
- const elite=eliteTrashThrower(z);
- bossTrashShots.push({sx:z.x+z.w*.5,sy:z.y+z.h*(z.boss?.43:.24),
+ const elite=eliteTrashThrower(z),hand=heldTrashAnchor(z);
+ // Launch precisely from the final held location: no one-frame pop between
+ // caught item and in-flight projectile, even during a chain knockback.
+ bossTrashShots.push({sx:hand.x,sy:hand.y,
   tx:citizen.x,ty:citizen.y-13,citizen,kind:z.throwKind,
   duration:(elite?1.15:1.05)+Math.random()*.22,t:0,
   arc:(elite?67:56)+Math.random()*28,eliteKind:elite?z.eliteKind:null});
- sfx('launch');burst(z.x+z.w*.5,z.y+z.h*(z.boss?.38:.22),'#ffc67e',elite?5:7);
+ sfx('launch');burst(hand.x,hand.y,'#ffc67e',elite?5:7);
 }
 // One projectile list for all hostile trash and neon-green spit.
 function updatePoisonStatus(dt){
@@ -3891,6 +3935,7 @@ function updateBossTrashShots(dt,previousCar=car){
   z.throwTarget=alive[Math.floor(Math.random()*alive.length)];
   z.throwKind=nextThrowableKind();
   z.throwWindup=z.boss?.75:z.eliteKind===0?.58:.80;
+  z.throwWindupTotal=z.throwWindup; // keyframe clock, not a separate timer
   z.throwAt=clock+9;
   if(elite)eliteTrashSharedReadyAt=clock+(6.3+Math.random()*1.9)*(1-.38*projectilePressure());
   spitSharedNextAt=Math.max(spitSharedNextAt,clock+1.2);
@@ -3955,12 +4000,19 @@ function drawBossTrashShots(){
  spitBloomDraws.length=0;
  for(const z of foes){
   if(trashThrower(z)&&z.throwWindup>0){
-   const sway=Math.sin(enemyAnimationClock*16)*2,size=z.boss?40:z.eliteKind===0?24:28;
-   drawThrowable(z.throwKind,z.x+z.w*.75,z.y+(z.boss?-4:4)+sway,size,-.2);
+   const total=Math.max(.001,z.throwWindupTotal||z.throwWindup);
+   const phase=raisedTrashPose(1-z.throwWindup/total);
+   const hand=heldTrashAnchor(z),size=z.boss?40:z.eliteKind===0?24:28;
+   g.save();
+   g.globalAlpha*=phase.alpha;
+   drawThrowable(z.throwKind,hand.x,hand.y+phase.y,size*phase.scale,phase.turn);
+   g.restore();
   }
   if(spitThrower(z)&&z.spitWindup>0){
-   const x=z.x+z.w*.5,y=z.y+z.h*.39;
-   drawNeonSpit(x,y,.15,0);
+   // Neon spit is not 'picked up' like rubbish; only its anchor tracks the
+   // same visible knockback/hit shake as the character's mouth.
+   const pos=zombieHandVisualPosition(z);
+   drawNeonSpit(pos.x+z.w*.5,pos.y+z.h*.39,.15,0);
   }
  }
  for(const p of bossTrashShots){
