@@ -956,3 +956,45 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
   margin-top:calc(31px * var(--ui-scale,1))!important;
  }
 }
+
+
+/* v245 — clear header / centered icon trio.
+   Only the character-selection overlay changes, never gameplay/results. */
+#overlay[data-screen="selection"]{
+ /* The former screen-wide near-black overlay washed out the arcade
+    backdrop behind NOVALIGHT / From HERO to ZERO. Keep the top transparent. */
+ background:linear-gradient(
+   180deg,
+   rgba(0,0,0,0) 0%,
+   rgba(0,0,0,0) 40%,
+   rgba(9,22,31,.16) 63%,
+   rgba(7,20,28,.45) 100%
+ )!important;
+}
+/* Group the three icon buttons like a single centered toolbar rather than
+   distributing their hit regions over the full game width. */
+#overlay[data-screen="selection"] #main-dock{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ box-sizing:border-box!important;
+ width:min(79%,calc(310px * var(--ui-scale,1)))!important;
+ max-width:100%!important;
+ column-gap:calc(2px * var(--ui-scale,1))!important;
+ row-gap:0!important;
+ justify-content:center!important;
+ justify-items:stretch!important;
+ align-self:center!important;
+ margin-left:auto!important;
+ margin-right:auto!important;
+}
+#overlay[data-screen="selection"] #main-dock>button{
+ width:100%!important;
+ min-width:0!important;
+ justify-self:center!important;
+}
+/* Keep the artwork and pointer targets large. The backing plate remains
+   transparent as requested in v244. */
+#overlay[data-screen="selection"] #main-dock>button::before{
+ width:min(96%,calc(83px * var(--ui-scale,1)))!important;
+ margin-left:auto!important;margin-right:auto!important;
+}
