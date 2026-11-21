@@ -2977,3 +2977,14 @@ html.landscape-game #overlay[data-screen="pause"]>#pause-main-menu{
  #upgrade-dialog .zz-original-hero{width:clamp(41px,8dvh,55px)!important;height:clamp(41px,8dvh,55px)!important}
  #upgrade-dialog .zz-original-zombie{width:clamp(35px,7dvh,46px)!important;height:clamp(35px,7dvh,46px)!important}
 }
+
+
+/* v249 — remove the PLAY HUD's dark gradient from the TITLE only.
+   The HUD is stacked above the title subtitle even when gameplay
+   heart/stage/score controls are hidden. Keep its menu button accessible.
+   Gameplay, pause and results still use their original HUD shading. */
+.machine:has(#overlay[data-screen="selection"]:not([hidden])) > .hud{
+ background:none!important;
+ background-image:none!important;
+ box-shadow:none!important;
+}
