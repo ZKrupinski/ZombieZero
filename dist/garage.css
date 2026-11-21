@@ -913,3 +913,46 @@ html.landscape-game #overlay[data-screen="selection"]:not([hidden]){
 #overlay[data-screen="selection"] #heroes .hero-options>.hero-card.hero-reel-proxy:not([data-reel-focus="true"])>small{
  display:none!important;
 }
+
+
+/* v244: higher-specificity 9:16 overrides. The portrait engine's older
+   html.portrait-play rules would otherwise cap the logo at 194px and the
+   slogan at 28px despite the newer header design. */
+html.portrait-play #overlay[data-screen="selection"]>.label,
+html.landscape-game #overlay[data-screen="selection"]>.label{
+ position:absolute!important;top:calc(3px * var(--ui-scale,1))!important;
+ margin:0!important;
+ font-size:clamp(8px,calc(10px * var(--ui-scale,1)),12px)!important;
+ line-height:1.1!important;
+}
+html.portrait-play #overlay[data-screen="selection"]>#title,
+html.landscape-game #overlay[data-screen="selection"]>#title{
+ position:absolute!important;top:calc(18px * var(--ui-scale,1))!important;
+ margin:0!important;
+ font-size:clamp(15px,calc(18px * var(--ui-scale,1)),21px)!important;
+ line-height:1.05!important;
+}
+html.portrait-play #overlay[data-screen="selection"]>.overlay-logo,
+html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
+ width:min(94%,calc(360px * var(--ui-scale,1)))!important;
+ max-width:none!important;
+ max-height:min(30svh,calc(215px * var(--ui-scale,1)))!important;
+ height:auto!important;
+ flex:0 1 auto!important;
+ margin:calc(40px * var(--ui-scale,1)) auto calc(3px * var(--ui-scale,1))!important;
+}
+@media(max-height:630px){
+ html.portrait-play #overlay[data-screen="selection"]>.overlay-logo,
+ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
+  width:min(90%,calc(310px * var(--ui-scale,1)))!important;
+  max-height:calc(188px * var(--ui-scale,1))!important;
+  margin-top:calc(35px * var(--ui-scale,1))!important;
+ }
+}
+@media(max-height:465px){
+ html.portrait-play #overlay[data-screen="selection"]>.overlay-logo,
+ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
+  max-height:calc(115px * var(--ui-scale,1))!important;
+  margin-top:calc(31px * var(--ui-scale,1))!important;
+ }
+}
