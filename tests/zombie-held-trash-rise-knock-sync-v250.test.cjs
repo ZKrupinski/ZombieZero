@@ -31,6 +31,7 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  Math:Object.create(Math),console};
 vm.createContext(sandbox);
 vm.runInContext(game+`
+{
 function assertKey(value,message){if(!value)throw Error(message)}
 const close=(a,b)=>Math.abs(a-b)<.00001;
 start();serve();mode='playing';clock=50;
@@ -87,6 +88,7 @@ assertKey(close(bossTrashShots[0].sx,hand.x)&&close(bossTrashShots[0].sy,hand.y)
 assertKey(bossTrashShots[0].kind===7,'original 36-type throwable sprite preserved');
 assertKey(bossTrashShots[0].duration>=1.15,'flight duration untouched');
 console.log('PASS v250: transparent draw, pull-up/overshoot/catch/settle keys, synced knockback and hit shake, seamless launch.');
+}
 `,sandbox);
 assert(game.includes('z.throwWindupTotal=z.throwWindup'),'original windup timer controls new keyframes');
 assert(game.includes('const pos=zombieHandVisualPosition(z);'),'held trash and spit follow actual visible zombie');
