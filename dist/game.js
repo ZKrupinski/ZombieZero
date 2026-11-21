@@ -2294,6 +2294,23 @@ function background(){
  if(has('slow')){g.save();g.strokeStyle='#86f2e0ac';g.lineWidth=2;g.strokeRect(24,22,402,DEFENSE_Y-30);g.restore()}
  g.restore();
 }
+// V242: The approved original character colors are always the clean base.
+// Each blocked hostile projectile increases a SEPARATE translucent lime
+// overlay; only full intoxication (groggy) uses the complete green palette.
+function heroPoisonTintStrength(){
+ if(groggyTime>0)return 1;
+ return Math.max(0,Math.min(.78,(poison/POISON_MAX)*.78));
+}
+function drawHeroBitmap(image,...args){
+ g.drawImage(image,...args); // exact original asset when toxin is zero
+ const strength=heroPoisonTintStrength();
+ if(strength<=0)return;
+ g.save();
+ g.globalAlpha*=strength;
+ g.filter='grayscale(1) sepia(1) saturate(5) hue-rotate(42deg) brightness(1.18)';
+ g.drawImage(image,...args);
+ g.restore();
+}
 function player(){
  drawTrashContact("hero");
  if(selectedHero===3){
@@ -2301,8 +2318,7 @@ function player(){
   if(sprite?.naturalWidth){
    const h=100*sprite.naturalHeight/sprite.naturalWidth;
    g.save();g.translate(car,625+VIEW_DELTA);g.rotate(Math.sin(heroAttackTime/HERO_ATTACK_DURATION*Math.PI)*-.09);
-   if((window.ZZProgression.garage().xp[3]||0)>=10)g.filter='hue-rotate(85deg)';
-   g.drawImage(sprite,-50,-h,100,h);g.restore();
+   drawHeroBitmap(sprite,-50,-h,100,h);g.restore();
   }
   return;
  }
@@ -2316,8 +2332,7 @@ function player(){
   const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
-  if((window.ZZGarage && window.ZZProgression?.garage().xp[selectedHero]>=10))g.filter='hue-rotate(35deg)';
-  g.drawImage(atlas,n*192,selectedHero*192,192,192,car-w/2,579-h/2,w,h);
+  drawHeroBitmap(atlas,n*192,selectedHero*192,192,192,car-w/2,579-h/2,w,h);
   g.restore();
   return;
  }
@@ -2336,12 +2351,14 @@ function player(){
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
   // The racket strike range is physics-only; hide the former horizontal guide.
-  g.drawImage(sprite.image,n*192,selectedHero*192,192,192,
+  drawHeroBitmap(sprite.image,n*192,selectedHero*192,192,192,
     car-w/2,579-h/2,w,h);
   g.restore();
   return;
  }
- let x=car;const h=hero(),win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';g.save();g.translate(0,VIEW_DELTA);if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);/* no baked vehicle ground shadow */rect(x-57,626,13,24,'#14251f');rect(x+44,626,13,24,'#14251f');cube(x-52,621,104,25,h.color,'#ffbc72','#54313a');rect(x-45,625,90,5,'#ff9c58');cube(x-27,612,53,18,'#182e2a','#3d5441','#18221d');heroSprite(x,600,1,win);rect(x-46,635,18,6,'#fff2b2');rect(x+29,635,18,6,'#fff2b2');rect(x-47,649,95,5,'#b1b59b');g.strokeStyle='#e6d399';g.lineWidth=6;g.beginPath();g.moveTo(x+14,611);g.lineTo(x+32,602);g.stroke();g.save();g.translate(x+34,604-5);g.rotate(swing>0?-.25:0);g.strokeStyle='#e7c696';g.lineWidth=5;g.beginPath();g.ellipse(0,0,24,13,0,0,Math.PI*2);g.stroke();g.lineWidth=.8;g.strokeStyle='#f7f4dbaa';for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-9);g.lineTo(i,9);g.stroke()}for(let i=-6;i<=6;i+=6){g.beginPath();g.moveTo(-19,i);g.lineTo(19,i);g.stroke()}g.restore();/* no visible racket hit-range guide in procedural fallback */g.restore()}
+ let x=car;const h=hero(),win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';g.save();g.translate(0,VIEW_DELTA);
+ const fallbackTint=heroPoisonTintStrength();
+ if(fallbackTint>0)g.filter='sepia('+fallbackTint.toFixed(3)+') saturate('+(1+fallbackTint*3).toFixed(2)+') hue-rotate('+(42*fallbackTint).toFixed(1)+'deg)';if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);/* no baked vehicle ground shadow */rect(x-57,626,13,24,'#14251f');rect(x+44,626,13,24,'#14251f');cube(x-52,621,104,25,h.color,'#ffbc72','#54313a');rect(x-45,625,90,5,'#ff9c58');cube(x-27,612,53,18,'#182e2a','#3d5441','#18221d');heroSprite(x,600,1,win);rect(x-46,635,18,6,'#fff2b2');rect(x+29,635,18,6,'#fff2b2');rect(x-47,649,95,5,'#b1b59b');g.strokeStyle='#e6d399';g.lineWidth=6;g.beginPath();g.moveTo(x+14,611);g.lineTo(x+32,602);g.stroke();g.save();g.translate(x+34,604-5);g.rotate(swing>0?-.25:0);g.strokeStyle='#e7c696';g.lineWidth=5;g.beginPath();g.ellipse(0,0,24,13,0,0,Math.PI*2);g.stroke();g.lineWidth=.8;g.strokeStyle='#f7f4dbaa';for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-9);g.lineTo(i,9);g.stroke()}for(let i=-6;i<=6;i+=6){g.beginPath();g.moveTo(-19,i);g.lineTo(19,i);g.stroke()}g.restore();/* no visible racket hit-range guide in procedural fallback */g.restore()}
 // Cosmetic poses only: no pose or death fragment participates in physics.
 let enemyDeaths=[],enemyPieces=[],barrelBlasts=[],hitFlashes=[];
 const ENEMY_CLOTH=['#65535a','#242b39','#302139','#574b66','#68415a','#e4d6b0','#d49b39','#733e65'];
@@ -3736,7 +3753,10 @@ function updatePoisonStatus(dt){
  if(!poison&&!poisonGrace&&!groggyTime&&!poisonFlash&&!poisonGaugeAlpha)return;
  const wasGroggy=groggyTime;
  groggyTime=Math.max(0,groggyTime-dt);
- if(wasGroggy>0&&groggyTime===0){poison=18;poisonGrace=1}
+ if(wasGroggy>0&&groggyTime===0){
+  // Recovered: remove ALL character tint immediately, not just the stun.
+  poison=0;poisonGrace=0;poisonFlash=0;
+ }
  poisonGrace=Math.max(0,poisonGrace-dt);
  if(groggyTime===0&&poisonGrace===0)poison=Math.max(0,poison-POISON_DECAY*(1+growth('detox')*.12)*dt);
  poisonFlash=Math.max(0,poisonFlash-dt);
