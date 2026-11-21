@@ -49,6 +49,6 @@ assert(!game.includes("g.filter='hue-rotate(35deg)'"),'no XP-based permanent reg
 assert(game.includes('drawHeroBitmap(atlas,')&&game.includes('drawHeroBitmap(sprite.image,')&&game.includes('drawHeroBitmap(sprite,-50'),
  'approved animation, legacy sprite and mechanic share poison tint logic');
 assert(css.includes('v242: the selection spotlight itself must not cast a persistent green hue'));
-assert(html.includes('v242-poison-tint')&&/garage\.css\?v=(10-clean-tint|11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards)/.test(html));
+assert(html.includes('v242-poison-tint')&&/garage\.css\?v=(10-clean-tint|11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(html));
 assert(/v24[2-5]-(poison-tint|layout-stats-dock|five-portrait-no-dock-box|clear-top-centered-icons)/.test(sw));
 console.log('PASS v242: hero RGB authentic when clean, gradual lime layers, fully green only when groggy, instant recovery and no XP tint.');
