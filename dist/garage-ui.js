@@ -260,6 +260,12 @@
    e.preventDefault();e.stopPropagation();stop();snap(e.key==='ArrowLeft'?-1:1);
   });
   paint(0);
+  window.addEventListener?.('resize',refresh);
+  // Main selector may start hidden before the title fades out.
+  // Its visible width must reflow on reveal, not stay at the hidden 0px stride.
+  if(selector==='.hero-options'&&typeof ResizeObserver==='function'){
+   const node=surface();if(node)new ResizeObserver(refresh).observe(node);
+  }
   return {refresh,paint};
  }
  const menuReel=bindReel($('heroes'),'.hero-options',()=>selectedHero,i=>$('hero-'+i).click(),()=>['menu','over'].includes(mode));
@@ -271,6 +277,7 @@
    if(!['menu','over'].includes(mode))return;
    panel=dialog;body=content;note=$(prefix+'-note');tab=page;garageHero=selectedHero;
    note.textContent='';render();dialog.showModal();dialog.scrollTop=0;
+   if(page==='parts')refreshGarageReel();
   };
   content.onclick=handleAction;
   $(prefix+'-close').onclick=()=>dialog.close();
