@@ -391,3 +391,15 @@ html.landscape-game #overlay[data-screen="selection"] #heroes,
 @media(prefers-reduced-motion:reduce){
  #overlay[data-screen="selection"] #heroes .hero-card .hero-vehicle-portrait{animation:none!important}
 }
+
+/* v241 polish: exact selection-only layout overrides and the recruit's
+   SINGLE image (not the 8-frame 3-row spritesheet). */
+html.portrait-play #overlay[data-screen="selection"],
+html.landscape-game #overlay[data-screen="selection"]{
+ justify-content:flex-start!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options #hero-3 .hero-vehicle-portrait{
+ background-size:contain!important;
+ background-position:center!important;
+ animation:none!important;
+}
