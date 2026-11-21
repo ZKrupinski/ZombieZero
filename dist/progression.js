@@ -40,7 +40,7 @@
    triple:'공이 세 개! 좀비보다 공들이 더 정신없이 출근합니다.',
    power:'한 방이 묵직! 이 공은 헬스장 3개월치를 끊었습니다.',
    fire:'좀비 구이! 주문하지 않아도 불맛 서비스가 나갑니다.',
-   slow:'좀비 느릿! 적들만 월요일 아침 출근 속도로 움직입니다.',
+   slow:'좀비는 20% 속도로 질질~ 침과 투사체도 35%! 공은 정상 속도, 오늘은 좀비만 지각 확정!',
    pierce:'줄줄이 뻥! 앞줄 뒤줄 구분 없이 일괄 배송합니다.',
    shield:'잠깐 무적! 놓친 공도 바닥에서 반품 처리됩니다.',
    bazooka:'바주카 오래! 퇴근하려던 시민에게 야근을 부탁합니다.',
@@ -119,7 +119,7 @@
   try{window.ZZProgressionSound?.()}catch{}
   return true;
  }
- const baseDuration={bazooka:12,dual:16,triple:16,power:14,fire:10,slow:12,pierce:10,shield:18};
+ const baseDuration={bazooka:12,dual:16,triple:16,power:14,fire:10,slow:14,pierce:10,shield:18};
  function duration(skill,hero=1){
   const base=baseDuration[skill];
   return (base===undefined?0:base*(1+level(skill)*.06))*(Number.isFinite(hero)?hero:1);
