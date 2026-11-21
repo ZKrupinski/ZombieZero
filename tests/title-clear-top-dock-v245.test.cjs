@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const css=fs.readFileSync('dist/garage.css','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-const v245=css.slice(css.indexOf('/* v245 — clear header / centered icon trio.'));
+const v245=css.slice(css.indexOf('/* v245 — clear header / centered icon trio.'),css.indexOf('/* v248 — five *complete* portrait cards'));
 assert(v245.startsWith('/* v245'),'latest patch should be attached');
 assert(v245.includes('#overlay[data-screen="selection"]{'),'title-only overlay adjustment');
 assert(v245.includes('rgba(0,0,0,0) 0%')&&v245.includes('rgba(0,0,0,0) 40%'),
@@ -19,7 +19,7 @@ assert(css.includes('#overlay[data-screen="selection"] #main-dock>button::before
  'existing approved dock sprite remains');
 assert(css.includes('background:transparent!important'),'existing box-free buttons preserved');
 assert(!v245.includes('#overlay[data-screen="results"]'),'game over overlay remains unchanged');
-assert(/garage\.css\?v=(13-v245-clear-top-centered-icons|14-v248-complete-hero-cards)/.test(html),
+assert(/garage\.css\?v=(13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(html),
  'CSS cache bust reaches phone');
 assert(sw.includes('v245-clear-top-centered-icons'),'service worker cache bust');
 console.log('PASS v245: transparent arcade title top, three centered tightly-spaced large icons, 9:16 and existing menu unaffected.');
