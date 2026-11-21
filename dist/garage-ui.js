@@ -23,6 +23,19 @@
   const status=level===undefined?'미보유':(equipped?'장착 중 ':'보유 ')+'+'+level;
   return '<button data-part="'+p.id+'" aria-pressed="'+(p===activePart)+'">'+icon(p.id)+'<span>'+p.name+'<small>'+status+'</small></span></button>';
  }
+ function reelCard(h,data){
+  const xp=data.xp[h]||0;
+  const portrait=h===3
+   ?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">'
+   :'<span class="garage-portrait" style="--row:'+h+'"></span>';
+  return '<div class="garage-reel-card" data-reel-hero="'+h+'">'+
+   '<div class="garage-reel-figure">'+portrait+'</div>'+
+   '<div class="garage-reel-copy"><span class="garage-reel-count">OWNED</span>'+
+   '<h3>'+HEROES[h].name+'</h3>'+
+   '<p>'+styles[h]+'</p>'+
+   '<small>숙련 '+xp+' / '+(xp>=10?'도색 해금':'10 웨이브')+'</small></div></div>';
+ }
+ let refreshGarageReel=()=>{};
  function render(){
   cancelAnimationFrame(frame);
   const data=progress.garage(),roster=availableHeroes(),wanted=tab==='parts'?garageHero:selectedHero;
@@ -30,13 +43,9 @@
   if(tab==='parts')garageHero=h;
   const level=data.levels[part.id],owned=level!==undefined;
   const gear=data.loads[h],price=system.prices[level],xp=data.xp[h]||0;
-  const portrait=h===3?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">':'<span class="garage-portrait" style="--row:'+h+'"></span>';
-  const banner='<section class="garage-driver" aria-label="보유 생존자 선택 릴" tabindex="0">'+reelArrow(-1)+
-   '<div class="garage-reel-window"><div class="garage-reel-figure">'+portrait+'</div>'+
-   '<div class="garage-reel-copy"><span class="garage-reel-count" aria-live="polite">OWNED '+(roster.indexOf(h)+1)+' / '+roster.length+'</span>'+
-   '<h3>'+HEROES[h].name+'</h3><p>'+styles[h]+'</p>'+
-   '<small>숙련 '+xp+' / '+(xp>=10?'도색 해금':'10 웨이브')+'</small>'+
-   '<span class="garage-reel-hint">← 드래그해서 돌리기 →</span></div></div>'+reelArrow(1)+'</section>';
+  const banner='<section class="garage-driver" aria-label="보유 캐릭터 회전 선택" tabindex="0">'+
+   '<div class="garage-reel-stage">'+roster.map(i=>reelCard(i,data)).join('')+'</div>'+
+   reelArrow(-1)+reelArrow(1)+'</section>';
   const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','제작 너트',data.badges)+'</div>';
   if(tab==='signal'){
    const message=data.mechanic?'합류한 생존자 4명이 각각 25% 확률로 응답합니다.':'스테이지나 웨이브를 처음 클리어하면 무전권을 받습니다. 첫 호출로 정비사가 합류합니다.';
@@ -50,6 +59,7 @@
   const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
   const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
   body.innerHTML=banner+wallet+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
+  refreshGarageReel();
  }
  function trial(){
   tab='trial';note.textContent='벽을 경유하도록 좌우를 조준하세요.';
@@ -84,7 +94,7 @@
   frame=requestAnimationFrame(tick);
  }
  function handleAction(e){
-  const button=e.target.closest('button');if(!button||button.disabled||button.dataset.step)return;
+  const button=e.target.closest('button');if(!button||button.disabled||button.dataset.step||button.dataset.reelHero!==undefined)return;
   if(button.dataset.part){activePart=system.parts.find(p=>p.id===button.dataset.part);note.textContent='';render();return}
   const action=button.dataset.action;
   if(action==='shoot')return;
@@ -107,114 +117,146 @@
  function reelArrow(dir){
   return '<button type="button" class="reel-arrow" data-step="'+dir+'" aria-label="'+(dir<0?'이전':'다음')+' 캐릭터">'+(dir<0?'‹':'›')+'</button>';
  }
+ // All visible reel cards stay mounted throughout a gesture. Only their
+ // transforms change on pointermove; inventory and gear rerender ONCE at snap.
  function bindReel(root,selector,current,select,enabled){
-  let pointer=null,offset=0,lastX=0,lastTime=0,velocity=0,coast=0;
-  let dragged=false,suppressClick=false,startX=0,programmatic=false;
+  let pointer=null,startX=0,startY=0,dragged=false,vertical=false,progressUnits=0;
+  let lastX=0,lastTime=0,velocity=0,coast=0,programmatic=false,lastSwipe=-1;
   const surface=()=>root.querySelector(selector);
-  const reduced=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const stride=()=>Math.max(68,Math.min(142,(surface()?.clientWidth||300)*.38));
-  const chosen=()=>surface()?.querySelector('.hero-card[aria-pressed="true"],.garage-reel-window');
-  function position(x){
-   const node=surface();if(!node)return;
-   node.style.setProperty('--slide',x.toFixed(1)+'px');
-   node.style.setProperty('--tilt',(Math.max(-19,Math.min(19,x/stride()*24))).toFixed(1)+'deg');
+  const roster=()=>availableHeroes();
+  const reduce=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const stride=()=>Math.max(90,Math.min(190,(surface()?.clientWidth||320)*.47));
+  const indexOf=(id)=>roster().indexOf(id);
+  const items=()=>Array.from(surface()?.querySelectorAll?.('[data-reel-hero],.hero-card')||[]);
+  function itemHero(item){
+   return item.dataset?.reelHero!==undefined?Number(item.dataset.reelHero):Number(item.id?.slice(5));
   }
-  function step(direction){
-   const roster=availableHeroes();
-   if(roster.length<2)return;
-   const index=roster.indexOf(current());
-   programmatic=true;
-   try{select(roster[((index<0?0:index)+direction+roster.length)%roster.length])}
-   finally{programmatic=false}
-   if(!reduced())chosen()?.animate?.([
-    {opacity:.58,filter:'blur(2px)',scale:'.88'},
-    {opacity:1,filter:'blur(0px)',scale:'1'}
-   ],{duration:170,easing:'cubic-bezier(.19,.8,.2,1)'});
-  }
-  function move(dx){
-   if(!dx)return;
-   offset+=dx;
-   const width=stride();
-   let steps=0;
-   while(Math.abs(offset)>=width*.5 && steps++<24){
-    const sign=Math.sign(offset);
-    step(-sign);offset-=sign*width;
+  function paint(progress=0){
+   const heroes=roster(),count=heroes.length,origin=indexOf(current()),step=stride();
+   if(!count)return;
+   for(const node of items()){
+    const id=itemHero(node),at=heroes.indexOf(id);
+    if(at<0){node.style.display='none';continue}
+    node.style.display='';
+    let relative=at-(origin<0?0:origin)-progress;
+    while(relative>count/2)relative-=count;
+    while(relative< -count/2)relative+=count;
+    const distance=Math.abs(relative),side=Math.min(1,distance);
+    const visible=distance<1.28;
+    const scale=1-.30*side,turn=-relative*13;
+    const dx=relative*step,drop=side*9;
+    node.style.transform='translate(-50%, -50%) translate3d('+dx.toFixed(1)+'px,'+drop.toFixed(1)+'px,0) scale('+scale.toFixed(3)+') rotateY('+turn.toFixed(1)+'deg)';
+    node.style.opacity=visible?Math.min(1,Math.max(0,(1.28-distance)*4)).toFixed(3):'0';
+    node.style.zIndex=String(100-Math.round(distance*30));
+    node.style.filter='brightness('+(1-.27*side).toFixed(2)+') saturate('+(1-.17*side).toFixed(2)+')';
+    node.style.pointerEvents=distance<1.08?'auto':'none';
+    node.dataset.reelFocus=distance<.49?'true':'false';
    }
-   position(offset);
   }
-  function settle(){
-   const width=stride();
-   if(Math.abs(offset)>width*.28 && availableHeroes().length>1){
-    const sign=Math.sign(offset);
-    step(-sign);offset-=sign*width;
+  function refresh(){if(pointer===null&&coast===0)paint(0)}
+  function stop(){cancelAnimationFrame(coast);coast=0;progressUnits=0;paint(0)}
+  function commit(target){
+   const heroes=roster(),at=indexOf(current());
+   if(!heroes.length)return;
+   const id=heroes[(((at<0?0:at)+target)%heroes.length+heroes.length)%heroes.length];
+   if(id!==current()){
+    programmatic=true;
+    try{select(id)}finally{programmatic=false}
    }
-   const from=offset,angle=Math.max(-19,Math.min(19,from/width*24));
-   offset=0;position(0);
-   if(from && !reduced())chosen()?.animate?.([
-    {translate:from.toFixed(1)+'px 0',transform:'perspective(600px) rotateY('+angle.toFixed(1)+'deg)'},
-    {translate:'0px 0',transform:'perspective(600px) rotateY(0deg)'}
-   ],{duration:210,easing:'cubic-bezier(.17,.75,.25,1)'});
+   progressUnits=0;paint(0);
   }
-  function stop(){cancelAnimationFrame(coast);coast=0;offset=0;position(0)}
+  function snap(target){
+   cancelAnimationFrame(coast);coast=0;
+   target=Math.max(-3,Math.min(3,target));
+   const from=progressUnits,dist=Math.abs(target-from);
+   if(!dist||reduce()||typeof requestAnimationFrame!=='function'){commit(target);return}
+   const duration=Math.max(170,Math.min(420,180+dist*105));
+   let began=null;
+   const tick=now=>{
+    if(!enabled()){stop();return}
+    if(began===null)began=now;
+    const t=Math.min(1,(now-began)/duration);
+    // Cubic ease-out decelerates the slot wheel without jumping during drag.
+    const eased=1-Math.pow(1-t,3);
+    paint(from+(target-from)*eased);
+    if(t<1)coast=requestAnimationFrame(tick);
+    else{coast=0;commit(target)}
+   };
+   coast=requestAnimationFrame(tick);
+  }
   root.addEventListener('pointerdown',e=>{
    if(!enabled()||pointer!==null||e.button!==0||!e.target.closest(selector)||e.target.closest('[data-step]'))return;
-   stop();pointer=e.pointerId;dragged=false;velocity=0;startX=lastX=e.clientX;lastTime=e.timeStamp;
+   stop();pointer=e.pointerId;
+   startX=lastX=e.clientX;startY=e.clientY??0;lastTime=e.timeStamp??0;
+   dragged=false;vertical=false;velocity=0;
    root.setPointerCapture?.(pointer);
   });
   root.addEventListener('pointermove',e=>{
-   if(pointer!==e.pointerId)return;
-   const dx=e.clientX-lastX,dt=Math.max(8,e.timeStamp-lastTime);
-   if(Math.abs(e.clientX-startX)>7)dragged=true;
-   if(dx){velocity=velocity*.36+dx/dt*.64;move(dx)}
-   lastX=e.clientX;lastTime=e.timeStamp;
+   if(pointer!==e.pointerId||vertical)return;
+   const dx=e.clientX-startX,dy=(e.clientY??startY)-startY;
+   if(!dragged&&Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)*1.2){
+    vertical=true;progressUnits=0;paint(0);return;
+   }
+   if(Math.abs(dx)>7)dragged=true;
+   if(!dragged)return;
+   e.preventDefault?.();
+   const dt=Math.max(8,(e.timeStamp??lastTime+16)-lastTime);
+   velocity=velocity*.52+((e.clientX-lastX)/dt)*.48;
+   lastX=e.clientX;lastTime=e.timeStamp??lastTime+16;
+   // 1:1 finger tracking. Do NOT mutate selectedHero or innerHTML while swiping.
+   progressUnits=Math.max(-3.2,Math.min(3.2,-dx/stride()));
+   paint(progressUnits);
   });
   function release(e){
    if(pointer!==e.pointerId)return;
    pointer=null;
-   if(e.type!=='pointerup'){settle();return}
-   if(Math.abs(e.clientX-startX)>7)dragged=true;
-   move(e.clientX-lastX);
-   suppressClick=dragged;
-   // Momentum is bounded: one quick swipe can spin several owned heroes,
-   // then always settles on a single, centered hero.
-   if(dragged&&!reduced()&&e.timeStamp-lastTime<90&&Math.abs(velocity)>.35){
-    const travel=Math.max(-stride()*2.8,Math.min(stride()*2.8,velocity*260));
-    let began=null,previous=0;
-    function roll(now){
-     if(!enabled()){stop();return}
-     if(began===null)began=now;
-     const t=Math.min(1,(now-began)/390);
-     const distance=travel*(1-Math.pow(1-t,3));
-     move(distance-previous);previous=distance;
-     if(t<1)coast=requestAnimationFrame(roll);else{coast=0;settle()}
-    }
-    coast=requestAnimationFrame(roll);
-    return;
-   }
-   settle();
+   if(vertical){progressUnits=0;paint(0);return}
+   if(e.type!=='pointerup'){snap(0);return}
+   const dx=e.clientX-startX;
+   if(Math.abs(dx)>7)dragged=true;
+   if(!dragged){progressUnits=0;paint(0);return}
+   lastSwipe=e.timeStamp??0;
+   progressUnits=Math.max(-3.2,Math.min(3.2,-dx/stride()));
+   const projected=progressUnits-Math.max(-.85,Math.min(.85,velocity*140/stride()));
+   let target=Math.round(projected);
+   // A deliberate half-card drag changes once; a tiny move returns to center.
+   if(Math.abs(dx)<20&&Math.abs(velocity)<.38)target=0;
+   if(target===0&&Math.abs(dx)>25&&Math.abs(velocity)>.38)target=dx<0?1:-1;
+   snap(target);
   }
   for(const event of ['pointerup','pointercancel','lostpointercapture'])root.addEventListener(event,release);
-  // A swipe over a button must never trigger its normal click afterwards.
   root.addEventListener('click',e=>{
-   if(programmatic||!suppressClick)return;
-   suppressClick=false;
-   if(!e.target.closest('[data-step]')){e.preventDefault();e.stopImmediatePropagation?.()}
-  },true);
-  root.addEventListener('click',e=>{
+   if(programmatic||!enabled())return;
    const arrow=e.target.closest('[data-step]');
-   if(!arrow||!enabled())return;
-   stop();step(Number(arrow.dataset.step));
-   surface()?.querySelector('[data-step="'+arrow.dataset.step+'"]')?.focus({preventScroll:true});
+   if(arrow){stop();snap(Number(arrow.dataset.step));return}
+   const card=e.target.closest('[data-reel-hero],.hero-card');
+   if(!card)return;
+   if(lastSwipe>=0&&Number.isFinite(e.timeStamp)&&e.timeStamp>=lastSwipe&&e.timeStamp-lastSwipe<350){
+    e.preventDefault?.();e.stopImmediatePropagation?.();lastSwipe=-1;return;
+   }
+   // Tapping a rear card is equivalent to spinning it to the center.
+   const at=indexOf(itemHero(card)),currentAt=indexOf(current());
+   if(at>=0&&currentAt>=0&&at!==currentAt){
+    let delta=at-currentAt;
+    const count=roster().length;
+    if(delta>count/2)delta-=count;
+    if(delta< -count/2)delta+=count;
+    // Main menu's native button handler has already updated selectedHero;
+    // garage cards are divs, so they need the selection callback here.
+    if(selector==='.garage-driver')snap(delta);
+    else paint(0);
+   }else paint(0);
   });
   root.addEventListener('keydown',e=>{
    if(!enabled()||!e.target.closest(selector)||!['ArrowLeft','ArrowRight'].includes(e.key))return;
-   e.preventDefault();e.stopPropagation();stop();
-   const dir=e.key==='ArrowLeft'?-1:1;
-   step(dir);surface()?.querySelector('[data-step="'+dir+'"]')?.focus({preventScroll:true});
+   e.preventDefault();e.stopPropagation();stop();snap(e.key==='ArrowLeft'?-1:1);
   });
+  paint(0);
+  return {refresh,paint};
  }
- bindReel($('heroes'),'.hero-options',()=>selectedHero,i=>$('hero-'+i).click(),()=>['menu','over'].includes(mode));
- bindReel($('garage-body'),'.garage-driver',()=>garageHero,i=>{garageHero=i;note.textContent='';render()},()=>$('garage-dialog').open);
+ const menuReel=bindReel($('heroes'),'.hero-options',()=>selectedHero,i=>$('hero-'+i).click(),()=>['menu','over'].includes(mode));
+ const garageReel=bindReel($('garage-body'),'.garage-driver',()=>garageHero,i=>{garageHero=i;note.textContent='';render()},()=>$('garage-dialog').open);
+ refreshGarageReel=garageReel.refresh;
  for(const [prefix,page] of [['garage','parts'],['radio','signal']]){
   const dialog=$(prefix+'-dialog'),content=$(prefix+'-body');
   $(prefix+'-open').onclick=()=>{
