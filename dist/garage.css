@@ -224,3 +224,170 @@ img.garage-icon{background:none}
  #garage-dialog .garage-reel-card,
  #overlay[data-screen] #heroes .hero-options .hero-card:not([hidden]){will-change:auto}
 }
+
+
+/* v241 — full-height character spotlight on main selection ONLY.
+   The layered carousel still supplies all card transforms and navigation.
+   Garage and game-over result layouts are deliberately unchanged. */
+#overlay[data-screen="selection"]{
+ justify-content:flex-start!important;
+}
+#overlay[data-screen="selection"] > .overlay-logo{
+ max-height:min(16svh,calc(96px * var(--ui-scale,1)))!important;
+ flex:0 1 auto!important;
+}
+#overlay[data-screen="selection"] > #message{
+ display:none!important;
+}
+html.portrait-play #overlay[data-screen="selection"] #heroes,
+html.landscape-game #overlay[data-screen="selection"] #heroes,
+#overlay[data-screen="selection"] #heroes{
+ box-sizing:border-box!important;
+ display:flex!important;flex-direction:column!important;
+ flex:1 1 auto!important;width:100%!important;
+ max-width:none!important;min-width:0!important;min-height:0!important;
+ margin:3px auto 2px!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options{
+ box-sizing:border-box!important;
+ display:block!important;position:relative!important;
+ flex:1 1 auto!important;
+ height:100%!important;min-height:0!important;max-height:none!important;
+ overflow:hidden!important;touch-action:pan-y;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card:not([hidden]){
+ box-sizing:border-box!important;
+ width:68%!important;height:calc(100% - 12px)!important;
+ min-height:0!important;max-height:none!important;
+ padding:8px 6px 9px!important;
+ flex-direction:column!important;align-items:center!important;
+ justify-content:flex-end!important;
+ gap:2px!important;
+ border-radius:9px!important;
+ container-type:size;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-vehicle-portrait{
+ display:block!important;
+ flex:none!important;
+ width:min(calc(100% - 6px),calc(100cqh - 108px),calc(255px * var(--ui-scale,1)))!important;
+ max-width:none!important;min-width:0!important;
+ height:auto!important;aspect-ratio:1/1!important;
+ margin:auto auto 2px!important;
+ background-size:800% 300%!important;
+ background-repeat:no-repeat!important;
+ background-position-x:0%;
+ clip-path:none!important;
+ image-rendering:auto!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-vehicle-portrait.row-0{
+ background-position-y:0%!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-vehicle-portrait.row-1{
+ background-position-y:50%!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-vehicle-portrait.row-2{
+ background-position-y:100%!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card > b{
+ display:block!important;flex:none!important;
+ margin:0!important;
+ color:#fff4cf!important;
+ font:900 clamp(17px,calc(21px * var(--ui-scale,1)),24px)/1.05 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:.02em!important;
+ text-shadow:0 2px 1px #0b1b1a!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card > small{
+ display:block!important;flex:none!important;
+ margin:0 0 3px!important;
+ color:#c7e6c6!important;
+ font:700 clamp(9px,calc(10px * var(--ui-scale,1)),11px)/1.1 Arial,'Noto Sans KR',sans-serif!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card > span:not(.hero-vehicle-portrait){
+ display:none!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-mini-stats{
+ box-sizing:border-box;display:flex!important;flex-direction:column;flex:none;
+ gap:clamp(2px,.38dvh,4px);
+ width:100%;max-width:225px;
+ padding:4px 6px 5px;
+ margin:0 auto;
+ border-radius:5px;
+ background:#0d2932c4;
+ border:1px solid #74988868;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-stat{
+ display:grid;grid-template-columns:17px 28px minmax(0,1fr);
+ gap:3px;align-items:center;
+ height:clamp(10px,1.7dvh,15px);min-width:0;line-height:1;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-icon{
+ box-sizing:border-box;
+ display:grid;place-items:center;
+ width:15px;height:15px;
+ border-radius:3px;border:1px solid #a6bf83b0;
+ font:normal 11px/1 Arial,sans-serif;color:#ffe498;
+ background:#345357;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-label{
+ display:block;
+ font:700 clamp(8px,calc(9px * var(--ui-scale,1)),10px)/1 Arial,'Noto Sans KR',sans-serif!important;
+ color:#d0e6d9!important;
+ white-space:nowrap!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-track{
+ display:block;overflow:hidden;
+ width:100%;height:6px;
+ border:1px solid #5f8175;border-radius:8px;
+ background:#122832;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-track > span{
+ display:block!important;
+ height:100%;border-radius:8px;
+ background:linear-gradient(90deg,#8ebe77,#e8f6a5);
+ box-shadow:inset 0 -1px #395840;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-stat:nth-child(2) .hero-mini-track > span{
+ background:linear-gradient(90deg,#c79251,#ffe08a);
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-stat:nth-child(3) .hero-mini-track > span{
+ background:linear-gradient(90deg,#c66a61,#ffb4aa);
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-stat:nth-child(4) .hero-mini-track > span{
+ background:linear-gradient(90deg,#66abc4,#a7e7eb);
+}
+#overlay[data-screen="selection"] #hero-stats{display:none!important}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card[data-reel-focus="false"] .hero-mini-stats{
+ opacity:.42;transform:scale(.88);
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card[data-reel-focus="false"] >small{
+ opacity:.65;
+}
+/* Short displays prioritize the art and all four compact gauges over captions. */
+@media(max-height:630px){
+ #overlay[data-screen="selection"] > .overlay-logo{
+  max-height:min(13svh,calc(75px * var(--ui-scale,1)))!important;
+ }
+ #overlay[data-screen="selection"] #heroes .hero-options .hero-card:not([hidden]){
+  padding:4px!important;gap:1px!important;
+ }
+ #overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-vehicle-portrait{
+  width:min(calc(100% - 4px),calc(100cqh - 91px),calc(205px * var(--ui-scale,1)))!important;
+ }
+ #overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-mini-stats{
+  padding:2px 4px 3px;gap:1px;
+ }
+ #overlay[data-screen="selection"] #heroes .hero-mini-stat{height:10px}
+ #overlay[data-screen="selection"] #heroes .hero-mini-icon{width:12px;height:12px;font-size:9px}
+ #overlay[data-screen="selection"] #heroes .hero-mini-stat{grid-template-columns:12px 24px minmax(0,1fr)}
+ #overlay[data-screen="selection"] #heroes .hero-mini-track{height:4px}
+}
+@media(max-height:465px){
+ #overlay[data-screen="selection"] > .overlay-logo{max-height:50px!important}
+ #overlay[data-screen="selection"] #heroes .hero-options .hero-card > small{display:none!important}
+ #overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-vehicle-portrait{
+  width:min(calc(100% - 3px),calc(100cqh - 77px),calc(148px * var(--ui-scale,1)))!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay[data-screen="selection"] #heroes .hero-card .hero-vehicle-portrait{animation:none!important}
+}
