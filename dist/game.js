@@ -240,13 +240,11 @@ function drawHardGroundShadow(cx,foot,width,depth=6,cast=true,alpha=.30){
  g.closePath();g.fill();
  g.restore();
 }
-// Large trash-bag boss: approved 256px frames have extra transparent space
-// below their visible feet. Keep the sprite/collider untouched and anchor
-// ONLY its floor contact shadow to the visible feet, not the bitmap bottom.
-function zombieGroundShadowFoot(z){
- return z.y+z.h-3-(z.boss&&z.bossForm===3?18:0);
-}
 function drawWorldGroundShadows(){
+ // Large trash-bag boss: approved 256px sprite has transparent space below
+ // its visible feet. Only its cast-shadow foot pivot gets an upward trim.
+ // Keep sprite positions, collider, ground contact and all other mobs intact.
+ const zombieGroundShadowFoot=z=>z.y+z.h-3-(z.boss&&z.bossForm===3?18:0);
  for(const actor of foes){
   // ObjectZombie and GreenWalk use bottom pivot z.y+z.h+2.
   // Knockback shadows follow their displayed sprites, not future colliders.
