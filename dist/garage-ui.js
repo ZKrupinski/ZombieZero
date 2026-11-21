@@ -201,7 +201,9 @@
      node.style.zIndex=String(200-Math.round(distance*50));
      node.style.filter='brightness('+(1-.12*Math.min(distance,2)).toFixed(2)+')';
      node.style.pointerEvents=distance<2.45?'auto':'none';
-     node.dataset.reelFocus=distance<.48?'true':'false';
+     // Do not light temporary pass-through cards during swipe/snap.
+     // Only the fixed center slot is allowed to glow once the wheel rests.
+     node.dataset.reelFocus=offset===0&&Math.abs(progress)<.001?'true':'false';
     }
     return;
    }
