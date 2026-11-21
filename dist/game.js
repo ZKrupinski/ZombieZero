@@ -240,6 +240,12 @@ function drawHardGroundShadow(cx,foot,width,depth=6,cast=true,alpha=.30){
  g.closePath();g.fill();
  g.restore();
 }
+// Large trash-bag boss: approved 256px frames have extra transparent space
+// below their visible feet. Keep the sprite/collider untouched and anchor
+// ONLY its floor contact shadow to the visible feet, not the bitmap bottom.
+function zombieGroundShadowFoot(z){
+ return z.y+z.h-3-(z.boss&&z.bossForm===3?18:0);
+}
 function drawWorldGroundShadows(){
  for(const actor of foes){
   // ObjectZombie and GreenWalk use bottom pivot z.y+z.h+2.
@@ -251,13 +257,13 @@ function drawWorldGroundShadows(){
   const arrivalAlpha=Number.isFinite(actor.arrivalTime)
    ?Math.max(0,Math.min(1,actor.arrivalTime/.62)):1;
   if(arrivalAlpha<=0)continue;
-  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-3,
+  drawHardGroundShadow(z.x+z.w*.5,zombieGroundShadowFoot(z),
     z.w*(z.boss?.93:.88),z.boss?15:9.5,true,(z.boss?.34:.31)*arrivalAlpha);
  }
  for(const d of enemyDeaths){
   if((d.t||0)>=d.split)continue;
   const z=d.z,fade=Math.max(0,1-d.t/d.split);
-  drawHardGroundShadow(z.x+z.w*.5,z.y+z.h-3,z.w*.83,
+  drawHardGroundShadow(z.x+z.w*.5,zombieGroundShadowFoot(z),z.w*.83,
     z.boss?14:8.5,true,(z.boss?.28:.27)*fade);
  }
 }
