@@ -22,7 +22,7 @@
 .radio-dial{height:20px;margin:5px 0 12px;background:linear-gradient(90deg,transparent 67%,#f6b657 67% 68%,transparent 68%),repeating-linear-gradient(90deg,#93b8a2 0 1px,transparent 1px 8px);border-bottom:2px solid #7b968d}
 #garage-note{color:#d3eaaa}#garage-range{display:block;width:100%;margin:12px 0}#garage-aim{width:70%;vertical-align:middle}
 #garage-dialog{width:min(96vw,470px);padding:clamp(9px,2vh,16px);max-height:96dvh}
-.garage-icon{display:inline-block;flex:none;width:44px;height:44px;vertical-align:middle;object-fit:contain;background-image:url(assets/ui/garage-items.webp);background-size:300% 300%;background-repeat:no-repeat}
+.garage-icon{display:inline-block;flex:none;width:44px;height:44px;vertical-align:middle;object-fit:contain;background-image:url(assets/ui/garage-items.webp?v=3);background-size:300% 300%;background-repeat:no-repeat}
 img.garage-icon{background:none}
 #garage-dialog .garage-driver{min-height:60px}
 #garage-dialog .garage-wallet{display:flex;justify-content:flex-end;gap:14px;padding:6px 0 0;font-size:13px}

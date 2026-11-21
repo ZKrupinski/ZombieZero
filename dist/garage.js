@@ -2,8 +2,8 @@
 window.ZZGarage = (() => {
  const parts = [
   {id:'grip',slot:0,name:'스위트스폿 그립',label:'정타 판정 폭',base:10,step:2,unit:'%'},
-  {id:'wide',slot:0,name:'와이드 프레임',label:'양쪽 수비 범위',base:4,step:2,unit:'px'},
-  {id:'cushion',slot:1,name:'쿠션 코어',label:'벽 반사 넉백',base:15,step:5,unit:'%'},
+  {id:'wide',slot:0,name:'접이식 확장판',label:'양쪽 수비 범위',base:4,step:2,unit:'px'},
+  {id:'cushion',slot:1,name:'반발 스프링',label:'벽 반사 넉백',base:15,step:5,unit:'%'},
   {id:'heavy',slot:1,name:'헤비 코어',label:'첫 충돌 위력',base:20,step:6,unit:'%'},
   {id:'steer',slot:2,name:'퀵 스티어링',label:'차량 응답 속도',base:8,step:2,unit:'%'},
   {id:'filter',slot:2,name:'방독 필터',label:'8초마다 침 중독 감소',base:30,step:6,unit:'%'}
