@@ -19,6 +19,32 @@ check(Math.abs(enemySlowRate()-.10)<1e-9&&Math.abs(hostileShotSlowRate()-.10)<1e
 check(active.slow<=14*hero().duration*(1+growth('slow')*.06)&&active.slow>14*hero().duration*(1+growth('slow')*.06)-.05,'SLOW lasts 14s base with hero/upgrade duration bonuses');
 let expectedThreat=reactiveThreat({x:100,y:100,w:33,h:44},{x:116,y:210,vx:0,vy:-500,held:false,pierceContacts:new Set()},8);
 check(expectedThreat&&Math.abs(expectedThreat.t-.176)<.002,'slow must predict real ball flight for enemy dodge');
+// Every LIVING zombie's bitmap atlas advances on the slowed timeline, not clock.
+// Hit flashes and death cleanup retain their short original times.
+let slowedAnimBefore=enemyAnimationClock,slowWorldBefore=clock;
+update(.10);
+check(Math.abs((clock-slowWorldBefore)-.10)<1e-6&&Math.abs((enemyAnimationClock-slowedAnimBefore)-.01)<1e-6,
+ 'enemy sprite clock advances at 10 percent while world and ball time remain normal');
+let originalBossDraw=window.ZZLargeBossSprites,originalEliteDraw=window.ZZEliteSprites,
+ originalObjectDraw=window.ZZObjectSprite,originalGreenDraw=window.ZZGreenWalk;
+let stamp=[];
+window.ZZLargeBossSprites={draw:(context,z,t)=>{if(!z.boss)return false;stamp.push(['boss',t]);return true}};
+window.ZZEliteSprites={draw:(context,z,t)=>{if(!Number.isInteger(z.eliteKind))return false;stamp.push(['elite',t]);return true}};
+window.ZZObjectSprite={draw:(context,z,t)=>{if(z.form!==1)return false;stamp.push(['object',t]);return true}};
+window.ZZGreenWalk={draw:(context,z,t)=>{stamp.push(['green',t]);return true}};
+zombie({boss:true,form:3});zombie({eliteKind:2,form:4});zombie({form:1});zombie({form:0});
+check(stamp.map(p=>p[0]).join(',')==='boss,elite,object,green'&&
+ stamp.every(p=>Math.abs(p[1]-enemyAnimationClock)<1e-6),
+ 'boss, elite, object and green sprite animators all receive slowed time');
+window.ZZLargeBossSprites=originalBossDraw;
+window.ZZEliteSprites=originalEliteDraw;
+window.ZZObjectSprite=originalObjectDraw;
+window.ZZGreenWalk=originalGreenDraw;
+let normalAnimBefore=enemyAnimationClock;
+clearSkills();update(.05);
+check(Math.abs((enemyAnimationClock-normalAnimBefore)-.05)<1e-6,
+ 'enemy sprite clock resumes full rate when SLOW ends');
+
 clearSkills();activate('shield');balls=[newBall(100,666,0,400,false)];update(.02);check(balls[0].vy<0,'shield bounce');
 let time=active.shield;pause();update(1);check(active.shield===time,'pause freezes duration');pause();
 clearSkills();items=[{x:car,y:601,k:'power',phase:0}];update(.02);check(has('power')&&items.length===0,'pickup activates');
