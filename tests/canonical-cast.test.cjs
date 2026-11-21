@@ -47,10 +47,10 @@ for(const s of parts){
  assert(sw.includes('./assets/ip/'+s),s+' is precached');
  assert(html.indexOf('src="assets/ip/'+s+'"')<html.indexOf('src="game.js?v='),'art loads before game');
 }
-assert(game.includes('window.ZZLargeBossSprites?.draw(g,z,clock)'),'new bosses use dedicated bitmap renderer');
-assert(game.includes('originalObject?.draw(g,z,clock)'),'canonical object and original boss bitmaps retained');
+assert(game.includes('window.ZZLargeBossSprites?.draw(g,z,enemyAnimationClock)'),'new bosses use dedicated bitmap renderer');
+assert(game.includes('originalObject?.draw(g,z,enemyAnimationClock)'),'canonical object and original boss bitmaps retained');
 assert(game.includes('cast.heroIndex[selectedHero]'),'hero art mapping retained');
-assert(game.includes('window.ZZGreenWalk?.draw(g,z,clock)'),'green mascot uses bitmap');
+assert(game.includes('window.ZZGreenWalk?.draw(g,z,enemyAnimationClock)'),'green mascot uses bitmap');
 assert(!game.includes('function enemyHead('),'obsolete generic zombie vector fallback removed');
 assert(!game.includes('function scatterEnemy('),'obsolete vector fragments removed');
 assert(!game.includes('const originalGreen=window.ZZOriginalArt'),'legacy isometric mascot not used');
