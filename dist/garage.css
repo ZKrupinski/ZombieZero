@@ -1588,3 +1588,36 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
   width:min(96%,calc(69px * var(--ui-scale,1)))!important;
  }
 }
+
+/* Rescue receiver and recruitment result */
+#radio-dialog{background:linear-gradient(150deg,#253d43,#13252d 75%);border-color:#75958c}
+#radio-dialog .garage-wallet{padding:8px 2px}
+.rx-screen{position:relative;isolation:isolate;overflow:hidden;text-align:center;border:1px solid #658b7b;border-radius:7px;padding:12px 8px 15px;background:radial-gradient(ellipse at 50% 65%,#30594b,#0a2428 72%);box-shadow:inset 0 0 0 3px #13292a}
+.rx-screen::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.25;background:repeating-linear-gradient(0deg,transparent 0 4px,#041d22 5px)}
+.rx-status{display:flex;align-items:center;gap:7px;color:#b8ebc7;text-align:left;margin:0 6px;font-size:12px}
+.rx-status i{width:7px;height:7px;border-radius:50%;background:#a6eda7;box-shadow:0 0 7px #7cd496}
+.rx-art{display:grid;place-items:center;position:relative;height:clamp(92px,21svh,165px);background:repeating-radial-gradient(circle at center,transparent 0 25px,#97cb9c26 26px,transparent 27px 34px)}
+#radio-dialog .rx-art>.garage-icon{width:82px;height:82px;filter:drop-shadow(0 5px 3px #061a21)}
+.rx-portrait{display:inline-block;object-fit:contain;width:var(--size);height:var(--size)}
+.rx-art .rx-portrait{--size:clamp(90px,20svh,160px)}
+.rx-sprite{background:url(assets/ip/hero-idle-v55.png) 0 calc(var(--row) * var(--size) * -1)/800% 300% no-repeat}
+#radio-dialog .rx-screen h3{font-size:clamp(22px,5vw,30px);color:#ffe09a;line-height:1.15}
+.rx-screen p{color:#d9eadf}
+.rx-actions,.rx-summary{display:flex;align-items:center;gap:8px;margin:10px 0}
+#radio-dialog .rx-actions button,#radio-dialog [data-action=reveal]{flex:1;min-height:44px}
+#radio-dialog .rx-actions button:first-child:not(:disabled),#radio-dialog button[data-action=visit]{background:#edbd65;color:#212923;border-color:#ffe1a2}
+#radio-dialog .rx-actions button small{display:block;color:inherit;font-size:11px;margin-top:3px}
+.rx-guide{color:#d1ded4;text-align:center;font-size:13px;line-height:1.65}
+.rx-summary{justify-content:space-between;color:#ffe09a}
+.rx-summary span,.rx-list li{display:flex;align-items:center;gap:5px}
+.rx-summary .garage-icon{width:25px;height:25px}
+.rx-list{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0;padding:0}
+.rx-list li{background:#243e44;padding:3px 8px;border-radius:4px}
+.rx-list .rx-portrait{--size:30px}.rx-list li span:last-child{margin-left:auto;color:#ffda92}
+#radio-note:empty{display:none}
+@media(prefers-reduced-motion:no-preference){
+ .rx-tuning .rx-art::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,transparent 45%,#acf4cb60 50%,transparent 52%);animation:rx-scan .5s linear 2}
+ .rx-reveal .rx-art>.rx-portrait{animation:rx-arrive .38s ease-out both}
+ @keyframes rx-scan{from{transform:translateY(-65%)}to{transform:translateY(65%)}}
+ @keyframes rx-arrive{from{opacity:.15;transform:translateY(12px) scale(.85)}to{opacity:1;transform:none}}
+}

@@ -36,6 +36,61 @@
    '<small>숙련 '+xp+' 클리어</small></div></div>';
  }
  let refreshGarageReel=()=>{};
+ let receipt=null,receiving=false,receiveTimer;
+ function radioPortrait(hero){
+  return hero===3?'<img class="rx-portrait" src="assets/ip/tow-mechanic.webp" alt="">':
+   '<span class="rx-portrait rx-sprite" style="--row:'+hero+'" aria-hidden="true"></span>';
+ }
+ function radioView(data,wallet){
+  const newHero=receipt?.recruited;
+  const hero=receipt?.calls[0];
+  const label=receiving?'응답 수신 중':receipt?(newHero?'신규 생존자 합류':'아군 응답 확인'):'구조 채널 대기';
+  const title=receiving?'주파수 동조 중…':receipt?HEROES[hero].name:(data.mechanic?'생존자 통신망':'폐차장 신호 포착');
+  const visual=receipt&&!receiving?radioPortrait(hero):icon('radio');
+  const caption=receiving?'호출을 보냈습니다.':receipt?(newHero?'“견인 요청하신 분?”':HEROES[hero].role):
+   (data.mechanic?'보유 생존자 4명 · 응답 확률 각 25%':'첫 호출 확정 합류 · 정비사');
+  const screen='<section class="rx-screen '+(receiving?'rx-tuning':receipt?'rx-reveal':'')+'">'+
+   '<div class="rx-status"><i></i>'+label+'</div><div class="rx-art">'+visual+'</div>'+
+   '<h3>'+title+'</h3><p>'+caption+'</p></section>';
+  if(receiving)return wallet+screen+btn('reveal','결과 바로 보기');
+  if(receipt){
+   const counts=HEROES.map((_,i)=>receipt.calls.filter(id=>id===i).length);
+   const rows=counts.map((count,i)=>count?'<li>'+radioPortrait(i)+'<b>'+HEROES[i].name+'</b><span>×'+count+'</span></li>':'').join('');
+   return wallet+screen+'<div class="rx-summary"><b>응답 '+receipt.calls.length+'건</b><span>'+icon('nut')+'제작 너트 +'+receipt.nuts+'</span></div>'+
+    (receipt.calls.length>1?'<ul class="rx-list">'+rows+'</ul>':'')+
+    (newHero?'<p class="rx-guide">'+styles[3]+'</p>':'')+
+    '<div class="rx-actions">'+btn('signal','무전으로')+(newHero?btn('visit','정비사 차고 보기'):'')+'</div>';
+  }
+  return wallet+screen+'<div class="rx-actions">'+btn('radio','1회 호출 <small>무전권 1장</small>',data.tickets<1)+
+   btn('batch','10회 호출 <small>무전권 10장</small>',data.tickets<10)+'</div>'+
+   '<p class="rx-guide">스테이지·웨이브 첫 클리어 시 무전권 1장<br>중복 응답당 너트 1개 · 너트 2개로 장비 제작</p>'+
+   (data.mechanic?'<div class="rx-actions rx-secondary">'+btn('trial','휠캡 시타')+btn('driver',selectedHero===3?'정비사 출전 대기':'정비사 선택',selectedHero===3)+'</div>':'');
+ }
+ function revealRadio(){
+  clearTimeout(receiveTimer);
+  receiving=false;
+  if(!panel.open||tab!=='signal')return;
+  render();
+  note.textContent=receipt.recruited?'정비사가 합류했습니다!':'응답 수신 완료';
+  body.querySelector('[data-action=signal]')?.focus();
+ }
+ function callRadio(action){
+  if(receipt)return;
+  const before=progress.garage();
+  if(!progress.garageAction(action,activePart.id,selectedHero)){
+   note.textContent='호출을 저장하지 못했습니다. 무전권과 저장 상태를 확인하세요.';return;
+  }
+  const after=progress.garage();
+  receipt={calls:after.calls.slice(),recruited:!before.mechanic&&after.mechanic,nuts:after.badges-before.badges};
+  if(receipt.recruited){renderHeroes();$('hero-3').click()}
+  window.ZZProgressionSound?.();
+  receiving=true;render();
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)revealRadio();
+  else{
+   body.querySelector('[data-action=reveal]')?.focus();
+   receiveTimer=setTimeout(revealRadio,1050);
+  }
+ }
  function render(){
   cancelAnimationFrame(frame);
   const data=progress.garage(),roster=availableHeroes(),wanted=tab==='parts'?garageHero:selectedHero;
@@ -52,8 +107,7 @@
    reelArrow(-1)+reelArrow(1)+'</section>';
   const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','제작 너트',data.badges)+'</div>';
   if(tab==='signal'){
-   const message=data.mechanic?'합류한 생존자 4명이 각각 25% 확률로 응답합니다.':'스테이지나 웨이브를 처음 클리어하면 무전권을 받습니다. 첫 호출로 정비사가 합류합니다.';
-   body.innerHTML=wallet+'<section class="radio-box">'+icon('radio')+'<h3>'+(data.mechanic?'정비사 합류 완료':'폐차장 신호 포착')+'</h3><p>'+message+'</p><p>중복 응답 1회당 제작 너트 1개 · 너트 2개로 미보유 장비 1종 제작</p><div>'+btn('radio','1회 호출',data.tickets<1)+btn('batch','10회 호출',data.tickets<10)+'</div></section>'+(data.mechanic?btn('trial','휠캡 3회 시타')+btn('driver','정비사 선택',h===3):'');
+   body.innerHTML=radioView(data,wallet);
    return;
   }
   const list=slots.map((slot,i)=>'<section class="garage-slot"><small>'+slot+'</small><div>'+system.parts.filter(p=>p.slot===i).map(p=>card(p,data,gear)).join('')+'</div></section>').join('');
@@ -103,17 +157,16 @@
   const action=button.dataset.action;
   if(action==='shoot')return;
   note.textContent='';
+  if(action==='radio'||action==='batch'){callRadio(action);return}
+  if(action==='reveal'){revealRadio();return}
+  if(action==='visit'){receipt=null;panel.close();$('garage-open').click();garageHero=3;render();return}
+  if(action==='signal')receipt=null;
   if(action==='trial'){trial();return}
   if(action==='parts'||action==='signal')tab=action;
   else if(action==='driver'){$('hero-3').click();note.textContent='정비사가 출전 대기 중입니다.'}
   else{
-   const wasOwned=progress.garage().mechanic;
    if(!progress.garageAction(action,activePart.id,tab==='parts'?garageHero:selectedHero)){note.textContent='저장 상태와 보유 재화를 확인하세요.';return}
-   if(action==='radio'&&!wasOwned){
-    renderHeroes();$('hero-3').click();note.textContent='“견인 요청하신 분?” 정비사가 합류했습니다!';
-    panel.animate?.([{opacity:.5},{opacity:1}],{duration:360});
-   }else note.textContent=({equip:'장착했습니다.',upgrade:'강화 성공!',craft:'제작 완료!',radio:'제작 너트 +1',batch:'제작 너트 +10'})[action];
-   if(['radio','batch'].includes(action)&&wasOwned)note.textContent=progress.garage().calls.map(i=>HEROES[i].name).join(' · ')+' 응답! 제작 너트 +'+progress.garage().calls.length;
+   note.textContent=({equip:'장착했습니다.',upgrade:'강화 성공!',craft:'제작 완료!'})[action];
    window.ZZProgressionSound?.();
   }
   render();
@@ -380,6 +433,9 @@
   };
   content.onclick=handleAction;
   $(prefix+'-close').onclick=()=>dialog.close();
-  dialog.addEventListener('close',()=>cancelAnimationFrame(frame));
+  dialog.addEventListener('close',()=>{
+   if(prefix==='radio'){clearTimeout(receiveTimer);receiving=false}
+   if(panel===dialog)cancelAnimationFrame(frame);
+  });
  }
 })();

@@ -39,3 +39,36 @@ assert(element('radio-dialog').open);
 assert.match(element('radio-body').innerHTML,/1회 호출/);
 assert(!element('radio-body').innerHTML.includes('data-part='));
 console.log('PASS independent garage/radio entries and garage driver selection');
+
+// A ten-call first recruitment contains one new survivor and nine duplicates.
+let inventory={...data,tickets:11,badges:2,mechanic:false};
+app.window.ZZProgression.garage=()=>inventory;
+app.window.ZZProgression.garageAction=(action,id,hero)=>{
+ const draft=JSON.parse(JSON.stringify(inventory));
+ if(app.window.ZZGarage.modify(draft,action,id,hero,20)===undefined)return false;
+ inventory=draft;return true;
+};
+app.renderHeroes=()=>{};
+element('hero-3').click=()=>{app.selectedHero=3};
+app.setTimeout=()=>1;
+app.clearTimeout=()=>{};
+const radio=element('radio-body');
+const press=action=>radio.onclick({target:{closest:()=>({dataset:{action}})}});
+press('batch');
+assert.match(radio.innerHTML,/주파수 동조 중/);
+press('batch');
+assert.equal(inventory.tickets,1);
+press('reveal');
+assert.match(radio.innerHTML,/신규 생존자 합류/);
+assert.match(radio.innerHTML,/제작 너트 \+9/);
+assert.match(radio.innerHTML,/응답 10건/);
+assert.equal(app.selectedHero,3);
+press('signal');
+press('radio');
+element('radio-dialog').close();
+element('radio-dialog').events.close();
+element('radio-open').onclick();
+assert.match(radio.innerHTML,/아군 응답 확인/);
+assert.match(radio.innerHTML,/제작 너트 \+1/);
+assert.equal(inventory.badges,12);
+console.log('PASS radio batch unlock, duplicate reward, double press and interrupted reveal');
