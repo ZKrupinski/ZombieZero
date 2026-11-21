@@ -403,3 +403,8 @@ html.landscape-game #overlay[data-screen="selection"]{
  background-position:center!important;
  animation:none!important;
 }
+
+/* v242: the selection spotlight itself must not cast a persistent green hue. */
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card[data-reel-focus="true"]{
+ background:linear-gradient(160deg,#405364 0%,#263b4b 56%,#142635 100%)!important;
+}
