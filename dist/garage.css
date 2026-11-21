@@ -1436,3 +1436,69 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
   width:min(calc(100% - 2px),calc(100cqh - 54px))!important;
  }
 }
+
+
+/* V254: result cards need actual colored 12-cell gauges as well, not only
+   the title screen's stat-grid rules. */
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-stat{
+ display:grid!important;
+ align-items:center!important;
+ gap:1px!important;
+ min-width:0!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-icon{
+ display:grid!important;place-items:center!important;
+ height:10px!important;width:10px!important;
+ color:#ead99e!important;
+ font:normal 9px/1 Arial,sans-serif!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-label{
+ display:block!important;
+ font:700 8px/1 Arial,'Noto Sans KR',sans-serif!important;
+ color:#dcefe4!important;white-space:nowrap!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-track{
+ display:grid!important;
+ grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ align-items:stretch!important;
+ gap:1px!important;
+ width:100%!important;
+ min-width:0!important;
+ height:6px!important;
+ padding:0!important;
+ margin:0!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ overflow:visible!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-stat-cell{
+ display:block!important;
+ box-sizing:border-box!important;
+ min-width:0!important;
+ width:100%!important;
+ height:6px!important;
+ border-radius:1px!important;
+ border:1px solid #4d6675!important;
+ background:#102938!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-stat-cell.base{
+ background:linear-gradient(180deg,#9fd9da,#4d99ac)!important;
+ border-color:#76bfc7!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-stat-cell.boost{
+ background:linear-gradient(180deg,#ffe5a0,#daa147)!important;
+ border-color:#ffdd86!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-value{
+ display:block!important;font:800 9px/1 Arial,sans-serif!important;
+ text-align:right!important;color:#e2efe9!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-bonus{
+ display:block!important;font:800 8px/1 Arial,sans-serif!important;
+ text-align:right!important;color:#80979a!important;
+}
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-bonus.active{
+ color:#fbe29a!important;
+}
+#overlay[data-screen="results"] #hero-stats{display:none!important}
