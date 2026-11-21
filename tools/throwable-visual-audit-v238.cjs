@@ -5,7 +5,7 @@
 const fs=require('node:fs');
 const {decodePNG,encodePNG}=require('./rebuild-throwables-atlas-v237.cjs');
 const old=decodePNG('dist/assets/ip/v2/throwables-36-v159.png',1024);
-const fresh=decodePNG('dist/assets/ip/v2/throwables-36-v237.png',1536);
+const fresh=decodePNG('dist/assets/ip/v2/throwables-36-v238.png',1536);
 const grid=new Uint8Array(1152*576*4),zoom=new Uint8Array(1024*256*4);
 function put(buffer,W,H,x,y,r,g,b,a=255){
  if(x<0||y<0||x>=W||y>=H)return;let i=(y*W+x)*4;
