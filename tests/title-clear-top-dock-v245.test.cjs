@@ -19,7 +19,7 @@ assert(css.includes('#overlay[data-screen="selection"] #main-dock>button::before
  'existing approved dock sprite remains');
 assert(css.includes('background:transparent!important'),'existing box-free buttons preserved');
 assert(!v245.includes('#overlay[data-screen="results"]'),'game over overlay remains unchanged');
-assert(html.includes('garage.css?v=13-v245-clear-top-centered-icons'),
+assert(/garage\.css\?v=(13-v245-clear-top-centered-icons|14-v248-complete-hero-cards)/.test(html),
  'CSS cache bust reaches phone');
 assert(sw.includes('v245-clear-top-centered-icons'),'service worker cache bust');
 console.log('PASS v245: transparent arcade title top, three centered tightly-spaced large icons, 9:16 and existing menu unaffected.');
