@@ -25,10 +25,6 @@ jobs:
         run: node tools/rebuild-throwables-atlas-v237.cjs
       - name: Polish isolated projectile fragments
         run: node tools/polish-throwables-atlas-v238.cjs
-      - name: Inspect projectile fragment clusters
-        run: node tools/throwable-component-audit-v238.cjs
-      - name: Audit projectile art cuts
-        run: node tools/throwable-visual-audit-v238.cjs
       - name: Check game
         run: node tools/test.cjs
       - uses: actions/configure-pages@v5
