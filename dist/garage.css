@@ -655,3 +655,238 @@ html.landscape-game #overlay[data-screen="selection"] #heroes,
   width:min(calc(100% - 6px),calc(100cqh - 88px))!important;
  }
 }
+
+
+/* v244 — Five-slot portrait hero wheel. Original sprite art/gear math untouched. */
+#overlay[data-screen="selection"]{
+ justify-content:flex-start!important;
+ padding:calc(3px * var(--ui-scale,1)) calc(8px * var(--ui-scale,1)) calc(37px * var(--ui-scale,1))!important;
+ gap:0!important;
+}
+html.portrait-play #overlay[data-screen="selection"]:not([hidden]),
+html.landscape-game #overlay[data-screen="selection"]:not([hidden]){
+ justify-content:flex-start!important;
+ padding-top:calc(3px * var(--ui-scale,1))!important;
+}
+/* The two text lines are anchored to the upper edge instead of being
+   centered above the art and leaving a wasted strip over the title. */
+#overlay[data-screen="selection"]>.label{
+ position:absolute!important;
+ top:calc(3px * var(--ui-scale,1))!important;
+ left:0!important;right:0!important;
+ z-index:3!important;
+ order:-5!important;
+ font-size:clamp(8px,calc(10px * var(--ui-scale,1)),12px)!important;
+ line-height:1.12!important;
+ padding:0 4px!important;
+ margin:0!important;
+}
+#overlay[data-screen="selection"]>#title{
+ position:absolute!important;
+ top:calc(18px * var(--ui-scale,1))!important;
+ left:0!important;right:0!important;
+ z-index:3!important;
+ order:-4!important;
+ font-size:clamp(15px,calc(18px * var(--ui-scale,1)),21px)!important;
+ line-height:1.05!important;
+ margin:0!important;
+}
+#overlay[data-screen="selection"]>.overlay-logo{
+ order:-3!important;
+ position:relative!important;
+ align-self:center!important;
+ flex:0 1 auto!important;
+ width:min(94%,calc(360px * var(--ui-scale,1)))!important;
+ max-width:none!important;
+ max-height:min(30svh,calc(215px * var(--ui-scale,1)))!important;
+ height:auto!important;
+ object-fit:contain!important;
+ margin:calc(40px * var(--ui-scale,1)) auto calc(3px * var(--ui-scale,1))!important;
+}
+#overlay[data-screen="selection"] #heroes{
+ box-sizing:border-box!important;
+ flex:0 0 30%!important;
+ height:30%!important;max-height:30%!important;
+ width:100%!important;
+ overflow:hidden!important;
+ margin:0 auto calc(4px * var(--ui-scale,1))!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options{
+ position:relative!important;overflow:hidden!important;
+ width:100%!important;height:100%!important;
+ touch-action:pan-y!important;
+}
+/* Only source buttons are hidden. The seven virtual cards remain mounted
+   and five positions (-2,-1,0,+1,+2) show continuously during a swipe.
+   With fewer than five owned characters the existing roster cycles. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options>.hero-card:not(.hero-reel-proxy){
+ display:none!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options>.hero-reel-proxy{
+ box-sizing:border-box!important;
+ position:absolute!important;
+ top:50%!important;left:50%!important;
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:center!important;
+ justify-content:flex-end!important;
+ width:41%!important;max-width:none!important;min-width:0!important;
+ height:calc(100% - 9px)!important;max-height:none!important;
+ min-height:0!important;
+ padding:clamp(3px,.6svh,6px) 4px 6px!important;
+ gap:1px!important;
+ overflow:hidden!important;
+ border:2px solid #506a7c!important;
+ border-radius:8px!important;
+ background:linear-gradient(170deg,#324d60 0%,#203749 65%,#122638 100%)!important;
+ box-shadow:0 5px 0 #081c28,0 8px 13px #0719269e!important;
+ backface-visibility:hidden;
+ transform-origin:center center;
+ will-change:transform,opacity;
+ cursor:pointer;
+}
+/* The center portrait is visually prominent but the card itself remains
+   tall/narrow; non-focused cards recede behind it. */
+#overlay[data-screen="selection"] #heroes .hero-options>.hero-reel-proxy[data-reel-focus="true"]{
+ border-color:#d7f49c!important;
+ background:linear-gradient(160deg,#405364,#263b4b 58%,#142635)!important;
+ box-shadow:0 0 0 1px #b7e89270,0 7px 17px #001422bf!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-vehicle-portrait{
+ display:block!important;
+ width:min(calc(100% + 4px),calc(100cqh - 84px))!important;
+ height:auto!important;max-width:none!important;
+ margin:auto auto 0!important;
+ flex:0 0 auto!important;
+ aspect-ratio:1/1!important;
+ image-rendering:auto!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy>b{
+ font-size:clamp(13px,calc(17px * var(--ui-scale,1)),19px)!important;
+ line-height:1.05!important;
+ margin:0!important;
+ flex:none!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy>small{
+ font-size:clamp(8px,calc(9px * var(--ui-scale,1)),10px)!important;
+ margin:0!important;
+ flex:none!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-stats{
+ width:100%!important;max-width:100%!important;
+ padding:3px!important;
+ border-radius:3px!important;
+ flex:none!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-stat{
+ grid-template-columns:11px 21px minmax(0,1fr) 19px 21px!important;
+ gap:1px!important;
+ height:clamp(9px,1.35dvh,12px)!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-label{font-size:8px!important}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-icon{
+ width:11px!important;height:11px!important;font-size:9px!important
+}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-value{font-size:9px!important}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-bonus{font-size:8px!important}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-track{gap:1px!important;height:6px!important}
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-mini-track>.hero-stat-cell{
+ height:6px!important;border-radius:1px!important;
+}
+/* Side cards are purely character previews — the gauges belong to the
+   center card. This keeps all five readable despite their narrow widths. */
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy:not([data-reel-focus="true"]) .hero-mini-stats,
+#overlay[data-screen="selection"] #heroes .hero-reel-proxy:not([data-reel-focus="true"])>small{
+ display:none!important;
+}
+#overlay[data-screen="results"] #heroes .hero-reel-proxy{
+ display:none!important;
+}
+#overlay[data-screen="selection"] #heroes .reel-arrow{
+ z-index:280!important;
+ width:clamp(23px,5vw,29px)!important;
+ height:clamp(42px,7svh,57px)!important;
+ font-size:22px!important;
+ background:#112c3db6!important;
+ border-color:#7898a08c!important;
+}
+#overlay[data-screen="selection"] #heroes .reel-arrow[data-step="-1"]{left:0!important}
+#overlay[data-screen="selection"] #heroes .reel-arrow[data-step="1"]{right:0!important}
+/* Dock controls: make the existing approved raster icons the actual buttons,
+   without rectangular backing panels. Transparent hit areas remain >=72px. */
+#overlay[data-screen="selection"] #main-dock{
+ box-sizing:border-box!important;
+ width:100%!important;
+ height:calc(93px * var(--ui-scale,1))!important;
+ max-height:20svh!important;
+ min-height:calc(70px * var(--ui-scale,1))!important;
+ padding:0!important;
+ margin:calc(3px * var(--ui-scale,1)) auto 0!important;
+ gap:clamp(4px,1.3vw,10px)!important;
+ align-items:stretch!important;
+}
+#overlay[data-screen="selection"] #main-dock>button{
+ display:flex!important;flex-direction:column!important;
+ box-sizing:border-box!important;align-items:center!important;justify-content:flex-end!important;
+ width:100%!important;height:100%!important;
+ min-height:0!important;
+ padding:0 0 3px!important;
+ margin:0!important;
+ gap:0!important;
+ border:0!important;outline-offset:-2px!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ color:#fff2d0!important;
+ text-shadow:0 2px 2px #071821,0 0 5px #091b2b!important;
+ font:900 clamp(10px,calc(13px * var(--ui-scale,1)),14px)/1 Arial,'Noto Sans KR',sans-serif!important;
+}
+#overlay[data-screen="selection"] #main-dock>button::before{
+ display:block!important;
+ content:""!important;
+ width:min(96%,calc(83px * var(--ui-scale,1)))!important;
+ max-width:none!important;
+ max-height:none!important;
+ min-width:0!important;
+ height:auto!important;
+ aspect-ratio:1/1!important;
+ flex:none!important;
+ background-image:url(assets/ui/main-dock.webp)!important;
+ background-size:300% 100%!important;
+ background-repeat:no-repeat!important;
+ filter:drop-shadow(0 6px 3px #041422af)!important;
+}
+#overlay[data-screen="selection"] #main-dock>button:active::before{
+ transform:scale(.92) translateY(2px);
+}
+#overlay[data-screen="selection"] #main-dock>button:focus-visible{
+ outline:2px solid #f4e7aa!important;
+ outline-offset:0!important;
+ border-radius:7px!important;
+}
+#overlay[data-screen="selection"] #main-dock .zz-chip-amount{
+ top:0!important;right:1px!important;
+ background:#102a3aaf;padding:1px 3px;border-radius:4px;
+}
+@media(max-height:630px){
+ #overlay[data-screen="selection"]>.overlay-logo{
+  width:min(90%,calc(310px * var(--ui-scale,1)))!important;
+  max-height:calc(188px * var(--ui-scale,1))!important;
+  margin-top:calc(35px * var(--ui-scale,1))!important;
+ }
+ #overlay[data-screen="selection"] #main-dock{
+  height:calc(78px * var(--ui-scale,1))!important;
+ }
+ #overlay[data-screen="selection"] #main-dock>button::before{
+  width:min(96%,calc(69px * var(--ui-scale,1)))!important;
+ }
+}
+@media(max-height:465px){
+ #overlay[data-screen="selection"]>.overlay-logo{
+  max-height:calc(115px * var(--ui-scale,1))!important;
+  margin-top:calc(31px * var(--ui-scale,1))!important;
+ }
+ #overlay[data-screen="selection"] #heroes .hero-reel-proxy .hero-vehicle-portrait{
+  width:min(calc(100% + 4px),calc(100cqh - 68px))!important;
+ }
+}
