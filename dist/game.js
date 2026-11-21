@@ -3762,17 +3762,34 @@ const TRASH_RAISE_KEYS=[
  {t:.86,y:-3,s:1,a:1,r:-.18},
  {t:1,y:0,s:1,a:1,r:-.20}
 ];
-function raisedTrashPose(progress){
+// Matching preparation keys for the neon toxin: fade up out of the mouth,
+// leap above it, then tap/catch back to the launch anchor. Deliberately
+// smaller than a trash item's arc; enemy sprite frames are unchanged.
+const SPIT_RAISE_KEYS=[
+ {t:0,y:10,s:.60,a:0,r:-.22},
+ {t:.17,y:-4,s:.80,a:.78,r:-.15},
+ {t:.43,y:-18,s:1.09,a:1,r:.12},
+ {t:.54,y:-20,s:1.10,a:1,r:.15},
+ {t:.73,y:4,s:1,a:1,r:-.08},
+ {t:.86,y:-2,s:1,a:1,r:.03},
+ {t:1,y:0,s:1,a:1,r:0}
+];
+function raisedTrashPose(progress,keys=TRASH_RAISE_KEYS){
  const p=clamp(progress,0,1);
- for(let i=1;i<TRASH_RAISE_KEYS.length;i++){
-  const b=TRASH_RAISE_KEYS[i],a=TRASH_RAISE_KEYS[i-1];
-  if(p>b.t&&i<TRASH_RAISE_KEYS.length-1)continue;
+ for(let i=1;i<keys.length;i++){
+  const b=keys[i],a=keys[i-1];
+  if(p>b.t&&i<keys.length-1)continue;
   const t=clamp((p-a.t)/(b.t-a.t),0,1);
   const u=t*t*(3-2*t),lerp=(x,y)=>x+(y-x)*u;
   return {y:lerp(a.y,b.y),scale:lerp(a.s,b.s),
    alpha:lerp(a.a,b.a),turn:lerp(a.r,b.r)};
  }
- return {y:0,scale:1,alpha:1,turn:-.2};
+ return {y:0,scale:1,alpha:1,turn:0};
+}
+function raisedSpitPose(progress){return raisedTrashPose(progress,SPIT_RAISE_KEYS)}
+function spitMouthAnchor(z){
+ const pos=zombieHandVisualPosition(z);
+ return {x:pos.x+z.w*.5,y:pos.y+z.h*.39};
 }
 function launchTrashShot(z,citizen){
  const elite=eliteTrashThrower(z),hand=heldTrashAnchor(z);
@@ -3868,8 +3885,11 @@ function drawGroggyFeedback(){
  g.restore();
 }
 function launchSpit(z,citizen){
+ // Start the flying venom exactly where its last visible held frame ends,
+ // including chain knockback, hit-freeze and the zombie's hit shake.
+ const mouth=spitMouthAnchor(z);
  bossTrashShots.push({
-  type:'spit',sx:z.x+z.w*.5,sy:z.y+z.h*.39,
+  type:'spit',sx:mouth.x,sy:mouth.y,
   tx:citizen.x,ty:citizen.y-13,citizen,
   duration:1.0+Math.random()*.20,t:0,arc:35+Math.random()*22
  });
@@ -3962,6 +3982,7 @@ function updateBossTrashShots(dt,previousCar=car){
   if(!alive.length){z.spitAt=clock+3;continue}
   z.spitTarget=alive[Math.floor(Math.random()*alive.length)];
   z.spitWindup=z.boss?.55:.44;
+  z.spitWindupTotal=z.spitWindup; // use the real slowed prep clock
   spitSharedNextAt=clock+2.35-1.35*projectilePressure();
   sfx('spit');
  }
@@ -3982,18 +4003,24 @@ function spitSprite(radius){
  spitSprites[radius]=sprite;
  return sprite;
 }
-function paintSpit(sprite,x,y,angle){
- g.save();g.translate(x,y);g.rotate(angle);
+function paintSpit(sprite,x,y,angle,alpha=1,scale=1){
+ if(alpha<=0)return;
+ g.save();g.globalAlpha*=alpha;
+ g.translate(x,y);g.rotate(angle);g.scale(scale,scale);
  g.drawImage(sprite,-40,-32);g.restore();
 }
-function drawNeonSpit(x,y,t,angle=0){
+function drawNeonSpit(x,y,t,angle=0,alpha=1,scale=1){
+ if(alpha<=0)return; // no one-frame flash before the visible reveal
  const sprite=spitSprite(Math.round(11+3*Math.sin(Math.PI*t)));
- paintSpit(sprite,x,y,angle);
- if(fxEnabled&&fxRenderer)spitBloomDraws.push(sprite,x,y,angle);
+ paintSpit(sprite,x,y,angle,alpha,scale);
+ // The ADD/bloom pass must use the very same reveal alpha and pickup scale,
+ // otherwise full-strength bloom flashes while the toxin is still invisible.
+ if(fxEnabled&&fxRenderer)spitBloomDraws.push(sprite,x,y,angle,alpha,scale);
 }
 function drawSpitBloom(){
- for(let i=0;i<spitBloomDraws.length;i+=4){
-  paintSpit(spitBloomDraws[i],spitBloomDraws[i+1],spitBloomDraws[i+2],spitBloomDraws[i+3]);
+ for(let i=0;i<spitBloomDraws.length;i+=6){
+  paintSpit(spitBloomDraws[i],spitBloomDraws[i+1],spitBloomDraws[i+2],
+   spitBloomDraws[i+3],spitBloomDraws[i+4],spitBloomDraws[i+5]);
  }
 }
 function drawBossTrashShots(){
@@ -4009,10 +4036,10 @@ function drawBossTrashShots(){
    g.restore();
   }
   if(spitThrower(z)&&z.spitWindup>0){
-   // Neon spit is not 'picked up' like rubbish; only its anchor tracks the
-   // same visible knockback/hit shake as the character's mouth.
-   const pos=zombieHandVisualPosition(z);
-   drawNeonSpit(pos.x+z.w*.5,pos.y+z.h*.39,.15,0);
+   const total=Math.max(.001,z.spitWindupTotal||z.spitWindup);
+   const pose=raisedSpitPose(1-z.spitWindup/total);
+   const mouth=spitMouthAnchor(z);
+   drawNeonSpit(mouth.x,mouth.y+pose.y,.15,pose.turn,pose.alpha,pose.scale);
   }
  }
  for(const p of bossTrashShots){
