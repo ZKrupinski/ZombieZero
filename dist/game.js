@@ -3791,6 +3791,12 @@ function spitMouthAnchor(z){
  const pos=zombieHandVisualPosition(z);
  return {x:pos.x+z.w*.5,y:pos.y+z.h*.39};
 }
+// All four boss variants use the identical venom pickup keys. Magnify only
+// their presentation so the action reads clearly on their much larger art;
+// the 60fps animation clock, poison damage and hitbox remain unchanged.
+function spitBossPresentation(z){
+ return {lift:z.boss?1.35:1,size:z.boss?1.30:1};
+}
 function launchTrashShot(z,citizen){
  const elite=eliteTrashThrower(z),hand=heldTrashAnchor(z);
  // Launch precisely from the final held location: no one-frame pop between
@@ -3885,11 +3891,11 @@ function drawGroggyFeedback(){
  g.restore();
 }
 function launchSpit(z,citizen){
- // Start the flying venom exactly where its last visible held frame ends,
- // including chain knockback, hit-freeze and the zombie's hit shake.
- const mouth=spitMouthAnchor(z);
+ // Start exactly at the held venom anchor, keeping the boss-sized venom
+ // consistent between the final catch frame and the projectile's first frame.
+ const mouth=spitMouthAnchor(z),presentation=spitBossPresentation(z);
  bossTrashShots.push({
-  type:'spit',sx:mouth.x,sy:mouth.y,
+  type:'spit',sx:mouth.x,sy:mouth.y,spitScale:presentation.size,
   tx:citizen.x,ty:citizen.y-13,citizen,
   duration:1.0+Math.random()*.20,t:0,arc:35+Math.random()*22
  });
@@ -4038,15 +4044,16 @@ function drawBossTrashShots(){
   if(spitThrower(z)&&z.spitWindup>0){
    const total=Math.max(.001,z.spitWindupTotal||z.spitWindup);
    const pose=raisedSpitPose(1-z.spitWindup/total);
-   const mouth=spitMouthAnchor(z);
-   drawNeonSpit(mouth.x,mouth.y+pose.y,.15,pose.turn,pose.alpha,pose.scale);
+   const mouth=spitMouthAnchor(z),presentation=spitBossPresentation(z);
+   drawNeonSpit(mouth.x,mouth.y+pose.y*presentation.lift,
+    .15,pose.turn,pose.alpha,pose.scale*presentation.size);
   }
  }
  for(const p of bossTrashShots){
   const pos=bossTrashProjectilePosition(p);
   if(p.type==='spit'){
    const angle=Math.atan2(p.ty-p.sy,p.tx-p.sx);
-   drawNeonSpit(pos.x,pos.y,pos.t,angle);
+   drawNeonSpit(pos.x,pos.y,pos.t,angle,1,p.spitScale||1);
   }else{
    const flare=1-Math.abs(2*pos.t-1);
    const size=p.eliteKind===0?22+5*flare:p.eliteKind===1?24+6*flare:29+7*flare;
