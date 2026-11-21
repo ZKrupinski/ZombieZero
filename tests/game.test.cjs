@@ -14,7 +14,9 @@ activate('dual');activate('triple');active.dual=active.triple=.01;update(.02);ch
 activate('triple');balls[0].y=740;balls[0].vy=380;balls[0].vx=0;let oldLives=lives;update(.02);check(balls.length===2&&lives===oldLives,'one lost ball does not cost life');
 clearSkills();balls=[newBall(100,300,0,-360,false)];let z={x:150,y:100,w:33,h:44,hp:5,max:5,kind:4,flash:0,burn:0,burnTick:0,spreadTick:0};foes=[z];activate('power');hit(z);check(z.hp===3,'power doubles damage');
 clearSkills();z.hp=5;let near={...z,x:205,hp:5},far={...z,x:370,hp:5};foes=[z,near,far];activate('fire');hit(z);check(z.burn>0&&near.burn>0&&far.burn===0,'fire hits nearby only');for(let i=0;i<42;i++)update(.033);check(near.hp<5,'burn ticks');
-clearSkills();foes=[{...far,y:100,hp:5,burn:0}];balls=[newBall(100,400,100,-300,false)];let y0=foes[0].y;update(.03);let normal=foes[0].y-y0;activate('slow');y0=foes[0].y;let bx=balls[0].x;update(.03);check(foes[0].y-y0<normal*.5&&Math.abs((balls[0].x-bx)-3)<1e-5,'slow reduces enemy march without slowing player ball');
+clearSkills();foes=[{...far,y:100,hp:5,burn:0}];balls=[newBall(100,400,100,-300,false)];let y0=foes[0].y;update(.03);let normal=foes[0].y-y0;activate('slow');y0=foes[0].y;let bx=balls[0].x;update(.03);check(foes[0].y-y0<normal*.28&&Math.abs((balls[0].x-bx)-3)<1e-5,'strong SLOW reduces enemy march to ~20% while keeping player ball at full speed');
+check(Math.abs(enemySlowRate()-.20)<1e-9&&Math.abs(hostileShotSlowRate()-.35)<1e-9,'SLOW strength applies only to enemies and hostile shots');
+check(Math.abs(active.slow-14*hero().duration*(1+growth('slow')*.06))<1e-6,'SLOW lasts 14s base with hero/upgrade duration bonuses');
 let expectedThreat=reactiveThreat({x:100,y:100,w:33,h:44},{x:116,y:210,vx:0,vy:-500,held:false,pierceContacts:new Set()},8);
 check(expectedThreat&&Math.abs(expectedThreat.t-.176)<.002,'slow must predict real ball flight for enemy dodge');
 clearSkills();activate('shield');balls=[newBall(100,666,0,400,false)];update(.02);check(balls[0].vy<0,'shield bounce');
