@@ -109,7 +109,7 @@
  }
  function bindReel(root,selector,current,select,enabled){
   let pointer=null,offset=0,lastX=0,lastTime=0,velocity=0,coast=0;
-  let dragged=false,suppressClick=false,startX=0;
+  let dragged=false,suppressClick=false,startX=0,programmatic=false;
   const surface=()=>root.querySelector(selector);
   const reduced=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const stride=()=>Math.max(68,Math.min(142,(surface()?.clientWidth||300)*.38));
@@ -123,7 +123,9 @@
    const roster=availableHeroes();
    if(roster.length<2)return;
    const index=roster.indexOf(current());
-   select(roster[((index<0?0:index)+direction+roster.length)%roster.length]);
+   programmatic=true;
+   try{select(roster[((index<0?0:index)+direction+roster.length)%roster.length])}
+   finally{programmatic=false}
    if(!reduced())chosen()?.animate?.([
     {opacity:.58,filter:'blur(2px)',scale:'.88'},
     {opacity:1,filter:'blur(0px)',scale:'1'}
@@ -194,7 +196,7 @@
   for(const event of ['pointerup','pointercancel','lostpointercapture'])root.addEventListener(event,release);
   // A swipe over a button must never trigger its normal click afterwards.
   root.addEventListener('click',e=>{
-   if(!suppressClick)return;
+   if(programmatic||!suppressClick)return;
    suppressClick=false;
    if(!e.target.closest('[data-step]')){e.preventDefault();e.stopImmediatePropagation?.()}
   },true);
