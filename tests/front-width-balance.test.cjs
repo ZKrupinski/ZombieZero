@@ -77,6 +77,6 @@ for(const {id,cell,w,union,unchanged} of expected){
  assert(Math.abs((geom[0]+geom[2]/2)-cell/2)<2,id+' centered about same local axis');
 }
 const game=fs.readFileSync('dist/game.js','utf8');
-assert(game.includes('window.ZZGreenWalk?.draw(g,z,clock)')&&game.includes('originalObject?.draw(g,z,clock)'),
+assert(game.includes('window.ZZGreenWalk?.draw(g,z,enemyAnimationClock)')&&game.includes('originalObject?.draw(g,z,enemyAnimationClock)'),
  'game uses the modified assets without changing gameplay');
 console.log('PASS: 5 targets (6 atlases) gently widened in frontal 8 frames; 144 other frames unchanged byte-for-byte in RGBA, alpha crops/foot axes preserved');
