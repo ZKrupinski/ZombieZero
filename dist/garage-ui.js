@@ -43,6 +43,10 @@
   if(tab==='parts')garageHero=h;
   const level=data.levels[part.id],owned=level!==undefined;
   const gear=data.loads[h],price=system.prices[level],xp=data.xp[h]||0;
+  const statPanel='<section class="garage-stat-panel" aria-label="현재 캐릭터 기본 능력치와 강화분">'+
+   '<div class="garage-stat-heading"><b>현재 장착 능력치</b><small><i class="stat-legend-base"></i>기본 <i class="stat-legend-boost"></i>강화 증가</small></div>'+
+   (system.heroStatMarkup?.(HEROES[h],data,progress,h)||'')+
+   '<p class="garage-stat-footnote">첫타 = 첫 충돌 공격력 · 수비 = 공 반사 판정 폭</p></section>';
   const banner='<section class="garage-driver" aria-label="보유 캐릭터 회전 선택" data-selected-hero="'+h+'" tabindex="0">'+
    '<div class="garage-reel-stage">'+roster.map(i=>reelCard(i,data)).join('')+'</div>'+
    reelArrow(-1)+reelArrow(1)+'</section>';
@@ -58,7 +62,7 @@
   const stage=part.id==='cushion'?1:system.parts.indexOf(part)+1;
   const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
   const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
-  body.innerHTML=banner+wallet+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
+  body.innerHTML=banner+wallet+statPanel+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
   refreshGarageReel();
  }
  function trial(){
@@ -113,6 +117,9 @@
    window.ZZProgressionSound?.();
   }
   render();
+  // Garage adjustments are visible immediately on the main hero cards,
+  // even when the user closes the dialog without changing characters.
+  if(typeof renderHeroes==='function'&&['equip','upgrade','craft'].includes(action))renderHeroes();
  }
  function reelArrow(dir){
   return '<button type="button" class="reel-arrow" data-step="'+dir+'" aria-label="'+(dir<0?'이전':'다음')+' 캐릭터">'+(dir<0?'‹':'›')+'</button>';
