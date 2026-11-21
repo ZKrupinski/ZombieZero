@@ -24,7 +24,7 @@ for(const k of keys){
  assert(sw.includes('./assets/ip/v2/'+k+'.png'),k+' offline precache');
 }
 assert(sw.includes('shell-v21-visible-loot-chain-knock'),'new PWA cache version');
-assert(game.includes('originalObject?.draw(g,z,clock)'),'original runtime draws in actual zombie loop');
+assert(game.includes('originalObject?.draw(g,z,enemyAnimationClock)'),'original runtime draws in actual zombie loop');
 assert(game.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'),'normal and critical death renderer connected');
 assert(game.includes('const CRITICAL_GREEN_CHANCE=')&&game.includes('CRITICAL_SPECIAL_CHANCE=.09'),'probabilistic critical can trigger on green and non-green sprites');
 let calls=[];
