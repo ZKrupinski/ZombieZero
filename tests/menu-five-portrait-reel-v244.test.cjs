@@ -48,6 +48,21 @@ for(let i=-2;i<=2;i++){
 assert.equal(at(0).dataset.reelHero,'0');
 assert.deepEqual([-2,-1,0,1,2].map(n=>at(n).dataset.reelHero),['1','2','0','1','2'],
  'three owned characters wrap through five visible slots rather than showing fake characters');
+// During a swipe, no transient pass-through card may flash the selected border.
+const selectedBorders=()=>stage.children.filter(node=>node.dataset.reelFocus==='true')
+ .map(node=>Number(node.dataset.reelOffset));
+assert.deepEqual(selectedBorders(),[0],'only centered card is highlighted at rest');
+const touchTarget={closest:sel=>sel==='.hero-options'?stage:null};
+events.pointerdown({type:'pointerdown',button:0,pointerId:7,clientX:300,clientY:200,timeStamp:0,target:touchTarget});
+events.pointermove({type:'pointermove',pointerId:7,clientX:240,clientY:200,timeStamp:160,target:touchTarget,preventDefault(){}});
+assert.deepEqual(selectedBorders(),[],'no neighbor lights while moving between cards');
+events.pointermove({type:'pointermove',pointerId:7,clientX:180,clientY:200,timeStamp:310,target:touchTarget,preventDefault(){}});
+assert.deepEqual(selectedBorders(),[],'side slot at passing center cannot briefly turn lime');
+events.pointerup({type:'pointerup',pointerId:7,clientX:180,clientY:200,timeStamp:340,target:touchTarget});
+assert.equal(app.selectedHero,1,'release selects the next character');
+assert.deepEqual(selectedBorders(),[0],'only final centered card regains its selected glow');
+sources[0].click();
+assert.deepEqual(selectedBorders(),[0],'other cards stay unlit after switching selection');
 const identity=[...stage.children];
 events.click({timeStamp:900,target:{closest:sel=>sel==='[data-step]'?{dataset:{step:'1'}}:null}});
 assert.equal(app.selectedHero,1,'arrow advances selected hero');
@@ -71,6 +86,6 @@ assert(css.includes('width:min(94%,calc(360px * var(--ui-scale,1)))!important'),
 assert(css.includes('background:transparent!important')&&css.includes('border:0!important'),
  'dock has no rectangular button backing');
 assert(css.includes('assets/ui/main-dock.webp'),'approved original bitmap dock icons retained');
-assert(/garage\.css\?v=(12-v244-five-portrait-dock|13-v245-clear-top-centered-icons)/.test(html)&&html.includes('garage-ui.js?v=10-v244-five-portrait'));
-assert(/v24[45]-(five-portrait-no-dock-box|clear-top-centered-icons)/.test(sw),'mobile PWA cache refreshed');
+assert(/garage\.css\?v=(12-v244-five-portrait-dock|13-v245-clear-top-centered-icons)/.test(html)&&/garage-ui\\.js\\?v=(10-v244-five-portrait|11-v247-stable-border-focus)/.test(html));
+assert(/v24[4-7]-(five-portrait-no-dock-box|clear-top-centered-icons|stable-border-focus)/.test(sw),'mobile PWA cache refreshed');
 console.log('PASS v244: five mounted portrait windows, 3/4-owned wrap, arrows & second-card tap, unchanged game-over, larger top logo and boxless icon dock.');
