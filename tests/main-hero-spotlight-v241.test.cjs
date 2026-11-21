@@ -22,7 +22,7 @@ assert(css.includes('#overlay[data-screen="selection"] #hero-stats{display:none!
  'redundant prose strip removed from selection');
 assert(css.includes('#hero-3 .hero-vehicle-portrait'),'one-frame mechanic uses contain');
 assert(css.includes('background-size:contain!important'),'recruited mechanic sprite not stretched into atlas');
-assert(/garage\.css\?v=(9-main-hero-spotlight|10-clean-tint|11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards)/.test(html),'browser loads main-hero CSS');
+assert(/garage\.css\?v=(9-main-hero-spotlight|10-clean-tint|11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(html),'browser loads main-hero CSS');
 assert(html.includes('-v241-main-hero-meters'),'browser loads new stat renderer');
 assert(/v24[1-5]-(main-hero-spotlight|poison-tint|layout-stats-dock|five-portrait-no-dock-box|clear-top-centered-icons)/.test(sw),'new PWA cache key retained');
 console.log('PASS v241: max-height character carousel, four truthful stat gauges, approved sprite art, results and garage isolation');
