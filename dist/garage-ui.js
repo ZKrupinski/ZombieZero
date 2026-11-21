@@ -135,6 +135,8 @@
   const stride=()=>fiveReel?Math.max(75,Math.min(215,(surface()?.clientWidth||320)*.265)):Math.max(90,Math.min(190,(surface()?.clientWidth||320)*.47));
   const indexOf=(id)=>roster().indexOf(id);
   const fiveReel=selector==='.hero-options';
+  const heroScreen=()=>['selection','results'].includes($('overlay')?.dataset?.screen);
+
   // Five visible positions, plus one offscreen handoff on either side.
   // Slots are virtual; with fewer than five owned heroes the wheel cycles
   // existing heroes, and automatically shows five distinct once recruited.
@@ -190,7 +192,7 @@
    }
   }
   const items=()=>Array.from(surface()?.querySelectorAll?.(
-   fiveReel&&$('overlay')?.dataset?.screen==='selection'?'.hero-reel-proxy':
+   fiveReel&&heroScreen()?'.hero-reel-proxy':
    fiveReel?'.hero-card:not(.hero-reel-proxy)':'[data-reel-hero],.hero-card'
   )||[]);
   function itemHero(item){
@@ -199,7 +201,7 @@
   function paint(progress=0){
    const heroes=roster(),count=heroes.length,origin=indexOf(current()),step=stride();
    if(!count)return;
-   if(fiveReel&&$('overlay')?.dataset?.screen==='selection'){
+   if(fiveReel&&heroScreen()){
     ensureFiveReel();
     const width=surface()?.clientWidth||320;
     for(const node of proxies){
