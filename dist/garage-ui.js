@@ -1,7 +1,7 @@
 'use strict';
 (()=>{
  const system=window.ZZGarage,progress=window.ZZProgression;
- const panel=$('garage-dialog'),body=$('garage-body'),note=$('garage-note');
+ let panel,body,note,garageHero;
  const slots=['무기','공','차량'];
  const styles=['라켓 끝으로 받으면 코너를 깊게 노립니다.','배트 중심에 맞히면 적 무리를 강하게 밀어냅니다.','두 번째 리턴마다 첫 충돌이 주변 적에게 한 번 더 튑니다.','벽을 맞힌 휠캡이 첫 적을 옆으로 밀어냅니다.'];
  let activePart=system.parts[0],tab='parts',frame=0;
@@ -20,16 +20,19 @@
  }
  function render(){
   cancelAnimationFrame(frame);
-  const data=progress.garage(),h=selectedHero,part=activePart;
+  const data=progress.garage(),h=tab==='parts'?garageHero:selectedHero,part=activePart;
   const level=data.levels[part.id],owned=level!==undefined;
   const gear=data.loads[h],price=system.prices[level],xp=data.xp[h]||0;
   const portrait=h===3?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">':'<span class="garage-portrait" style="--row:'+h+'"></span>';
   const banner='<section class="garage-driver">'+portrait+'<div><h3>'+HEROES[h].name+'</h3><p>'+styles[h]+'</p><small>숙련 '+xp+' / '+(xp>=10?'도색 해금': '10 웨이브')+'</small></div></section>';
-  const nav='<nav>'+btn('parts','장비 정비',tab==='parts')+btn('signal','구조 무전',tab==='signal')+'</nav>';
+  const picker=tab==='parts'?'<div class="garage-picker" role="group" aria-label="정비할 생존자">'+HEROES.map((hero,i)=>{
+   if(i===3&&!data.mechanic)return '';
+   return '<button type="button" data-driver="'+i+'" aria-pressed="'+(h===i)+'">'+hero.name+'</button>';
+  }).join('')+'</div>':'';
   const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','제작 너트',data.badges)+'</div>';
   if(tab==='signal'){
    const message=data.mechanic?'합류한 생존자 4명이 각각 25% 확률로 응답합니다.':'스테이지나 웨이브를 처음 클리어하면 무전권을 받습니다. 첫 호출로 정비사가 합류합니다.';
-   body.innerHTML=banner+nav+wallet+'<section class="radio-box">'+icon('radio')+'<h3>'+(data.mechanic?'정비사 합류 완료':'폐차장 신호 포착')+'</h3><p>'+message+'</p><p>중복 응답 1회당 제작 너트 1개 · 너트 2개로 미보유 장비 1종 제작</p><div>'+btn('radio','1회 호출',data.tickets<1)+btn('batch','10회 호출',data.tickets<10)+'</div></section>'+(data.mechanic?btn('trial','휠캡 3회 시타')+btn('driver','정비사 선택',h===3):'');
+   body.innerHTML=wallet+'<section class="radio-box">'+icon('radio')+'<h3>'+(data.mechanic?'정비사 합류 완료':'폐차장 신호 포착')+'</h3><p>'+message+'</p><p>중복 응답 1회당 제작 너트 1개 · 너트 2개로 미보유 장비 1종 제작</p><div>'+btn('radio','1회 호출',data.tickets<1)+btn('batch','10회 호출',data.tickets<10)+'</div></section>'+(data.mechanic?btn('trial','휠캡 3회 시타')+btn('driver','정비사 선택',h===3):'');
    return;
   }
   const list=slots.map((slot,i)=>'<section class="garage-slot"><small>'+slot+'</small><div>'+system.parts.filter(p=>p.slot===i).map(p=>card(p,data,gear)).join('')+'</div></section>').join('');
@@ -38,7 +41,7 @@
   const stage=part.id==='cushion'?1:system.parts.indexOf(part)+1;
   const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
   const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
-  body.innerHTML=banner+nav+wallet+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
+  body.innerHTML=picker+banner+wallet+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
  }
  function trial(){
   tab='trial';note.textContent='벽을 경유하도록 좌우를 조준하세요.';
@@ -72,8 +75,12 @@
   };
   frame=requestAnimationFrame(tick);
  }
- body.onclick=e=>{
+ function handleAction(e){
   const button=e.target.closest('button');if(!button||button.disabled)return;
+  if(button.dataset.driver!==undefined){
+   garageHero=Number(button.dataset.driver);note.textContent='';render();
+   body.querySelector('[data-driver="'+garageHero+'"]')?.focus();return;
+  }
   if(button.dataset.part){activePart=system.parts.find(p=>p.id===button.dataset.part);note.textContent='';render();return}
   const action=button.dataset.action;
   if(action==='shoot')return;
@@ -83,7 +90,7 @@
   else if(action==='driver'){$('hero-3').click();note.textContent='정비사가 출전 대기 중입니다.'}
   else{
    const wasOwned=progress.garage().mechanic;
-   if(!progress.garageAction(action,activePart.id,selectedHero)){note.textContent='저장 상태와 보유 재화를 확인하세요.';return}
+   if(!progress.garageAction(action,activePart.id,tab==='parts'?garageHero:selectedHero)){note.textContent='저장 상태와 보유 재화를 확인하세요.';return}
    if(action==='radio'&&!wasOwned){
     renderHeroes();$('hero-3').click();note.textContent='“견인 요청하신 분?” 정비사가 합류했습니다!';
     panel.animate?.([{opacity:.5},{opacity:1}],{duration:360});
@@ -92,8 +99,16 @@
    window.ZZProgressionSound?.();
   }
   render();
- };
- $('garage-open').onclick=()=>{if(!['menu','over'].includes(mode))return;tab='parts';note.textContent='';render();panel.showModal()};
- $('garage-close').onclick=()=>panel.close();
- panel.addEventListener('close',()=>cancelAnimationFrame(frame));
+ }
+ for(const [prefix,page] of [['garage','parts'],['radio','signal']]){
+  const dialog=$(prefix+'-dialog'),content=$(prefix+'-body');
+  $(prefix+'-open').onclick=()=>{
+   if(!['menu','over'].includes(mode))return;
+   panel=dialog;body=content;note=$(prefix+'-note');tab=page;garageHero=selectedHero;
+   note.textContent='';render();dialog.showModal();dialog.scrollTop=0;
+  };
+  content.onclick=handleAction;
+  $(prefix+'-close').onclick=()=>dialog.close();
+  dialog.addEventListener('close',()=>cancelAnimationFrame(frame));
+ }
 })();

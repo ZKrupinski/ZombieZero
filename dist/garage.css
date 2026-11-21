@@ -1,40 +1,53 @@
-#overlay #garage-open{position:absolute!important;top:5px;left:5px;z-index:4;width:auto!important;min-height:34px;padding:5px 10px!important;background:#213c45;color:#ffdd83;border:1px solid #91b7a6;font-weight:900}
-#overlay[data-screen=pause] #garage-open,#overlay #hero-3[hidden]{display:none!important}
+#overlay #hero-3[hidden]{display:none!important}
 #overlay[data-screen] .hero-options:has(#hero-3:not([hidden])){grid-template-columns:repeat(4,minmax(0,1fr))!important}
 #overlay #hero-3 .hero-vehicle-portrait{background:url(assets/ip/tow-mechanic.webp) center / contain no-repeat!important;animation:none!important}
-#garage-dialog{box-sizing:border-box;margin:auto;padding:16px;width:min(96vw,440px,64svh);max-height:94svh;overflow:auto;background:#172a35;color:#f7f0dc;border:2px solid #819e94;border-radius:10px;font:600 14px/1.4 Arial,sans-serif;box-shadow:0 12px 60px #07111be0}
-#garage-dialog::backdrop{background:#07121cde}
-#garage-dialog header,#garage-dialog nav,.garage-driver,.garage-slot>div{display:flex;align-items:center;gap:8px}
-#garage-dialog header{justify-content:space-between;border-bottom:2px solid #557674;padding-bottom:8px}
-#garage-dialog h2,#garage-dialog h3,#garage-dialog p{margin:4px 0}
-#garage-dialog button{color:#fbf5de;background:#35525c;border:1px solid #749388;border-radius:5px;padding:8px;min-height:36px;font:700 14px/1.2 Arial,sans-serif;cursor:pointer}
-#garage-dialog button:disabled{opacity:.58;cursor:default}
-#garage-dialog nav button{flex:1}
-#garage-dialog nav button:disabled,#garage-dialog [aria-pressed=true]{opacity:1;background:#cfa84e;color:#182931;border-color:#f4d682}
+:is(#garage-dialog,#radio-dialog){box-sizing:border-box;margin:auto;padding:16px;width:min(96vw,440px,64svh);max-height:94svh;overflow:auto;background:#172a35;color:#f7f0dc;border:2px solid #819e94;border-radius:10px;font:600 14px/1.4 Arial,sans-serif;box-shadow:0 12px 60px #07111be0}
+:is(#garage-dialog,#radio-dialog)::backdrop{background:#07121cde}
+:is(#garage-dialog,#radio-dialog) header,:is(#garage-dialog,#radio-dialog) nav,.garage-driver,.garage-slot>div{display:flex;align-items:center;gap:8px}
+:is(#garage-dialog,#radio-dialog) header{justify-content:space-between;border-bottom:2px solid #557674;padding-bottom:8px}
+:is(#garage-dialog,#radio-dialog) h2,:is(#garage-dialog,#radio-dialog) h3,:is(#garage-dialog,#radio-dialog) p{margin:4px 0}
+:is(#garage-dialog,#radio-dialog) button{color:#fbf5de;background:#35525c;border:1px solid #749388;border-radius:5px;padding:8px;min-height:36px;font:700 14px/1.2 Arial,sans-serif;cursor:pointer}
+:is(#garage-dialog,#radio-dialog) button:disabled{opacity:.58;cursor:default}
+:is(#garage-dialog,#radio-dialog) nav button{flex:1}
+:is(#garage-dialog,#radio-dialog) nav button:disabled,:is(#garage-dialog,#radio-dialog) [aria-pressed=true]{opacity:1;background:#cfa84e;color:#182931;border-color:#f4d682}
 .garage-driver{min-height:90px}.garage-driver h3,.garage-detail strong,.radio-box strong{color:#ffe198}
 .garage-portrait,.tow-preview{display:block;flex:0 0 78px;width:78px;height:78px;object-fit:contain}
 .garage-portrait{background:url(assets/ip/hero-idle-v55.png) 0 calc(var(--row) * -78px)/624px 234px no-repeat}
-#garage-dialog small{color:#cee0c6}
+:is(#garage-dialog,#radio-dialog) small{color:#cee0c6}
 .garage-wallet{text-align:right;padding:8px 0;color:#ffdc86}
 .garage-slot{margin-bottom:5px}.garage-slot>div button{flex:1}.garage-slot small{display:block;margin:3px 0}
 .garage-detail,.radio-box{margin:10px 0;padding:12px;background:#213c42;border:1px solid #53766e;border-radius:6px}
-.garage-detail button,.radio-box button,#garage-body>button{margin:5px 5px 0 0}
+.garage-detail button,.radio-box button,:is(#garage-body,#radio-body)>button{margin:5px 5px 0 0}
 .radio-dial{height:20px;margin:5px 0 12px;background:linear-gradient(90deg,transparent 67%,#f6b657 67% 68%,transparent 68%),repeating-linear-gradient(90deg,#93b8a2 0 1px,transparent 1px 8px);border-bottom:2px solid #7b968d}
 #garage-note{color:#d3eaaa}#garage-range{display:block;width:100%;margin:12px 0}#garage-aim{width:70%;vertical-align:middle}
-#garage-dialog{width:min(96vw,470px);padding:clamp(9px,2vh,16px);max-height:96dvh}
+:is(#garage-dialog,#radio-dialog){width:min(96vw,470px);padding:clamp(9px,2vh,16px);max-height:96dvh}
 .garage-icon{display:inline-block;flex:none;width:44px;height:44px;vertical-align:middle;object-fit:contain;background-image:url(assets/ui/garage-items.webp?v=4);background-size:300% 300%;background-repeat:no-repeat}
 img.garage-icon{background:none}
-#garage-dialog .garage-driver{min-height:60px}
-#garage-dialog .garage-wallet{display:flex;justify-content:flex-end;gap:14px;padding:6px 0 0;font-size:13px}
+:is(#garage-dialog,#radio-dialog) .garage-driver{min-height:60px}
+:is(#garage-dialog,#radio-dialog) .garage-wallet{display:flex;justify-content:flex-end;gap:14px;padding:6px 0 0;font-size:13px}
 .garage-wallet>span{display:inline-flex;align-items:center;gap:4px}.garage-wallet .garage-icon{width:26px;height:26px}
-#garage-dialog .nut-guide{margin:0 0 4px;color:#c8d6d1;text-align:right;font-size:12px}
+:is(#garage-dialog,#radio-dialog) .nut-guide{margin:0 0 4px;color:#c8d6d1;text-align:right;font-size:12px}
 .garage-slot{margin:0 0 2px}.garage-slot>small{font-size:11px;letter-spacing:.05em}
-#garage-dialog .garage-slot button{display:flex;align-items:center;text-align:left;gap:5px;min-width:0;padding:3px 5px;background:linear-gradient(135deg,#304956,#1d333c);color:#f3f1e7}
-#garage-dialog .garage-slot button[aria-pressed=true]{border-color:#ffcf71;background:linear-gradient(130deg,#615036,#393f38);box-shadow:inset 3px 0 #e9b354}
+:is(#garage-dialog,#radio-dialog) .garage-slot button{display:flex;align-items:center;text-align:left;gap:5px;min-width:0;padding:3px 5px;background:linear-gradient(135deg,#304956,#1d333c);color:#f3f1e7}
+:is(#garage-dialog,#radio-dialog) .garage-slot button[aria-pressed=true]{border-color:#ffcf71;background:linear-gradient(130deg,#615036,#393f38);box-shadow:inset 3px 0 #e9b354}
 .garage-slot button small{font-size:11px;color:#c9d6d0}
-#garage-dialog .garage-detail{margin:7px 0 0;padding:7px 10px;background:linear-gradient(120deg,#314b4d,#1e353d);border-top:2px solid #b5a063}
+:is(#garage-dialog,#radio-dialog) .garage-detail{margin:7px 0 0;padding:7px 10px;background:linear-gradient(120deg,#314b4d,#1e353d);border-top:2px solid #b5a063}
 .part-inspect,.part-actions{display:flex;align-items:center;gap:8px}
 .part-inspect>.garage-icon{width:58px;height:58px}.part-actions{justify-content:flex-end;flex-wrap:wrap}.part-actions>small{flex:1;min-width:95px}
-#garage-dialog .part-actions button{margin:0;display:inline-flex;align-items:center;gap:4px}.part-actions .garage-icon{width:25px;height:25px}
+:is(#garage-dialog,#radio-dialog) .part-actions button{margin:0;display:inline-flex;align-items:center;gap:4px}.part-actions .garage-icon{width:25px;height:25px}
 .radio-box>.garage-icon{float:right;width:65px;height:65px}.radio-box>div{clear:both}
-@media(max-height:650px){#garage-dialog .garage-portrait,#garage-dialog .tow-preview{height:60px;width:60px;flex-basis:60px}.garage-portrait{background-size:480px 180px;background-position-y:calc(var(--row)*-60px)}#garage-dialog .garage-slot .garage-icon{width:36px;height:36px}#garage-dialog .part-inspect>.garage-icon{width:42px;height:42px}}
+@media(max-height:650px){:is(#garage-dialog,#radio-dialog) .garage-portrait,:is(#garage-dialog,#radio-dialog) .tow-preview{height:60px;width:60px;flex-basis:60px}.garage-portrait{background-size:480px 180px;background-position-y:calc(var(--row)*-60px)}:is(#garage-dialog,#radio-dialog) .garage-slot .garage-icon{width:36px;height:36px}:is(#garage-dialog,#radio-dialog) .part-inspect>.garage-icon{width:42px;height:42px}}
+#overlay #main-dock{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:min(97%,370px);gap:6px;align-self:center;margin:3px auto;flex:none}
+#overlay[data-screen=pause] #main-dock{display:none!important}
+#overlay #main-dock button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:100%;margin:0;min-width:0;min-height:44px;padding:2px;color:#fff2c9;border:1px solid #7e9c9b;background:linear-gradient(#37525b,#192e38);font:800 clamp(10px,1.6vh,14px)/1.05 Arial,sans-serif}
+#main-dock button::before{display:block;content:"";width:clamp(30px,5.4vh,49px);aspect-ratio:1;background:url(assets/ui/main-dock.webp) left center / 300% 100% no-repeat}
+#main-dock #radio-open::before{background-position:50% center}
+#main-dock #upgrade-open::before{background-position:100% center}
+#main-dock .zz-chip-amount{position:absolute;top:2px;right:3px;display:flex;align-items:center;gap:1px;color:#ffd779}
+#overlay #main-dock .zz-chip-mark{width:12px!important;height:12px!important;background:url(assets/ui/chip-v203.webp) center/contain;border:0;font-size:0}
+#overlay #main-dock strong{font:700 10px/1 Arial,sans-serif}
+#main-dock [data-upgrade-load=loading]{opacity:.65}
+#main-dock [data-upgrade-load=error]::after{content:'재시도';position:absolute;top:1px;left:2px;font-size:9px}
+.garage-picker{display:flex;gap:4px;margin:8px 0 2px}
+#garage-dialog .garage-picker button{flex:1;min-width:0;min-height:36px;padding:4px}
+#radio-note{color:#d3eaaa}
