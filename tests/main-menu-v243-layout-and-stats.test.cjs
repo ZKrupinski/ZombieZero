@@ -34,7 +34,7 @@ assert.equal(rows[3].bonus,14,'wide panel +10px and sweet spot +4px');
 let markup=system.heroStatMarkup(h,data,progression,0);
 assert(markup.includes('hero-stat-cell boost'),'equipped bonuses use golden segment color');
 assert(markup.includes('hero-mini-bonus active'),'equipped upgrades show numeric boost');
-assert(markup.includes('>+40<')&&markup.includes('>+0.4<')&&markup.includes('>+14<'),'real bonus values appear');
+assert(markup.includes('>+40<')&&markup.includes('>+0.38<')&&markup.includes('>+14<'),'real bonus values appear');
 data.levels.steer=5;
 assert.equal(stats()[0].bonus,90,'upgrading the same equipped car gear updates speed instantly');
 data.loads[0][2]='filter';
@@ -43,7 +43,7 @@ const other=system.heroStats(h,data,progression,1);
 assert.equal(other[0].bonus,0,'garage character selection uses individual gear loadouts');
 assert(files.ui.includes('system.heroStatMarkup?.(HEROES[h],data,progress,h)'),'garage readout uses exactly the same stat renderer');
 assert(files.ui.includes("['equip','upgrade','craft'].includes(action))renderHeroes()"),'garage actions refresh main stats');
-assert(files.ui.includes("숙련 '+xp+' 클리어"),'proficiency no longer promises an inappropriate character recolor');
+assert(files.ui.includes("숙련 Lv.'+rank"),'proficiency no longer promises an inappropriate character recolor');
 assert(files.css.includes('order:-5!important')&&files.css.includes('order:-4!important')&&files.css.includes('order:-3!important'),
  'eyebrow and compact slogan sit above enlarged original bitmap logo');
 assert(files.css.includes('flex:0 0 30%!important')&&files.css.includes('height:30%!important'),

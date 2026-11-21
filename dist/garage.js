@@ -11,10 +11,13 @@ window.ZZGarage = (() => {
  const prices=[10,25,45,75,120];
  const byId=Object.fromEntries(parts.map(p=>[p.id,p]));
  const blank=()=>({mechanic:false,tickets:0,badges:0,best:{},levels:{},loads:[{},{},{},{}],xp:[0,0,0,0]});
- let equipped={};
+ let equipped={},activeData,activeHero;
+ const masteryStep=5,masteryCap=10;
+ function mastery(xp){return Math.min(masteryCap,Math.floor((xp||0)/masteryStep))}
+ function masteryDefense(){return mastery(activeData?.xp?.[activeHero])}
  function value(part,level){return part.base+part.step*level}
  function load(hero,data){
-  equipped={};
+  equipped={};activeData=data;activeHero=hero;
   for(const id of Object.values(data?.loads?.[hero]||{})){
    if(byId[id]&&Number.isInteger(data.levels[id]))equipped[id]=value(byId[id],data.levels[id]);
   }
@@ -35,7 +38,10 @@ window.ZZGarage = (() => {
    data.tickets-=count;data.calls=[];
    for(let i=0;i<count;i++){
     const survivor=data.mechanic?Math.floor(Math.random()*4):3;
-    if(data.mechanic)data.badges++;else data.mechanic=true;
+    if(data.mechanic){
+     data.badges++;
+     data.xp[survivor]=(data.xp[survivor]||0)+1;
+    }else data.mechanic=true;
     data.calls.push(survivor);
    }
    return 0;
@@ -88,9 +94,9 @@ window.ZZGarage = (() => {
   const basePaddle=Number(hero?.paddle)||60;
   return [
    {id:'speed',icon:'⚡',name:'속도',base:baseSpeed,bonus:Math.round(baseSpeed*gear('steer')/100),cap:950,unit:''},
-   {id:'first',icon:'✦',name:'첫타',base:baseDamage,bonus:baseDamage*gear('heavy')/100,cap:3.4,unit:'',precision:1},
+   {id:'first',icon:'✦',name:'첫타',base:baseDamage,bonus:baseDamage*gear('heavy')/100,cap:3.4,unit:'',precision:2},
    {id:'hp',icon:'♥',name:'체력',base:baseLives,bonus:0,cap:6,unit:''},
-   {id:'guard',icon:'↔',name:'수비',base:basePaddle,bonus:gear('wide')+extraSweet,cap:120,unit:'px'}
+   {id:'guard',icon:'↔',name:'수비',base:basePaddle,bonus:gear('wide')+extraSweet+mastery(data?.xp?.[index]),cap:120,unit:'px'}
   ];
  }
  function heroStatMarkup(hero,data,progression,index){
@@ -109,9 +115,9 @@ window.ZZGarage = (() => {
     '<span class="hero-mini-icon" aria-hidden="true">'+row.icon+'</span>'+
     '<span class="hero-mini-label" aria-hidden="true">'+row.name+'</span>'+
     '<span class="hero-mini-track" aria-hidden="true">'+blocks+'</span>'+
-    '<span class="hero-mini-value" aria-hidden="true">'+rounded(row.base)+'</span>'+
+    '<span class="hero-mini-value" aria-hidden="true">'+rounded(row.base+row.bonus)+'</span>'+
     '<span class="hero-mini-bonus'+(row.bonus>0?' active':'')+'" aria-hidden="true">'+(row.bonus>0?'+'+rounded(row.bonus):'·')+'</span></div>';
   }).join('')+'</div>';
  }
- return {parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,heroStats,heroStatMarkup};
+ return {mastery,masteryDefense,masteryStep,masteryCap,parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,heroStats,heroStatMarkup};
 })();

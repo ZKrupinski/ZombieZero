@@ -24,7 +24,7 @@
   return '<button data-part="'+p.id+'" aria-pressed="'+(p===activePart)+'">'+icon(p.id)+'<span>'+p.name+'<small>'+status+'</small></span></button>';
  }
  function reelCard(h,data){
-  const xp=data.xp[h]||0;
+  const rank=system.mastery(data.xp[h]);
   const portrait=h===3
    ?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">'
    :'<span class="garage-portrait" style="--row:'+h+'"></span>';
@@ -33,7 +33,7 @@
    '<div class="garage-reel-copy"><span class="garage-reel-count">OWNED</span>'+
    '<h3>'+HEROES[h].name+'</h3>'+
    '<p>'+styles[h]+'</p>'+
-   '<small>숙련 '+xp+' 클리어</small></div></div>';
+   '<small>숙련 Lv.'+rank+' · 수비 +'+rank+'px</small></div></div>';
  }
  let refreshGarageReel=()=>{};
  let receipt=null,receiving=false,receiveTimer;
@@ -42,47 +42,57 @@
    '<span class="rx-portrait rx-sprite" style="--row:'+hero+'" aria-hidden="true"></span>';
  }
  function radioView(data,wallet){
-  const newHero=receipt?.recruited;
-  const hero=receipt?.calls[0];
+  const newHero=receipt?.recruit!=null;
+  const hero=receipt?.recruit??receipt?.calls[0];
   const label=receiving?'응답 수신 중':receipt?(newHero?'신규 생존자 합류':'아군 응답 확인'):'구조 채널 대기';
   const title=receiving?'주파수 동조 중…':receipt?HEROES[hero].name:(data.mechanic?'생존자 통신망':'폐차장 신호 포착');
   const visual=receipt&&!receiving?radioPortrait(hero):icon('radio');
-  const caption=receiving?'호출을 보냈습니다.':receipt?(newHero?'“견인 요청하신 분?”':HEROES[hero].role):
+  const caption=receiving?'호출을 보냈습니다.':receipt?(newHero?'구조 성공! 이제 함께 출전할 수 있습니다.':HEROES[hero].role):
    (data.mechanic?'보유 생존자 4명 · 응답 확률 각 25%':'첫 호출 확정 합류 · 정비사');
-  const screen='<section class="rx-screen '+(receiving?'rx-tuning':receipt?'rx-reveal':'')+'">'+
+  const screen='<section class="rx-screen '+(receiving?'rx-tuning':receipt?(newHero?'rx-reveal rx-new':'rx-reveal'):'')+'">'+
    '<div class="rx-status"><i></i>'+label+'</div><div class="rx-art">'+visual+'</div>'+
    '<h3>'+title+'</h3><p>'+caption+'</p></section>';
   if(receiving)return wallet+screen+btn('reveal','결과 바로 보기');
   if(receipt){
    const counts=HEROES.map((_,i)=>receipt.calls.filter(id=>id===i).length);
-   const rows=counts.map((count,i)=>count?'<li>'+radioPortrait(i)+'<b>'+HEROES[i].name+'</b><span>×'+count+'</span></li>':'').join('');
-   return wallet+screen+'<div class="rx-summary"><b>응답 '+receipt.calls.length+'건</b><span>'+icon('nut')+'제작 너트 +'+receipt.nuts+'</span></div>'+
-    (receipt.calls.length>1?'<ul class="rx-list">'+rows+'</ul>':'')+
-    (newHero?'<p class="rx-guide">'+styles[3]+'</p>':'')+
-    '<div class="rx-actions">'+btn('signal','무전으로')+(newHero?btn('visit','정비사 차고 보기'):'')+'</div>';
+   const rows=counts.map((count,i)=>{
+    if(!count)return '';
+    const gained=receipt.gains[i],xp=data.xp[i]||0;
+    const rank=system.mastery(xp),previous=system.mastery(xp-gained);
+    const reward=gained?'중복 '+gained+'회 · 숙련 +'+gained+' · 너트 +'+gained:'신규 합류';
+    return '<li>'+radioPortrait(i)+'<div><b>'+HEROES[i].name+'</b><small>'+reward+'</small>'+
+     (rank>previous?'<strong>숙련 Lv.'+previous+' → '+rank+' · 수비 +'+(rank-previous)+'px</strong>':'')+'</div></li>';
+   }).join('');
+   return wallet+screen+'<div class="rx-summary"><b>응답 '+receipt.calls.length+'건</b>'+
+    (receipt.nuts?'<span>'+icon('nut')+'제작 너트 +'+receipt.nuts+'</span>':'')+'</div>'+
+    '<ul class="rx-list">'+rows+'</ul>'+
+    (newHero?'<p class="rx-guide">'+styles[hero]+'</p>':'')+
+    '<div class="rx-actions">'+btn('signal','무전으로')+(newHero?btn('visit','차고에서 보기'):'')+'</div>';
   }
   return wallet+screen+'<div class="rx-actions">'+btn('radio','1회 호출 <small>무전권 1장</small>',data.tickets<1)+
    btn('batch','10회 호출 <small>무전권 10장</small>',data.tickets<10)+'</div>'+
-   '<p class="rx-guide">스테이지·웨이브 첫 클리어 시 무전권 1장<br>중복 응답당 너트 1개 · 너트 2개로 장비 제작</p>'+
-   (data.mechanic?'<div class="rx-actions rx-secondary">'+btn('trial','휠캡 시타')+btn('driver',selectedHero===3?'정비사 출전 대기':'정비사 선택',selectedHero===3)+'</div>':'');
+   '<p class="rx-guide">스테이지·웨이브 첫 클리어 시 무전권 1장<br>보유 생존자 응답 시 해당 캐릭터 숙련 +1 · 제작 너트 +1<br>너트 2개로 미보유 장비 1종 제작</p>';
  }
  function revealRadio(){
   clearTimeout(receiveTimer);
   receiving=false;
   if(!panel.open||tab!=='signal')return;
   render();
-  note.textContent=receipt.recruited?'정비사가 합류했습니다!':'응답 수신 완료';
+  note.textContent=receipt.recruit!=null?HEROES[receipt.recruit].name+' 합류를 환영합니다!':'응답 수신 완료';
   body.querySelector('[data-action=signal]')?.focus();
  }
  function callRadio(action){
   if(receipt)return;
-  const before=progress.garage();
+  const before=progress.garage(),owned=availableHeroes();
   if(!progress.garageAction(action,activePart.id,selectedHero)){
    note.textContent='호출을 저장하지 못했습니다. 무전권과 저장 상태를 확인하세요.';return;
   }
   const after=progress.garage();
-  receipt={calls:after.calls.slice(),recruited:!before.mechanic&&after.mechanic,nuts:after.badges-before.badges};
-  if(receipt.recruited){renderHeroes();$('hero-3').click()}
+  const recruit=after.calls.find(id=>!owned.includes(id));
+  receipt={calls:after.calls.slice(),recruit,nuts:after.badges-before.badges,
+   gains:HEROES.map((_,i)=>(after.xp[i]||0)-(before.xp[i]||0))};
+  renderHeroes();
+  if(recruit!=null)$('hero-'+recruit).click();
   window.ZZProgressionSound?.();
   receiving=true;render();
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)revealRadio();
@@ -98,10 +108,16 @@
   if(tab==='parts')garageHero=h;
   const level=data.levels[part.id],owned=level!==undefined;
   const gear=data.loads[h],price=system.prices[level],xp=data.xp[h]||0;
+  const rank=system.mastery(xp);
+  const next=rank===system.masteryCap?'최고 단계':('다음 단계까지 '+(system.masteryStep-xp%system.masteryStep)+'점');
+  const effects=Object.values(gear).map(id=>{
+   const item=system.parts.find(p=>p.id===id);
+   return '<li>'+icon(id)+item.label+' <b>+'+system.value(item,data.levels[id])+item.unit+'</b></li>';
+  }).join('');
   const statPanel='<section class="garage-stat-panel" aria-label="현재 캐릭터 기본 능력치와 강화분">'+
    '<div class="garage-stat-heading"><b>현재 장착 능력치</b><small><i class="stat-legend-base"></i>기본 <i class="stat-legend-boost"></i>강화 증가</small></div>'+
    (system.heroStatMarkup?.(HEROES[h],data,progress,h)||'')+
-   '<p class="garage-stat-footnote">첫타 = 첫 충돌 공격력 · 수비 = 공 반사 판정 폭</p></section>';
+   '<p class="garage-stat-footnote">숙련 '+xp+'점 · '+next+'<br>클리어·중복 응답당 1점 · 5점마다 수비 폭 +1px (최대 +10px)</p>'+(effects?'<ul class="gear-effects">'+effects+'</ul>':'')+'</section>';
   const banner='<section class="garage-driver" aria-label="보유 캐릭터 회전 선택" data-selected-hero="'+h+'" tabindex="0">'+
    '<div class="garage-reel-stage">'+roster.map(i=>reelCard(i,data)).join('')+'</div>'+
    reelArrow(-1)+reelArrow(1)+'</section>';
@@ -119,54 +135,25 @@
   body.innerHTML=banner+wallet+statPanel+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
   refreshGarageReel();
  }
- function trial(){
-  tab='trial';note.textContent='벽을 경유하도록 좌우를 조준하세요.';
-  body.innerHTML='<canvas id="garage-range" width="300" height="230" aria-label="휠캡 시타장"></canvas><label>발사 각도 <input id="garage-aim" type="range" min="-70" max="70" value="63"></label>'+btn('shoot','시타 1 / 3')+btn('signal','무전으로');
-  const canvas=$('garage-range'),ctx=canvas.getContext('2d'),disc=$('hubcap-art');
-  let count=0,ball=null,prev=0,enemy=150;
-  function tick(now){
-   const dt=Math.min(.03,(now-prev)/1000);prev=now;
-   ctx.fillStyle='#152937';ctx.fillRect(0,0,300,230);
-   if(ball){
-    ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;
-    if(ball.x<10||ball.x>290){ball.vx*=-1;ball.x=clamp(ball.x,10,290);ball.bank=true}
-    if(ball.y<=53){
-     const hit=Math.abs(ball.x-enemy)<27;
-     if(hit&&ball.bank)enemy=clamp(enemy+Math.sign(ball.vx)*48,24,276);
-     note.textContent=hit?(ball.bank?'벽 반사 명중! 표적이 옆으로 밀렸습니다.':'직격! 다음에는 옆벽을 노려보세요.'):'빗나갔습니다. 각도를 바꿔보세요.';
-     ball=null;const shoot=body.querySelector('[data-action=shoot]');shoot.disabled=count===3;shoot.textContent=count===3?'시타 완료':'시타 '+(count+1)+' / 3';
-    }
-   }
-   const zombie=window.ZZGreenWalk?.image;
-   ctx.fillStyle='#9ec86a';ctx.fillRect(enemy-19,26,38,25);
-   if(zombie?.naturalWidth)ctx.drawImage(zombie,0,0,128,128,enemy-20,14,40,40);
-   const angle=Number($('garage-aim').value)*Math.PI/180;
-   ctx.strokeStyle='#efc46e';ctx.beginPath();ctx.moveTo(150,205);ctx.lineTo(150+Math.sin(angle)*30,205-Math.cos(angle)*30);ctx.stroke();
-   if(disc.naturalWidth)ctx.drawImage(disc,(ball?.x??150)-9,(ball?.y??205)-9,18,18);
-   frame=requestAnimationFrame(tick);
-  }
-  body.querySelector('[data-action=shoot]').onclick=e=>{
-   const angle=Number($('garage-aim').value)*Math.PI/180;
-   ball={x:150,y:205,vx:Math.sin(angle)*330,vy:-Math.cos(angle)*330,bank:false};count++;e.currentTarget.disabled=true;
-  };
-  frame=requestAnimationFrame(tick);
- }
  function handleAction(e){
   const button=e.target.closest('button');if(!button||button.disabled||button.dataset.step||button.dataset.reelHero!==undefined)return;
   if(button.dataset.part){activePart=system.parts.find(p=>p.id===button.dataset.part);note.textContent='';render();return}
   const action=button.dataset.action;
-  if(action==='shoot')return;
   note.textContent='';
   if(action==='radio'||action==='batch'){callRadio(action);return}
   if(action==='reveal'){revealRadio();return}
-  if(action==='visit'){receipt=null;panel.close();$('garage-open').click();garageHero=3;render();return}
+  if(action==='visit'){const hero=receipt.recruit;receipt=null;panel.close();$('garage-open').click();garageHero=hero;render();return}
   if(action==='signal')receipt=null;
-  if(action==='trial'){trial();return}
   if(action==='parts'||action==='signal')tab=action;
-  else if(action==='driver'){$('hero-3').click();note.textContent='정비사가 출전 대기 중입니다.'}
   else{
+   const oldLevel=progress.garage().levels[activePart.id];
    if(!progress.garageAction(action,activePart.id,tab==='parts'?garageHero:selectedHero)){note.textContent='저장 상태와 보유 재화를 확인하세요.';return}
    note.textContent=({equip:'장착했습니다.',upgrade:'강화 성공!',craft:'제작 완료!'})[action];
+   if(action==='upgrade'){
+    const item=activePart,data=progress.garage();
+    note.textContent=item.name+' 강화! '+item.label+' '+system.value(item,oldLevel)+item.unit+' → '+system.value(item,data.levels[item.id])+item.unit+
+     (data.loads[garageHero][item.slot]===item.id?' · 적용 중':' · 장착 시 적용');
+   }
    window.ZZProgressionSound?.();
   }
   render();
