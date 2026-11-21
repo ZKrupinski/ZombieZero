@@ -70,5 +70,48 @@ window.ZZGarage = (() => {
   impact.echo=!!ball.echo;
   ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;
  }
- return {parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0};
+
+ // V243 — identical, truthful stat readout on both the selection and garage.
+ // Upgrades are read from each owned survivor's actual equipped gear levels.
+ // A "first hit" bonus is NEVER represented as permanent attack damage.
+ function heroStats(hero,data,progression,index){
+  const loads=data?.loads?.[index]||{},levels=data?.levels||{};
+  const gear=id=>{
+   const part=byId[id];
+   return part&&loads[part.slot]===id&&Number.isInteger(levels[id])
+    ?value(part,levels[id]):0;
+  };
+  const extraSweet=(progression?.level?.('sweetSpot')||0)*2;
+  const baseSpeed=Number(hero?.speed)||500;
+  const baseDamage=Number(hero?.damage)||1;
+  const baseLives=Number(hero?.lives)||3;
+  const basePaddle=Number(hero?.paddle)||60;
+  return [
+   {id:'speed',icon:'⚡',name:'속도',base:baseSpeed,bonus:Math.round(baseSpeed*gear('steer')/100),cap:950,unit:''},
+   {id:'first',icon:'✦',name:'첫타',base:baseDamage,bonus:baseDamage*gear('heavy')/100,cap:3.4,unit:'',precision:1},
+   {id:'hp',icon:'♥',name:'체력',base:baseLives,bonus:0,cap:6,unit:''},
+   {id:'guard',icon:'↔',name:'수비',base:basePaddle,bonus:gear('wide')+extraSweet,cap:120,unit:'px'}
+  ];
+ }
+ function heroStatMarkup(hero,data,progression,index){
+  const rows=heroStats(hero,data,progression,index),segments=12;
+  return '<div class="hero-mini-stats" aria-label="기본 능력치와 장비 강화분">'+rows.map(row=>{
+   const rounded=n=>row.precision?n.toFixed(row.precision):String(Math.round(n));
+   const baseSegments=Math.min(segments,Math.round(row.base/row.cap*segments));
+   const bonusSegments=row.bonus>0?Math.max(1,Math.ceil(row.bonus/row.cap*segments)):0;
+   const maxBonus=Math.min(segments-baseSegments,bonusSegments);
+   const desc=row.name+' 기본 '+rounded(row.base)+(row.bonus>0?' 강화 +'+rounded(row.bonus):'');
+   const blocks=Array.from({length:segments},(_,n)=>{
+    const kind=n<baseSegments?'base':n<baseSegments+maxBonus?'boost':'empty';
+    return '<i class="hero-stat-cell '+kind+'"></i>';
+   }).join('');
+   return '<div class="hero-mini-stat" role="img" aria-label="'+desc+'" title="'+desc+'">'+
+    '<span class="hero-mini-icon" aria-hidden="true">'+row.icon+'</span>'+
+    '<span class="hero-mini-label" aria-hidden="true">'+row.name+'</span>'+
+    '<span class="hero-mini-track" aria-hidden="true">'+blocks+'</span>'+
+    '<span class="hero-mini-value" aria-hidden="true">'+rounded(row.base)+'</span>'+
+    '<span class="hero-mini-bonus'+(row.bonus>0?' active':'')+'" aria-hidden="true">'+(row.bonus>0?'+'+rounded(row.bonus):'·')+'</span></div>';
+  }).join('')+'</div>';
+ }
+ return {parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,heroStats,heroStatMarkup};
 })();
