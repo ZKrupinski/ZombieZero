@@ -176,7 +176,7 @@
    }
   }
   const items=()=>Array.from(surface()?.querySelectorAll?.(
-   fiveReel&&$('overlay')?.dataset.screen==='selection'?'.hero-reel-proxy':
+   fiveReel&&$('overlay')?.dataset?.screen==='selection'?'.hero-reel-proxy':
    fiveReel?'.hero-card:not(.hero-reel-proxy)':'[data-reel-hero],.hero-card'
   )||[]);
   function itemHero(item){
@@ -185,7 +185,7 @@
   function paint(progress=0){
    const heroes=roster(),count=heroes.length,origin=indexOf(current()),step=stride();
    if(!count)return;
-   if(fiveReel&&$('overlay')?.dataset.screen==='selection'){
+   if(fiveReel&&$('overlay')?.dataset?.screen==='selection'){
     ensureFiveReel();
     const width=surface()?.clientWidth||320;
     for(const node of proxies){
