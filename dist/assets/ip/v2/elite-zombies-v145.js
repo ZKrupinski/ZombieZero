@@ -97,6 +97,57 @@ function isolateBottleAtlas(img){
  return output;
 }
 
+/* V253: original 50L white regulation-bag atlas ONLY. Preserve every
+   approved pose, shading pixel and 8x7 frame position. Remove its pale
+   translucent matte/halo at the outer alpha boundary, not its white body.
+   Keep all fully opaque interior RGB pixels unchanged. Work cell by cell to
+   prevent unrelated frames bleeding into one another. */
+function trimVolumeBagFrame(imageData){
+ const w=imageData.width,h=imageData.height,p=imageData.data,n=w*h;
+ const src=new Uint8Array(n),strong=new Uint8Array(n);
+ for(let i=0;i<n;i++){
+  const a=p[i*4+3];src[i]=a;strong[i]=a>=216?1:0;
+ }
+ // A pixel belongs to the real sprite edge if an opaque interior pixel
+ // is within 2px. Remote translucent mist must not survive.
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  const i=y*w+x,a=src[i];if(!a||a>=216)continue;
+  let distance=4;
+  for(let dy=-2;dy<=2;dy++){
+   const yy=y+dy;if(yy<0||yy>=h)continue;
+   for(let dx=-2;dx<=2;dx++){
+    const xx=x+dx;if(xx<0||xx>=w)continue;
+    if(strong[yy*w+xx])distance=Math.min(distance,Math.max(Math.abs(dx),Math.abs(dy)));
+   }
+  }
+  const k=i*4;
+  if(distance>2){p[k+3]=0;continue}
+  // Remove white fringe and alpha-matte without touching opaque artwork.
+  // 1px contour gets crisp antialiasing; 2px mist is removed outright.
+  if(distance===2){p[k+3]=0;continue}
+  p[k+3]=a<90?0:a<160?Math.round((a-90)*1.7):a<216?Math.min(255,Math.round((a-90)*1.7)):a;
+ }
+}
+function isolateVolumeBagAtlas(img){
+ if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
+ const w=img.naturalWidth/ATLAS_COLS,h=img.naturalHeight/ATLAS_ROWS;
+ if(!Number.isInteger(w)||!Number.isInteger(h))return null;
+ const output=document.createElement('canvas'),tile=document.createElement('canvas');
+ output.width=img.naturalWidth;output.height=img.naturalHeight;
+ tile.width=w;tile.height=h;
+ const dest=output.getContext('2d'),ctx=tile.getContext('2d',{willReadFrequently:true});
+ if(!dest||!ctx||!ctx.getImageData||!ctx.putImageData)return null;
+ for(let row=0;row<ATLAS_ROWS;row++)for(let col=0;col<ATLAS_COLS;col++){
+  ctx.clearRect(0,0,w,h);
+  ctx.drawImage(img,col*w,row*h,w,h,0,0,w,h);
+  const pixels=ctx.getImageData(0,0,w,h);
+  trimVolumeBagFrame(pixels);
+  ctx.putImageData(pixels,0,0);
+  dest.drawImage(tile,col*w,row*h);
+ }
+ return output;
+}
+
 function request(kind){
  const s=cache[kind];
  if(!s||s.loading||s.ready||s.failed)return;
@@ -107,7 +158,7 @@ function request(kind){
      img.naturalHeight>=896 &&
      Math.abs(img.naturalWidth/img.naturalHeight-ATLAS_COLS/ATLAS_ROWS)<.025;
    if(!valid){s.failed=true;s.loading=false;return}
-   const success=()=>{if(kind===2){try{s.cleanImage=isolateBottleAtlas(img)}catch(error){console.warn('Water-bottle atlas isolation unavailable:',error)}}s.ready=true;s.loading=false};
+   const success=()=>{if(kind===2){try{s.cleanImage=isolateBottleAtlas(img)}catch(error){console.warn('Water-bottle atlas isolation unavailable:',error)}}if(kind===1){try{s.cleanImage=isolateVolumeBagAtlas(img)}catch(error){console.warn('50L bag alpha cleanup unavailable:',error)}}s.ready=true;s.loading=false};
    if(typeof img.decode==='function')img.decode().then(success,success);
    else success();
  };
