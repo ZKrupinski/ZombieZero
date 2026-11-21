@@ -6,6 +6,18 @@
  const styles=['라켓 끝으로 받으면 코너를 깊게 노립니다.','배트 중심에 맞히면 적 무리를 강하게 밀어냅니다.','두 번째 리턴마다 첫 충돌이 주변 적에게 한 번 더 튑니다.','벽을 맞힌 휠캡이 첫 적을 옆으로 밀어냅니다.'];
  let activePart=system.parts[0],tab='parts',frame=0;
  const btn=(action,label,disabled=false)=>'<button type="button" data-action="'+action+'" '+(disabled?'disabled':'')+'>'+label+'</button>';
+ const artIndex={grip:0,wide:1,cushion:2,heavy:3,steer:4,filter:5,nut:6,ticket:7,radio:8};
+ function icon(id){
+  if(id==='coin')return '<img class="garage-icon" src="assets/ui/chip-v203.webp" alt="">';
+  const n=artIndex[id];
+  return '<span aria-hidden="true" class="garage-icon" style="background-position:'+((n%3)*50)+'% '+(Math.floor(n/3)*50)+'%"></span>';
+ }
+ function currency(id,name,amount){return '<span>'+icon(id)+name+' <b>'+amount+'</b></span>'}
+ function card(p,data,gear){
+  const level=data.levels[p.id],equipped=gear[p.slot]===p.id;
+  const status=level===undefined?'미보유':(equipped?'장착 중 ':'보유 ')+'+'+level;
+  return '<button data-part="'+p.id+'" aria-pressed="'+(p===activePart)+'">'+icon(p.id)+'<span>'+p.name+'<small>'+status+'</small></span></button>';
+ }
  function render(){
   cancelAnimationFrame(frame);
   const data=progress.garage(),h=selectedHero,part=activePart;
@@ -14,15 +26,19 @@
   const portrait=h===3?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">':'<span class="garage-portrait" style="--row:'+h+'"></span>';
   const banner='<section class="garage-driver">'+portrait+'<div><h3>'+HEROES[h].name+'</h3><p>'+styles[h]+'</p><small>숙련 '+xp+' / '+(xp>=10?'도색 해금': '10 웨이브')+'</small></div></section>';
   const nav='<nav>'+btn('parts','장비 정비',tab==='parts')+btn('signal','구조 무전',tab==='signal')+'</nav>';
+  const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','제작 너트',data.badges)+'</div>';
   if(tab==='signal'){
-   body.innerHTML=banner+nav+'<section class="radio-box"><div class="radio-dial"></div><h3>'+ (data.mechanic?'정비사 합류 완료':'폐차장 신호 포착')+'</h3><p>'+(data.mechanic?'합류한 생존자 4명이 각각 25% 확률로 응답합니다. 중복 응답은 배지 1개가 됩니다. 배지 2개로 미보유 장비를 제작할 수 있습니다.':'첫 스테이지 또는 첫 웨이브를 클리어하면 무전권을 받습니다. 첫 호출로 정비사가 합류합니다.')+'</p><strong>무전권 '+data.tickets+'　·　구조 배지 '+data.badges+'</strong><div>'+btn('radio','1회 호출',data.tickets<1)+btn('batch','10회 호출',data.tickets<10)+'</div></section>'+(data.mechanic?btn('trial','휠캡 3회 시타')+btn('driver','정비사 선택',h===3):'');
+   const message=data.mechanic?'합류한 생존자 4명이 각각 25% 확률로 응답합니다.':'스테이지나 웨이브를 처음 클리어하면 무전권을 받습니다. 첫 호출로 정비사가 합류합니다.';
+   body.innerHTML=banner+nav+wallet+'<section class="radio-box">'+icon('radio')+'<h3>'+(data.mechanic?'정비사 합류 완료':'폐차장 신호 포착')+'</h3><p>'+message+'</p><p>중복 응답 1회당 제작 너트 1개 · 너트 2개로 미보유 장비 1종 제작</p><div>'+btn('radio','1회 호출',data.tickets<1)+btn('batch','10회 호출',data.tickets<10)+'</div></section>'+(data.mechanic?btn('trial','휠캡 3회 시타')+btn('driver','정비사 선택',h===3):'');
    return;
   }
-  const list=slots.map((slot,i)=>'<section class="garage-slot"><small>'+slot+'</small><div>'+system.parts.filter(p=>p.slot===i).map(p=>'<button data-part="'+p.id+'" aria-pressed="'+(p===part)+'">'+p.name+'<small>'+(data.levels[p.id]===undefined?'미보유':(gear[i]===p.id?'장착 · ':'')+'+'+data.levels[p.id])+'</small></button>').join('')+'</div></section>').join('');
+  const list=slots.map((slot,i)=>'<section class="garage-slot"><small>'+slot+'</small><div>'+system.parts.filter(p=>p.slot===i).map(p=>card(p,data,gear)).join('')+'</div></section>').join('');
   const val=n=>system.value(part,n)+part.unit;
-  const detail='<section class="garage-detail"><strong>'+part.name+'</strong><p>'+part.label+' '+val(level||0)+(owned&&level<5?' → '+val(level+1):'')+'</p>'+
-   (owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?'강화 · '+price+' Z':'최대 강화',price===undefined||price>progress.chips()):'<p>'+ (part.id==='cushion'?1:system.parts.indexOf(part)+1)+'번째 스테이지 또는 웨이브 첫 클리어로 획득</p>'+btn('craft','제작 · 배지 2',data.badges<2))+'</section>';
-  body.innerHTML=banner+nav+'<div class="garage-wallet">Z코인 '+progress.chips()+'　·　배지 '+data.badges+'</div>'+list+detail;
+  const effect=part.label+' '+val(level||0)+(owned&&level<5?' → '+val(level+1):'');
+  const stage=part.id==='cushion'?1:system.parts.indexOf(part)+1;
+  const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
+  const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
+  body.innerHTML=banner+nav+wallet+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
  }
  function trial(){
   tab='trial';note.textContent='벽을 경유하도록 좌우를 조준하세요.';
@@ -71,8 +87,8 @@
    if(action==='radio'&&!wasOwned){
     renderHeroes();$('hero-3').click();note.textContent='“견인 요청하신 분?” 정비사가 합류했습니다!';
     panel.animate?.([{opacity:.5},{opacity:1}],{duration:360});
-   }else note.textContent=({equip:'장착했습니다.',upgrade:'강화 성공!',craft:'제작 완료!',radio:'구조 배지 +1',batch:'구조 배지 +10'})[action];
-   if(['radio','batch'].includes(action)&&wasOwned)note.textContent=progress.garage().calls.map(i=>HEROES[i].name).join(' · ')+' 응답! 배지 +'+progress.garage().calls.length;
+   }else note.textContent=({equip:'장착했습니다.',upgrade:'강화 성공!',craft:'제작 완료!',radio:'제작 너트 +1',batch:'제작 너트 +10'})[action];
+   if(['radio','batch'].includes(action)&&wasOwned)note.textContent=progress.garage().calls.map(i=>HEROES[i].name).join(' · ')+' 응답! 제작 너트 +'+progress.garage().calls.length;
    window.ZZProgressionSound?.();
   }
   render();

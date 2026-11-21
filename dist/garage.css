@@ -21,3 +21,20 @@
 .garage-detail button,.radio-box button,#garage-body>button{margin:5px 5px 0 0}
 .radio-dial{height:20px;margin:5px 0 12px;background:linear-gradient(90deg,transparent 67%,#f6b657 67% 68%,transparent 68%),repeating-linear-gradient(90deg,#93b8a2 0 1px,transparent 1px 8px);border-bottom:2px solid #7b968d}
 #garage-note{color:#d3eaaa}#garage-range{display:block;width:100%;margin:12px 0}#garage-aim{width:70%;vertical-align:middle}
+#garage-dialog{width:min(96vw,470px);padding:clamp(9px,2vh,16px);max-height:96dvh}
+.garage-icon{display:inline-block;flex:none;width:44px;height:44px;vertical-align:middle;object-fit:contain;background-image:url(assets/ui/garage-items.webp);background-size:300% 300%;background-repeat:no-repeat}
+img.garage-icon{background:none}
+#garage-dialog .garage-driver{min-height:60px}
+#garage-dialog .garage-wallet{display:flex;justify-content:flex-end;gap:14px;padding:6px 0 0;font-size:13px}
+.garage-wallet>span{display:inline-flex;align-items:center;gap:4px}.garage-wallet .garage-icon{width:26px;height:26px}
+#garage-dialog .nut-guide{margin:0 0 4px;color:#c8d6d1;text-align:right;font-size:12px}
+.garage-slot{margin:0 0 2px}.garage-slot>small{font-size:11px;letter-spacing:.05em}
+#garage-dialog .garage-slot button{display:flex;align-items:center;text-align:left;gap:5px;min-width:0;padding:3px 5px;background:linear-gradient(135deg,#304956,#1d333c);color:#f3f1e7}
+#garage-dialog .garage-slot button[aria-pressed=true]{border-color:#ffcf71;background:linear-gradient(130deg,#615036,#393f38);box-shadow:inset 3px 0 #e9b354}
+.garage-slot button small{font-size:11px;color:#c9d6d0}
+#garage-dialog .garage-detail{margin:7px 0 0;padding:7px 10px;background:linear-gradient(120deg,#314b4d,#1e353d);border-top:2px solid #b5a063}
+.part-inspect,.part-actions{display:flex;align-items:center;gap:8px}
+.part-inspect>.garage-icon{width:58px;height:58px}.part-actions{justify-content:flex-end;flex-wrap:wrap}.part-actions>small{flex:1;min-width:95px}
+#garage-dialog .part-actions button{margin:0;display:inline-flex;align-items:center;gap:4px}.part-actions .garage-icon{width:25px;height:25px}
+.radio-box>.garage-icon{float:right;width:65px;height:65px}.radio-box>div{clear:both}
+@media(max-height:650px){#garage-dialog .garage-portrait,#garage-dialog .tow-preview{height:60px;width:60px;flex-basis:60px}.garage-portrait{background-size:480px 180px;background-position-y:calc(var(--row)*-60px)}#garage-dialog .garage-slot .garage-icon{width:36px;height:36px}#garage-dialog .part-inspect>.garage-icon{width:42px;height:42px}}
