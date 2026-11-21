@@ -408,3 +408,250 @@ html.landscape-game #overlay[data-screen="selection"]{
 #overlay[data-screen="selection"] #heroes .hero-options .hero-card[data-reel-focus="true"]{
  background:linear-gradient(160deg,#405364 0%,#263b4b 56%,#142635 100%)!important;
 }
+
+
+/* v243: the approved 9:16 arcade selection hierarchy:
+   top eyebrow + reduced slogan, larger original logo, shorter 3D reel,
+   compact segmented equipment stats, taller icon dock. */
+#overlay[data-screen="selection"]{
+ justify-content:flex-start!important;
+}
+#overlay[data-screen="selection"]>.label{
+ order:-5!important;
+ margin:0 auto 2px!important;
+ font-size:clamp(8px,calc(10px * var(--ui-scale,1)),11px)!important;
+ color:#eff1cd!important;
+}
+#overlay[data-screen="selection"]>#title{
+ order:-4!important;
+ font-size:clamp(15px,calc(19px * var(--ui-scale,1)),22px)!important;
+ line-height:1.08!important;
+ margin:0 auto 5px!important;
+}
+#overlay[data-screen="selection"]>.overlay-logo{
+ order:-3!important;
+ display:block!important;
+ width:min(82%,calc(255px * var(--ui-scale,1)))!important;
+ max-width:none!important;
+ max-height:min(23svh,calc(158px * var(--ui-scale,1)))!important;
+ object-fit:contain!important;
+ margin:0 auto 7px!important;
+ flex:0 1 auto!important;
+}
+html.portrait-play #overlay[data-screen="selection"] #heroes,
+html.landscape-game #overlay[data-screen="selection"] #heroes,
+#overlay[data-screen="selection"] #heroes{
+ order:-2!important;
+ display:block!important;
+ flex:0 0 30%!important;
+ box-sizing:border-box!important;
+ width:100%!important;
+ height:30%!important;max-height:30%!important;
+ min-height:0!important;
+ margin:0 auto 6px!important;
+ overflow:hidden!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options{
+ box-sizing:border-box!important;
+ display:block!important;
+ width:100%!important;
+ height:100%!important;min-height:0!important;max-height:none!important;
+ flex:none!important;overflow:hidden!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card:not([hidden]){
+ height:calc(100% - 10px)!important;
+ padding:5px 7px 7px!important;
+ gap:1px!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card .hero-vehicle-portrait{
+ width:min(calc(100% - 6px),calc(100cqh - 90px),calc(240px * var(--ui-scale,1)))!important;
+ margin:auto auto 0!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-card>b{
+ font-size:clamp(15px,calc(19px * var(--ui-scale,1)),22px)!important;
+ margin:0!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-card>small{
+ font-size:clamp(8px,calc(10px * var(--ui-scale,1)),11px)!important;
+ margin:0 0 1px!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-stats{
+ padding:4px 5px!important;
+ gap:2px!important;
+ margin:0!important;
+ background:#0d2334df!important;
+ border-color:#476578bb!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-stat{
+ display:grid!important;
+ grid-template-columns:15px 27px minmax(0,1fr) 23px 26px!important;
+ align-items:center!important;
+ height:clamp(10px,1.6dvh,14px)!important;
+ gap:2px!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-label{
+ font-size:clamp(8px,calc(9px * var(--ui-scale,1)),10px)!important;
+}
+#overlay[data-screen="selection"] #hero-stats{display:none!important}
+#overlay[data-screen="selection"] #hint{display:none!important}
+#overlay[data-screen="selection"] #main-dock{
+ box-sizing:border-box!important;
+ width:100%!important;max-width:none!important;
+ height:calc(77px * var(--ui-scale,1))!important;
+ min-height:64px!important;max-height:19svh!important;
+ margin:4px auto 0!important;
+ gap:5px!important;
+ flex:none!important;
+}
+#overlay[data-screen="selection"] #main-dock button{
+ height:100%!important;
+ min-height:0!important;
+ padding:4px 2px 6px!important;
+ gap:3px!important;
+ font-size:clamp(10px,calc(12px * var(--ui-scale,1)),13px)!important;
+}
+#overlay[data-screen="selection"] #main-dock button::before{
+ content:"";
+ width:min(73%,calc(62px * var(--ui-scale,1)))!important;
+ max-height:calc(62px * var(--ui-scale,1));
+ flex:none!important;
+ aspect-ratio:1!important;
+ background-size:300% 100%!important;
+ background-repeat:no-repeat!important;
+}
+#overlay[data-screen="selection"]>#start,
+#overlay[data-screen="selection"]>#endless{
+ flex:none!important;
+ margin:4px auto 2px!important;
+}
+#overlay[data-screen="selection"]>.selection-copyright{
+ bottom:calc(5px * var(--ui-scale,1))!important;
+}
+
+/* Shared, truthful 12-cell gauges. Teal = actual base value, gold = acquired
+   and equipped upgrades; empty cells remain visible to motivate progression. */
+#overlay[data-screen="selection"] .hero-mini-stats,
+#garage-dialog .hero-mini-stats{
+ width:100%;min-width:0;
+}
+#overlay[data-screen="selection"] .hero-mini-track,
+#garage-dialog .hero-mini-track{
+ display:grid!important;
+ grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ align-items:stretch!important;
+ gap:2px!important;
+ box-sizing:border-box!important;
+ min-width:0!important;
+ width:100%!important;
+ height:8px!important;
+ overflow:visible!important;
+ padding:0!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+}
+#overlay[data-screen="selection"] .hero-mini-track>.hero-stat-cell,
+#garage-dialog .hero-mini-track>.hero-stat-cell{
+ display:block!important;
+ box-sizing:border-box!important;
+ min-width:0!important;
+ height:8px!important;
+ margin:0!important;
+ border-radius:2px!important;
+ border:1px solid #4d6675!important;
+ background:#132b37!important;
+ box-shadow:inset 0 1px #4c6d7422!important;
+}
+#overlay[data-screen="selection"] .hero-mini-track>.hero-stat-cell.base,
+#garage-dialog .hero-mini-track>.hero-stat-cell.base{
+ background:linear-gradient(180deg,#a2d9db,#4e9aab)!important;
+ border-color:#7bc1c7!important;
+}
+#overlay[data-screen="selection"] .hero-mini-track>.hero-stat-cell.boost,
+#garage-dialog .hero-mini-track>.hero-stat-cell.boost{
+ background:linear-gradient(180deg,#ffe7a0,#e1a54c)!important;
+ border-color:#ffdf83!important;
+ box-shadow:0 0 3px #fce08a77!important;
+}
+#overlay[data-screen="selection"] .hero-mini-value,
+#garage-dialog .hero-mini-value{
+ font:800 10px/1 Arial,sans-serif;
+ color:#e7f3ed;white-space:nowrap;text-align:right;
+}
+#overlay[data-screen="selection"] .hero-mini-bonus,
+#garage-dialog .hero-mini-bonus{
+ display:block;min-width:0;
+ text-align:right;white-space:nowrap;
+ font:800 9px/1 Arial,sans-serif;color:#668b94;
+}
+#overlay[data-screen="selection"] .hero-mini-bonus.active,
+#garage-dialog .hero-mini-bonus.active{color:#ffe29b!important}
+#overlay[data-screen="selection"] .hero-mini-stat .hero-mini-icon{
+ width:13px!important;height:13px!important;
+ font-size:10px!important;line-height:1!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card[data-reel-focus="false"] .hero-mini-stats{
+ opacity:.45;
+}
+
+/* Garage: always show equipped base + bonus for the chosen survivor.
+   The card reel, part cards, prices and camera remain unchanged. */
+#garage-dialog .garage-stat-panel{
+ display:block;box-sizing:border-box;
+ width:100%;margin:4px 0 5px;
+ padding:6px 9px 5px;
+ border:1px solid #658992;
+ border-radius:5px;
+ background:linear-gradient(130deg,#1a343e,#152a36);
+}
+#garage-dialog .garage-stat-heading{
+ display:flex;justify-content:space-between;align-items:center;
+ gap:5px;margin-bottom:4px;
+ color:#f4e6b4;font:800 11px/1.1 Arial,sans-serif;
+}
+#garage-dialog .garage-stat-heading small{
+ display:flex;align-items:center;gap:3px;
+ font:700 9px/1 Arial,sans-serif;color:#c5d1cb;
+ white-space:nowrap;
+}
+#garage-dialog .stat-legend-base,
+#garage-dialog .stat-legend-boost{
+ display:inline-block;width:8px;height:8px;
+ border:1px solid #9bc5cb;border-radius:2px;background:#63aeb9;
+}
+#garage-dialog .stat-legend-boost{background:#edb963;border-color:#f5d88b;margin-left:5px}
+#garage-dialog .hero-mini-stats{display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:5px}
+#garage-dialog .hero-mini-stat{
+ display:grid;align-items:center;
+ grid-template-columns:13px 26px minmax(0,1fr) 22px 25px;
+ gap:2px;min-height:14px;min-width:0;
+}
+#garage-dialog .hero-mini-icon{
+ display:grid;place-items:center;width:12px;height:12px;
+ font:normal 10px/1 Arial,sans-serif;color:#e5cc86;
+}
+#garage-dialog .hero-mini-label{font:700 9px/1 Arial,sans-serif;color:#dce8d7}
+#garage-dialog .hero-mini-track{gap:1px!important;height:7px!important}
+#garage-dialog .hero-mini-track>.hero-stat-cell{height:7px!important}
+#garage-dialog .hero-mini-value{font-size:9px}
+#garage-dialog .hero-mini-bonus{font-size:8px}
+#garage-dialog .garage-stat-footnote{
+ margin:5px 0 0!important;
+ font:600 9px/1.2 Arial,'Noto Sans KR',sans-serif!important;
+ color:#b6cfd0!important;
+}
+@media(max-width:365px){
+ #garage-dialog .hero-mini-stats{grid-template-columns:1fr;row-gap:2px}
+ #garage-dialog .garage-stat-panel{padding:5px}
+}
+@media(max-height:590px){
+ #overlay[data-screen="selection"]>.overlay-logo{
+  width:min(76%,calc(225px * var(--ui-scale,1)))!important;
+  max-height:19svh!important;margin-bottom:3px!important;
+ }
+ #overlay[data-screen="selection"] #heroes{height:29%!important;max-height:29%!important;flex-basis:29%!important}
+ #overlay[data-screen="selection"] #main-dock{height:calc(64px * var(--ui-scale,1))!important}
+ #overlay[data-screen="selection"] #heroes .hero-vehicle-portrait{
+  width:min(calc(100% - 6px),calc(100cqh - 88px))!important;
+ }
+}
