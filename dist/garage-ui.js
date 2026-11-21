@@ -132,7 +132,7 @@
   const surface=()=>root.querySelector(selector);
   const roster=()=>availableHeroes();
   const reduce=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const stride=()=>Math.max(90,Math.min(190,(surface()?.clientWidth||320)*.47));
+  const stride=()=>fiveReel?Math.max(75,Math.min(215,(surface()?.clientWidth||320)*.265)):Math.max(90,Math.min(190,(surface()?.clientWidth||320)*.47));
   const indexOf=(id)=>roster().indexOf(id);
   const fiveReel=selector==='.hero-options';
   // Five visible positions, plus one offscreen handoff on either side.
