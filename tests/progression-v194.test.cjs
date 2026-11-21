@@ -72,8 +72,8 @@ assert.equal(api.grant('wave',1,10),false,'endless intermission never duplicates
 assert.equal(api.chips(),30);
 for(const text of [
  "window.ZZProgression?.startRun?.(selectedMode)",
- "window.ZZProgression?.grant?.('wave',wave,10)",
- "window.ZZProgression?.grant?.('wave',wave-50,10)",
+ "window.ZZProgression?.grant?.('wave',wave,10,selectedHero)",
+ "window.ZZProgression?.grant?.('wave',wave-50,10,selectedHero)",
  "window.ZZProgression?.grant?.('boss',wave,25)",
  "growth('citizenArmor')","growth('citizenCrit')","growth('citizenPower')",
  "growth('bazookaPower')","growth('bazookaReload')",

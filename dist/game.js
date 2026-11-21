@@ -27,6 +27,9 @@ const HEROES=[
 {id:'ace',name:'에이스',role:'안정형',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:500,paddle:68,damage:1,lives:3,duration:1,desc:'넓은 라켓 · 목숨 3',stats:'이동 500 · 공격 1 · 라켓 136'},
 {id:'ruby',name:'루비',role:'기동형',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:660,paddle:51,damage:1,lives:3,duration:1.25,desc:'배트 · 이동 +32% · 스킬 +25%',stats:'이동 660 · 공격 1 · 반사 폭 102'},
 {id:'liam',name:'리아',role:'공격형',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:390,paddle:55,damage:2,lives:2,duration:1,desc:'해머 · 공격력 ×2 · 목숨 2',stats:'이동 390 · 공격 2 · 반사 폭 110'}];
+if(window.ZZGarage)HEROES.push({id:'mechanic',name:'정비사',role:'벽 반사형',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:60,damage:1,lives:3,duration:1,desc:'휠캡 · 측면 밀치기',stats:'벽을 맞힌 휠캡이 첫 적을 옆으로 밀칩니다.'});
+const gearBonus=id=>window.ZZGarage?.bonus(id)||0;
+let filterReady=0;
 let touchUsed=false,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0,lastCameraFeedback=0,bubbles=[],bubbleTimer=.25;
 const HERO_ATTACK_DURATION=.42;let heroAttackTime=0;
 let selectedHero=0,clearTime=0,clearBurst=0,resumeMode='playing',crowdTimer=3.5,junk=[],cheerTime=0;
@@ -48,6 +51,7 @@ const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25,y:-30}];
 const heldBallOffset=()=>HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
 // Impact pose is cosmetic only; physics uses the unchanged 8/16px ball radius.
 function ballImpact(b,axis,dir=1,kind='wall'){
+ if(b&&kind==='wall')b.bank=true;
  if(!b||b.held)return;
  const normalSpeed=Math.abs(axis==='x'?b.vx:b.vy);
  const duration=kind==='paddle'?.19:kind==='enemy'?.17:
@@ -1542,7 +1546,7 @@ let endlessShiftTime=0,endlessShiftSpawned=false,endlessBackgroundWait=0;
 function beginEndlessShift(){
  if(runMode!=='endless'||mode!=='playing')return;
  resetCitizenSpeech();
- window.ZZProgression?.grant?.('wave',wave-50,10);
+ window.ZZProgression?.grant?.('wave',wave-50,10,selectedHero);
  mode='endlessShift';endlessShiftTime=0;endlessShiftSpawned=false;
  endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));requestBossForWave(wave+1);
  releaseInput();
@@ -1554,7 +1558,7 @@ function beginEndlessShift(){
 }
 function beginClear(){
  if(runMode==='endless'){beginEndlessShift();return}
- if(mode!=='playing')return;resetCitizenSpeech();window.ZZProgression?.grant?.('wave',wave,10);mode='clearing';clearTime=0;clearBurst=0;items=[];
+ if(mode!=='playing')return;resetCitizenSpeech();window.ZZProgression?.grant?.('wave',wave,10,selectedHero);mode='clearing';clearTime=0;clearBurst=0;items=[];
  // Begin downloading only the next campaign background at STAGE CLEAR.
  // The 2.8s result celebration is the loading/decoding window.
  if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1);requestBossForWave(wave+1)}
@@ -1606,7 +1610,7 @@ function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 let menuRunChipsAtStart=0;
-function start(selectedMode='campaign'){menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
@@ -1632,7 +1636,7 @@ function backToSelection(){
  $('overlay').setAttribute('data-screen','selection');
  $('label').textContent='NOVALIGHT ARCADE 001 / ZOMBIE SURVIVAL';
  $('title').textContent='From HERO to ZERO';
- $('message').textContent='3명의 주인공 중 한 명을 선택하세요.';
+ $('message').textContent='출전할 생존자를 선택하세요.';
  $('results').hidden=true;$('heroes').hidden=false;
  renderHeroes();endlessUI();$('overlay').hidden=false;
 }
@@ -1962,7 +1966,7 @@ function applyKnockback(z,impact,n=1){
  if(mag<.01)return false;
  // Contact transfers displacement to successive zombies. Attempt shorter
  // shoves when tightly packed ranks, bosses or road edges block the impulse.
- const distance=Math.min(50,36+Math.min(n,5)*3);
+ const distance=Math.min(50,36+Math.min(n,5)*3)*(impact.push||1);
  const dirX=vx/mag,dirY=vy/mag;
  for(const factor of [1,.85,.7,.55,.4,.25,.12]){
   const plans=new Map();
@@ -2089,7 +2093,9 @@ function hit(z,impact=null,piercing=false){
  const critical=!piercing&&criticalEligible(z)&&Math.random()<(z.form===0&&!Number.isInteger(z.eliteKind)?CRITICAL_GREEN_CHANCE:CRITICAL_SPECIAL_CHANCE);
  // Piercing deals two times the normal damage to ALL enemies, including
  // bosses, but never turns a full-health boss into a one-hit kill.
- damage(z,hero().damage*(has('power')?2:1)*(piercing?2:1),false,impact,critical,piercing);
+ const echo=impact?.echo?fireTargetsNear(z,84).find(other=>other!==z):null;
+ damage(z,hero().damage*(has('power')?2:1)*(piercing?2:1)*(impact?.power||1),false,impact,critical,piercing);
+ if(echo){spawnContact({vx:0,vy:-1},echo.x+echo.w/2,echo.y+echo.h/2,0,1,'enemy');damage(echo,1,false,{x:0,y:-1})}
  if(has('fire')){
   const targets=foes.includes(z)?[z,...fireTargetsNear(z,82)]:foes.filter(other=>
    Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82);
@@ -2151,10 +2157,11 @@ updatePoisonStatus(dt);
 const previousCar=car;
 if(groggyTime>0){target=car;}
 else{
- if(keys.ArrowLeft||keys.a)target-=hero().speed*dt;
- if(keys.ArrowRight||keys.d)target+=hero().speed*dt;
+ const driveSpeed=hero().speed*(1+gearBonus('steer')/100);
+ if(keys.ArrowLeft||keys.a)target-=driveSpeed*dt;
+ if(keys.ArrowRight||keys.d)target+=driveSpeed*dt;
  target=clamp(target,72,W-72);
- car+=clamp(target-car,-hero().speed*dt,hero().speed*dt);
+ car+=clamp(target-car,-driveSpeed*dt,driveSpeed*dt);
 }
 for(const k of Object.keys(active)){active[k]-=dt;if(active[k]<=0){delete active[k];if(k==='dual'||k==='triple'){const n=multiCount();for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}/* Preserve contacts through pierce expiry; clear only upon physical separation. */sfx('expire');hud()}}skillUI();
 for(const item of [...items]){item.y+=105*dt;if(item.y>=PY-2&&item.y<=PY+61&&Math.abs(item.x-car)<65+growth('itemMagnet')*4){items.splice(items.indexOf(item),1);activate(item.k,item.x,item.y)}else if(item.y>H+20)items.splice(items.indexOf(item),1)}
@@ -2205,12 +2212,12 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
     // A penetrating ball retains its velocity through unique targets.
    }else if(ox+radius<=z.x||ox-radius>=z.x+z.w){b.vx*=-1;b.x=ox;ballImpact(b,'x',b.vx,'enemy')}
    else{b.vy*=-1;b.y=oy;ballImpact(b,'y',b.vy,'enemy')}
-   b.lastHit=z;b.hitLock=.1;hit(z,impact,piercing);
+   b.lastHit=z;b.hitLock=.1;window.ZZGarage?.contact(b,selectedHero,impact);hit(z,impact,piercing);
    if(mode!=='playing')return;
    break;
   }
  }
-if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
+if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1,'shield');sfx('shield');feedback('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
@@ -2289,6 +2296,16 @@ function background(){
 }
 function player(){
  drawTrashContact("hero");
+ if(selectedHero===3){
+  const sprite=$('mechanic-art');
+  if(sprite?.naturalWidth){
+   const h=100*sprite.naturalHeight/sprite.naturalWidth;
+   g.save();g.translate(car,625+VIEW_DELTA);g.rotate(Math.sin(heroAttackTime/HERO_ATTACK_DURATION*Math.PI)*-.09);
+   if((window.ZZProgression.garage().xp[3]||0)>=10)g.filter='hue-rotate(85deg)';
+   g.drawImage(sprite,-50,-h,100,h);g.restore();
+  }
+  return;
+ }
  const approved=window.ZZHeroAnimationsV55;
  if(approved&&approved.ready&&approved.idle&&approved.attack){
   const attacking=heroAttackTime>0;
@@ -2299,6 +2316,7 @@ function player(){
   const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
+  if((window.ZZGarage && window.ZZProgression?.garage().xp[selectedHero]>=10))g.filter='hue-rotate(35deg)';
   g.drawImage(atlas,n*192,selectedHero*192,192,192,car-w/2,579-h/2,w,h);
   g.restore();
   return;
@@ -3175,7 +3193,7 @@ function drawHeroBallSprite(b,r,col){
  // independently rotate by spinAngle. No angle snap when a ball hits a wall.
  g.translate(b.x,b.y);g.rotate(pose.rotation);g.scale(pose.sx,pose.sy);
  g.rotate(pose.spin-pose.rotation);
- if(ready){
+ if(selectedHero===3 && $('hubcap-art')?.naturalWidth){g.drawImage($('hubcap-art'),-r,-r,r*2,r*2)}else if(ready){
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
   const size=r*3.40;
   g.drawImage(img,0,0,frameW,frameH,-size/2,-size/2,size,size);
@@ -3294,7 +3312,7 @@ function portrait(h){
  // Public hero names: Ace / Ruby / Ria. The Liam sprite ID remains stable.
  return '<span class="hero-portrait hero-vehicle-portrait row-'+i+'" role="img" aria-label="'+h.name+' · 차량과 전용 무기"></span>';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA'][selectedHero]||'HERO')+'!'}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!'}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
@@ -3729,7 +3747,9 @@ function shotTouchesHero(shot,from,to,oldCar=car){
 function blockHostileShot(shot,x,y){
  const shielded=has('shield');
  if(!shielded&&groggyTime<=0){
-  poison=Math.min(POISON_MAX,poison+(shot.type==='spit'?POISON_SPIT:POISON_TRASH)*(1-growth('poisonResist')*.06));
+  const filtered=shot.type==='spit'&&clock>=filterReady?gearBonus('filter'):0;
+  if(filtered)filterReady=clock+8;
+  poison=Math.min(POISON_MAX,poison+(1-filtered/100)*(shot.type==='spit'?POISON_SPIT:POISON_TRASH)*(1-growth('poisonResist')*.06));
   poisonGrace=2.35-growth('recover')*.22;poisonFlash=.26;
   if(poison>=POISON_MAX){
    poison=POISON_MAX;groggyTime=POISON_GROGGY_SECONDS-growth('mental')*.1;target=car;
@@ -4077,7 +4097,7 @@ function inputDown(e){if(mode!=='playing'||blocksInput(e)||inputPointer!==null||
 function inputMove(e){if(mode!=='playing')return;if(inputPointer===e.pointerId){const r=c.getBoundingClientRect(),width=r.width||W;target=clamp(target+(e.clientX-inputX)*W/width,72,W-72);inputX=e.clientX;e.preventDefault?.()}else if(inputPointer===null&&e.pointerType==='mouse'&&e.target===c){const r=c.getBoundingClientRect();target=clamp((e.clientX-r.left)/(r.width||W)*W,72,W-72)}}
 function inputEnd(e){if(e.pointerId===inputPointer)releaseInput()}
 document.addEventListener('pointerdown',inputDown,{passive:false});document.addEventListener('pointermove',inputMove,{passive:false});document.addEventListener('pointerup',inputEnd);document.addEventListener('pointercancel',inputEnd);c.addEventListener('lostpointercapture',inputEnd);
-window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys[e.key]=true;if(e.code==='Space'){if(mode==='menu'||mode==='over')start(mode==='over'?runMode:'campaign');else if(mode==='paused')pause();else serve()}if(e.code==='Escape')pause()});window.addEventListener('keyup',e=>keys[e.key]=false);window.addEventListener('blur',()=>{keys={};if(mode==='playing'||mode==='clearing'||mode==='endlessShift')pause()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&(mode==='playing'||mode==='endlessShift'))pause()});$('start').onclick=()=>mode==='paused'?pause():start(mode==='over'?runMode:'campaign');$('pause-main-menu').onclick=()=>{if(mode==='paused')backToSelection()};$('pause').onclick=pause;$('sound').onclick=()=>{sound=sound&&!audioRunning()?true:!sound;unlockAudio();audioUI();if(sound)sfx('item')};$('legend').innerHTML=Object.entries(SKILLS).map(([k,s])=>'<div style="--skill:'+s.color+'">'+icon(k)+'<span><b>'+s.name+'</b><small>'+s.desc+' · '+s.duration+'초</small></span></div>').join('');rack();resetBalls();renderHeroes();endlessUI();requestAnimationFrame(frame);
+window.addEventListener('keydown',e=>{if($('garage-dialog')?.open)return;if(['ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys[e.key]=true;if(e.code==='Space'){if(mode==='menu'||mode==='over')start(mode==='over'?runMode:'campaign');else if(mode==='paused')pause();else serve()}if(e.code==='Escape')pause()});window.addEventListener('keyup',e=>keys[e.key]=false);window.addEventListener('blur',()=>{keys={};if(mode==='playing'||mode==='clearing'||mode==='endlessShift')pause()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&(mode==='playing'||mode==='endlessShift'))pause()});$('start').onclick=()=>mode==='paused'?pause():start(mode==='over'?runMode:'campaign');$('pause-main-menu').onclick=()=>{if(mode==='paused')backToSelection()};$('pause').onclick=pause;$('sound').onclick=()=>{sound=sound&&!audioRunning()?true:!sound;unlockAudio();audioUI();if(sound)sfx('item')};$('legend').innerHTML=Object.entries(SKILLS).map(([k,s])=>'<div style="--skill:'+s.color+'">'+icon(k)+'<span><b>'+s.name+'</b><small>'+s.desc+' · '+s.duration+'초</small></span></div>').join('');rack();resetBalls();renderHeroes();endlessUI();requestAnimationFrame(frame);
 
 // Confirm successful permanent upgrades with the existing approved pickup sound.
 window.ZZProgressionSound=()=>{unlockAudio();sfx('item');feedback('item')};

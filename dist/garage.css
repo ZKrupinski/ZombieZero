@@ -1,0 +1,23 @@
+#overlay #garage-open{position:absolute!important;top:5px;left:5px;z-index:4;width:auto!important;min-height:34px;padding:5px 10px!important;background:#213c45;color:#ffdd83;border:1px solid #91b7a6;font-weight:900}
+#overlay[data-screen=pause] #garage-open,#overlay #hero-3[hidden]{display:none!important}
+#overlay[data-screen] .hero-options:has(#hero-3:not([hidden])){grid-template-columns:repeat(4,minmax(0,1fr))!important}
+#overlay #hero-3 .hero-vehicle-portrait{background:url(assets/ip/tow-mechanic.webp) center / contain no-repeat!important;animation:none!important}
+#garage-dialog{box-sizing:border-box;margin:auto;padding:16px;width:min(96vw,440px,64svh);max-height:94svh;overflow:auto;background:#172a35;color:#f7f0dc;border:2px solid #819e94;border-radius:10px;font:600 14px/1.4 Arial,sans-serif;box-shadow:0 12px 60px #07111be0}
+#garage-dialog::backdrop{background:#07121cde}
+#garage-dialog header,#garage-dialog nav,.garage-driver,.garage-slot>div{display:flex;align-items:center;gap:8px}
+#garage-dialog header{justify-content:space-between;border-bottom:2px solid #557674;padding-bottom:8px}
+#garage-dialog h2,#garage-dialog h3,#garage-dialog p{margin:4px 0}
+#garage-dialog button{color:#fbf5de;background:#35525c;border:1px solid #749388;border-radius:5px;padding:8px;min-height:36px;font:700 14px/1.2 Arial,sans-serif;cursor:pointer}
+#garage-dialog button:disabled{opacity:.58;cursor:default}
+#garage-dialog nav button{flex:1}
+#garage-dialog nav button:disabled,#garage-dialog [aria-pressed=true]{opacity:1;background:#cfa84e;color:#182931;border-color:#f4d682}
+.garage-driver{min-height:90px}.garage-driver h3,.garage-detail strong,.radio-box strong{color:#ffe198}
+.garage-portrait,.tow-preview{display:block;flex:0 0 78px;width:78px;height:78px;object-fit:contain}
+.garage-portrait{background:url(assets/ip/hero-idle-v55.png) 0 calc(var(--row) * -78px)/624px 234px no-repeat}
+#garage-dialog small{color:#cee0c6}
+.garage-wallet{text-align:right;padding:8px 0;color:#ffdc86}
+.garage-slot{margin-bottom:5px}.garage-slot>div button{flex:1}.garage-slot small{display:block;margin:3px 0}
+.garage-detail,.radio-box{margin:10px 0;padding:12px;background:#213c42;border:1px solid #53766e;border-radius:6px}
+.garage-detail button,.radio-box button,#garage-body>button{margin:5px 5px 0 0}
+.radio-dial{height:20px;margin:5px 0 12px;background:linear-gradient(90deg,transparent 67%,#f6b657 67% 68%,transparent 68%),repeating-linear-gradient(90deg,#93b8a2 0 1px,transparent 1px 8px);border-bottom:2px solid #7b968d}
+#garage-note{color:#d3eaaa}#garage-range{display:block;width:100%;margin:12px 0}#garage-aim{width:70%;vertical-align:middle}

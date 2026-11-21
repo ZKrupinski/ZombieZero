@@ -68,6 +68,7 @@
   try{
    const raw=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
    if(!raw||raw.version!==1)return;
+   if(raw.garage)state.garage=raw.garage;
    state.chips=int(raw.chips,0,1e9);
    state.runSeq=int(raw.runSeq,0,1e9);
    for(const d of defs)state.levels[d.id]=int(raw.levels&&raw.levels[d.id],0,5);
@@ -100,18 +101,29 @@
   runKey=Date.now().toString(36)+'-'+state.runSeq+'-'+Math.floor(Math.random()*1e8).toString(36);
   save();refresh();
  }
- function grant(kind,wave,amount){
+ function grant(kind,wave,amount,heroIndex=0){
   if(!runKey||!['campaign','endless'].includes(runMode))return false;
   const stage=int(wave,1,100000);
   const key=runKey+':'+kind+':'+stage;
   if(state.claims[key])return false;
   state.claims[key]=1;
+  if(kind==='wave'&&window.ZZGarage)window.ZZGarage.reward(garage(),runMode,stage,heroIndex);
   state.chips=int(state.chips+int(amount,0,1000),0,1e9);
   // Keep the newest 1600 awards. Run keys never recycle, so older runs are safe.
   const keys=Object.keys(state.claims);
   if(keys.length>1600)for(const old of keys.slice(0,keys.length-1600))delete state.claims[old];
   save();refresh();
   return true;
+ }
+ function garage(){return state.garage||(state.garage=window.ZZGarage.blank())}
+ function garageAction(action,id,hero){
+  if(!Number.isInteger(hero)||hero<0||hero>3||hero===3&&!garage().mechanic)return false;
+  const draft=JSON.parse(JSON.stringify(garage()));
+  const spent=window.ZZGarage.modify(draft,action,id,hero,state.chips);
+  if(spent===undefined)return false;
+  const previous=state.garage;state.garage=draft;state.chips-=spent;
+  if(!save()){state.garage=previous;state.chips+=spent;return false}
+  refresh();return true;
  }
  function purchase(id){
   if(!map[id]||level(id)>=MAX_LEVEL||state.chips<cost(id))return false;
@@ -354,7 +366,7 @@
  }
  if(typeof document!=='undefined')initUI();
  window.ZZProgression={
-  version:1,defs,level,chips,cost,purchase,startRun,grant,refresh,open,
+  version:1,garage,garageAction,defs,level,chips,cost,purchase,startRun,grant,refresh,open,
   duration,rescueKills,rescueAbsent,citizenGuardChance,citizenCriticalChance,citizenDamage,
   bazookaDamage,bazookaRadiusBonus,bazookaInterval,lastStandDistance,lastStandUses,
   poisonFactor,detoxRate,poisonGrace,groggySeconds,comboSeconds,pickupWidth,paddleBonus,
