@@ -1,36 +1,24 @@
-// ZOMBIE ZERO v234 — approved 36 throwable sprites, 6x6 RGBA contact sheet.
-// The 1536x1024 PNG has non-integer row sizes; source artwork reaches 35/36
-// frame borders. Isolate each item once into a separately transparent canvas
-// so browser interpolation/rotation cannot sample adjacent frames.
-// Original PNG (colors, objects and artwork) is never changed.
+// ZOMBIE ZERO v235 — approved 36 throwable sprites, 6x6 RGBA contact sheet.
+// Integer cell cuts + transparent padding prevent sampling adjacent items.
+// Full opaque silhouettes are preserved right up to the frame boundary;
+// only small, remote, disconnected border scraps are eligible for removal.
+// The original approved PNG is never changed.
 (function(){
 'use strict';
 const FILE='assets/ip/v2/throwables-36-v159.png';
 const COLS=6,ROWS=6,WIDTH=1536,HEIGHT=1024;
 const CELL_W=WIDTH/COLS,CELL_H=HEIGHT/ROWS;
-const FRAME_H=Math.ceil(CELL_H);
+const FRAME_H=Math.ceil(CELL_H),PAD=12;
 let image=null,ready=false,loading=false,attempts=0,failed=false;
 let preparedFrames=null;
 
-// The art itself reaches beyond some contact-sheet boundaries. Taper only the
-// edge alpha, preserving the entire interior: this avoids neighboring lids,
-// handles, etc. while not adding outlines or changing approved colors.
-function clearFrameEdges(pixels,actualHeight){
- const w=pixels.width,h=pixels.height,rgba=pixels.data;
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-  const i=(y*w+x)*4,a=rgba[i+3];
-  if(!a)continue;
-  if(y>=actualHeight){rgba[i+3]=0;continue}
-  const dx=Math.min(x,w-1-x),dy=Math.min(y,actualHeight-1-y);
-  const fx=Math.max(0,Math.min(1,(dx-2)/7));
-  const fy=Math.max(0,Math.min(1,(dy-2)/10));
-  const opacity=fx*fy;
-  if(opacity<1)rgba[i+3]=Math.round(a*opacity);
- }
- // Remove small disconnected edge fragments only. Preserve big shapes,
- // interior highlights and detached small objects that belong to a sprite.
- const count=w*h,labels=new Int16Array(count),queue=new Int32Array(count),parts=[];
- let next=0;
+// Never apply a broad edge-alpha fade: real lids, handles and corners extend
+// right to the source cell border. Work only on DISCONNECTED, small fragments
+// clearly separated from the main silhouette. The main group is never touched.
+function clearDetachedBorderDebris(pixels,actualHeight){
+ const w=pixels.width,rgba=pixels.data;
+ const count=w*actualHeight,labels=new Int16Array(count),queue=new Int32Array(count);
+ const parts=[];let next=0;
  for(let y=0;y<actualHeight;y++)for(let x=0;x<w;x++){
   const start=y*w+x;
   if(labels[start]||rgba[start*4+3]<24)continue;
@@ -38,8 +26,7 @@ function clearFrameEdges(pixels,actualHeight){
   queue[0]=start;labels[start]=id;
   const part={id,count:0,x0:x,x1:x,y0:y,y1:y};
   while(head<tail){
-   const k=queue[head++],px=k%w,py=(k-px)/w;
-   part.count++;
+   const k=queue[head++],px=k%w,py=(k-px)/w;part.count++;
    if(px<part.x0)part.x0=px;if(px>part.x1)part.x1=px;
    if(py<part.y0)part.y0=py;if(py>part.y1)part.y1=py;
    for(let yy=Math.max(0,py-1);yy<=Math.min(actualHeight-1,py+1);yy++)
@@ -53,17 +40,26 @@ function clearFrameEdges(pixels,actualHeight){
  if(parts.length<2)return;
  const main=parts.reduce((a,b)=>!a||b.count>a.count?b:a,null);
  const discard=new Uint8Array(next+1);
- const separation=(lo1,hi1,lo2,hi2)=>Math.max(0,lo1-hi2-1,lo2-hi1-1);
+ const gap=(lo1,hi1,lo2,hi2)=>Math.max(0,lo1-hi2-1,lo2-hi1-1);
  for(const p of parts){
   if(p===main)continue;
-  const border=p.x0<13||p.x1>=w-13||p.y0<15||p.y1>=actualHeight-15;
-  const apart=separation(p.x0,p.x1,main.x0,main.x1)>8||
-              separation(p.y0,p.y1,main.y0,main.y1)>8;
-  if(border&&apart&&p.count<Math.max(90,main.count*.09))discard[p.id]=1;
+  const border=p.x0<=10||p.x1>=w-11||p.y0<=10||p.y1>=actualHeight-11;
+  const separated=gap(p.x0,p.x1,main.x0,main.x1)>15||
+                  gap(p.y0,p.y1,main.y0,main.y1)>15;
+  const tiny=p.count<Math.min(256,Math.max(35,main.count*.025));
+  if(border&&separated&&tiny)discard[p.id]=1;
  }
- for(let i=0;i<count;i++){
-  const id=labels[i];
-  if(id&&discard[id])rgba[i*4+3]=0;
+ // Delete only known orphan islands; NEVER alter alpha of any main-body pixel.
+ // Low-alpha antialiasing fringes are also removed inside each island's own
+ // bounding rectangle, with no proximity-based changes around the main body.
+ if(!discard.includes(1)&&!discard.some(v=>v))return;
+ for(const p of parts){
+  if(!discard[p.id])continue;
+  for(let y=Math.max(0,p.y0-1);y<=Math.min(actualHeight-1,p.y1+1);y++)
+   for(let x=Math.max(0,p.x0-1);x<=Math.min(w-1,p.x1+1);x++){
+    const k=y*w+x,id=labels[k],a=rgba[k*4+3];
+    if(discard[id]||(id===0&&a>0&&a<24))rgba[k*4+3]=0;
+   }
  }
 }
 function isolateFrames(bitmap){
@@ -76,16 +72,16 @@ function isolateFrames(bitmap){
   const actualHeight=sourceEndY-sourceY;
   for(let col=0;col<COLS;col++){
    const tile=document.createElement('canvas');
-   tile.width=CELL_W;tile.height=FRAME_H;
+   tile.width=CELL_W+PAD*2;tile.height=FRAME_H+PAD*2;
    const ctx=tile.getContext?.('2d',{willReadFrequently:true});
    if(!ctx||typeof ctx.drawImage!=='function'||
       typeof ctx.getImageData!=='function'||typeof ctx.putImageData!=='function')return null;
    ctx.imageSmoothingEnabled=false;
    ctx.drawImage(bitmap,col*CELL_W,sourceY,CELL_W,actualHeight,
-                 0,0,CELL_W,actualHeight);
-   const data=ctx.getImageData(0,0,CELL_W,FRAME_H);
-   clearFrameEdges(data,actualHeight);
-   ctx.putImageData(data,0,0);
+                 PAD,PAD,CELL_W,actualHeight);
+   const data=ctx.getImageData(PAD,PAD,CELL_W,actualHeight);
+   clearDetachedBorderDebris(data,actualHeight);
+   ctx.putImageData(data,PAD,PAD);
    frames.push(tile);
   }
  }
@@ -125,7 +121,12 @@ function draw(ctx,kind,x,y,size,angle=0){
  const w=size,h=size*CELL_H/CELL_W;
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);
  const tile=preparedFrames?.[slot];
- if(tile)ctx.drawImage(tile,-w/2,-h/2,w,h);
+ if(tile){
+  // Padding must NOT reduce the object size. The original image still occupies
+  // exactly w × h; transparent margins are drawn outside that rectangle.
+  const px=PAD*w/CELL_W,py=PAD*h/FRAME_H;
+  ctx.drawImage(tile,-w/2-px,-h/2-py,w+2*px,h+2*py);
+ }
  else{
   // Non-canvas test environments and rare canvas-allocation failures.
   // Existing atlas route is preserved as a graceful fallback.
@@ -139,6 +140,7 @@ window.ZZThrowablesV159={
  request,draw,COLS,ROWS,CELL_W,CELL_H,
  get ready(){return ready},get failed(){return failed},
  get image(){return image},
- get preparedFrameCount(){return preparedFrames?.length||0}
+ get preparedFrameCount(){return preparedFrames?.length||0},
+ get framePadding(){return PAD}
 };
 })();
