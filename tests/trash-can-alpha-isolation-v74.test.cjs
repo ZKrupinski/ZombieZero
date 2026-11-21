@@ -84,7 +84,7 @@ for(const frame of [10,19]){
 for(const frame of [0,1,8,9,11,16,18,20,23,24,28,29])
  assert.equal(art.frameImage(big,frame,bigImg),bigImg,'other blue boss frame '+frame+' unchanged');
 const game=fs.readFileSync('dist/game.js','utf8');
-assert(game.includes('originalObject?.draw(g,z,clock)'),'production renderer preserved');
+assert(game.includes('originalObject?.draw(g,z,enemyAnimationClock)'),'production renderer preserved');
 const demo=fs.readFileSync(base+'cast-demo.js','utf8');
 assert(demo.includes('pack.frameImage(actor,frame,img)'),'animation gallery uses the same isolated frames');
 console.log('PASS: trash-can HD 19/22/24/25 remove disconnected alpha islands, preserve body/pivot, other frames and blue boss diagonal 10/19 corrected');
