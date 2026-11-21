@@ -23,6 +23,8 @@ jobs:
           node-version: '22'
       - name: Reconstruct approved 36-throwable atlas
         run: node tools/rebuild-throwables-atlas-v237.cjs
+      - name: Audit projectile art cuts
+        run: node tools/throwable-visual-audit-v238.cjs
       - name: Check game
         run: node tools/test.cjs
       - uses: actions/configure-pages@v5
