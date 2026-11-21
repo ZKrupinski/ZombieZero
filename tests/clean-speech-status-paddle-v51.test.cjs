@@ -19,7 +19,7 @@ assert(draw.includes('drawActiveItemIcons();drawBubbles();'),
 assert(draw.indexOf('fxRenderer.composite(g);')<draw.indexOf('drawActiveItemIcons();'),
  'equipped badges still draw after shield and Bloom');
 assert.equal(draw.split('drawBubbles();').length-1,1,'speech balloons are only drawn once');
-assert(player.includes('g.drawImage(sprite.image,')&&player.includes('heroSprite(x,600,1,win)'),
+assert(player.includes('drawHeroBitmap(sprite.image,')&&source.includes('g.drawImage(image,...args)')&&player.includes('heroSprite(x,600,1,win)'),
  'bitmap and original fallback hero artwork remain');
 assert(!player.includes('g.moveTo(car-hero().paddle,')&&
  !player.includes('g.moveTo(x-h.paddle,'),
