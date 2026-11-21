@@ -2246,10 +2246,10 @@ const palette=[['#444e53','#566064','#4e595d','#77878a'],
                ['#514b55','#615c66','#58545d','#817b83'],
                ['#48554f','#5a685f','#526057','#7a8b7e']][(wave-1)%3];rect(0,0,W,H,palette[0]);for(let row=0;row<Math.ceil(H/49)+1;row++)for(let col=0;col<9;col++){let x=20+col*47,y=row*49,k=(row*7+col*13)%5;rect(x,y,45,47,palette[k%2+1]);rect(x,y,45,2,'#b9c7c11b');if(k===1){rect(x+7,y+25,11,2,'#24303835');rect(x+16,y+27,2,7,'#24303835')}}
 for(let side of [0,432]){rect(side,0,18,H,'#343e43');for(let y=0;y<H;y+=42){rect(side+4,y,10,24,palette[3]);rect(side+6,y+2,3,18,'#8b9b97')}}
-g.globalAlpha=.10;for(let y=-60;y<H;y+=92)rect(222,y+(clock*12)%92,6,34,palette[3]);g.globalAlpha=1;g.strokeStyle=palette[3]+'24';g.lineWidth=2;g.strokeRect(29,27,392,DEFENSE_Y-45);
+g.globalAlpha=.10;for(let y=-60;y<H;y+=92)rect(222,y+(clock*12)%92,6,34,palette[3]);g.globalAlpha=1; // Legacy procedural stage also draws no enemy-area debug rectangle.
 for(let i=0;i<16;i++){let x=25+(i*137)%400,y=(i*97+clock*9)%(DEFENSE_Y-15);rect(x,y,2,2,palette[3]+'30')}
 // Defense breach remains a physics rule; no always-on text or vector indicator.rect(20,H-50,410,50,'#17252baa');
-if(has('slow')){g.save();g.strokeStyle='#86f2e0ac';g.lineWidth=2;g.strokeRect(24,22,402,DEFENSE_Y-30);g.restore()}
+// Slow is shown on affected enemies and skill icons, never as an arena-sized outline.
 }
 // Eighteen stage-local bitmap scenes. Keep the game world's fixed 450×710
 // coordinates and its collision/defense positions completely unchanged.
@@ -2303,7 +2303,7 @@ function background(){
  // A light backing tint separates the colorful supporter sprites from
  // the illustrated footer without covering the original details.
  rect(20,H-50,410,50,'#17252b66');
- if(has('slow')){g.save();g.strokeStyle='#86f2e0ac';g.lineWidth=2;g.strokeRect(24,22,402,DEFENSE_Y-30);g.restore()}
+ // Slow is shown on affected enemies and skill icons, never as an arena-sized outline.
  g.restore();
 }
 // V242: The approved original character colors are always the clean base.
