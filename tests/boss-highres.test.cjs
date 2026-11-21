@@ -95,7 +95,7 @@ for(let n=0;n<2;n++){
     'fallback samples original alpha crop');
 }
 const game=read('dist/game.js').toString();
-assert(game.includes('originalObject?.draw(g,z,clock)'),'gameplay uses boss HD-capable renderer');
+assert(game.includes('originalObject?.draw(g,z,enemyAnimationClock)'),'gameplay uses boss HD-capable renderer');
 assert(game.includes('ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration)'),'boss death uses same HD-capable renderer');
 const gallery=read(base+'cast-demo.js').toString();
 assert(gallery.includes('pack.activeImage(actor)'),'gallery displays actual HD boss');
