@@ -53,9 +53,9 @@ assert(files.css.includes('height:calc(77px * var(--ui-scale,1))!important'),
 assert(files.html.includes('<small id="hint" hidden aria-hidden="true"></small>'),'bottom touch instruction removed');
 assert(files.css.includes('12-cell gauges')&&files.css.includes('.hero-stat-cell.boost'),
  'base and upgrade segments are visually distinguishable');
-assert(/garage\.css\?v=(11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards)/.test(files.html)&&
+assert(/garage\.css\?v=(11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(files.html)&&
  files.html.includes('garage.js?v=4-v243-real-bonus-stats')&&
- /garage-ui\.js\?v=(9-v243-garage-stats|10-v244-five-portrait|11-v247-stable-border-focus|12-v248-complete-hero-cards)/.test(files.html),
+ /garage-ui\.js\?v=(9-v243-garage-stats|10-v244-five-portrait|11-v247-stable-border-focus|12-v248-complete-hero-cards|13-v254-gameover-reel)/.test(files.html),
  'all updated assets cache-busted');
 assert(/v24[3-5]-(layout-stats-dock|five-portrait-no-dock-box|clear-top-centered-icons)/.test(files.sw),'offline cache invalidated');
 console.log('PASS v243: 9:16 arcade hierarchy, 30% reel, tall dock, 12-cell true base+upgrade stats shared by garage/menu.');
