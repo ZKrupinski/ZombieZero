@@ -51,3 +51,14 @@ img.garage-icon{background:none}
 .garage-picker{display:flex;gap:4px;margin:8px 0 2px}
 #garage-dialog .garage-picker button{flex:1;min-width:0;min-height:36px;padding:4px}
 #radio-note{color:#d3eaaa}
+#overlay[data-screen] #heroes .hero-options{display:block!important;position:relative;overflow:hidden}
+.hero-options,.garage-driver{touch-action:pan-y;user-select:none;cursor:grab}
+.hero-options:active,.garage-driver:active{cursor:grabbing}
+#overlay[data-screen] #heroes .hero-card[aria-pressed=false]{display:none!important}
+#overlay[data-screen] #heroes .hero-card[aria-pressed=true]{width:100%!important;translate:var(--slide,0px) 0}
+#overlay[data-screen] #heroes .hero-card .hero-vehicle-portrait{width:calc(108px * var(--ui-scale,1))!important}
+#overlay[data-screen=results] #heroes .hero-card .hero-vehicle-portrait{width:calc(81px * var(--ui-scale,1))!important}
+#overlay .hero-options .reel-arrow,#garage-dialog .garage-driver .reel-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;display:grid;place-items:center;width:36px;height:44px;min-height:0;padding:0;margin:0;background:#152d38d9;color:#f9db8c;border:1px solid #668384;font:700 28px/1 Arial}
+.reel-arrow[data-step="-1"]{left:4px}.reel-arrow[data-step="1"]{right:4px}
+#garage-dialog .garage-driver{position:relative;overflow:hidden;padding:6px 44px;gap:5px}
+#garage-dialog .garage-driver .garage-portrait,#garage-dialog .garage-driver .tow-preview{translate:var(--slide,0px) 0;pointer-events:none}

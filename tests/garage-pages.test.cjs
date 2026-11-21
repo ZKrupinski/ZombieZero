@@ -1,10 +1,10 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const elements=new Map();
 function element(id){
- if(!elements.has(id))elements.set(id,{showModal(){this.open=true},close(){this.open=false},addEventListener(){},querySelector(){return null}});
+ if(!elements.has(id))elements.set(id,{showModal(){this.open=true},close(){this.open=false},events:{},addEventListener(k,fn){this.events[k]=fn},setPointerCapture(){},querySelector(sel){return sel==='.garage-driver'?{clientWidth:300,style:{setProperty(){}},querySelector(){return null}}:null}});
  return elements.get(id);
 }
-const data={mechanic:false,levels:{grip:0},loads:[{},{},{}],xp:[0,4,0],tickets:2,badges:0};
+const data={mechanic:false,levels:{grip:0},loads:[{},{},{},{}],xp:[0,4,0],tickets:2,badges:0};
 let edit;
 const app=vm.createContext({window:{},$:element,selectedHero:0,mode:'menu',HEROES:['에이스','루비','리아','정비사'].map(name=>({name})),cancelAnimationFrame(){}});
 vm.runInContext(fs.readFileSync('dist/garage.js','utf8'),app);
@@ -15,8 +15,14 @@ const body=element('garage-body');
 assert(element('garage-dialog').open);
 assert(!body.innerHTML.includes('data-driver="3"'));
 const click=dataset=>body.onclick({target:{closest:()=>({dataset})}});
-click({driver:'1'});
-assert.match(body.innerHTML,/data-driver="1" aria-pressed="true"/);
+const arrow=dir=>body.events.click({target:{closest:()=>({dataset:{step:String(dir)}})}});
+arrow(-1);assert.match(body.innerHTML,/<h3>리아<\/h3>/);
+arrow(1);assert.match(body.innerHTML,/<h3>에이스<\/h3>/);
+data.mechanic=true;arrow(-1);assert.match(body.innerHTML,/<h3>정비사<\/h3>/);
+arrow(1);data.mechanic=false;
+const pointer=(type,x,t)=>body.events[type]({type,button:0,pointerId:1,clientX:x,timeStamp:t,target:{closest:sel=>sel==='.garage-driver'}});
+pointer('pointerdown',180,0);pointer('pointermove',88,200);pointer('pointerup',88,360);
+assert.match(body.innerHTML,/<h3>루비<\/h3>/);
 click({action:'equip'});
 assert.deepEqual(edit,{action:'equip',id:'grip',hero:1});
 assert.equal(app.selectedHero,0);

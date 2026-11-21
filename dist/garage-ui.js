@@ -24,11 +24,7 @@
   const level=data.levels[part.id],owned=level!==undefined;
   const gear=data.loads[h],price=system.prices[level],xp=data.xp[h]||0;
   const portrait=h===3?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">':'<span class="garage-portrait" style="--row:'+h+'"></span>';
-  const banner='<section class="garage-driver">'+portrait+'<div><h3>'+HEROES[h].name+'</h3><p>'+styles[h]+'</p><small>숙련 '+xp+' / '+(xp>=10?'도색 해금': '10 웨이브')+'</small></div></section>';
-  const picker=tab==='parts'?'<div class="garage-picker" role="group" aria-label="정비할 생존자">'+HEROES.map((hero,i)=>{
-   if(i===3&&!data.mechanic)return '';
-   return '<button type="button" data-driver="'+i+'" aria-pressed="'+(h===i)+'">'+hero.name+'</button>';
-  }).join('')+'</div>':'';
+  const banner='<section class="garage-driver" aria-label="정비할 생존자">'+reelArrow(-1)+portrait+'<div><h3>'+HEROES[h].name+'</h3><p>'+styles[h]+'</p><small>숙련 '+xp+' / '+(xp>=10?'도색 해금': '10 웨이브')+'</small></div>'+reelArrow(1)+'</section>';
   const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','제작 너트',data.badges)+'</div>';
   if(tab==='signal'){
    const message=data.mechanic?'합류한 생존자 4명이 각각 25% 확률로 응답합니다.':'스테이지나 웨이브를 처음 클리어하면 무전권을 받습니다. 첫 호출로 정비사가 합류합니다.';
@@ -41,7 +37,7 @@
   const stage=part.id==='cushion'?1:system.parts.indexOf(part)+1;
   const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
   const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
-  body.innerHTML=picker+banner+wallet+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
+  body.innerHTML=banner+wallet+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
  }
  function trial(){
   tab='trial';note.textContent='벽을 경유하도록 좌우를 조준하세요.';
@@ -76,11 +72,7 @@
   frame=requestAnimationFrame(tick);
  }
  function handleAction(e){
-  const button=e.target.closest('button');if(!button||button.disabled)return;
-  if(button.dataset.driver!==undefined){
-   garageHero=Number(button.dataset.driver);note.textContent='';render();
-   body.querySelector('[data-driver="'+garageHero+'"]')?.focus();return;
-  }
+  const button=e.target.closest('button');if(!button||button.disabled||button.dataset.step)return;
   if(button.dataset.part){activePart=system.parts.find(p=>p.id===button.dataset.part);note.textContent='';render();return}
   const action=button.dataset.action;
   if(action==='shoot')return;
@@ -100,6 +92,82 @@
   }
   render();
  }
+ function reelArrow(dir){
+  return '<button type="button" class="reel-arrow" data-step="'+dir+'" aria-label="'+(dir<0?'이전':'다음')+' 캐릭터">'+(dir<0?'‹':'›')+'</button>';
+ }
+ function bindReel(root,selector,current,select,enabled){
+  let pointer=null,offset=0,lastX=0,lastTime=0,velocity=0,coast=0;
+  const surface=()=>root.querySelector(selector);
+  const stride=()=>Math.max(65,Math.min(120,surface().clientWidth*.34));
+  function step(direction){
+   const count=progress.garage().mechanic?4:3;
+   select((current()+direction+count)%count);
+  }
+  function position(x){
+   surface()?.style.setProperty('--slide',x+'px');
+  }
+  function move(distance){
+   offset+=distance;
+   const width=stride();
+   while(Math.abs(offset)>width/2){
+    const sign=Math.sign(offset);
+    step(-sign);offset-=sign*width;
+    if(Math.abs(offset)<=width/2)break;
+   }
+   position(offset);
+  }
+  root.addEventListener('pointerdown',e=>{
+   if(!enabled()||pointer!==null||e.button!==0||!e.target.closest(selector)||e.target.closest('[data-step]'))return;
+   cancelAnimationFrame(coast);position(0);
+   pointer=e.pointerId;offset=velocity=0;lastX=e.clientX;lastTime=e.timeStamp;
+   root.setPointerCapture(pointer);
+  });
+  root.addEventListener('pointermove',e=>{
+   if(pointer!==e.pointerId)return;
+   const dx=e.clientX-lastX;
+   if(dx){velocity=dx/Math.max(8,e.timeStamp-lastTime);move(dx);lastX=e.clientX;lastTime=e.timeStamp}
+  });
+  function release(e){
+   if(pointer!==e.pointerId)return;
+   pointer=null;
+   if(enabled()&&e.type==='pointerup'){
+    move(e.clientX-lastX);
+    if(e.timeStamp-lastTime<90 && Math.abs(velocity)>.45 && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+     const travel=Math.max(-2.5,Math.min(2.5,velocity))*stride()*.85;
+     const began=performance.now();let previous=0;
+     function roll(now){
+      if(!enabled()){offset=0;position(0);return}
+      const t=Math.min(1,(now-began)/320),distance=travel*(1-(1-t)**3);
+      move(distance-previous);previous=distance;
+      if(t<1)coast=requestAnimationFrame(roll);else settle();
+     }
+     coast=requestAnimationFrame(roll);return;
+    }
+   }
+   settle();
+  }
+  function settle(){
+   const start=offset;offset=0;position(0);
+   const item=surface()?.querySelector('.hero-card[aria-pressed="true"],.garage-portrait,.tow-preview');
+   if(item&&start&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+    item.animate?.([{translate:start+'px 0'},{translate:'0 0'}],{duration:180,easing:'ease-out'});
+   }
+  }
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])root.addEventListener(event,release);
+  root.addEventListener('click',e=>{
+   const arrow=e.target.closest('[data-step]');
+   if(!arrow||!enabled())return;
+   cancelAnimationFrame(coast);offset=0;position(0);step(Number(arrow.dataset.step));
+   surface()?.querySelector('[data-step="'+arrow.dataset.step+'"]')?.focus({preventScroll:true});
+  });
+  root.addEventListener('keydown',e=>{
+   if(!enabled()||!e.target.closest(selector)||!['ArrowLeft','ArrowRight'].includes(e.key))return;
+   e.preventDefault();e.stopPropagation();cancelAnimationFrame(coast);offset=0;position(0);step(e.key==='ArrowLeft'?-1:1);
+   surface()?.querySelector('[data-step="1"]')?.focus({preventScroll:true});
+  });
+ }
+ bindReel($('heroes'),'.hero-options',()=>selectedHero,i=>$('hero-'+i).click(),()=>['menu','over'].includes(mode));
+ bindReel($('garage-body'),'.garage-driver',()=>garageHero,i=>{garageHero=i;note.textContent='';render()},()=>$('garage-dialog').open);
  for(const [prefix,page] of [['garage','parts'],['radio','signal']]){
   const dialog=$(prefix+'-dialog'),content=$(prefix+'-body');
   $(prefix+'-open').onclick=()=>{
