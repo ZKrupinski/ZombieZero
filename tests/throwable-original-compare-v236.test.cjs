@@ -9,7 +9,7 @@ assert(html.includes('pack?.request?.()'),'QA renderer is initialized');
 assert(html.includes('원본 PNG · RAW')&&html.includes('게임 프레임 · CURRENT'),'side-by-side source and rendered comparison');
 assert(html.includes('귀퉁이 잘림')&&html.includes('다른 그림 섞임'),'both failure classes can be marked');
 assert(html.includes('navigator.clipboard.writeText'),'reviewer can copy affected slot numbers');
-assert(html.includes('Math.round(row*1024/6)'),'raw comparison uses same integer seam layout');
+assert(html.includes('Math.round(r*1024/6)'),'raw comparison uses same integer seam layout');
 assert(html.includes('for(let i=0;i<36;i++)'),'all 36 slots rendered');
 assert(game.includes('throwables-v159.js?v=159-approved-36-sprites-v235-preserve-corners'),'production game stays on approved version');
 assert(approved.includes('function clearDetachedBorderDebris('),'source comparison covers latest production isolation');
