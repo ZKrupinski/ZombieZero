@@ -38,3 +38,11 @@ assert.equal(api.garage().calls.length,10);
 assert.equal(api.garage().badges,10);
 assert.equal(Object.keys(api.garage().levels).length,6);
 console.log('PASS garage recruitment, shared wallet, per-hero gear, bank shot and persisted rewards');
+const inventory=api.garage();
+assert.equal(inventory.xp.reduce((a,b)=>a+b,0),22,'12 clears and ten duplicate replies');
+for(const [xp,expected] of [[4,0],[5,1],[49,9],[50,10],[100,10]]){
+ inventory.xp[3]=xp;
+ system.load(3,inventory);
+ assert.equal(system.masteryDefense(),expected);
+ assert.equal(system.heroStats({paddle:60},inventory,null,3)[3].bonus,expected);
+}

@@ -1621,3 +1621,13 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  @keyframes rx-scan{from{transform:translateY(-65%)}to{transform:translateY(65%)}}
  @keyframes rx-arrive{from{opacity:.15;transform:translateY(12px) scale(.85)}to{opacity:1;transform:none}}
 }
+#radio-dialog .rx-new{border:2px solid #ffcb65;background:radial-gradient(ellipse at 50% 55%,#a16c29 0%,#574023 40%,#232f2c 80%);box-shadow:inset 0 0 0 3px #59492c}
+#radio-dialog .rx-new .rx-status{justify-content:center;color:#ffe4a3;font-size:18px;font-weight:900;letter-spacing:.08em}
+#radio-dialog .rx-new .rx-art{height:clamp(115px,27svh,210px)}
+.rx-new .rx-art .rx-portrait{--size:clamp(112px,26svh,205px)}
+#radio-dialog .rx-new h3{font-size:clamp(28px,7vw,40px)}
+#radio-dialog .rx-list{grid-template-columns:repeat(auto-fit,minmax(min(175px,100%),1fr))}
+.rx-list li small,.rx-list li strong{display:block;font-size:12px}.rx-list li strong{color:#ffda92}
+.gear-effects{display:flex;gap:4px;flex-wrap:wrap;list-style:none;margin:5px 0 0;padding:0}
+.gear-effects li{display:flex;align-items:center;gap:4px;background:#203940;padding:3px 6px;font-size:12px}
+.gear-effects .garage-icon{width:20px;height:20px}.gear-effects b,#garage-note{color:#ffdc85}
