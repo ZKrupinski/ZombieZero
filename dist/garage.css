@@ -62,3 +62,68 @@ img.garage-icon{background:none}
 .reel-arrow[data-step="-1"]{left:4px}.reel-arrow[data-step="1"]{right:4px}
 #garage-dialog .garage-driver{position:relative;overflow:hidden;padding:6px 44px;gap:5px}
 #garage-dialog .garage-driver .garage-portrait,#garage-dialog .garage-driver .tow-preview{translate:var(--slide,0px) 0;pointer-events:none}
+
+/* One-hero spotlight with a swipeable, cyclic slot-machine reel. */
+#garage-dialog .garage-driver{
+ position:relative;display:flex;align-items:center;overflow:hidden;
+ min-height:132px;margin:5px 0;padding:8px 41px;
+ border:1px solid #657a75;border-radius:10px;
+ background:radial-gradient(ellipse at 30% 40%,#52645b 0,#263e45 49%,#152a35 100%);
+ box-shadow:inset 0 1px #9bb8a266,inset 0 -4px #10212c;
+ touch-action:pan-y;user-select:none;cursor:grab
+}
+#garage-dialog .garage-driver:active{cursor:grabbing}
+#garage-dialog .garage-reel-window{
+ display:flex;align-items:center;gap:9px;min-width:0;width:100%;
+ translate:var(--slide,0px) 0;
+ transform:perspective(600px) rotateY(var(--tilt,0deg));
+ transform-origin:center;will-change:translate,transform
+}
+#garage-dialog .garage-reel-figure{
+ flex:0 0 104px;display:grid;place-items:center;width:104px;height:112px;
+ border-radius:8px;background:radial-gradient(ellipse at center,#82966c55,transparent 74%)
+}
+#garage-dialog .garage-reel-figure .garage-portrait,
+#garage-dialog .garage-reel-figure .tow-preview{
+ display:block;flex:0 0 104px;width:104px;height:104px;translate:none;
+ object-fit:contain;pointer-events:none
+}
+#garage-dialog .garage-reel-figure .garage-portrait{
+ background-size:832px 312px;
+ background-position:0 calc(var(--row)*-104px)
+}
+#garage-dialog .garage-reel-copy{flex:1;min-width:0}
+#garage-dialog .garage-reel-copy h3{font-size:19px;line-height:1.15;margin:3px 0 5px}
+#garage-dialog .garage-reel-copy p{font-size:11px;line-height:1.35;margin:0 0 5px;color:#e1eadc}
+#garage-dialog .garage-reel-copy small{display:block;font-size:11px}
+#garage-dialog .garage-reel-count{display:block;color:#ffd37b;letter-spacing:.09em;font:bold 10px/1 Arial,sans-serif}
+#garage-dialog .garage-reel-hint{display:block;color:#afcdc2;font-size:10px;margin-top:6px}
+#garage-dialog .garage-driver .reel-arrow{
+ position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+ width:33px;height:58px;background:#102934d9;border:1px solid #b09e6b;
+ color:#ffe4a0;font-size:29px
+}
+#garage-dialog .garage-driver .reel-arrow:focus-visible,
+#overlay #heroes .reel-arrow:focus-visible{outline:2px solid #fff0a0;outline-offset:1px}
+#overlay[data-screen] #heroes .hero-card[aria-pressed=true]{
+ translate:var(--slide,0px) 0;
+ transform:perspective(600px) rotateY(var(--tilt,0deg));
+ transform-origin:center;will-change:translate,transform
+}
+#overlay[data-screen] #heroes .hero-card[aria-pressed=false]{display:none!important}
+#overlay[data-screen] #heroes .hero-options{perspective:600px}
+@media(max-width:390px){
+ #garage-dialog .garage-driver{padding:6px 37px;min-height:116px}
+ #garage-dialog .garage-reel-figure{flex-basis:80px;width:80px;height:92px}
+ #garage-dialog .garage-reel-figure .garage-portrait,
+ #garage-dialog .garage-reel-figure .tow-preview{flex-basis:80px;width:80px;height:80px}
+ #garage-dialog .garage-reel-figure .garage-portrait{
+  background-size:640px 240px;background-position:0 calc(var(--row)*-80px)
+ }
+ #garage-dialog .garage-reel-copy h3{font-size:17px}
+ #garage-dialog .garage-reel-hint{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ #garage-dialog .garage-reel-window,
+ #overlay[data-screen] #heroes .hero-card[aria-pressed=true]{will-change:auto}
+}
