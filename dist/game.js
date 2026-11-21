@@ -3312,7 +3312,23 @@ function portrait(h){
  // Public hero names: Ace / Ruby / Ria. The Liam sprite ID remains stable.
  return '<span class="hero-portrait hero-vehicle-portrait row-'+i+'" role="img" aria-label="'+h.name+' · 차량과 전용 무기"></span>';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!'}
+// Menu-only character stat gauges; native hero portraits and gameplay values stay unchanged.
+function heroMiniStats(h){
+ const values=[
+  ['⚡','속도',h.speed,660],
+  ['✦','공격',h.damage,2],
+  ['♥','체력',h.lives,3],
+  ['↔','수비',h.paddle,68]
+ ];
+ return '<div class="hero-mini-stats" aria-label="캐릭터 능력치">'+values.map(([symbol,label,value,max])=>{
+  const percent=Math.max(8,Math.min(100,Math.round(value/max*100)));
+  return '<div class="hero-mini-stat" title="'+label+' '+value+'" role="img" aria-label="'+label+' '+value+'">'+
+   '<i class="hero-mini-icon" aria-hidden="true">'+symbol+'</i>'+
+   '<span class="hero-mini-label" aria-hidden="true">'+label+'</span>'+
+   '<span class="hero-mini-track" aria-hidden="true"><span style="width:'+percent+'%"></span></span></div>';
+ }).join('')+'</div>';
+}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!'}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
