@@ -57,6 +57,7 @@ strong{color:#f8d77b}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,
 'use strict';
 const img=new Image();img.decoding='async';img.src='assets/ip/v2/throwables-36-v159.png';
 const pack=window.ZZThrowablesV159;
+pack?.request?.();
 const $=id=>document.getElementById(id);
 let selected=0,angle=0,loaded=false;
 const marks=Object.create(null),cells=[];
