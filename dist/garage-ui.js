@@ -5,6 +5,11 @@
  const slots=['무기','공','차량'];
  const styles=['라켓 끝으로 받으면 코너를 깊게 노립니다.','배트 중심에 맞히면 적 무리를 강하게 밀어냅니다.','두 번째 리턴마다 첫 충돌이 주변 적에게 한 번 더 튑니다.','벽을 맞힌 휠캡이 첫 적을 옆으로 밀어냅니다.'];
  let activePart=system.parts[0],tab='parts',frame=0;
+ // The first three survivors belong to the player from the start.
+ // The tow mechanic joins the reel only after the radio actually recruits them.
+ function availableHeroes(){
+  return HEROES.map((_,i)=>i).filter(i=>i<3||(i===3&&progress.garage().mechanic));
+ }
  const btn=(action,label,disabled=false)=>'<button type="button" data-action="'+action+'" '+(disabled?'disabled':'')+'>'+label+'</button>';
  const artIndex={grip:0,wide:1,cushion:2,heavy:3,steer:4,filter:5,nut:6,ticket:7,radio:8};
  function icon(id){
@@ -20,11 +25,18 @@
  }
  function render(){
   cancelAnimationFrame(frame);
-  const data=progress.garage(),h=tab==='parts'?garageHero:selectedHero,part=activePart;
+  const data=progress.garage(),roster=availableHeroes(),wanted=tab==='parts'?garageHero:selectedHero;
+  const h=roster.includes(wanted)?wanted:roster[0],part=activePart;
+  if(tab==='parts')garageHero=h;
   const level=data.levels[part.id],owned=level!==undefined;
   const gear=data.loads[h],price=system.prices[level],xp=data.xp[h]||0;
   const portrait=h===3?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">':'<span class="garage-portrait" style="--row:'+h+'"></span>';
-  const banner='<section class="garage-driver" aria-label="정비할 생존자">'+reelArrow(-1)+portrait+'<div><h3>'+HEROES[h].name+'</h3><p>'+styles[h]+'</p><small>숙련 '+xp+' / '+(xp>=10?'도색 해금': '10 웨이브')+'</small></div>'+reelArrow(1)+'</section>';
+  const banner='<section class="garage-driver" aria-label="보유 생존자 선택 릴" tabindex="0">'+reelArrow(-1)+
+   '<div class="garage-reel-window"><div class="garage-reel-figure">'+portrait+'</div>'+
+   '<div class="garage-reel-copy"><span class="garage-reel-count" aria-live="polite">OWNED '+(roster.indexOf(h)+1)+' / '+roster.length+'</span>'+
+   '<h3>'+HEROES[h].name+'</h3><p>'+styles[h]+'</p>'+
+   '<small>숙련 '+xp+' / '+(xp>=10?'도색 해금':'10 웨이브')+'</small>'+
+   '<span class="garage-reel-hint">← 드래그해서 돌리기 →</span></div></div>'+reelArrow(1)+'</section>';
   const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','제작 너트',data.badges)+'</div>';
   if(tab==='signal'){
    const message=data.mechanic?'합류한 생존자 4명이 각각 25% 확률로 응답합니다.':'스테이지나 웨이브를 처음 클리어하면 무전권을 받습니다. 첫 호출로 정비사가 합류합니다.';
@@ -97,73 +109,106 @@
  }
  function bindReel(root,selector,current,select,enabled){
   let pointer=null,offset=0,lastX=0,lastTime=0,velocity=0,coast=0;
+  let dragged=false,suppressClick=false,startX=0;
   const surface=()=>root.querySelector(selector);
-  const stride=()=>Math.max(65,Math.min(120,surface().clientWidth*.34));
-  function step(direction){
-   const count=progress.garage().mechanic?4:3;
-   select((current()+direction+count)%count);
-  }
+  const reduced=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const stride=()=>Math.max(68,Math.min(142,(surface()?.clientWidth||300)*.38));
+  const chosen=()=>surface()?.querySelector('.hero-card[aria-pressed="true"],.garage-reel-window');
   function position(x){
-   surface()?.style.setProperty('--slide',x+'px');
+   const node=surface();if(!node)return;
+   node.style.setProperty('--slide',x.toFixed(1)+'px');
+   node.style.setProperty('--tilt',(Math.max(-19,Math.min(19,x/stride()*24))).toFixed(1)+'deg');
   }
-  function move(distance){
-   offset+=distance;
+  function step(direction){
+   const roster=availableHeroes();
+   if(roster.length<2)return;
+   const index=roster.indexOf(current());
+   select(roster[((index<0?0:index)+direction+roster.length)%roster.length]);
+   if(!reduced())chosen()?.animate?.([
+    {opacity:.58,filter:'blur(2px)',scale:'.88'},
+    {opacity:1,filter:'blur(0px)',scale:'1'}
+   ],{duration:170,easing:'cubic-bezier(.19,.8,.2,1)'});
+  }
+  function move(dx){
+   if(!dx)return;
+   offset+=dx;
    const width=stride();
-   while(Math.abs(offset)>width/2){
+   let steps=0;
+   while(Math.abs(offset)>=width*.5 && steps++<24){
     const sign=Math.sign(offset);
     step(-sign);offset-=sign*width;
-    if(Math.abs(offset)<=width/2)break;
    }
    position(offset);
   }
+  function settle(){
+   const width=stride();
+   if(Math.abs(offset)>width*.28 && availableHeroes().length>1){
+    const sign=Math.sign(offset);
+    step(-sign);offset-=sign*width;
+   }
+   const from=offset,angle=Math.max(-19,Math.min(19,from/width*24));
+   offset=0;position(0);
+   if(from && !reduced())chosen()?.animate?.([
+    {translate:from.toFixed(1)+'px 0',transform:'perspective(600px) rotateY('+angle.toFixed(1)+'deg)'},
+    {translate:'0px 0',transform:'perspective(600px) rotateY(0deg)'}
+   ],{duration:210,easing:'cubic-bezier(.17,.75,.25,1)'});
+  }
+  function stop(){cancelAnimationFrame(coast);coast=0;offset=0;position(0)}
   root.addEventListener('pointerdown',e=>{
    if(!enabled()||pointer!==null||e.button!==0||!e.target.closest(selector)||e.target.closest('[data-step]'))return;
-   cancelAnimationFrame(coast);position(0);
-   pointer=e.pointerId;offset=velocity=0;lastX=e.clientX;lastTime=e.timeStamp;
-   root.setPointerCapture(pointer);
+   stop();pointer=e.pointerId;dragged=false;velocity=0;startX=lastX=e.clientX;lastTime=e.timeStamp;
+   root.setPointerCapture?.(pointer);
   });
   root.addEventListener('pointermove',e=>{
    if(pointer!==e.pointerId)return;
-   const dx=e.clientX-lastX;
-   if(dx){velocity=dx/Math.max(8,e.timeStamp-lastTime);move(dx);lastX=e.clientX;lastTime=e.timeStamp}
+   const dx=e.clientX-lastX,dt=Math.max(8,e.timeStamp-lastTime);
+   if(Math.abs(e.clientX-startX)>7)dragged=true;
+   if(dx){velocity=velocity*.36+dx/dt*.64;move(dx)}
+   lastX=e.clientX;lastTime=e.timeStamp;
   });
   function release(e){
    if(pointer!==e.pointerId)return;
    pointer=null;
-   if(enabled()&&e.type==='pointerup'){
-    move(e.clientX-lastX);
-    if(e.timeStamp-lastTime<90 && Math.abs(velocity)>.45 && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
-     const travel=Math.max(-2.5,Math.min(2.5,velocity))*stride()*.85;
-     const began=performance.now();let previous=0;
-     function roll(now){
-      if(!enabled()){offset=0;position(0);return}
-      const t=Math.min(1,(now-began)/320),distance=travel*(1-(1-t)**3);
-      move(distance-previous);previous=distance;
-      if(t<1)coast=requestAnimationFrame(roll);else settle();
-     }
-     coast=requestAnimationFrame(roll);return;
+   if(e.type!=='pointerup'){settle();return}
+   if(Math.abs(e.clientX-startX)>7)dragged=true;
+   move(e.clientX-lastX);
+   suppressClick=dragged;
+   // Momentum is bounded: one quick swipe can spin several owned heroes,
+   // then always settles on a single, centered hero.
+   if(dragged&&!reduced()&&e.timeStamp-lastTime<90&&Math.abs(velocity)>.35){
+    const travel=Math.max(-stride()*2.8,Math.min(stride()*2.8,velocity*260));
+    let began=null,previous=0;
+    function roll(now){
+     if(!enabled()){stop();return}
+     if(began===null)began=now;
+     const t=Math.min(1,(now-began)/390);
+     const distance=travel*(1-Math.pow(1-t,3));
+     move(distance-previous);previous=distance;
+     if(t<1)coast=requestAnimationFrame(roll);else{coast=0;settle()}
     }
+    coast=requestAnimationFrame(roll);
+    return;
    }
    settle();
   }
-  function settle(){
-   const start=offset;offset=0;position(0);
-   const item=surface()?.querySelector('.hero-card[aria-pressed="true"],.garage-portrait,.tow-preview');
-   if(item&&start&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
-    item.animate?.([{translate:start+'px 0'},{translate:'0 0'}],{duration:180,easing:'ease-out'});
-   }
-  }
   for(const event of ['pointerup','pointercancel','lostpointercapture'])root.addEventListener(event,release);
+  // A swipe over a button must never trigger its normal click afterwards.
+  root.addEventListener('click',e=>{
+   if(!suppressClick)return;
+   suppressClick=false;
+   if(!e.target.closest('[data-step]')){e.preventDefault();e.stopImmediatePropagation?.()}
+  },true);
   root.addEventListener('click',e=>{
    const arrow=e.target.closest('[data-step]');
    if(!arrow||!enabled())return;
-   cancelAnimationFrame(coast);offset=0;position(0);step(Number(arrow.dataset.step));
+   stop();step(Number(arrow.dataset.step));
    surface()?.querySelector('[data-step="'+arrow.dataset.step+'"]')?.focus({preventScroll:true});
   });
   root.addEventListener('keydown',e=>{
    if(!enabled()||!e.target.closest(selector)||!['ArrowLeft','ArrowRight'].includes(e.key))return;
-   e.preventDefault();e.stopPropagation();cancelAnimationFrame(coast);offset=0;position(0);step(e.key==='ArrowLeft'?-1:1);
-   surface()?.querySelector('[data-step="1"]')?.focus({preventScroll:true});
+   e.preventDefault();e.stopPropagation();stop();
+   const dir=e.key==='ArrowLeft'?-1:1;
+   step(dir);surface()?.querySelector('[data-step="'+dir+'"]')?.focus({preventScroll:true});
   });
  }
  bindReel($('heroes'),'.hero-options',()=>selectedHero,i=>$('hero-'+i).click(),()=>['menu','over'].includes(mode));
