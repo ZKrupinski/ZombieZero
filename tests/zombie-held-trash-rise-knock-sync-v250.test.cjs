@@ -28,7 +28,7 @@ const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  }}},
  localStorage:{getItem:()=>0,setItem:noop},Path2D:class{},
  requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,
- Math:Object.create(Math),console};
+ Math:Object.create(Math),console,calls};
 vm.createContext(sandbox);
 vm.runInContext(game+`
 {
