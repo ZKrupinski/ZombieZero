@@ -62,9 +62,9 @@ assert.equal(app.selectedHero,0,'tapping second-right card updates survivor by t
 assert.equal(slot(0).dataset.reelHero,'0','tapped survivor centers');
 const touchTarget={closest:selector=>selector==='.hero-options'?stage:null};
 events.pointerdown({type:'pointerdown',button:0,pointerId:10,clientX:260,clientY:150,timeStamp:2000,target:touchTarget});
-events.pointermove({type:'pointermove',pointerId:10,clientX:150,clientY:150,timeStamp:2100,preventDefault(){},target:touchTarget});
+events.pointermove({type:'pointermove',pointerId:10,clientX:200,clientY:150,timeStamp:2100,preventDefault(){},target:touchTarget});
 assert.equal(focus().length,0,'swipe does not flash neighboring card outlines');
-events.pointerup({type:'pointerup',pointerId:10,clientX:150,clientY:150,timeStamp:2130,target:touchTarget});
+events.pointerup({type:'pointerup',pointerId:10,clientX:200,clientY:150,timeStamp:2130,target:touchTarget});
 assert.equal(app.selectedHero,1,'dragging on game-over screen selects the next survivor');
 assert.deepEqual(focus(),[0],'new central result card alone regains focus');
 data.mechanic=true;app.window.ZZRefreshHeroReel();
