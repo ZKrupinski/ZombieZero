@@ -1660,7 +1660,15 @@ function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  swing=.22;heroAttackTime=HERO_ATTACK_DURATION;
  syncMulti();sfx('serve');feedback('serve');hud();
 }}
-function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('overlay').setAttribute('data-outcome',label);$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+(['PAUSED','GAME OVER'].includes(label)?'':' <span>↗</span>');$('label').textContent=label;$('pause-main-menu').hidden=label!=='PAUSED';if(['GAME OVER','VICTORY'].includes(label)){const earned=Math.max(0,(window.ZZProgression?.chips?.()??menuRunChipsAtStart)-menuRunChipsAtStart);if($('result-earned-chip'))$('result-earned-chip').textContent='+'+String(earned);}$('overlay').hidden=false;endlessUI()}
+function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('overlay').setAttribute('data-outcome',label);$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+(['PAUSED','GAME OVER'].includes(label)?'':' <span>↗</span>');$('label').textContent=label;$('pause-main-menu').hidden=label!=='PAUSED';if(['GAME OVER','VICTORY'].includes(label)){const earned=Math.max(0,(window.ZZProgression?.chips?.()??menuRunChipsAtStart)-menuRunChipsAtStart);if($('result-earned-chip'))$('result-earned-chip').textContent='+'+String(earned);}$('overlay').hidden=false;
+ if(['GAME OVER','VICTORY'].includes(label)){
+  // The result screen shares the same live five-card selector as the title.
+  // Repopulate from the latest owned roster AFTER the overlay is visible,
+  // so cards have measured width and the touch carousel can paint correctly.
+  renderHeroes();
+  window.ZZRefreshHeroReel?.();
+ }
+ endlessUI()}
 function pause(){releaseInput();if(mode==='playing'||mode==='clearing'||mode==='endlessShift'){resumeMode=mode;mode='paused';sfx('pause');overlay('PAUSED','좀비도 잠깐 쉬는 중...<br>게임과 스킬 시간은 정지합니다.','RESUME','PAUSED')}else if(mode==='paused'){unlockAudio();mode=resumeMode;$('overlay').hidden=true;nextBeat=0}}
 function end(reason,detail=null){
  if(mode==='over')return;
@@ -3337,7 +3345,7 @@ function portrait(h){
 function heroMiniStats(h){
  return window.ZZGarage?.heroStatMarkup?.(h,window.ZZProgression?.garage?.(),window.ZZProgression,HEROES.indexOf(h))||'';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
