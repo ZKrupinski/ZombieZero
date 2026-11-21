@@ -19,7 +19,7 @@ class AudioMock{
  createDelay(){return{delayTime:{value:0},connect:noop}}
  createDynamicsCompressor(){return{threshold:{value:0},ratio:{value:0},connect:noop}}
  createGain(){return{gain:{value:1,setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop}}
- createOscillator(){return{frequency:{setValueAtTime:noop},connect:noop,start:noop,stop:noop}}
+ createOscillator(){return{frequency:{setValueAtTime:noop,exponentialRampToValueAtTime:noop},connect:noop,start:noop,stop:noop}}
 }
 const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},
  window:{AudioContext:AudioMock,addEventListener:noop,
