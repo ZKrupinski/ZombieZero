@@ -1502,3 +1502,89 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  color:#fbe29a!important;
 }
 #overlay[data-screen="results"] #hero-stats{display:none!important}
+
+
+/* v254 result dock = title dock: the same three raster icons, one compact
+   centered group, no rectangular button plates. Result-only changes. */
+#overlay[data-screen="results"] #main-dock{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ box-sizing:border-box!important;
+ width:min(79%,calc(310px * var(--ui-scale,1)))!important;
+ max-width:100%!important;
+ height:calc(93px * var(--ui-scale,1))!important;
+ min-height:calc(65px * var(--ui-scale,1))!important;
+ max-height:20svh!important;
+ padding:0!important;
+ margin:calc(3px * var(--ui-scale,1)) auto 0!important;
+ column-gap:calc(2px * var(--ui-scale,1))!important;
+ row-gap:0!important;
+ align-items:stretch!important;
+ justify-content:center!important;
+ justify-items:stretch!important;
+ align-self:center!important;
+ flex:none!important;
+}
+#overlay[data-screen="results"] #main-dock>button{
+ display:flex!important;
+ flex-direction:column!important;
+ box-sizing:border-box!important;
+ align-items:center!important;
+ justify-content:flex-end!important;
+ justify-self:center!important;
+ width:100%!important;
+ height:100%!important;
+ min-height:0!important;
+ min-width:0!important;
+ padding:0 0 3px!important;
+ margin:0!important;
+ gap:0!important;
+ border:0!important;
+ outline-offset:-2px!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ color:#fff2d0!important;
+ text-shadow:0 2px 2px #071821,0 0 5px #091b2b!important;
+ font:900 clamp(10px,calc(13px * var(--ui-scale,1)),14px)/1 Arial,'Noto Sans KR',sans-serif!important;
+}
+#overlay[data-screen="results"] #main-dock>button::before{
+ display:block!important;
+ content:""!important;
+ width:min(96%,calc(83px * var(--ui-scale,1)))!important;
+ min-width:0!important;
+ max-width:none!important;
+ max-height:none!important;
+ height:auto!important;
+ aspect-ratio:1/1!important;
+ flex:none!important;
+ margin-left:auto!important;
+ margin-right:auto!important;
+ background-image:url(assets/ui/main-dock.webp)!important;
+ background-size:300% 100%!important;
+ background-repeat:no-repeat!important;
+ filter:drop-shadow(0 6px 3px #041422af)!important;
+}
+#overlay[data-screen="results"] #main-dock>button:active::before{
+ transform:scale(.92) translateY(2px);
+}
+#overlay[data-screen="results"] #main-dock>button:focus-visible{
+ outline:2px solid #f4e7aa!important;
+ outline-offset:0!important;
+ border-radius:7px!important;
+}
+#overlay[data-screen="results"] #main-dock .zz-chip-amount{
+ top:0!important;right:1px!important;
+ background:#102a3aaf;
+ padding:1px 3px;
+ border-radius:4px;
+}
+@media(max-height:630px){
+ #overlay[data-screen="results"] #main-dock{
+  height:calc(78px * var(--ui-scale,1))!important;
+  max-height:19svh!important;
+ }
+ #overlay[data-screen="results"] #main-dock>button::before{
+  width:min(96%,calc(69px * var(--ui-scale,1)))!important;
+ }
+}
