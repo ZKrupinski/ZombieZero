@@ -17,6 +17,9 @@ const TYPES=[{color:'#a9d67c',top:'#dcf3b1',side:'#60945b',hp:1,name:'그린'},{
 const SLOW_ENEMY_SPEED_RATE=.10,SLOW_HOSTILE_SHOT_RATE=.10;
 const enemySlowRate=()=>has('slow')?SLOW_ENEMY_SPEED_RATE:1;
 const hostileShotSlowRate=()=>has('slow')?SLOW_HOSTILE_SHOT_RATE:1;
+// v232: Independent continuous sprite timeline. Enemy animation frames slow
+// with the enemy's movement, while the ball, hero, UI and combat clocks don't.
+let enemyAnimationClock=0;
 const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:10,color:'#ff9763',desc:'점화 최대 2명 · 전염 1회',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:14,color:'#86f2e0',desc:'좀비와 적 투사체는 질질~ 공은 쌩쌩!',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},pierce:{name:'관통샷',duration:10,color:'#ffe88a',desc:'10초간 적을 관통 · 충돌당 크리티컬 피해 ×2',icon:'<circle cx="7" cy="16" r="4"/><path d="M12 16h17M22 8l7 8-7 8M17 11h7"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,ballVanish=[],criticalPopups=[],itemPickupFX=[],clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
@@ -2126,7 +2129,7 @@ function update(dt){
   const sec=Math.floor(endlessSurvival);
   if(sec!==endlessHudSecond){endlessHudSecond=sec;$('survival-time').textContent=survivalClock(endlessSurvival)}
  }
- clock+=dt;updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;advanceVisualQueue(fx,dt);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);compactVisualQueue(particles,particleAlive);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
+ clock+=dt;enemyAnimationClock+=dt*enemySlowRate();updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;advanceVisualQueue(fx,dt);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);compactVisualQueue(particles,particleAlive);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
 if(standRetreat.length){updateStandRetreat();return}
 if(mode==='endlessShift'){updateEndlessShift(dt);return}
 if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt);comboDisplayTime=Math.max(0,comboDisplayTime-dt)}
@@ -2414,10 +2417,10 @@ function drawEnemyDeaths(){
  }
 }
 function zombie(z){
- if(z.boss&&window.ZZLargeBossSprites?.draw(g,z,clock))return;
- if(!z.boss&&window.ZZEliteSprites?.draw(g,z,clock))return;
+ if(z.boss&&window.ZZLargeBossSprites?.draw(g,z,enemyAnimationClock))return;
+ if(!z.boss&&window.ZZEliteSprites?.draw(g,z,enemyAnimationClock))return;
  const originalObject=window.ZZObjectSprite;
- if(originalObject?.draw(g,z,clock)){
+ if(originalObject?.draw(g,z,enemyAnimationClock)){
   if(z.burn>0){
    g.save();g.globalAlpha=.8;g.fillStyle='#ffb066';
    for(let i=0;i<3;i++)g.fillRect(z.x+6+i*11,z.y-9+Math.sin(clock*13+i)*4,3,9);
@@ -2425,7 +2428,7 @@ function zombie(z){
   }
   return;
  }
- if(!z.boss&&(z.form??0)===0&&window.ZZGreenWalk?.draw(g,z,clock))return;
+ if(!z.boss&&(z.form??0)===0&&window.ZZGreenWalk?.draw(g,z,enemyAnimationClock))return;
  if(!z.boss&&(z.form??0)===0&&window.ZZGreenDeath?.ready===true)
   window.ZZGreenDeath.draw(g,z,false,0);
  // No generic rectangle/cube placeholder. The source sprite is mandatory.
@@ -3904,7 +3907,7 @@ function drawBossTrashShots(){
  spitBloomDraws.length=0;
  for(const z of foes){
   if(trashThrower(z)&&z.throwWindup>0){
-   const sway=Math.sin(clock*16)*2,size=z.boss?40:z.eliteKind===0?24:28;
+   const sway=Math.sin(enemyAnimationClock*16)*2,size=z.boss?40:z.eliteKind===0?24:28;
    drawThrowable(z.throwKind,z.x+z.w*.75,z.y+(z.boss?-4:4)+sway,size,-.2);
   }
   if(spitThrower(z)&&z.spitWindup>0){
