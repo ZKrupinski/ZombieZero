@@ -7,7 +7,7 @@ assert(game.includes('function shotTouchesHero('));
 assert(game.includes('function updatePoisonStatus('));
 assert(game.includes('function projectilePressure('));
 assert(game.includes('function drawNeonSpit('));
-assert(html.includes('v161-neon-spit-poison')&&html.includes('v=161-elite-spit'));
+assert(html.includes('v161-neon-spit-poison')&&/elite-zombies-v145\.js\?v=(161-elite-spit|253-original-50l-sharp-alpha)/.test(html));
 assert(sw.includes('v161-neon-spit-poison'));
 assert(loader.includes('z.spitWindup>0)row=CLIPS.attack'));
 const noop=()=>{},els={};
