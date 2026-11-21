@@ -33,7 +33,7 @@
    '<div class="garage-reel-copy"><span class="garage-reel-count">OWNED</span>'+
    '<h3>'+HEROES[h].name+'</h3>'+
    '<p>'+styles[h]+'</p>'+
-   '<small>숙련 '+xp+' / '+(xp>=10?'도색 해금':'10 웨이브')+'</small></div></div>';
+   '<small>숙련 '+xp+' 클리어</small></div></div>';
  }
  let refreshGarageReel=()=>{};
  function render(){
