@@ -224,15 +224,16 @@
     }
    return null;
   }
-  function paint(out,eye,fx,fy,depth,lean){
+  function paint(out,eye,fx,fy,depth,lean,reference=eye){
    const color=skinColor(fx,fy,eye);
    if(!color)return;
    for(let dx=0;dx<eye.w;dx++){
     const curve=Math.abs((dx+.5)/eye.w-.5)*2;
-    // Fixed normalized lid position within all frames of a direction.
-    // Shallow corners avoid squared patches and random blinking edges.
+    // Freeze depth and curvature to the median eye geometry of the entire
+    // eight-frame direction. The eyelid travels with the original eye, but
+    // it cannot change thickness when its bounding box wobbles by a pixel.
     const edge=Math.max(1,Math.min(eye.h-2,Math.round(
-      eye.h*(depth-.055*curve+lean*((dx+.5)/eye.w-.5)))));
+      reference.h*(depth-.045*curve+lean*((dx+.5)/eye.w-.5)))));
     for(let dy=0;dy<=edge;dy++){
      const x=fx+eye.x+dx,y=fy+eye.y+dy;
      // Restrict to original eye paint only. This expressly excludes dark brows.
@@ -250,14 +251,14 @@
   const expressions={};
   for(const kind of ['half-lid','raised-brow']){
    const pixels=new Uint8ClampedArray(src);
-   for(const {row,group} of stable)for(let col=0;col<cols;col++){
+   for(const {row,group,reference} of stable)for(let col=0;col<cols;col++){
     const eyes=group[col],fx=col*cell,fy=row*cell;
     for(let k=0;k<2;k++){
      // raised-brow is a legacy save-data key; the art is an asymmetric squint,
      // not an eyebrow pasted on top of the approved source brow.
      const sleepy=kind==='half-lid';
-     const depth=sleepy?(k===0?.43:.39):(k===0?.29:.15);
-     paint(pixels,eyes[k],fx,fy,depth,sleepy?.025:-.035);
+     const depth=sleepy?(k===0?.38:.37):(k===0?.27:.14);
+     paint(pixels,eyes[k],fx,fy,depth,sleepy?.025:-.035,reference[k]);
     }
    }
    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -344,15 +345,18 @@
      if(!isWhite(xx,yy)&&!isPupil(xx,yy))continue;
      // Remove the original rectangular red pupil before drawing the heart.
      if(isPupil(xx,yy))makePixel(out,xx,yy,...shade);
-     const u=(x-cx)/(eye.w*.44),v=-(y-cy)/(eye.h*.49);
+     // About 60% of the prior width/height: a cute pupil motif with
+     // plenty of original eye white, not a large blood-red eyeball.
+     const u=(x-cx)/(eye.w*.255),v=-(y-cy)/(eye.h*.30);
      const f=Math.pow(u*u+v*v-1,3)-u*u*Math.pow(v,3);
      if(f>.005)continue;
-     const border=Math.abs(f)<.25;
+     const border=Math.abs(f)<.18;
      const bright=(u<-.08&&v>.10&&v<.67);
+     // Warm candy-pink pixel shading; eliminate the scary black-red rim.
      makePixel(out,xx,yy,
-      border?151:bright?246:216,
-      border?27:bright?115:43,
-      border?52:bright?139:73);
+      border?176:bright?253:234,
+      border?65:bright?173:102,
+      border?100:bright?189:137);
     }
    }
   }
@@ -383,7 +387,10 @@
    const ry=Math.min(10,Math.max(5.4,mouth.h*.88+2.7));
    for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++)
     for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){
-     if(x<22||x>105||y<60||y>99)continue;
+     // Restrict the opening to the actual authored mouth and a tiny
+     // extension below it. Never paint the nose/bridge above its lip.
+     if(x<22||x>105||x<mouth.x-3||x>mouth.x+mouth.w+2||
+        y<mouth.y||y>mouth.y+mouth.h+3)continue;
      const xx=fx+x,yy=fy+y,i=at(xx,yy);
      if(src[i+3]<240)continue;
      // This guard rejects shirt/neck and is independent of palette variations.
@@ -394,9 +401,9 @@
      const lip=ell>.75;
      const tongue=v>.29&&Math.abs(u)<.47;
      makePixel(out,xx,yy,
-       lip?143:tongue?213:73,
-       lip?36:tongue?81:23,
-       lip?52:tongue?89:34);
+       lip?168:tongue?224:119,
+       lip?68:tongue?110:49,
+       lip?79:tongue?122:66);
     }
   }
   function lazyPaletteSet(canvas){
@@ -416,6 +423,23 @@
    set.length=tones.length;
    return set;
   }
+
+  function preserveNoseBridge(out,eyes,mouth,fx,fy){
+   if(!mouth||eyes.length!==2)return;
+   // The nose belongs to the original mesh, not the facial cosmetics.
+   // Restore the narrow central bridge exactly even when mouth/pupil masks
+   // approach it at some diagonal frames.
+   const x0=Math.max(0,eyes[0].x+eyes[0].w);
+   const x1=Math.min(cell,eyes[1].x);
+   if(x1<=x0)return;
+   const y0=Math.max(0,Math.min(eyes[0].y+eyes[0].h,
+      eyes[1].y+eyes[1].h)-3);
+   const y1=Math.min(cell,mouth.y);
+   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+    const i=at(fx+x,fy+y);
+    out[i]=src[i];out[i+1]=src[i+1];out[i+2]=src[i+2];
+   }
+  }
   const faceStyles={
    'heart-eyes':{heart:true},
    'extra-teeth':{teeth:true},
@@ -426,17 +450,18 @@
   };
   for(const [kind,style] of Object.entries(faceStyles)){
    const out=new Uint8ClampedArray(src);
-   for(const {row,group} of stable){
+   for(const {row,group,reference} of stable){
     const mouthTrack=mouthsByRow[row];
     for(let col=0;col<cols;col++){
      const fx=col*cell,fy=row*cell,eyes=group[col],mouth=mouthTrack?.[col];
      if(style.uneven){
-      paint(out,eyes[0],fx,fy,.58,.03);
-      paint(out,eyes[1],fx,fy,.13,-.02);
+      paint(out,eyes[0],fx,fy,.46,.025,reference[0]);
+      paint(out,eyes[1],fx,fy,.14,-.02,reference[1]);
      }
      if(style.heart)heartEyes(out,fx,fy,eyes);
      if(style.teeth)extraTeeth(out,fx,fy,mouth);
      if(style.jaw)slackJaw(out,fx,fy,mouth);
+     preserveNoseBridge(out,eyes,mouth,fx,fy);
     }
    }
    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;

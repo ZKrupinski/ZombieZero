@@ -12,6 +12,8 @@ assert(!deathCode.includes("green-death-'+kind+'-v95-'+name+'.webp'"),'do not us
 assert.match(deathCode,/part.expressions=\{\}/,'dying characters use original facial art');
 assert.match(html,/v291-hair-mask/);
 assert.match(sw,/v291-hair-mask/);
+assert.match(sw,/v294-small-hearts-locked-lids/);
+assert.match(paletteCode,/reference\.h\*\(depth/);
 class Canvas{
  constructor(){this.width=0;this.height=0;this.pixels=null}
  getContext(){

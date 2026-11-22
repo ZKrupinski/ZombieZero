@@ -16,6 +16,9 @@ assert.match(walkCode,/expressions\[z\.expression\]/,'active sprite uses express
 assert.match(paletteCode,/lazyPaletteSet\(/,'rare palettes made only if needed');
 assert.match(html,/v292-face-mix/);
 assert.match(sw,/v292-face-mix/);
+assert.match(sw,/v294-small-hearts-locked-lids/);
+assert.match(paletteCode,/reference\.h\*\(depth/,'eyelid thickness frozen to per-direction reference');
+assert.match(paletteCode,/preserveNoseBridge\(out,eyes,mouth,fx,fy\)/);
 // Small actual-PNG decoder for the approved unmodified 8-bit RGBA walking atlas.
 // The tests render against production image pixels, not only mocked rectangles.
 function decodeRGBA(data){
@@ -103,6 +106,21 @@ for(const name of labels){
  // In particular, never return to default teeth/jaw on diagonal movement.
  assert(counts.every(row=>row.every(n=>n>0)),
   name+': facial feature must exist in front and both diagonal walks');
+ if(name==='heart-eyes'){
+  // Before the fix a front sprite changed ~500+ pixels. The new, smaller
+  // candy hearts must fit in less than 65% of that area.
+  assert(counts[0].every(n=>n<335), 'heart eyes must be modest, not oversized');
+ }
+ // Center bridge pixels above the original mouth may never become a
+ // synthetic dark nose (particularly with an open-mouth expression).
+ if(name==='slack-jaw'||name==='uneven-jaw'){
+  const original=img.pixels,edited=atlas;
+  for(let f=0;f<8;f++)for(let y=66;y<71;y++)for(let x=61;x<65;x++){
+   const i=(y*1024+f*128+x)*4;
+   assert.deepEqual([...edited.slice(i,i+3)],[...original.slice(i,i+3)],
+    'the original nose bridge must be untouched');
+  }
+ }
  console.log('FACE '+name+' changed px per row/frame: '+JSON.stringify(counts));
 }
 for(const name of ['heart-eyes','extra-teeth','slack-jaw']){
