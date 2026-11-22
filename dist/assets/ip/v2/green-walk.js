@@ -31,7 +31,12 @@
    image,ready:false,failed:false,cell:128,variants:[image],
    groups:{down:[0,8],left:[8,8],right:[16,8],hurt:[24,2]},
    getFrame(z,t){
-     if((z.recoil||0)>.015)return 24+Math.min(1,Math.floor(Math.max(0,.22-z.recoil)/.11));
+     // A hit temporarily swaps the 8-frame face for unedited hurt frames,
+     // which made rare eyes/lids appear to twitch on every ball impact.
+     // Preserve the expression's walk face during recoil; hit flash,
+     // knockback and the rest of the damage response remain unchanged.
+     if((z.recoil||0)>.015&&!z.expression)
+       return 24+Math.min(1,Math.floor(Math.max(0,.22-z.recoil)/.11));
      const vx=z.moveDir||0;
      const [start,count]=vx<-.3?pack.groups.left:vx>.3?pack.groups.right:pack.groups.down;
      // Match all object zombies: slower steps, individual phase and +/-8% pace.

@@ -224,27 +224,21 @@
     }
    return null;
   }
-  function paint(out,eye,fx,fy,depth,lean,reference=eye){
-   const color=skinColor(fx,fy,eye);
+  function paint(out,eye,fx,fy,depth,lean,reference=eye,skinTone=null){
+   // A static, flat voxel eyelid with a single baked height for the entire
+   // eight-frame direction. No frame-dependent shaded seam or animated fold.
+   const color=skinTone||skinColor(fx,fy,eye);
    if(!color)return;
+   const cut=Math.max(1,Math.round(reference.h*depth));
    for(let dx=0;dx<eye.w;dx++){
-    const curve=Math.abs((dx+.5)/eye.w-.5)*2;
-    // Freeze depth and curvature to the median eye geometry of the entire
-    // eight-frame direction. The eyelid travels with the original eye, but
-    // it cannot change thickness when its bounding box wobbles by a pixel.
-    const edge=Math.max(1,Math.min(eye.h-2,Math.round(
-      reference.h*(depth-.045*curve+lean*((dx+.5)/eye.w-.5)))));
-    for(let dy=0;dy<=edge;dy++){
+    // Corners remain gently bevelled by the eye-white mask, never eyebrow ink.
+    const left=Math.round(reference.w*.11);
+    const cap=Math.max(1,Math.min(eye.h-2,cut-(dx<left||dx>=eye.w-left?1:0)));
+    for(let dy=0;dy<=cap;dy++){
      const x=fx+eye.x+dx,y=fy+eye.y+dy;
-     // Restrict to original eye paint only. This expressly excludes dark brows.
      if(!isWhite(x,y)&&!isPupil(x,y))continue;
      const i=at(x,y);
-     const fold=dy===edge,weight=fold?.76:.97;
-     for(let c=0;c<3;c++){
-      // Subtle shaded seam; no new black line above the eye.
-      const tone=fold?color[c]*.81:color[c];
-      out[i+c]=Math.round(src[i+c]*(1-weight)+tone*weight);
-     }
+     out[i]=color[0];out[i+1]=color[1];out[i+2]=color[2];
     }
    }
   }
@@ -258,7 +252,7 @@
      // not an eyebrow pasted on top of the approved source brow.
      const sleepy=kind==='half-lid';
      const depth=sleepy?(k===0?.38:.37):(k===0?.27:.14);
-     paint(pixels,eyes[k],fx,fy,depth,sleepy?.025:-.035,reference[k]);
+     paint(pixels,eyes[k],fx,fy,depth,0,reference[k],skinColor(0,row*cell,group[0][k]));
     }
    }
    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -333,33 +327,52 @@
    if(src[i+3]<230)return;
    out[i]=Math.round(r);out[i+1]=Math.round(g);out[i+2]=Math.round(b);
   }
-  function heartEyes(out,fx,fy,eyes){
-   for(const eye of eyes){
-    const cx=eye.x+(eye.w-1)*.5,cy=eye.y+(eye.h-1)*.51;
-    // Preserve every white edge of the original eye and every dark eyebrow.
+  // A fixed, six-row voxel heart. Unlike the previous cubic heart equation,
+  // this has no floating-point cusp, highlight flare, antialias or dark rim.
+  const HEART_PIXELS=[
+   '0110110',
+   '1111111',
+   '1111111',
+   '0111110',
+   '0011100',
+   '0001000'
+  ];
+  function heartEyes(out,fx,fy,eyes,reference){
+   for(let k=0;k<eyes.length;k++){
+    const eye=eyes[k],ref=reference?.[k]||eye;
+    const cx=Math.round(eye.x+(eye.w-1)*.5);
+    const cy=Math.round(eye.y+(eye.h-1)*.52);
     const whites=[];
     for(let y=eye.y;y<eye.y+eye.h;y++)
      for(let x=eye.x;x<eye.x+eye.w;x++)
-      if(isWhite(fx+x,fy+y)){const i=at(fx+x,fy+y);whites.push([src[i],src[i+1],src[i+2]])}
+      if(isWhite(fx+x,fy+y)){
+       const i=at(fx+x,fy+y);whites.push([src[i],src[i+1],src[i+2]]);
+      }
     if(!whites.length)continue;
-    const shade=[0,1,2].map(k=>median(whites.map(c=>c[k])));
+    const shade=[0,1,2].map(c=>median(whites.map(v=>v[c])));
+    // Erase EVERY old pink/red pupil fragment, not just the pure-red core.
+    // Otherwise the leftover pink antialiasing looks like flames over a heart.
     for(let y=eye.y;y<eye.y+eye.h;y++)for(let x=eye.x;x<eye.x+eye.w;x++){
-     const xx=fx+x,yy=fy+y;
-     if(!isWhite(xx,yy)&&!isPupil(xx,yy))continue;
-     // Remove the original rectangular red pupil before drawing the heart.
-     if(isPupil(xx,yy))makePixel(out,xx,yy,...shade);
-     // About 60% of the prior width/height: a cute pupil motif with
-     // plenty of original eye white, not a large blood-red eyeball.
-     const u=(x-cx)/(eye.w*.255),v=-(y-cy)/(eye.h*.30);
-     const f=Math.pow(u*u+v*v-1,3)-u*u*Math.pow(v,3);
-     if(f>.005)continue;
-     const border=Math.abs(f)<.18;
-     const bright=(u<-.08&&v>.10&&v<.67);
-     // Warm candy-pink pixel shading; eliminate the scary black-red rim.
-     makePixel(out,xx,yy,
-      border?176:bright?253:234,
-      border?65:bright?173:102,
-      border?100:bright?189:137);
+     const xx=fx+x,yy=fy+y,i=at(xx,yy);
+     const r=src[i],g=src[i+1],b=src[i+2];
+     const pink=src[i+3]>=210&&r>=97&&r>g*1.12&&r>b*1.11&&g<215;
+     if(pink)makePixel(out,xx,yy,...shade);
+    }
+    // Fixed-size pixel motif; the white of the eyes remains very visible.
+    // 7x6 pixels at normal size, 5x5 when the diagonal eye is narrow.
+    const sizeX=ref.w<13?5:7,sizeY=ref.h<12?5:6;
+    for(let sy=0;sy<sizeY;sy++)for(let sx=0;sx<sizeX;sx++){
+     const mx=Math.min(6,Math.floor((sx+.5)/sizeX*7));
+     const my=Math.min(5,Math.floor((sy+.5)/sizeY*6));
+     if(HEART_PIXELS[my][mx]!=='1')continue;
+     const x=fx+cx+sx-Math.floor(sizeX/2);
+     const y=fy+cy+sy-Math.floor(sizeY/2);
+     if(x<fx+eye.x||x>=fx+eye.x+eye.w||
+        y<fy+eye.y||y>=fy+eye.y+eye.h)continue;
+     const i=at(x,y);
+     // No painted heart outside the actual original eyeball.
+     if(src[i+3]<210||(!isWhite(x,y)&&!isPupil(x,y)))continue;
+     makePixel(out,x,y,232,109,137);
     }
    }
   }
@@ -385,28 +398,21 @@
   }
   function slackJaw(out,fx,fy,mouth){
    if(!mouth)return;
-   const cx=mouth.x+mouth.w/2,cy=mouth.y+mouth.h/2+1.2;
-   const rx=Math.min(16,Math.max(6.4,mouth.w*.56));
-   const ry=Math.min(10,Math.max(5.4,mouth.h*.88+2.7));
-   for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++)
-    for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){
-     // Restrict the opening to the actual authored mouth and a tiny
-     // extension below it. Never paint the nose/bridge above its lip.
-     if(x<22||x>105||x<mouth.x-3||x>mouth.x+mouth.w+2||
-        y<mouth.y||y>mouth.y+mouth.h+3)continue;
-     const xx=fx+x,yy=fy+y,i=at(xx,yy);
-     if(src[i+3]<240)continue;
-     // This guard rejects shirt/neck and is independent of palette variations.
-     const r=src[i],g=src[i+1],b=src[i+2];
-     if(!isSkin(xx,yy)&&!redMouth(xx,yy)&&!(r>150&&g>145&&b>125))continue;
-     const u=(x-cx)/rx,v=(y-cy)/ry,ell=u*u+v*v;
-     if(ell>1)continue;
-     const lip=ell>.75;
-     const tongue=v>.29&&Math.abs(u)<.47;
+   // Recolor the mouth INTERIOR only; do not draw skin, a dark nose, any
+   // nostrils, or a second oval over the actual voxel face.
+   const cx=mouth.x+(mouth.w-1)*.5,cy=mouth.y+(mouth.h-1)*.52;
+   const rx=Math.max(2,mouth.w*.47),ry=Math.max(2,mouth.h*.48);
+   for(let y=mouth.y+1;y<mouth.y+mouth.h-1;y++)
+    for(let x=mouth.x+1;x<mouth.x+mouth.w-1;x++){
+     const xx=fx+x,yy=fy+y;
+     if(!redMouth(xx,yy))continue;
+     const u=(x-cx)/rx,v=(y-cy)/ry;
+     if(u*u+v*v>.80)continue;
+     const tongue=v>.36&&Math.abs(u)<.42;
      makePixel(out,xx,yy,
-       lip?168:tongue?224:119,
-       lip?68:tongue?110:49,
-       lip?79:tongue?122:66);
+      tongue?216:144,
+      tongue?102:62,
+      tongue?119:78);
     }
   }
   function lazyPaletteSet(canvas){
@@ -442,10 +448,10 @@
     for(let col=0;col<cols;col++){
      const fx=col*cell,fy=row*cell,eyes=group[col],mouth=mouthTrack?.[col];
      if(style.uneven){
-      paint(out,eyes[0],fx,fy,.46,.025,reference[0]);
-      paint(out,eyes[1],fx,fy,.14,-.02,reference[1]);
+      paint(out,eyes[0],fx,fy,.43,0,reference[0],skinColor(0,row*cell,group[0][0]));
+      paint(out,eyes[1],fx,fy,.14,0,reference[1],skinColor(0,row*cell,group[0][1]));
      }
-     if(style.heart)heartEyes(out,fx,fy,eyes);
+     if(style.heart)heartEyes(out,fx,fy,eyes,reference);
      if(style.teeth)extraTeeth(out,fx,fy,mouth);
      if(style.jaw)slackJaw(out,fx,fy,mouth);
     }

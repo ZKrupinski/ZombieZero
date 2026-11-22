@@ -14,6 +14,10 @@ for(const name of labels)assert(game.includes("'"+name+"'"),'spawn pool includes
 assert.match(game,/hairColor:hairRoll<\.10\?'blond'/);
 assert.match(walkCode,/expressions\[z\.expression\]/,'active sprite uses expression atlas');
 assert.match(paletteCode,/lazyPaletteSet\(/,'rare palettes made only if needed');
+assert.match(paletteCode,/const HEART_PIXELS=/,'single-color pixel hearts');
+assert.doesNotMatch(paletteCode,/Math\.pow\(u\*u\+v\*v-1,3\)/,'remove flame-like cubic cusp');
+assert.match(paletteCode,/if\(!redMouth\(xx,yy\)\)continue/,'mouth does not paint skin or fake noses');
+assert.match(walkCode,/recoil\|\|0\)>\.015&&!z\.expression/,'no facial flicker when hit');
 assert.match(html,/v292-face-mix/);
 assert.match(sw,/v292-face-mix/);
 assert.match(sw,/v294-small-hearts-locked-lids/);
@@ -73,6 +77,12 @@ const img=decodeRGBA(fs.readFileSync(path.join(BASE,'assets/ip/v2/green_zombie.p
 assert.equal(img.naturalWidth,1024);assert.equal(img.naturalHeight,512);
 
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
+// Preserve expression frames while a hit is flashing instead of switching
+// to a temporary expression-less hurt face.
+const walkCtx={window:{},Image:class {constructor(){this.naturalWidth=1024;this.naturalHeight=512} set src(v){this._src=v;this.onload?.()} get src(){return this._src}},Math};
+vm.createContext(walkCtx);vm.runInContext(walkCode,walkCtx);
+assert(walkCtx.window.ZZGreenWalk.getFrame({recoil:.12,expression:'heart-eyes',moveDir:0,seed:1},.42)<24);
+assert(walkCtx.window.ZZGreenWalk.getFrame({recoil:.12,expression:null,moveDir:0,seed:1},.42)>=24);
 for(const name of labels)assert(faces[name]?.length===5,'face atlas is populated: '+name);
 function changes(a,b,row,frame){
  let n=0,eyebrow=0,changedBelow=0;
