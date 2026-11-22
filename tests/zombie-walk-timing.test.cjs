@@ -50,5 +50,7 @@ assert(!gallerySource.includes('Math.floor(seconds*9)%8'),'old gallery 9fps play
 assert(objectSource.includes('return group[0]+Math.floor((Math.max(0,seconds)*timing.fps+timing.phase)%group[1])'),
  'walking phase independent of all other enemies');
 assert(objectSource.includes('const first=critical?28:26'),'death frames unchanged');
-assert(greenSource.includes('if((z.recoil||0)>.015)'),'green hit speed unchanged');
+assert(greenSource.includes('if((z.recoil||0)>.015&&!z.expression)'),'classic green hit speed unchanged');
+const faceActor={seed:.2,form:0,moveDir:0,recoil:.2,expression:'heart-eyes'};
+assert(green.getFrame(faceActor,3)<24,'expressive face survives hits rather than popping to plain hurt sprite');
 console.log('PASS: ~6.4fps walking, per-zombie phase and mild independent speed differences, green/object directions, hit/death unaffected');

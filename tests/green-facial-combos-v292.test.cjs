@@ -21,7 +21,7 @@ assert.match(walkCode,/recoil\|\|0\)>\.015&&!z\.expression/,'no facial flicker w
 assert.match(html,/v292-face-mix/);
 assert.match(sw,/v292-face-mix/);
 assert.match(sw,/v294-small-hearts-locked-lids/);
-assert.match(paletteCode,/reference\.h\*\(depth/,'eyelid thickness frozen to per-direction reference');
+assert.match(paletteCode,/Math\.round\(reference\.h\*depth/,'eyelid thickness frozen to per-direction reference');
 assert.match(paletteCode,/y<mouth\.y\|\|y>mouth\.y\+mouth\.h\+3/,'mouth stays entirely below the nasal bridge');
 assert.doesNotMatch(paletteCode,/preserveNoseBridge/,'no eye pixels restored by a second pass');
 // Small actual-PNG decoder for the approved unmodified 8-bit RGBA walking atlas.

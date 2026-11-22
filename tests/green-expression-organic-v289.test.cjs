@@ -13,7 +13,7 @@ assert.match(deathCode,/part.expressions=\{\}/,'dying characters use original fa
 assert.match(html,/v291-hair-mask/);
 assert.match(sw,/v291-hair-mask/);
 assert.match(sw,/v294-small-hearts-locked-lids/);
-assert.match(paletteCode,/reference\.h\*\(depth/);
+assert.match(paletteCode,/Math\.round\(reference\.h\*depth/);
 class Canvas{
  constructor(){this.width=0;this.height=0;this.pixels=null}
  getContext(){
