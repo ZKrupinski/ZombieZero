@@ -61,7 +61,7 @@ window.ZZGarage = (() => {
    if(data.tickets<count)return;
    data.tickets-=count;data.calls=[];
    for(let i=0;i<count;i++){
-    const survivor=data.mechanic?Math.floor(Math.random()*5):3;
+    const survivor=data.mechanic?Math.floor(Math.random()*4):3;
     if(data.mechanic){
      data.badges++;
      data.xp[survivor]=(data.xp[survivor]||0)+1;
