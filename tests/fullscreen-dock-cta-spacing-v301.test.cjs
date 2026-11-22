@@ -10,7 +10,10 @@ assert.match(worker,/v301-fullscreen-dock-gap/,'offline app cache refresh');
 assert.match(app,/const fn=root.requestFullscreen\|\|root.webkitRequestFullscreen/,'fullscreen element is the document root');
 const mark=css.lastIndexOf('/* v301 — The native fullscreen viewport');
 assert(mark>0,'full-screen-only override found');
-const block=css.slice(mark);
+// Scope v301 invariants to their own historical CSS block; later
+// character-specific title/result overrides must not fail this test.
+const nextOverride=css.indexOf('/* v303:',mark);
+const block=css.slice(mark,nextOverride>mark?nextOverride:undefined);
 assert.match(block,/html:fullscreen #overlay\[data-screen="selection"\] #heroes\{/);
 assert.match(block,/flex:0 0 calc\(30% - 12px \* var\(--ui-scale,1\)\)!important/);
 assert.match(block,/height:calc\(30% - 12px \* var\(--ui-scale,1\)\)!important/);
