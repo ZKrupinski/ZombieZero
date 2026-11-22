@@ -2218,3 +2218,88 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  object-fit:contain!important;
  object-position:center bottom!important;
 }
+
+/* v300 — Identical lower menu dock in browser window and native fullscreen.
+   Earlier height <= 630px rules shrank icons from 83px to 69px and
+   normal flex flow moved the dock up when the browser chrome appeared.
+   Anchor the approved 3-icon raster dock to the fixed 450x710 BOARD,
+   never to svh/dvh or the browser viewport. All units use --ui-scale.
+   This is selection-only: game-over/pause layouts remain unchanged. */
+#overlay[data-screen="selection"]{
+ position:absolute;
+}
+#overlay[data-screen="selection"]::after{
+ content:"";
+ display:block;
+ flex:0 0 calc(96px * var(--ui-scale,1));
+ width:0;
+ height:0;
+ min-height:0;
+ pointer-events:none;
+}
+/* Keep a reserved layout slot above even though the menu is visually
+   bottom-anchored. This prevents the hero/START/ENDLESS stack from
+   expanding into the menu zone when fullscreen is toggled. */
+#overlay[data-screen="selection"] #main-dock{
+ position:absolute!important;
+ left:50%!important;
+ right:auto!important;
+ top:auto!important;
+ bottom:calc(54px * var(--ui-scale,1))!important;
+ transform:translateX(-50%)!important;
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ box-sizing:border-box!important;
+ width:min(79%,calc(310px * var(--ui-scale,1)))!important;
+ max-width:calc(100% - 12px * var(--ui-scale,1))!important;
+ height:calc(93px * var(--ui-scale,1))!important;
+ min-height:0!important;
+ max-height:none!important;
+ margin:0!important;
+ padding:0!important;
+ gap:calc(2px * var(--ui-scale,1))!important;
+ align-items:stretch!important;
+ justify-items:stretch!important;
+ z-index:4!important;
+}
+#overlay[data-screen="selection"] #main-dock>button{
+ position:relative!important;
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:center!important;
+ justify-content:flex-end!important;
+ width:100%!important;
+ min-width:0!important;
+ height:100%!important;
+ min-height:0!important;
+ margin:0!important;
+ padding:0 0 calc(3px * var(--ui-scale,1))!important;
+ gap:0!important;
+ border:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ color:#fff2d0!important;
+ font:900 calc(13px * var(--ui-scale,1))/1 Arial,'Noto Sans KR',sans-serif!important;
+ text-shadow:0 2px 2px #071821,0 0 5px #091b2b!important;
+}
+#overlay[data-screen="selection"] #main-dock>button::before{
+ content:""!important;
+ display:block!important;
+ flex:none!important;
+ box-sizing:border-box!important;
+ width:min(96%,calc(83px * var(--ui-scale,1)))!important;
+ height:auto!important;
+ min-width:0!important;
+ max-width:none!important;
+ max-height:none!important;
+ aspect-ratio:1/1!important;
+ margin:0 auto!important;
+ background-image:url(assets/ui/main-dock.webp)!important;
+ background-size:300% 100%!important;
+ background-repeat:no-repeat!important;
+ filter:drop-shadow(0 6px 3px #041422af)!important;
+}
+#overlay[data-screen="selection"] #main-dock .zz-chip-amount{
+ top:0!important;
+ right:calc(2px * var(--ui-scale,1))!important;
+}
