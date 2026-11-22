@@ -2441,15 +2441,16 @@ function player(){
   }
   const sheet=$(swinging?'wrench-swing':'wrench-idle');
   if(sheet?.naturalWidth===768&&sheet.naturalHeight===384){
-   // Both sheets share the same wheel pivot (244,455) in a 480px source cell.
-   const size=124;
+   // v303: Wrench rider and buggy are now 80% of their previous on-screen
+   // size. Keep the identical wheel/foot anchor, ball physics and hit timing.
+   const size=124*.8;
    drawHeroBitmap(sheet,(frame%4)*192,Math.floor(frame/4)*192,192,192,
     car-size*244/480,625+VIEW_DELTA-size*455/480,size,size);
   }else{
    const sprite=$('mechanic-art');
    if(sprite?.naturalWidth){
-    const h=100*sprite.naturalHeight/sprite.naturalWidth;
-    drawHeroBitmap(sprite,car-50,625+VIEW_DELTA-h,100,h);
+    const w=100*.8,h=w*sprite.naturalHeight/sprite.naturalWidth;
+    drawHeroBitmap(sprite,car-w/2,625+VIEW_DELTA-h,w,h);
    }
   }
   return;

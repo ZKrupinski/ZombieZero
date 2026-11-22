@@ -2315,3 +2315,57 @@ html:fullscreen #overlay[data-screen="selection"] #heroes{
  max-height:calc(30% - 12px * var(--ui-scale,1))!important;
  margin-top:calc(-3px * var(--ui-scale,1))!important;
 }
+
+/* v303: Match the approved Wrench buggy to the roster's 80% character
+   presentation. Both selection and results use the SAME normal-size
+   centered portrait box and wheel-bottom reference as Scarlet.
+   The whole portrait moves together: no head/panel crop, no card movement.
+   transform combines translation with scale, preventing the rightward
+   drift previously found with independent CSS 'scale'. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait{
+ position:absolute!important;
+ left:50%!important;
+ right:auto!important;
+ top:auto!important;
+ bottom:0!important;
+ margin:0!important;
+ width:min(calc(100% - 2px),calc(100cqh - 72px))!important;
+ height:auto!important;
+ aspect-ratio:1/1!important;
+ transform:translateX(-50%) scale(.8)!important;
+ transform-origin:center bottom!important;
+ scale:1!important;
+ background-position:center bottom!important;
+ background-size:contain!important;
+ animation:none!important;
+}
+/* Original fallback cards: match the center and wheel ground instead
+   of scaling a fixed-position sprite from its upper-left corner. */
+#overlay[data-screen="selection"] #heroes .hero-options #hero-3 .hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes .hero-options #hero-3 .hero-vehicle-portrait{
+ background-size:80% auto!important;
+ background-position:center bottom!important;
+}
+/* Garage carousel and radio portrait maintain the same wheel datum;
+   only Wrench artwork changes, never the size of its card or controls. */
+#garage-dialog .garage-reel-card[data-reel-hero="3"] .garage-reel-figure{
+ display:flex!important;
+ align-items:flex-end!important;
+ justify-content:center!important;
+}
+#garage-dialog .garage-reel-card[data-reel-hero="3"] .garage-reel-figure img.tow-preview{
+ flex:none!important;
+ align-self:flex-end!important;
+ margin:0 auto!important;
+ object-position:center bottom!important;
+ transform-origin:center bottom!important;
+ scale:.8!important;
+}
+#radio-dialog .rx-portrait[src*="wrench-mid-v261"]{
+ object-position:center bottom!important;
+ transform-origin:center bottom!important;
+ scale:.8!important;
+}
