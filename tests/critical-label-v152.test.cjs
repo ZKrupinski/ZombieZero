@@ -14,3 +14,22 @@ assert(popup.includes('arcadeGlowText(word,0,0,12)'), 'label remains rendered wi
 assert(html.includes('v152-critical-label'),'new game script cache-busted');
 assert(sw.includes('v152-critical-label'),'offline cache bumped');
 console.log('PASS V152: CRITICAL! for piercing and standard crits, original VFX retained');
+
+
+// v272 — cosmetic-only cleanup: no zombie hit/kill digits or boss name
+// caption may appear, while boss burst / combat logic / CRITICAL! remain.
+const damageStart=game.indexOf('function damage(z,n=1,');
+const damageEnd=game.indexOf('// Fire has a hard simultaneous cap',damageStart);
+assert(damageStart>=0&&damageEnd>damageStart,'zombie damage handler located');
+const combat=game.slice(damageStart,damageEnd);
+assert(!combat.includes("'+'+(100*z.max)"),'no floating kill-score number');
+assert(!combat.includes("'-'+amount"),'no floating minus-damage number');
+assert(combat.includes("z.hp-=amount;"),'damage remains functional');
+assert(combat.includes("score+=z.hp<=0"),'scoring remains functional');
+assert(combat.includes("'CRITICAL!'"),'critical impact feedback remains available');
+assert(game.includes("effect(225,130,'#ff687e',145);"),'boss spawn still has its impact burst');
+assert(!game.includes("effect(225,130,'#ff687e',145,BOSS_FORMS"),'boss name never floats at spawn');
+assert(!game.includes("'WARNING · '+BOSS_FORMS"),'boss name is absent from wave banner');
+assert(game.includes("'BOSS WAVE':stageRosterLabel(stage)"),'boss name excluded from encounter status');
+assert(html.includes('v272-clean-hit-captions')&&sw.includes('v272-clean-hit-captions'),'game and offline caches refreshed');
+console.log('PASS v272: no damage numbers or boss-name text; scores, critical labels and impacts intact');
