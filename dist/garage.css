@@ -2369,3 +2369,85 @@ html:fullscreen #overlay[data-screen="selection"] #heroes{
  transform-origin:center bottom!important;
  scale:.8!important;
 }
+ 
+/* v304: Shared actual-wheel baseline for every character portrait.
+   Native reel artwork is an independently positioned layer; keep the
+   cards, title, name, class badge, stats, and game size unchanged.
+   This moves ALL portraits down to the same bottom inside artwork,
+   rather than depending on top:1px and varying intrinsic image sizes. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait{
+ position:absolute!important;
+ left:50%!important;
+ right:auto!important;
+ top:auto!important;
+ bottom:0!important;
+ margin:0!important;
+ transform:translateX(-50%)!important;
+ transform-origin:center bottom!important;
+}
+
+/* Wrench was too small at 80% on the carousel: 90% retains a little
+   more visual mass while all four wheels stay above the common baseline.
+   Compose centering and scaling in ONE transform (no independent scale). */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait{
+ left:50%!important;
+ right:auto!important;
+ top:auto!important;
+ bottom:0!important;
+ scale:1!important;
+ transform:translateX(-50%) scale(.90)!important;
+ transform-origin:center bottom!important;
+ background-position:center bottom!important;
+ background-size:contain!important;
+}
+
+/* Scarlet was comparatively too large; reduce only THUMBNAIL artwork
+   to 74% and center her real img with the same ground-level pivot. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet{
+ left:50%!important;
+ right:auto!important;
+ top:auto!important;
+ bottom:0!important;
+ scale:1!important;
+ transform:translateX(-50%) scale(.74)!important;
+ transform-origin:center bottom!important;
+ object-fit:contain!important;
+ object-position:center bottom!important;
+}
+
+/* Static fallback cards: no unrelated hero is resized. */
+#overlay[data-screen="selection"] #heroes .hero-options #hero-3 .hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes .hero-options #hero-3 .hero-vehicle-portrait{
+ background-size:90% auto!important;
+ background-position:center bottom!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options #hero-4 img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes .hero-options #hero-4 img.hero-vehicle-scarlet{
+ scale:.74!important;
+ transform-origin:center bottom!important;
+ object-position:center bottom!important;
+}
+
+/* Keep small garage / radio thumbnails consistent with the selection art
+   while leaving the ACTUAL gameplay character size unchanged. */
+#garage-dialog .garage-reel-card[data-reel-hero="3"] .garage-reel-figure img.tow-preview,
+#radio-dialog .rx-portrait[src*="wrench-mid-v261"]{
+ scale:.90!important;
+ transform-origin:center bottom!important;
+ object-position:center bottom!important;
+}
+#garage-dialog .garage-reel-card[data-reel-hero="4"] .garage-reel-figure img.scarlet-preview,
+#radio-dialog .rx-portrait[src*="scarlet-portrait"]{
+ scale:.74!important;
+ transform-origin:center bottom!important;
+ object-position:center bottom!important;
+}
