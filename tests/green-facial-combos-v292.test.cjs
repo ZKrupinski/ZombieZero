@@ -68,21 +68,6 @@ vm.createContext(sandbox);vm.runInContext(paletteCode,sandbox);
 const img=decodeRGBA(fs.readFileSync(path.join(BASE,'assets/ip/v2/green_zombie.png')));
 assert.equal(img.naturalWidth,1024);assert.equal(img.naturalHeight,512);
 
-for(let row=0;row<3;row++){
- const warm=[];
- for(let y=56;y<111;y++){
-  let n=0,min=127,max=0,rgb;
-  for(let x=17;x<111;x++){
-   const i=((row*128+y)*1024+x)*4,r=img.pixels[i],g=img.pixels[i+1],b=img.pixels[i+2];
-   if(img.pixels[i+3]>=200&&r>=112&&r>g*1.12&&r>b*1.22&&g<184&&b<206){
-    n++;min=Math.min(x,min);max=Math.max(x,max);
-    if(!rgb)rgb=[r,g,b];
-   }
-  }
-  if(n>=3)warm.push([y,n,min,max,rgb]);
- }
- console.log('V292 MOUTH ROW '+row+' WARM MAP '+JSON.stringify(warm));
-}
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
 for(const name of labels)assert(faces[name]?.length===5,'face atlas is populated: '+name);
 function changes(a,b,row,frame){
@@ -114,6 +99,10 @@ for(const name of labels){
   assert(live===0||live===8,name+': intermittent face changes in row '+row+' '+rowCounts);
  }
  assert(counts.some(row=>row.some(x=>x>0)),name+': zero art edits on REAL sprite');
+ // Every direction must keep the approved face feature through all 8 frames.
+ // In particular, never return to default teeth/jaw on diagonal movement.
+ assert(counts.every(row=>row.every(n=>n>0)),
+  name+': facial feature must exist in front and both diagonal walks');
  console.log('FACE '+name+' changed px per row/frame: '+JSON.stringify(counts));
 }
 for(const name of ['heart-eyes','extra-teeth','slack-jaw']){
