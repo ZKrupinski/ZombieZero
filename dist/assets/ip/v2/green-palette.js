@@ -330,12 +330,14 @@
   // A fixed, six-row voxel heart. Unlike the previous cubic heart equation,
   // this has no floating-point cusp, highlight flare, antialias or dark rim.
   const HEART_PIXELS=[
-   '0110110',
-   '1111111',
-   '1111111',
-   '0111110',
-   '0011100',
-   '0001000'
+   '011000110',
+   '111101111',
+   '111111111',
+   '111111111',
+   '011111110',
+   '001111100',
+   '000111000',
+   '000010000'
   ];
   function heartEyes(out,fx,fy,eyes,reference){
    for(let k=0;k<eyes.length;k++){
@@ -358,12 +360,12 @@
      const pink=src[i+3]>=210&&r>=97&&r>g*1.12&&r>b*1.11&&g<215;
      if(pink)makePixel(out,xx,yy,...shade);
     }
-    // Fixed-size pixel motif; the white of the eyes remains very visible.
-    // 7x6 pixels at normal size, 5x5 when the diagonal eye is narrow.
-    const sizeX=ref.w<13?5:7,sizeY=ref.h<12?5:6;
+    // A legible 9x8 (or 7x7 for narrow diagonal eyes) heart. It remains
+    // completely inside the original white eye without touching eyebrows.
+    const sizeX=ref.w<13?7:9,sizeY=ref.h<12?7:8;
     for(let sy=0;sy<sizeY;sy++)for(let sx=0;sx<sizeX;sx++){
-     const mx=Math.min(6,Math.floor((sx+.5)/sizeX*7));
-     const my=Math.min(5,Math.floor((sy+.5)/sizeY*6));
+     const mx=Math.min(8,Math.floor((sx+.5)/sizeX*9));
+     const my=Math.min(7,Math.floor((sy+.5)/sizeY*8));
      if(HEART_PIXELS[my][mx]!=='1')continue;
      const x=fx+cx+sx-Math.floor(sizeX/2);
      const y=fy+cy+sy-Math.floor(sizeY/2);
@@ -372,29 +374,49 @@
      const i=at(x,y);
      // No painted heart outside the actual original eyeball.
      if(src[i+3]<210||(!isWhite(x,y)&&!isPupil(x,y)))continue;
-     makePixel(out,x,y,232,109,137);
+     makePixel(out,x,y,230,91,125);
     }
    }
   }
   function extraTeeth(out,fx,fy,mouth){
-   if(!mouth||mouth.w<9||mouth.h<3)return;
-   const left=mouth.x+Math.max(1,Math.round(mouth.w*.12));
-   const right=mouth.x+mouth.w-Math.max(1,Math.round(mouth.w*.12));
-   const start=mouth.y+1,bottom=Math.min(mouth.y+mouth.h-1,mouth.y+Math.max(2,Math.round(mouth.h*.66)));
-   const span=right-left,teeth=4;
-   for(let x=left;x<right;x++)for(let y=start;y<=bottom;y++){
-    const i=at(fx+x,fy+y);
-    const r=src[i],g=src[i+1],b=src[i+2];
-    // Only the mouth interior, not the red tie or skin.
-    const isInterior=redMouth(fx+x,fy+y)||
-      (src[i+3]>230&&r>160&&g>145&&b>125);
-    if(!isInterior)continue;
-    const normalized=(x-left)/span*teeth;
-    const within=normalized-Math.floor(normalized);
-    if(within<.15||within>.88)continue;
-    const light=y===bottom?[191,187,172]:[246,235,214];
-    makePixel(out,fx+x,fy+y,...light);
+   if(!mouth||mouth.w<8||mouth.h<3)return;
+   // The actual mouth is only ~12px wide in the source (~5px at game
+   // scale). Painting small ivory flecks INSIDE it was invisible.
+   // Enlarge the voxel mouth modestly, from its already-tracked position,
+   // then draw FOUR bold individual teeth with dark natural separations.
+   // Nothing is added above the original mouth or near the nose.
+   const middle=mouth.x+mouth.w*.5;
+   const width=Math.max(19,Math.min(24,mouth.w+8));
+   const left=Math.round(middle-width*.5),right=left+width-1;
+   const top=mouth.y,bottom=Math.min(96,top+Math.max(7,Math.min(9,mouth.h+2)));
+   const faceMin=20,faceMax=105;
+   for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
+    if(x<faceMin||x>faceMax||y>=100)continue;
+    const xx=fx+x,yy=fy+y,i=at(xx,yy);
+    if(src[i+3]<235)continue;
+    // Rounded voxel-corner silhouette rather than a black rectangular nose.
+    const corner=(y===top||y===bottom)&&(x===left||x===right);
+    if(corner)continue;
+    const edge=y===top||y===bottom||x===left||x===right;
+    const shade=edge?[158,66,77]:[149,62,72];
+    makePixel(out,xx,yy,...shade);
    }
+   const innerWidth=width-4;
+   const gap=1;
+   const toothWidth=Math.floor((innerWidth-3*gap)/4);
+   const toothTotal=toothWidth*4+gap*3;
+   const first=left+Math.floor((width-toothTotal)/2);
+   const toothTop=top+1;
+   const toothBottom=Math.min(bottom-1,top+5);
+   for(let n=0;n<4;n++)for(let x=first+n*(toothWidth+gap);
+      x<first+n*(toothWidth+gap)+toothWidth;x++)
+    for(let y=toothTop;y<=toothBottom;y++){
+     if(x<faceMin||x>faceMax||y>=100)continue;
+     const i=at(fx+x,fy+y);
+     if(src[i+3]<235)continue;
+     makePixel(out,fx+x,fy+y,...(y===toothBottom?
+       [213,203,189]:[250,242,224]));
+    }
   }
   function slackJaw(out,fx,fy,mouth){
    if(!mouth)return;

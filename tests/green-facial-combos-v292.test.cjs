@@ -15,12 +15,17 @@ assert.match(game,/hairColor:hairRoll<\.10\?'blond'/);
 assert.match(walkCode,/expressions\[z\.expression\]/,'active sprite uses expression atlas');
 assert.match(paletteCode,/lazyPaletteSet\(/,'rare palettes made only if needed');
 assert.match(paletteCode,/const HEART_PIXELS=/,'single-color pixel hearts');
+assert.match(paletteCode,/const sizeX=ref\.w<13\?7:9/,'heart large enough to survive game-scale downsampling');
+assert.match(paletteCode,/const width=Math\.max\(19,Math\.min\(24,mouth\.w\+8\)\)/,'mouth backing wide enough to show 4 teeth');
+assert.match(game,/faceRoll<\.73\?'heart-eyes'/,'heart eyes should be easy to encounter');
+assert.match(game,/faceRoll<\.55\?'extra-teeth'/,'extra teeth should be easy to encounter');
 assert.doesNotMatch(paletteCode,/Math\.pow\(u\*u\+v\*v-1,3\)/,'remove flame-like cubic cusp');
 assert.match(paletteCode,/if\(!redMouth\(xx,yy\)\)continue/,'mouth does not paint skin or fake noses');
 assert.match(walkCode,/recoil\|\|0\)>\.015&&!z\.expression/,'no facial flicker when hit');
 assert.match(html,/v292-face-mix/);
 assert.match(sw,/v292-face-mix/);
 assert.match(sw,/v294-small-hearts-locked-lids/);
+assert.match(sw,/v296-visible-hearts-teeth/);
 assert.match(paletteCode,/Math\.round\(reference\.h\*depth/,'eyelid thickness frozen to per-direction reference');
 assert.match(paletteCode,/for\(let y=mouth\.y\+1;y<mouth\.y\+mouth\.h-1;y\+\+\)/,'mouth drawing remains within source lip rectangle');
 assert.doesNotMatch(paletteCode,/preserveNoseBridge/,'no eye pixels restored by a second pass');
@@ -141,5 +146,9 @@ for(const name of labels){
 for(const name of ['heart-eyes','extra-teeth','slack-jaw']){
  const count=changes(faces[name][0].pixels,img.pixels,0,0);
  assert(count.n>6,name+': visible first-frame face change');
+}
+for(const row of [0,1,2])for(const frame of [0,3,7]){
+ const toothArea=changes(faces['extra-teeth'][0].pixels,img.pixels,row,frame).n;
+ assert(toothArea>=80,'extra teeth must occupy visible source pixels on all walk directions: '+row+'/'+frame+'/'+toothArea);
 }
 console.log('PASS v292: 4 distinctive + 2 combined faces, source alpha unchanged, no flicker or eyebrow edits, real sprite decoded');
