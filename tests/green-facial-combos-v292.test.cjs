@@ -81,6 +81,28 @@ vm.createContext(sandbox);vm.runInContext(paletteCode,sandbox);
 const img=decodeRGBA(fs.readFileSync(path.join(BASE,'assets/ip/v2/green_zombie.png')));
 assert.equal(img.naturalWidth,1024);assert.equal(img.naturalHeight,512);
 
+
+for(let row=0;row<3;row++){
+ const map=[];
+ for(let y=57;y<=102;y++){
+  let line='';
+  for(let x=30;x<=99;x++){
+   const i=((row*128+y)*1024+x)*4,r=img.pixels[i],g=img.pixels[i+1],b=img.pixels[i+2],a=img.pixels[i+3];
+   let code='?';
+   if(a<125)code=' ';
+   else if(g>r+13&&g>b+6)code='g';
+   else if(r>170&&g>162&&b>137&&Math.max(r,g,b)-Math.min(r,g,b)<85)code='W';
+   else if(r>g*1.22&&r>b*1.22&&r>110)code='r';
+   else if(r<83&&g<83&&b<83)code='X';
+   else if(r<120&&g<120&&b<120)code='d';
+   else code='.';
+   line+=code;
+  }
+  map.push(String(y).padStart(3,'0')+' '+line);
+ }
+ console.log('DIAGNOSTIC TRUE NOSE MOUTH '+row+' (x30..99)\n'+map.join('\n'));
+}
+
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
 // Preserve expression frames while a hit is flashing instead of switching
 // to a temporary expression-less hurt face.
