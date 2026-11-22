@@ -19,9 +19,13 @@
  }
  function currency(id,name,amount){return '<span>'+icon(id)+name+' <b>'+amount+'</b></span>'}
  function card(p,data,gear){
-  const level=data.levels[p.id],equipped=gear[p.slot]===p.id;
-  const status=level===undefined?'미보유':(equipped?'장착 중 ':'보유 ')+'+'+level;
-  return '<button data-part="'+p.id+'" aria-pressed="'+(p===activePart)+'">'+icon(p.id)+'<span>'+p.name+'<small>'+status+'</small></span></button>';
+  const level=data.levels[p.id],owned=Number.isInteger(level),equipped=owned&&gear[p.slot]===p.id;
+  // Inspecting a part (aria-pressed) is NOT the same as equipping it.
+  // Keep the equipped indicator permanently visible while browsing the other part.
+  const status=!owned?'미보유':'강화 +'+level;
+  const equipBadge=equipped?'<em class="garage-equip-badge" aria-hidden="true">✓ 장착</em>':'';
+  return '<button data-part="'+p.id+'" data-equipped="'+String(equipped)+'" aria-pressed="'+(p===activePart)+'" aria-label="'+p.name+', '+(equipped?'장착 중, ':'')+status+'">'+
+   icon(p.id)+'<span>'+p.name+'<small>'+status+'</small></span>'+equipBadge+'</button>';
  }
  function reelCard(h,data){
   const rank=system.mastery(data.xp[h]);
@@ -123,7 +127,13 @@
    body.innerHTML=radioView(data,wallet);
    return;
   }
-  const list=slots.map((slot,i)=>'<section class="garage-slot"><small>'+slot+'</small><div>'+system.parts.filter(p=>p.slot===i).map(p=>card(p,data,gear)).join('')+'</div></section>').join('');
+  const list=slots.map((slot,i)=>{
+   const equippedPart=system.parts.find(p=>p.slot===i&&gear[i]===p.id&&Number.isInteger(data.levels[p.id]));
+   const current=equippedPart?'<span class="garage-slot-current" title="'+equippedPart.name+' 장착 중">✓ 장착 중</span>':
+    '<span class="garage-slot-empty">미장착</span>';
+   return '<section class="garage-slot" data-slot="'+i+'"><small>'+slot+current+'</small><div>'+
+    system.parts.filter(p=>p.slot===i).map(p=>card(p,data,gear)).join('')+'</div></section>';
+  }).join('');
   const details=system.partBenefits?.(part,level||0)||{stat:'',unique:part.label};
   const nextBenefit=owned&&level<5?system.partBenefits?.(part,level+1):null;
   const effect='<span class="garage-effect-stat">스탯 '+details.stat+'</span>'+
