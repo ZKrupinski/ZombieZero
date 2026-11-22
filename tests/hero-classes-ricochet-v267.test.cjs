@@ -40,9 +40,10 @@ assert(second.echo,'Ria chains every second return');
 for(const name of ['GUARDIAN','SPEEDSTER','BREAKER','TRICKSHOT'])
  assert(gameSource.includes("role:'"+name+"'"),name+' class exists in gameplay config');
 assert(gameSource.includes('impact?.ricochet')&&gameSource.includes('bankTargets'),'Wrench splash integrated with hit()');
-assert(gameSource.includes("if(selectedHero===3&&!b.bank)effect"),'Wrench wall-charge cue integrated');
-assert(gameSource.includes("if(selectedHero===3&&b.bank)"),'Wrench charged ball visual is active');
+assert(!gameSource.includes("'BANK!'")&&!gameSource.includes("'BANK'"),'No floating BANK popup on repeated bounces');
+assert(!gameSource.includes("if(selectedHero===3&&b.bank)"),'No artificial ring around Wrench ball');
+assert(gameSource.includes("impact?.ricochet"),'Bank-shot damage remains without label');
 assert(uiSource.includes('hero-class-badge')&&css.includes('v267: visible per-hero class identity'));
 assert(html.includes('v267-ricochet-classes')&&html.includes('v267-class-combat')&&html.includes('v267-class-badges'));
-assert(sw.includes('v267-class-kits-bank-shot'),'service worker must invalidate old game');
+assert(sw.includes('v268-clean-ricochet-fx'),'service worker must invalidate old game');
 console.log('PASS v267: Wrench aim, charged first impact, Ruby center slam, Ria second echo, class badges and PWA cache');
