@@ -2115,7 +2115,6 @@ function hit(z,impact=null,piercing=false){
  if(echo&&foes.includes(echo)){spawnContact({vx:0,vy:-1},echo.x+echo.w/2,echo.y+echo.h/2,0,1,'enemy');damage(echo,1.35,false,{x:0,y:-1})}
  if(impact?.ricochet){
   // Wrench: first enemy hit after a side-wall bounce splashes at most two nearby foes.
-  effect(z.x+z.w/2,z.y+z.h/2,'#8aefff',34,'BANK!');
   for(const other of bankTargets){
    if(!foes.includes(other)||mode!=='playing')continue;
    spawnContact({vx:impact.x||1,vy:-.2},other.x+other.w/2,other.y+other.h/2,0,1,'enemy');
@@ -2218,7 +2217,7 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
 for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
-for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);if(selectedHero===3&&!b.bank)effect(b.x,b.y,'#82ebff',26,'BANK');ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);if(selectedHero===3&&!b.bank)effect(b.x,b.y,'#82ebff',26,'BANK');ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
+for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
  // Once it fully exits that enemy, the contact can be struck on a later pass.
@@ -3273,11 +3272,6 @@ function drawHeroBallSprite(b,r,col){
   g.strokeStyle='#ffffcf';g.lineWidth=1.5;
   g.beginPath();g.arc(-r*.7,0,r*.85,-1.1,1.1);g.stroke();
   g.beginPath();g.arc(r*.7,0,r*.85,2,4.3);g.stroke();
- }
- if(selectedHero===3&&b.bank){
-  // Lightweight charged border, no persistent particle allocations.
-  g.save();g.globalCompositeOperation='lighter';g.strokeStyle='#8aefff';
-  g.globalAlpha=.75;g.lineWidth=1.8;g.beginPath();g.arc(0,0,r*1.52,0,Math.PI*2);g.stroke();g.restore();
  }
  g.restore();
 }
