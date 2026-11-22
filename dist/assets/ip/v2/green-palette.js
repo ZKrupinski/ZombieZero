@@ -272,12 +272,15 @@
   // interpolation, frame-dependent randomization, or per-enemy canvas work.
   function redMouth(x,y){
    const i=at(x,y),r=src[i],g=src[i+1],b=src[i+2];
-   return src[i+3]>=200&&r>=77&&r>g*1.35&&r>b*1.2&&g<150;
+   // The approved mouth is warm terracotta and pink, not flat saturated red.
+   // Sample its actual color ramp; the red jacket starts well below this zone.
+   return src[i+3]>=200&&r>=112&&r>g*1.12&&r>b*1.22&&
+     g<184&&b<206;
   }
   function detectMouth(fx,fy,eyes){
    if(eyes.length!==2)return null;
-   const y0=Math.max(fy+67,fy+Math.max(...eyes.map(e=>e.y+e.h))+2);
-   const y1=Math.min(fy+102,y0+28);
+   const y0=Math.max(fy+69,fy+Math.max(...eyes.map(e=>e.y+e.h))+2);
+   const y1=Math.min(fy+87,y0+21);
    const x0=fx+Math.max(24,Math.min(...eyes.map(e=>e.x))-5);
    const x1=fx+Math.min(104,Math.max(...eyes.map(e=>e.x+e.w))+5);
    const seen=new Uint8Array(cell*cell),groups=[];
@@ -299,8 +302,8 @@
      }
     }
     const rw=highX-lowX+1,rh=highY-lowY+1,cx=(lowX+highX)/2-fx;
-    if(queue.length>=7&&rw>=6&&rw<=38&&rh>=2&&rh<=18&&
-       cx>=35&&cx<=91&&highY<fy+101)
+    if(queue.length>=9&&rw>=6&&rw<=38&&rh>=3&&rh<=18&&
+       cx>=35&&cx<=91&&highY<fy+87)
      groups.push({x:lowX-fx,y:lowY-fy,w:rw,h:rh,area:queue.length});
    }
    groups.sort((a,b)=>b.area-a.area);
