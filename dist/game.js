@@ -2939,7 +2939,9 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
  if(grad&&typeof grad.addColorStop==='function'){
   grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,col.main+'b0');
  }
- g.save();g.fillStyle=grad||col.main+'88';g.beginPath();
+ // Scarlet's diamond facets must remain legible: suppress the extra-white
+ // ribbon intensity without changing other characters or ball physics.
+ g.save();g.globalAlpha=selectedHero===4?.42:1;g.fillStyle=grad||col.main+'88';g.beginPath();
  // Trace the EXACT same left/right vertices directly to Canvas. Avoid two
  // temporary arrays and 2*(N+1) point allocations every rendered frame.
  for(let i=0;i<=n;i++){
@@ -3390,7 +3392,7 @@ drawKillCombo();drawBarrelBlasts();
   const trailPath=getBallRenderTrailPath(b,r);
   if(!elementalTrail){
    drawHeroBallTrail(b,r,trailPath);
-   if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
+   if(fxEnabled&&selectedHero!==4)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
   }
   drawBallSkillTrail(b,r,trailPath);
