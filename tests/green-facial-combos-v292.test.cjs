@@ -67,6 +67,20 @@ const sandbox={window:{},document:{createElement:()=>new Canvas()},Uint8ClampedA
 vm.createContext(sandbox);vm.runInContext(paletteCode,sandbox);
 const img=decodeRGBA(fs.readFileSync(path.join(BASE,'assets/ip/v2/green_zombie.png')));
 assert.equal(img.naturalWidth,1024);assert.equal(img.naturalHeight,512);
+
+const mouthStats=[];
+for(let y=65;y<111;y++){
+ let n=0,min=127,max=0,rgb;
+ for(let x=15;x<114;x++){
+  const i=(y*1024+x)*4,r=img.pixels[i],g=img.pixels[i+1],b=img.pixels[i+2];
+  if(img.pixels[i+3]>=180&&r>g*1.3&&r>b*1.2&&r>=70){
+   n++;min=Math.min(x,min);max=Math.max(max,x);
+   if(!rgb)rgb=[r,g,b];
+  }
+ }
+ if(n)mouthStats.push({y,n,min,max,rgb});
+}
+console.log('V292 ORIGINAL FRAME RED MAP '+JSON.stringify(mouthStats));
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
 for(const name of labels)assert(faces[name]?.length===5,'face atlas is populated: '+name);
 function changes(a,b,row,frame){
