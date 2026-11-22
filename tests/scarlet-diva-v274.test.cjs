@@ -12,10 +12,10 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 const progSrc=fs.readFileSync('dist/progression.js','utf8');
 
 for(const [name,w,h] of [
- ['scarlet-idle-v274.webp',768,384],
- ['scarlet-attack-v274.webp',768,384],
- ['scarlet-diamond-v274.webp',384,192],
- ['scarlet-portrait-v274.webp',192,192]
+ ['scarlet-idle-v275.webp',768,384],
+ ['scarlet-attack-v275.webp',768,384],
+ ['scarlet-diamond-v275.webp',384,192],
+ ['scarlet-portrait-v275.webp',256,256]
 ]){
  const path='dist/assets/ip/'+name,buf=fs.readFileSync(path);
  assert(buf.length>8000,name+' contains actual image bytes');
@@ -38,8 +38,8 @@ assert(game.includes("if(selectedHero===4){b.spinVelocity=0;b.spinAngle=0;return
 assert(game.includes("if(impact?.sparkle)burst("),'prism finisher has a small nonverbal flash');
 assert(!game.includes("'PRISM!'")&&!game.includes("'SCARLET!'"),'no new floating hit text');
 assert(ui.includes('i<3||i===4||(i===3&&progress.garage().mechanic)'),'Scarlett is available immediately, Wrench stays radio-locked');
-assert(ui.includes('scarlet-portrait-v274.webp'),'garage uses actual artwork');
-assert(css.includes('.hero-vehicle-portrait.row-4')&&css.includes('scarlet-portrait-v274.webp'),'five-card reel draws Scarlett');
+assert(ui.includes('scarlet-portrait-v275.webp'),'garage uses actual artwork');
+assert(css.includes('.hero-vehicle-portrait.row-4')&&css.includes('scarlet-portrait-v275.webp'),'five-card reel draws Scarlett');
 assert(html.includes('v274-scarlet-diva')&&sw.includes('v274-scarlet-diva'),'new files cannot be hidden by stale cache');
 
 const context=vm.createContext({window:{}});
@@ -92,3 +92,8 @@ assert.equal(progress.garage().loads[4][1],'heavy','new hero equipment persists'
 assert(saved&&saved.includes('"heavy"'),'fifth-hero loadout saved');
 
 console.log('PASS v274: 4 genuine RGBA WebP assets, five-hero menus and garage, animated still orb, DIVA three-return finisher, legacy save migration');
+
+assert(html.includes('v275-approved-source')&&sw.includes('v275-approved-source'),'v275 art and web app cache reflect newly approved illustration');
+assert(game.includes('g.globalAlpha=selectedHero===4?.42:1'),'Scarlet alone has a dimmer normal ball ribbon');
+assert(game.includes('if(fxEnabled&&selectedHero!==4)luminous'),'Scarlet loses only the overpowering white halo, not other heroes\' FX');
+console.log('PASS v275: newly illustrated transparent 192x192 frames, 256px portrait, round diamond, cache and legible trail');
