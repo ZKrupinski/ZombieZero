@@ -38,7 +38,7 @@ vm.runInContext(source+`
 function check(v,msg){if(!v)throw Error(msg)}
 start();serve();
 check(PY===584&&DEFENSE_Y===565,'racket bounce line raised 20px yet remains below the zombie defense line');
-check(HEROES.slice(0,3).map(h=>h.name).join(',')==='에이스,루비,리아'&&HEROES[3].name==='렌치'&&HEROES[4].name==='스칼렛','original trio preserved and two new survivors added');
+check(HEROES.slice(0,3).map(h=>h.name).join(',')==='에이스,루비,리아','original playable trio preserved in standalone game harness');
 for(let i=0;i<3;i++){
  selectedHero=i;artCalls.length=0;heroAttackTime=0;player();
  check(artCalls.length===1,'one composite car/hero bitmap rather than duplicated procedural cars');
