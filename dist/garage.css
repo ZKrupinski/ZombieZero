@@ -2303,3 +2303,15 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  top:0!important;
  right:calc(2px * var(--ui-scale,1))!important;
 }
+
+/* v301 — The native fullscreen viewport makes the reel/actions stack sit
+   too close to the pinned bottom menu. Create breathing room ABOVE the
+   dock, not by moving the dock into the copyright. Keep the same 3 icons,
+   sizes, 450x710 bottom anchor and all windowed styles untouched.
+   Fullscreen is requested on document.documentElement by app.js. */
+html:fullscreen #overlay[data-screen="selection"] #heroes{
+ flex:0 0 calc(30% - 12px * var(--ui-scale,1))!important;
+ height:calc(30% - 12px * var(--ui-scale,1))!important;
+ max-height:calc(30% - 12px * var(--ui-scale,1))!important;
+ margin-top:calc(-3px * var(--ui-scale,1))!important;
+}
