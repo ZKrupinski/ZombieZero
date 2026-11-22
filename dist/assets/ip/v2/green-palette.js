@@ -65,5 +65,16 @@
   }catch(_){/* Canvas readback blocked: fall back to original sprites. */}
   return out;
  }
- window.ZZGreenPalette={tones,paletteFor,recolorGreen,variants};
+ function loadHalfLidded(image,src,w,h,finish){
+  const result=[];
+  image.decoding='async';
+  image.onload=()=>{
+   if(image.naturalWidth!==w||image.naturalHeight!==h)return;
+   const colors=variants(image);
+   result.push(...(finish?colors.map(finish):colors));
+  };
+  image.src=src;
+  return result;
+ }
+ window.ZZGreenPalette={tones,paletteFor,recolorGreen,variants,loadHalfLidded};
 })();
