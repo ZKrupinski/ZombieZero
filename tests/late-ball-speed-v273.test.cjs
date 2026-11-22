@@ -39,7 +39,7 @@ assert(Math.hypot(ball.vx,ball.vy)>595,'extended normal rally still reaches the 
 const begin=game.indexOf('const BASE_BALL_CRUISE_SPEED=');
 const end=game.indexOf('function resetBalls(){',begin);
 assert(begin>0&&end>begin,'real cruise-floor helper exists');
-const physics=vm.createContext({Math,ball:{vx:80,vy:-190,held:false}});
+const physics=vm.createContext({Math,ball:{vx:80,vy:-190,held:false,cruiseFloor:base}});
 vm.runInContext(game.slice(begin,end),physics);
 const angleBefore=Math.atan2(physics.ball.vy,physics.ball.vx);
 const restored=vm.runInContext('ensureBallCruiseSpeed(ball)',physics);
@@ -52,7 +52,15 @@ assert(Math.abs(fast-Math.hypot(500,400))<1e-9,'fast rally is not capped or slow
 assert.equal(physics.ball.vx,500);assert.equal(physics.ball.vy,-400);
 physics.ball.held=true;physics.ball.vx=0;physics.ball.vy=0;
 assert.equal(vm.runInContext('ensureBallCruiseSpeed(ball)',physics),0,'held ball stays held');
-assert(game.includes('for(const b of [...balls]){const cruise=ensureBallCruiseSpeed(b);'),
+physics.ball.held=false;physics.ball.vx=100;physics.ball.vy=-150;delete physics.ball.cruiseFloor;
+assert(Math.abs(vm.runInContext('ensureBallCruiseSpeed(ball)',physics)-Math.hypot(100,150))<1e-9,
+ 'scripted low-speed colliders are not accelerated');
+assert.equal(physics.ball.vx,100,'scripted collision speed remains untouched');
+assert(game.includes('balls[0].cruiseFloor=BASE_BALL_CRUISE_SPEED')&&
+ game.includes('extra.cruiseFloor=BASE_BALL_CRUISE_SPEED')&&
+ game.includes('split.cruiseFloor=BASE_BALL_CRUISE_SPEED'),
+ 'actual serve and multi-ball launch set cruise floor');
+assert(game.includes('for(const b of [...balls]){updateBallSpin(b,dt);const cruise=ensureBallCruiseSpeed(b);'),
  'live update normalizes speed before collision substeps');
 assert(game.includes('const enemySlowRate=()=>has(\'slow\')?SLOW_ENEMY_SPEED_RATE:1;'),
  'SLOW remains enemy-only');
