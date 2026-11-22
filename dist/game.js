@@ -28,6 +28,8 @@ const HEROES=[
  {id:'ruby',name:'루비',role:'SPEEDSTER',className:'초고속 기동',trait:'센터 스매시',accent:'#78e4f6',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:720,paddle:46,damage:1,lives:3,duration:1.35,desc:'스피드 720 · 정타 강타 · 스킬 +35%',stats:'SPEEDSTER · 중심 타격 넉백 · 스킬 +35%'},
  {id:'liam',name:'리아',role:'BREAKER',className:'파괴 화력',trait:'2타 충격파',accent:'#ff8c76',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:375,paddle:49,damage:2.2,lives:2,duration:1,desc:'해머 · 공격 2.2 · 2회 리턴마다 연쇄 타격',stats:'BREAKER · 파괴력 2.2 · 반사 2회마다 연쇄 충격'}];
 if(window.ZZGarage)HEROES.push({id:'mechanic',name:'렌치',role:'TRICKSHOT',className:'반사각 특화',trait:'BANK SHOT',accent:'#ffdc75',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:56,damage:1.15,lives:3,duration:1,desc:'스패너 · 넓은 반사각 · 벽 충전 연쇄 타격',stats:'TRICKSHOT · 특수 반사각 · 벽 반사 후 강화 및 연쇄 타격'});
+// V274: Scarlett joins the owned cast with a luxury car, handbag and prism orb.
+HEROES.push({id:'scarlet',name:'스칼렛',role:'DIVA',className:'프리즘 스타',trait:'다이아몬드 피니시',accent:'#ff9be7',color:'#da345c',hair:'#ffd76f',skin:'#ffddc3',speed:565,paddle:54,damage:1.25,lives:3,duration:1.12,desc:'명품백 · 보석 공 · 3번째 리턴 프리즘 강타',stats:'DIVA · 3번째 리턴마다 다이아몬드 강화 타격'});
 const gearBonus=id=>window.ZZGarage?.bonus(id)||0;
 const garageCombat=()=>window.ZZGarage?.combatStats?.()||{attack:0,guard:0,resist:0};
 let filterReady=0;
@@ -52,7 +54,7 @@ const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25,y:-30}];
 // Ball rests on the upper edge of the ring spanner in each Wrench idle cell.
 const wrenchServeOffsets=[{x:-34,y:-45},{x:-34,y:-47},{x:-34,y:-50},{x:-35,y:-53},
  {x:-35,y:-50},{x:-34,y:-47},{x:-34,y:-46},{x:-35,y:-46}];
-const heldBallOffset=()=>selectedHero===3?wrenchServeOffsets[Math.floor(clock*8)%8]:
+const heldBallOffset=()=>selectedHero===4?{x:-35,y:-37}:selectedHero===3?wrenchServeOffsets[Math.floor(clock*8)%8]:
  HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
 // Impact pose is cosmetic only; physics uses the unchanged 8/16px ball radius.
 function ballImpact(b,axis,dir=1,kind='wall'){
@@ -301,6 +303,7 @@ function sampleHeroCarFoot(img,heroIndex){
  return baseline;
 }
 function heroCarShadowFoot(){
+ if(selectedHero===4)return 627+VIEW_DELTA;
  const approved=window.ZZHeroAnimationsV55;
  const source=approved?.ready&&approved.idle?approved.idle:
    window.ZZHeroCarAttack?.ready?window.ZZHeroCarAttack.image:null;
@@ -2359,6 +2362,24 @@ function drawHeroBitmap(image,...args){
 }
 function player(){
  drawTrashContact("hero");
+ if(selectedHero===4){
+  // Same elevated front/side presentation and wheel baseline as the existing cast.
+  const attacking=heroAttackTime>0;
+  const t=attacking?Math.max(0,1-heroAttackTime/HERO_ATTACK_DURATION):0;
+  const frame=attacking?Math.min(7,Math.floor(t*8)):(Math.floor(clock*8)%8);
+  const sheet=$(attacking?'scarlet-attack':'scarlet-idle');
+  const size=112,win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
+  g.save();g.translate(0,VIEW_DELTA);
+  if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
+  if(sheet?.naturalWidth===768&&sheet.naturalHeight===384){
+   drawHeroBitmap(sheet,(frame%4)*192,Math.floor(frame/4)*192,192,192,
+    car-size/2,579-size/2,size,size);
+  }else{
+   const portrait=$('scarlet-portrait');
+   if(portrait?.naturalWidth)drawHeroBitmap(portrait,car-size/2,579-size/2,size,size);
+  }
+  g.restore();return;
+ }
  if(selectedHero===3){
   let swinging=heroAttackTime>0;
   let frame=Math.floor(clock*8)%8;
@@ -2850,7 +2871,9 @@ function drawBallStatusForeground(b,r){
 const HERO_BALL_TRAILS=[
  {main:'#d8efa1',soft:'#95b96e',accent:'#f4f8d1'}, // tennis felt
  {main:'#f2e9dd',soft:'#c9bdaf',accent:'#c86e6b'}, // baseball leather + stitches
- {main:'#f5be76',soft:'#78c2d9',accent:'#e995c2'}  // colorful toy ball
+ {main:'#f5be76',soft:'#78c2d9',accent:'#e995c2'}, // colorful toy ball
+ {main:'#d0dce0',soft:'#6b999f',accent:'#e8f5fd'}, // Wrench steel
+ {main:'#c2e7ff',soft:'#a795f2',accent:'#ffbce9'}  // Scarlett gemstone
 ];
 // V67 physical substep history: one shared centerline for ribbon and skill chips.
 const BALL_TRAIL_NORMAL=170,BALL_TRAIL_POWER=190;
@@ -3226,9 +3249,10 @@ function drawPierceTrailLightning(b,r,path){
 }
 // V76: per-ball rotational inertia updated ONCE per game tick, not per frame
 // cell or direction change. Squash/stretch uses its own transform axes.
-const HERO_BALL_SPIN_FACTORS=[1,.82,1.13]; // tennis / baseball / toy
+const HERO_BALL_SPIN_FACTORS=[1,.82,1.13,1,0]; // diamond is visually stationary
 function updateBallSpin(b,dt){
  if(!b||!Number.isFinite(dt)||dt<=0)return;
+ if(selectedHero===4){b.spinVelocity=0;b.spinAngle=0;return}
  const factor=HERO_BALL_SPIN_FACTORS[selectedHero]||1;
  const speed=Math.hypot(b.vx||0,b.vy||0);
  const goal=(b.held?.95:clamp(speed/92,2.7,7.1))*factor*(b.spinDirection||1);
@@ -3272,6 +3296,23 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
  return {index,sx,sy,rotation,spin};
 }
 function drawHeroBallSprite(b,r,col){
+ if(selectedHero===4){
+  // Fixed round silhouette; only the eight internal refraction/glint frames animate.
+  const gem=$('scarlet-ball-art');
+  const frame=Math.floor(clock*12)%8;
+  const pose=ballSpritePose(b,r);
+  g.save();g.shadowColor='transparent';g.shadowBlur=0;
+  g.translate(b.x,b.y);
+  g.scale(pose.sx,pose.sy); // elastic hit response without rotating the facet art
+  const size=r*3.25;
+  if(gem?.naturalWidth===384&&gem.naturalHeight===192){
+   g.drawImage(gem,(frame%4)*96,Math.floor(frame/4)*96,96,96,-size/2,-size/2,size,size);
+  }else{
+   g.fillStyle='#b3e7ff';g.beginPath();g.arc(0,0,r*1.18,0,Math.PI*2);g.fill();
+   g.fillStyle='#ffffff';g.fillRect(-r*.3,-r*.6,r*.6,r*.6);
+  }
+  g.restore();return;
+ }
  const sprites=window.ZZHeroBallsV58;
  const img=sprites?.images?.[selectedHero];
  const ready=!!sprites?.ready?.[selectedHero]&&img&&img.naturalWidth===1774&&img.naturalHeight===887;
@@ -3407,7 +3448,7 @@ function portrait(h){
 function heroMiniStats(h){
  return window.ZZGarage?.heroStatMarkup?.(h,window.ZZProgression?.garage?.(),window.ZZProgression,HEROES.indexOf(h))||'';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;if(i===4)el.hidden=false;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH','SCARLET'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
