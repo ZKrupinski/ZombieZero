@@ -10,6 +10,10 @@ const SPECS=[
 ];
 const ATLAS_COLS=8,ATLAS_ROWS=7,READY_MIN_WIDTH=1024;
 const CLIPS={idle:0,down:1,left:2,right:3,attack:4,hit:5,death:6};
+// The approved 8x7 PNG places the bottle's HIT-row caps partly across the
+// preceding ATTACK row's bottom (y=153..167 of each 168px cell).
+// Reconstitute their actual source pixels; do not redraw or copy another pose.
+const BOTTLE_HIT_OVERLAP_PX=24;
 const cache=SPECS.map(s=>({...s,image:null,ready:false,failed:false,loading:false}));
 
 /* V224: The original water-bottle atlas has some neighboring-frame fragments
@@ -88,7 +92,12 @@ function isolateBottleAtlas(img){
  if(!dest||!ctx||!ctx.getImageData||!ctx.putImageData)return null;
  for(let row=0;row<ATLAS_ROWS;row++)for(let col=0;col<ATLAS_COLS;col++){
   ctx.clearRect(0,0,w,h);
-  ctx.drawImage(img,col*w,row*h,w,h,0,0,w,h);
+  // The original HIT cap is split across a row boundary. Crop 24px
+  // upward into the previous row, returning its real detached top piece.
+  // The extra 24px of empty HIT-row bottom are deliberately excluded,
+  // along with foreign DEATH-row fragments. Other 48 cells are untouched.
+  const sourceTop=row===CLIPS.hit?row*h-BOTTLE_HIT_OVERLAP_PX:row*h;
+  ctx.drawImage(img,col*w,sourceTop,w,h,0,0,w,h);
   const pixels=ctx.getImageData(0,0,w,h);
   cleanBottleFrame(pixels,row);
   ctx.putImageData(pixels,0,0);
@@ -189,7 +198,12 @@ function draw(ctx,z,seconds){
  const col=Math.floor((seconds*speed+seed*1.4)%8);
  // Preserve original 33x44 collision, bottom-center anchored to the feet.
  const h=56,w=h*(s.image.naturalWidth/8)/(s.image.naturalHeight/7);
- const x=z.x+z.w/2-w/2,y=z.y+z.h+2-h;
+ // Keep the bottle's feet anchored when its HIT art is shifted 24 source
+ // pixels down inside the repacked frame, avoiding a visible recoil hop.
+ const x=z.x+z.w/2-w/2;
+ const hitCapLift=z.eliteKind===2&&row===CLIPS.hit?
+   BOTTLE_HIT_OVERLAP_PX*h/(s.image.naturalHeight/ATLAS_ROWS):0;
+ const y=z.y+z.h+2-h-hitCapLift;
  ctx.save();if(z.flash>0)ctx.filter='brightness(1.7) saturate(1.1)';
  frame(ctx,s.cleanImage||s.image,row,col,x,y,w,h);ctx.restore();
  return true;

@@ -49,10 +49,23 @@ function components(row,col){
  groups.sort((a,b)=>b.n-a.n);
  return groups.slice(0,10);
 }
-for(const row of [0,1,2,3,4,5,6])
- for(let col=0;col<8;col++){
-  const groups=components(row,col);
-  const main=groups[0];
-  console.log('REAL_BOTTLE_COMPONENT '+JSON.stringify({row,col,main,extras:groups.slice(1)}));
- }
-console.log('PASS: real bottle atlas decoded, components inspected for cap integrity');
+const eliteSource=fs.readFileSync('dist/assets/ip/v2/elite-zombies-v145.js','utf8');
+assert.match(eliteSource,/const BOTTLE_HIT_OVERLAP_PX=24/);
+assert.match(eliteSource,/sourceTop=row===CLIPS\.hit\?row\*h-BOTTLE_HIT_OVERLAP_PX:row\*h/);
+assert.match(eliteSource,/BOTTLE_HIT_OVERLAP_PX\*h\/\(s\.image\.naturalHeight\/ATLAS_ROWS\)/);
+const overlap=24;
+for(let col=0;col<8;col++){
+ const attack=components(4,col),hit=components(5,col),main=hit[0];
+ assert.equal(main.y0,0,'uncorrected hit body reaches top edge in approved atlas');
+ assert(main.y1<=128,'there is sufficient blank space to repack hit pose downward');
+ const cap=attack.find(c=>c.y0>=148&&c.y1===167&&c.n>=250);
+ assert(cap,'true cap crossing from previous ATTACK row into HIT row: '+col);
+ assert(cap.x0>=65&&cap.x1<=144,'top cap centered near the bottle body: '+col);
+ // The rejoined source crop puts each cap entirely inside the hit frame
+ // at local y = attack y - (168-24), with enough space to keep its alpha.
+ assert(cap.y0-(168-overlap)>=3&&cap.y1-(168-overlap)<=23,
+  'cap restored within cell, without borrowing a neighbor sprite: '+col);
+ const fragmentPixels=cap.n;
+ assert(fragmentPixels>=250,'not a few stray border pixels');
+}
+console.log('PASS v298: all 8 hit frames rejoin the real preceding-row caps, preserve source bitmap and foot pivot');

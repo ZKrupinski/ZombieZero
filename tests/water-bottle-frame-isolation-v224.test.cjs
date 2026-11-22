@@ -10,7 +10,7 @@ assert.equal(png.readUInt32BE(20),1176);
 assert(src.includes('function isolateBottleAtlas(img)'),'on-load bottle isolation installed');
 assert(src.includes('if(kind===2){try{s.cleanImage=isolateBottleAtlas(img)}'),'other elites not modified');
 const WIDTH=168,HEIGHT=168;
-const created=[],saved=[];
+const created=[],saved=[],sourceCrops=[];
 const sample=(row,col)=>{
  const p=new Uint8ClampedArray(WIDTH*HEIGHT*4);
  const rect=(x0,y0,x1,y1,a=255)=>{
@@ -33,7 +33,9 @@ function makeCanvas(){
   clearRect(){},
   drawImage(im,sx,sy){
    if(typeof sx==='number'&&typeof sy==='number'&&arguments.length>=9){
-    this.col=sx/WIDTH;this.row=sy/HEIGHT;
+    this.col=sx/WIDTH;
+   this.row=Math.round(sy/HEIGHT);
+   sourceCrops.push({col:this.col,row:this.row,sourceTop:sy});
    }else if(im===created[1]){
     const d=im.getContext('2d').buffer;
     saved.push({col:sx/WIDTH,row:sy/HEIGHT,data:new Uint8ClampedArray(d.data)});
@@ -66,6 +68,13 @@ bottle.onload();
  await Promise.resolve();await Promise.resolve();
  assert.equal(lib.cache[2].ready,true,'bottle atlas only becomes ready after isolation');
  assert.equal(saved.length,56,'all 56 frames processed individually');
+ assert.equal(sourceCrops.length,56,'one crop per frame');
+ const hitCrops=sourceCrops.filter(x=>x.row===5);
+ assert.equal(hitCrops.length,8,'all eight hit frames included');
+ assert(hitCrops.every(x=>x.sourceTop===5*HEIGHT-24),
+   'hit row fetches its actual cap from previous atlas row');
+ assert(sourceCrops.filter(x=>x.row!==5).every(x=>x.sourceTop===x.row*HEIGHT),
+   'other animations preserve their original frame ranges');
  const first=saved.find(x=>x.col===0&&x.row===0);
  assert.equal(alpha(first.data,80,90),255,'main silhouette preserved');
  assert.equal(alpha(first.data,80,28),255,'real cap remains');
@@ -79,6 +88,13 @@ bottle.onload();
  const z={x:42,y:75,w:33,h:44,kind:0,eliteKind:2,moveDir:0,seed:0,recoil:0,hitHold:0,flash:0};
  assert.equal(lib.draw(ctx,z,0),true);
  assert.strictEqual(calls.at(-1)[0],lib.cache[2].cleanImage,'regular animation uses isolated atlas');
+ const normalY=calls.at(-1)[6];
+ z.hitHold=.1;
+ assert.equal(lib.draw(ctx,z,0),true);
+ assert.equal(calls.at(-1)[2],5*HEIGHT,'hit row selected during recoil');
+ assert(Math.abs(normalY-calls.at(-1)[6]-8)<.01,
+   'foot-anchor correction precisely cancels 24px upward source crop');
+ z.hitHold=0;
  lib.drawDeath(ctx,z,.3,.72);
  assert.strictEqual(calls.at(-1)[0],lib.cache[2].cleanImage,'death animation uses isolated atlas');
  assert.equal(calls.at(-1)[3],168,'source frame width is exactly one cell');
