@@ -279,7 +279,7 @@
   }
   function detectMouth(fx,fy,eyes){
    if(eyes.length!==2)return null;
-   const y0=Math.max(fy+69,fy+Math.max(...eyes.map(e=>e.y+e.h))+2);
+   const y0=fy+70; // Original mouth is y=73..80, independent of eye component extent.
    const y1=Math.min(fy+87,y0+21);
    const x0=fx+Math.max(24,Math.min(...eyes.map(e=>e.x))-5);
    const x1=fx+Math.min(104,Math.max(...eyes.map(e=>e.x+e.w))+5);
