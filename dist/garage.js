@@ -22,6 +22,17 @@ window.ZZGarage = (() => {
    if(byId[id]&&Number.isInteger(data.levels[id]))equipped[id]=value(byId[id],data.levels[id]);
   }
  }
+
+ // Every equipped module contributes to a permanent combat stat as well as
+ // its own conditional / special mechanic. All values are per hero loadout.
+ function statBoosts(gear){
+  return {
+   attack:Math.round(((gear('grip')||0)*.4+(gear('heavy')||0)*.25)*10)/10,
+   guard:Math.ceil((gear('wide')||0)/2)+Math.round((gear('cushion')||0)/5)+Math.round((gear('steer')||0)/3),
+   resist:Math.round((gear('filter')||0)/3)
+  };
+ }
+ function combatStats(){return statBoosts(id=>equipped[id]||0)}
  function reward(data,mode,stage,hero){
   data.xp[hero]=(data.xp[hero]||0)+1;
   if(stage<=(data.best[mode]||0))return;
@@ -60,7 +71,7 @@ window.ZZGarage = (() => {
  function strike(ball,hero,offset){
   // Real class steering: Wrench's aim spreads more with ordinary offsets.
   ball.bank=false;ball.first=true;ball.returns=(ball.returns||0)+1;
-  const centered=Math.abs(offset)<=.28+(equipped.grip||0)/100;
+  const centered=Math.abs(offset)<=.28+(equipped.grip||0)/100+(equipped.wide||0)/400;
   // Grip is a real precision modifier for every hero, not just Ruby.
   // It widens the centered contact window and adds a conditional hit bonus.
   ball.precision=!!equipped.grip&&centered;
@@ -95,9 +106,8 @@ window.ZZGarage = (() => {
   ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;ball.precision=false;
  }
 
- // V243 — identical, truthful stat readout on both the selection and garage.
- // Upgrades are read from each owned survivor's actual equipped gear levels.
- // A "first hit" bonus is NEVER represented as permanent attack damage.
+ // Core and special bonuses share one formula between the game, selection and garage.
+ // Unique first-hit damage stays on the gear badge; permanent attack is shown separately.
  function heroStats(hero,data,progression,index){
   const loads=data?.loads?.[index]||{},levels=data?.levels||{};
   const gear=id=>{
@@ -106,31 +116,31 @@ window.ZZGarage = (() => {
     ?value(part,levels[id]):0;
   };
   const extraSweet=(progression?.level?.('sweetSpot')||0)*2;
+  const boosted=statBoosts(gear);
   const baseSpeed=Number(hero?.speed)||500;
   const baseDamage=Number(hero?.damage)||1;
   const baseLives=Number(hero?.lives)||3;
   const basePaddle=Number(hero?.paddle)||60;
   return [
    {id:'speed',icon:'⚡',name:'속도',base:baseSpeed,bonus:Math.round(baseSpeed*gear('steer')/100),cap:950,unit:''},
-   {id:'first',icon:'✦',name:'첫타',base:baseDamage,bonus:baseDamage*gear('heavy')/100,cap:3.4,unit:'',precision:2},
+   {id:'attack',icon:'✦',name:'공격',base:baseDamage,bonus:baseDamage*boosted.attack/100,cap:3.4,unit:'',precision:2},
    {id:'hp',icon:'♥',name:'체력',base:baseLives,bonus:0,cap:6,unit:''},
-   {id:'guard',icon:'↔',name:'수비',base:basePaddle,bonus:gear('wide')+extraSweet+mastery(data?.xp?.[index]),cap:120,unit:'px'}
+   {id:'guard',icon:'↔',name:'수비',base:basePaddle,bonus:gear('wide')+boosted.guard+extraSweet+mastery(data?.xp?.[index]),cap:120,unit:'px'},
+   {id:'resist',icon:'✚',name:'내성',base:0,bonus:boosted.resist,cap:50,unit:'%'}
   ];
  }
  // Secondary effects are conditional in combat and must not be misrepresented
  // as permanent damage, health or speed. Read from this hero's equipped slots.
  function heroGearStats(data,index){
   const loads=data?.loads?.[index]||{},levels=data?.levels||{};
-  const gear=id=>{
-   const part=byId[id];
-   return part&&loads[part.slot]===id&&Number.isInteger(levels[id])
-    ?value(part,levels[id]):0;
-  };
-  return [
-   {id:'grip',name:'정타',bonus:gear('grip'),unit:'%',description:'정타 판정이 넓어지고 정타 시 공격력이 강화됩니다'},
-   {id:'cushion',name:'반사',bonus:gear('cushion'),unit:'%',description:'벽 반사 후 첫 타격의 넉백이 강화됩니다'},
-   {id:'filter',name:'방독',bonus:gear('filter'),unit:'%',description:'8초마다 독침 1회의 중독 증가량을 줄입니다'}
-  ];
+  const slotLabels=['무기','공','차량'];
+  return slotLabels.map((slot,idx)=>{
+   const part=byId[loads[idx]],active=!!part&&Number.isInteger(levels[part.id]);
+   const label=active?({grip:'정타',wide:'확장',cushion:'반사',heavy:'첫타',steer:'조향',filter:'방독'}[part.id]):slot;
+   return {id:active?part.id:'slot'+idx,name:label,
+    bonus:active?value(part,levels[part.id]):0,unit:active?part.unit:'',
+    description:active?part.label+' · 추가 기본 스탯 강화 적용':'장착한 장비 없음'};
+  });
  }
  function heroStatMarkup(hero,data,progression,index){
   const rows=heroStats(hero,data,progression,index),segments=12;
@@ -139,7 +149,8 @@ window.ZZGarage = (() => {
    const baseSegments=Math.min(segments,Math.round(row.base/row.cap*segments));
    const bonusSegments=row.bonus>0?Math.max(1,Math.ceil(row.bonus/row.cap*segments)):0;
    const maxBonus=Math.min(segments-baseSegments,bonusSegments);
-   const desc=row.name+' 기본 '+rounded(row.base)+(row.bonus>0?' 강화 +'+rounded(row.bonus):'');
+   const suffix=row.id==='resist'?'%':'';
+   const desc=row.name+' 기본 '+rounded(row.base)+suffix+(row.bonus>0?' 강화 +'+rounded(row.bonus)+suffix:'');
    const blocks=Array.from({length:segments},(_,n)=>{
     const kind=n<baseSegments?'base':n<baseSegments+maxBonus?'boost':'empty';
     return '<i class="hero-stat-cell '+kind+'"></i>';
@@ -148,8 +159,8 @@ window.ZZGarage = (() => {
     '<span class="hero-mini-icon" aria-hidden="true">'+row.icon+'</span>'+
     '<span class="hero-mini-label" aria-hidden="true">'+row.name+'</span>'+
     '<span class="hero-mini-track" aria-hidden="true">'+blocks+'</span>'+
-    '<span class="hero-mini-value'+(row.bonus>0?' boosted':'')+'" aria-hidden="true">'+rounded(row.base+row.bonus)+'</span>'+
-    '<span class="hero-mini-bonus'+(row.bonus>0?' active':'')+'" aria-hidden="true">'+(row.bonus>0?'+'+rounded(row.bonus):'·')+'</span></div>';
+    '<span class="hero-mini-value'+(row.bonus>0?' boosted':'')+'" aria-hidden="true">'+rounded(row.base+row.bonus)+suffix+'</span>'+
+    '<span class="hero-mini-bonus'+(row.bonus>0?' active':'')+'" aria-hidden="true">'+(row.bonus>0?'+'+rounded(row.bonus)+suffix:'·')+'</span></div>';
   }).join('')+
    '<div class="hero-gear-traits" aria-label="캐릭터 장착 장비의 특수 효과">'+
    heroGearStats(data,index).map(row=>{
@@ -160,5 +171,5 @@ window.ZZGarage = (() => {
      '" aria-label="'+label+'">'+label+'</span>';
    }).join('')+'</div></div>';
  }
- return {mastery,masteryDefense,masteryStep,masteryCap,parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,heroStats,heroGearStats,heroStatMarkup};
+ return {mastery,masteryDefense,masteryStep,masteryCap,parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,combatStats,statBoosts,heroStats,heroGearStats,heroStatMarkup};
 })();
