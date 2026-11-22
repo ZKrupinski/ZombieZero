@@ -5,6 +5,9 @@
  'use strict';
  const image=new Image();
  image.decoding='async';
+ const hair=new Image();
+ hair.decoding='async';
+ hair.src='assets/ip/v2/green_zombie-chestnut.webp';
  const halfLidded=window.ZZGreenPalette?.loadHalfLidded?.(new Image(),'assets/ip/v2/green_zombie-half-lid.webp',1024,512);
  const pack={
    image,ready:false,failed:false,cell:128,variants:[image],
@@ -39,6 +42,8 @@
      ctx.save();
      if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
      ctx.drawImage(bitmap,...rect,x,y,rect[2]*scale,rect[3]*scale);
+     if(z.brownHair&&hair.complete&&hair.naturalWidth===1024)
+       ctx.drawImage(hair,...rect,x,y,rect[2]*scale,rect[3]*scale);
      ctx.restore();
      return true;
    }

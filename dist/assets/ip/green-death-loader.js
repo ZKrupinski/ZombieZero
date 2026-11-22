@@ -95,6 +95,8 @@
        }
        ctx.save();ctx.globalAlpha=(ctx.globalAlpha??1)*blend;
        ctx.drawImage(bitmap,f*96,0,96,128,x,y,width,height);
+       if(z.brownHair&&art.hair.complete&&art.hair.naturalWidth===768)
+         ctx.drawImage(art.hair,f*96,0,96,128,x,y,width,height);
        ctx.restore();
        return true;
      }
@@ -112,6 +114,9 @@
  image.onerror=()=>{pack.ready=false};
  image.src='assets/ip/green-death.png';
  for(const [kind,part] of Object.entries(pack.remaster)){
+   part.hair=new Image();
+   part.hair.decoding='async';
+   part.hair.src='assets/ip/green-death-'+kind+'-v95-chestnut.webp';
    part.halfLidded=window.ZZGreenPalette?.loadHalfLidded?.(new Image(),
      'assets/ip/green-death-'+kind+'-v95-half-lid.webp',768,128,
      kind==='critical'?cleanCriticalFringeBitmap:null);
