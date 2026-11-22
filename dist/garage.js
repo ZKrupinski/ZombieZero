@@ -61,6 +61,9 @@ window.ZZGarage = (() => {
   // Real class steering: Wrench's aim spreads more with ordinary offsets.
   ball.bank=false;ball.first=true;ball.returns=(ball.returns||0)+1;
   const centered=Math.abs(offset)<=.28+(equipped.grip||0)/100;
+  // Grip is a real precision modifier for every hero, not just Ruby.
+  // It widens the centered contact window and adds a conditional hit bonus.
+  ball.precision=!!equipped.grip&&centered;
   ball.slam=hero===1&&centered;ball.echo=hero===2&&ball.returns%2===0;
   const edge=Math.abs(offset)>=.68-(equipped.grip||0)/100;
   if(hero===3)return Math.sign(offset)*Math.min(1.29,Math.pow(Math.abs(offset),.74)*1.34);
@@ -76,6 +79,9 @@ window.ZZGarage = (() => {
    }
    impact.push=(hero===3?2.15:1)*(1+(equipped.cushion||0)/100);
   }
+  if(ball.precision){
+   impact.power=(impact.power||1)*(1+(equipped.grip||0)/100);
+  }
   if(ball.slam){
    impact.push=(impact.push||1)*1.9;
    impact.power=(impact.power||1)*1.15;
@@ -86,7 +92,7 @@ window.ZZGarage = (() => {
    ball.vx*=.96;ball.vy*=.96;
   }
   impact.echo=!!ball.echo;
-  ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;
+  ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;ball.precision=false;
  }
 
  // V243 — identical, truthful stat readout on both the selection and garage.
@@ -111,6 +117,21 @@ window.ZZGarage = (() => {
    {id:'guard',icon:'↔',name:'수비',base:basePaddle,bonus:gear('wide')+extraSweet+mastery(data?.xp?.[index]),cap:120,unit:'px'}
   ];
  }
+ // Secondary effects are conditional in combat and must not be misrepresented
+ // as permanent damage, health or speed. Read from this hero's equipped slots.
+ function heroGearStats(data,index){
+  const loads=data?.loads?.[index]||{},levels=data?.levels||{};
+  const gear=id=>{
+   const part=byId[id];
+   return part&&loads[part.slot]===id&&Number.isInteger(levels[id])
+    ?value(part,levels[id]):0;
+  };
+  return [
+   {id:'grip',name:'정타',bonus:gear('grip'),unit:'%',description:'정타 판정이 넓어지고 정타 시 공격력이 강화됩니다'},
+   {id:'cushion',name:'반사',bonus:gear('cushion'),unit:'%',description:'벽 반사 후 첫 타격의 넉백이 강화됩니다'},
+   {id:'filter',name:'방독',bonus:gear('filter'),unit:'%',description:'8초마다 독침 1회의 중독 증가량을 줄입니다'}
+  ];
+ }
  function heroStatMarkup(hero,data,progression,index){
   const rows=heroStats(hero,data,progression,index),segments=12;
   return '<div class="hero-mini-stats" aria-label="기본 능력치와 장비 강화분">'+rows.map(row=>{
@@ -127,9 +148,17 @@ window.ZZGarage = (() => {
     '<span class="hero-mini-icon" aria-hidden="true">'+row.icon+'</span>'+
     '<span class="hero-mini-label" aria-hidden="true">'+row.name+'</span>'+
     '<span class="hero-mini-track" aria-hidden="true">'+blocks+'</span>'+
-    '<span class="hero-mini-value" aria-hidden="true">'+rounded(row.base+row.bonus)+'</span>'+
+    '<span class="hero-mini-value'+(row.bonus>0?' boosted':'')+'" aria-hidden="true">'+rounded(row.base+row.bonus)+'</span>'+
     '<span class="hero-mini-bonus'+(row.bonus>0?' active':'')+'" aria-hidden="true">'+(row.bonus>0?'+'+rounded(row.bonus):'·')+'</span></div>';
-  }).join('')+'</div>';
+  }).join('')+
+   '<div class="hero-gear-traits" aria-label="캐릭터 장착 장비의 특수 효과">'+
+   heroGearStats(data,index).map(row=>{
+    const active=row.bonus>0;
+    const label=row.name+' '+(active?'+'+row.bonus+row.unit:'—');
+    return '<span class="hero-gear-trait'+(active?' active':'')+'" title="'+row.description+
+     (active?' · 현재 +'+row.bonus+row.unit:' · 장비 미장착')+
+     '" aria-label="'+label+'">'+label+'</span>';
+   }).join('')+'</div></div>';
  }
- return {mastery,masteryDefense,masteryStep,masteryCap,parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,heroStats,heroStatMarkup};
+ return {mastery,masteryDefense,masteryStep,masteryCap,parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,heroStats,heroGearStats,heroStatMarkup};
 })();
