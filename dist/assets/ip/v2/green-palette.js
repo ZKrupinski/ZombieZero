@@ -279,8 +279,11 @@
   }
   function detectMouth(fx,fy,eyes){
    if(eyes.length!==2)return null;
-   const y0=fy+70; // Original mouth is y=73..80, independent of eye component extent.
-   const y1=Math.min(fy+87,y0+21);
+   // The canonical front mouth is y73..80; two diagonal mouths are higher
+   // (left y64..72, right y63..72), not the shirt below y83.
+   const front=(fy===0);
+   const y0=fy+(front?70:62);
+   const y1=fy+(front?87:78);
    const x0=fx+Math.max(24,Math.min(...eyes.map(e=>e.x))-5);
    const x1=fx+Math.min(104,Math.max(...eyes.map(e=>e.x+e.w))+5);
    const seen=new Uint8Array(cell*cell),groups=[];
@@ -303,7 +306,7 @@
     }
     const rw=highX-lowX+1,rh=highY-lowY+1,cx=(lowX+highX)/2-fx;
     if(queue.length>=9&&rw>=6&&rw<=38&&rh>=3&&rh<=18&&
-       cx>=35&&cx<=91&&highY<fy+87)
+       cx>=35&&cx<=91&&highY<fy+(front?87:78))
      groups.push({x:lowX-fx,y:lowY-fy,w:rw,h:rh,area:queue.length});
    }
    groups.sort((a,b)=>b.area-a.area);
@@ -380,7 +383,7 @@
    const ry=Math.min(10,Math.max(5.4,mouth.h*.88+2.7));
    for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++)
     for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){
-     if(x<22||x>105||y<67||y>99)continue;
+     if(x<22||x>105||y<60||y>99)continue;
      const xx=fx+x,yy=fy+y,i=at(xx,yy);
      if(src[i+3]<240)continue;
      // This guard rejects shirt/neck and is independent of palette variations.
