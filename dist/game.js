@@ -27,7 +27,7 @@ const HEROES=[
 {id:'ace',name:'에이스',role:'안정형',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:500,paddle:68,damage:1,lives:3,duration:1,desc:'넓은 라켓 · 목숨 3',stats:'이동 500 · 공격 1 · 라켓 136'},
 {id:'ruby',name:'루비',role:'기동형',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:660,paddle:51,damage:1,lives:3,duration:1.25,desc:'배트 · 이동 +32% · 스킬 +25%',stats:'이동 660 · 공격 1 · 반사 폭 102'},
 {id:'liam',name:'리아',role:'공격형',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:390,paddle:55,damage:2,lives:2,duration:1,desc:'해머 · 공격력 ×2 · 목숨 2',stats:'이동 390 · 공격 2 · 반사 폭 110'}];
-if(window.ZZGarage)HEROES.push({id:'mechanic',name:'정비사',role:'벽 반사형',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:60,damage:1,lives:3,duration:1,desc:'휠캡 · 측면 밀치기',stats:'벽을 맞힌 휠캡이 첫 적을 옆으로 밀칩니다.'});
+if(window.ZZGarage)HEROES.push({id:'mechanic',name:'렌치',role:'벽 반사형',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:60,damage:1,lives:3,duration:1,desc:'메카 쇠공 · 측면 밀치기',stats:'벽을 맞힌 메카 쇠공이 첫 적을 옆으로 밀칩니다.'});
 const gearBonus=id=>window.ZZGarage?.bonus(id)||0;
 let filterReady=0;
 let touchUsed=false,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0,lastCameraFeedback=0,bubbles=[],bubbleTimer=.25;
@@ -48,7 +48,11 @@ const growth=id=>window.ZZProgression?.level?.(id)||0;
 // Tennis racket face (58,76), pink bat tip (54,75), hammer head (141,75).
 // Balls sit on the UPWARD rim (face-safe), not in the character's hand or face.
 const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25,y:-30}];
-const heldBallOffset=()=>HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
+// Ball rests on the upper edge of the ring spanner in each Wrench idle cell.
+const wrenchServeOffsets=[{x:-34,y:-45},{x:-34,y:-47},{x:-34,y:-50},{x:-35,y:-53},
+ {x:-35,y:-50},{x:-34,y:-47},{x:-34,y:-46},{x:-35,y:-46}];
+const heldBallOffset=()=>selectedHero===3?wrenchServeOffsets[Math.floor(clock*8)%8]:
+ HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
 // Impact pose is cosmetic only; physics uses the unchanged 8/16px ball radius.
 function ballImpact(b,axis,dir=1,kind='wall'){
  if(b&&kind==='wall')b.bank=true;
@@ -3247,7 +3251,7 @@ function drawHeroBallSprite(b,r,col){
  // independently rotate by spinAngle. No angle snap when a ball hits a wall.
  g.translate(b.x,b.y);g.rotate(pose.rotation);g.scale(pose.sx,pose.sy);
  g.rotate(pose.spin-pose.rotation);
- if(selectedHero===3 && $('hubcap-art')?.naturalWidth){g.drawImage($('hubcap-art'),-r,-r,r*2,r*2)}else if(ready){
+ if(selectedHero===3 && $('wrench-ball-art')?.naturalWidth){g.drawImage($('wrench-ball-art'),-r,-r,r*2,r*2)}else if(ready){
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
   const size=r*3.40;
   g.drawImage(img,0,0,frameW,frameH,-size/2,-size/2,size,size);

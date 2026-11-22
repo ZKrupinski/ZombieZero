@@ -3,7 +3,7 @@
  const system=window.ZZGarage,progress=window.ZZProgression;
  let panel,body,note,garageHero;
  const slots=['무기','공','차량'];
- const styles=['라켓 끝으로 받으면 코너를 깊게 노립니다.','배트 중심에 맞히면 적 무리를 강하게 밀어냅니다.','두 번째 리턴마다 첫 충돌이 주변 적에게 한 번 더 튑니다.','벽을 맞힌 휠캡이 첫 적을 옆으로 밀어냅니다.'];
+ const styles=['라켓 끝으로 받으면 코너를 깊게 노립니다.','배트 중심에 맞히면 적 무리를 강하게 밀어냅니다.','두 번째 리턴마다 첫 충돌이 주변 적에게 한 번 더 튑니다.','벽을 맞힌 메카 쇠공이 첫 적을 옆으로 밀어냅니다.'];
  let activePart=system.parts[0],tab='parts',frame=0;
  // The first three survivors belong to the player from the start.
  // The tow mechanic joins the reel only after the radio actually recruits them.
@@ -48,7 +48,7 @@
   const title=receiving?'주파수 동조 중…':receipt?HEROES[hero].name:(data.mechanic?'생존자 통신망':'폐차장 신호 포착');
   const visual=receipt&&!receiving?radioPortrait(hero):icon('radio');
   const caption=receiving?'호출을 보냈습니다.':receipt?(newHero?'구조 성공! 이제 함께 출전할 수 있습니다.':HEROES[hero].role):
-   (data.mechanic?'보유 생존자 4명 · 응답 확률 각 25%':'첫 호출 확정 합류 · 정비사');
+   (data.mechanic?'보유 생존자 4명 · 응답 확률 각 25%':'첫 호출 확정 합류 · 렌치');
   const screen='<section class="rx-screen '+(receiving?'rx-tuning':receipt?(newHero?'rx-reveal rx-new':'rx-reveal'):'')+'">'+
    '<div class="rx-status"><i></i>'+label+'</div><div class="rx-art">'+visual+'</div>'+
    '<h3>'+title+'</h3><p>'+caption+'</p></section>';
