@@ -1019,9 +1019,10 @@ function rack(){
   const maxKind=Math.min(4,1+Math.floor(stage/2));
   const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-stage*.12))*(maxKind+1));
   const hp=zombieHP(0,kind,stage);
+  const hairRoll=Math.random();
   foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,
    row:r,col,w:33,h:44,hp,max:hp,kind,form:0,flash:0,
-   brownHair:Math.random()<.25,halfLidded:Math.random()<.25,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
+   hairColor:hairRoll<.01?'blond':hairRoll<.26?'chestnut':null,halfLidded:Math.random()<.25,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
  }
  setStageForms(foes,stage);
  insertEliteZombies(foes,stage);
