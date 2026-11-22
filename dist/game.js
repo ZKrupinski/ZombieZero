@@ -29,7 +29,7 @@ const HEROES=[
  {id:'liam',name:'리아',role:'BREAKER',className:'파괴 화력',trait:'2타 충격파',accent:'#ff8c76',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:375,paddle:49,damage:2.2,lives:2,duration:1,desc:'해머 · 공격 2.2 · 2회 리턴마다 연쇄 타격',stats:'BREAKER · 파괴력 2.2 · 반사 2회마다 연쇄 충격'}];
 if(window.ZZGarage)HEROES.push({id:'mechanic',name:'렌치',role:'TRICKSHOT',className:'반사각 특화',trait:'BANK SHOT',accent:'#ffdc75',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:56,damage:1.15,lives:3,duration:1,desc:'스패너 · 넓은 반사각 · 벽 충전 연쇄 타격',stats:'TRICKSHOT · 특수 반사각 · 벽 반사 후 강화 및 연쇄 타격'});
 // V274: Scarlett joins the owned cast with a luxury car, handbag and prism orb.
-if(window.ZZGarage)HEROES.push({id:'scarlet',name:'스칼렛',role:'DIVA',className:'프리즘 스타',trait:'다이아몬드 피니시',accent:'#ff9be7',color:'#da345c',hair:'#ffd76f',skin:'#ffddc3',speed:565,paddle:54,damage:1.25,lives:3,duration:1.12,desc:'명품백 · 보석 공 · 3번째 리턴 프리즘 강타',stats:'DIVA · 3번째 리턴마다 다이아몬드 강화 타격'});
+if(window.ZZGarage)HEROES.push({id:'scarlet',name:'스칼렛',role:'DIVA',className:'프리즘 스타',trait:'다이아몬드 피니시',accent:'#ff9be7',color:'#da345c',hair:'#ffd76f',skin:'#ffddc3',speed:780,paddle:54,damage:2,lives:5,duration:1.12,desc:'명품백 · 속도 780 · 공격 2.0 · 체력 5 · 프리즘 강타',stats:'DIVA · 속도 780 · 공격 2.0 · 체력 5 · 3번째 리턴 프리즘 타격'});
 const gearBonus=id=>window.ZZGarage?.bonus(id)||0;
 const garageCombat=()=>window.ZZGarage?.combatStats?.()||{attack:0,guard:0,resist:0};
 let filterReady=0;
@@ -2375,15 +2375,18 @@ function player(){
   const frame=attacking?Math.min(7,Math.floor(t*8)):(Math.floor(clock*8)%8);
   const sheet=$(attacking?'scarlet-attack':'scarlet-idle');
   const renderSheet=sheet;
-  const size=112,win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
+  // v281: Scarlet's authored car + rider is 80% of the previous displayed
+  // size. Anchor the wheel baseline, not the sprite center, for both poses.
+  const size=112*.8,carSpriteBottom=579+112/2;
+  const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
   if((renderSheet?.naturalWidth||renderSheet?.width)===768&&(renderSheet?.naturalHeight||renderSheet?.height)===384){
    drawHeroBitmap(renderSheet,(frame%4)*192,Math.floor(frame/4)*192,192,192,
-    car-size/2,579-size/2,size,size);
+    car-size/2,carSpriteBottom-size,size,size);
   }else{
    const portrait=$('scarlet-portrait');
-   if(portrait?.naturalWidth)drawHeroBitmap(portrait,car-size/2,579-size/2,size,size);
+   if(portrait?.naturalWidth)drawHeroBitmap(portrait,car-size/2,carSpriteBottom-size,size,size);
   }
   g.restore();return;
  }
