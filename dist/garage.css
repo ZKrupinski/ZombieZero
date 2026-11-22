@@ -1667,3 +1667,68 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
   font-size:7px!important;padding:2px 3px!important;
  }
 }
+
+
+/* v269: permanent, per-hero garage upgrade stat differentiation. */
+#overlay[data-screen="selection"] #heroes .hero-mini-value.boosted,
+#overlay[data-screen="results"] #heroes .hero-mini-value.boosted,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-mini-value.boosted,
+#garage-dialog .hero-mini-value.boosted{
+ color:#ffe296!important;
+ text-shadow:0 0 4px #e6ab4b80!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-mini-bonus.active,
+#overlay[data-screen="results"] #heroes .hero-mini-bonus.active,
+#garage-dialog .hero-mini-bonus.active{color:#ffe296!important}
+#overlay #heroes .hero-gear-traits,
+#garage-dialog .hero-gear-traits{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:3px!important;
+ width:100%!important;
+ min-width:0!important;
+ box-sizing:border-box!important;
+ margin-top:2px!important;
+ padding-top:2px!important;
+ border-top:1px solid #708c9666!important;
+}
+#overlay #heroes .hero-gear-trait,
+#garage-dialog .hero-gear-trait{
+ display:block!important;min-width:0!important;max-width:100%!important;
+ overflow:hidden!important;white-space:nowrap!important;text-overflow:clip!important;
+ text-align:center!important;
+ border:1px solid #536875!important;
+ border-radius:3px!important;
+ background:#162d38!important;
+ color:#879da5!important;
+ padding:2px 1px!important;
+ font:800 9px/1.05 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:-.025em!important;
+}
+#overlay #heroes .hero-gear-trait.active,
+#garage-dialog .hero-gear-trait.active{
+ border-color:#dfb875!important;
+ background:linear-gradient(180deg,#59432a,#3c332b)!important;
+ color:#ffe6a5!important;
+ text-shadow:0 0 3px #d6a95199!important;
+}
+#garage-dialog .hero-gear-traits{grid-column:1/-1;margin-top:1px!important}
+#garage-dialog .hero-gear-trait{padding:3px 2px!important;font-size:9px!important}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-gear-traits,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-gear-traits{
+ margin-top:2px!important;padding-top:2px!important;gap:2px!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-gear-trait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-reel-bottom .hero-gear-trait{
+ padding:2px 0!important;font-size:8px!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork>.hero-vehicle-portrait{
+ width:min(calc(100% - 2px),calc(100cqh - 72px))!important;
+}
+@media(max-height:590px){
+ #overlay #heroes .hero-gear-traits{margin-top:1px!important;padding-top:1px!important}
+ #overlay #heroes .hero-gear-trait{padding:1px 0!important;font-size:7px!important}
+}
