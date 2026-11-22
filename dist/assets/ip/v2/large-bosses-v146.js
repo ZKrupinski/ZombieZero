@@ -40,6 +40,8 @@ function requestByForm(form){
  requestRight(entry);
  if(entry.ready||entry.loading||entry.failed)return;
  entry.loading=true;entry.attempts++;
+ entry.death={};
+ window.ZZDeathStrips?.load(entry.death,entry.id+'-death');
  const img=new Image();
  entry.image=img;img.decoding='async';
  img.onload=()=>{
@@ -86,7 +88,10 @@ function drawDeath(ctx,z,elapsed,duration){
  const entry=cache[z.bossForm-2];
  const t=Math.max(0,Math.min(1,elapsed/Math.max(.001,duration)));
  const col=Math.min(COLS-1,Math.floor(t*COLS));
- drawFrame(ctx,entry.image,CLIPS.death,col,z,entry.height+Math.sin(t*Math.PI)*12);
+ const height=entry.height+Math.sin(t*Math.PI)*12;
+ if(entry.death?.strip){
+  window.ZZDeathStrips.draw(ctx,entry.death.strip,col,z.x+z.w/2-height/2,z.y+z.h+2-height,height);
+ }else drawFrame(ctx,entry.image,CLIPS.death,col,z,height);
  return true;
 }
 window.ZZLargeBossSprites={SPECS,cache,CLIPS,COLS,ROWS,requestByForm,readyByForm,available,draw,drawDeath};

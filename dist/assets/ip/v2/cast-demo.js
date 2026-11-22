@@ -7,13 +7,15 @@ function setup(){
  const atlas=window.ZZObjectSprite;
  if(!trigger||!atlas)return;
  const dialog=document.createElement('dialog');dialog.id='object-cast-demo-dialog';dialog.className='object-cast-demo';
- dialog.innerHTML='<button type="button" class="dialog-close" id="object-cast-demo-close">닫기 ✕</button><h2>ZOMBIE ZERO 원작 좀비 10종</h2><p>이동·피격은 기본 원화, 사망은 실제 게임에 적용된 일반/크리티컬 PNG 애니메이션을 재생합니다.</p><div class="object-cast-controls" role="group" aria-label="애니메이션 선택"></div><div class="object-cast-grid" role="list"></div>';
+ dialog.innerHTML='<button type="button" class="dialog-close" id="object-cast-demo-close">닫기 ✕</button><h2>ZOMBIE ZERO 원작 좀비 10종</h2><p>이동·피격은 기본 원화, 사망은 실제 게임에 적용된 일반/크리티컬 애니메이션을 재생합니다.</p><div class="object-cast-controls" role="group" aria-label="애니메이션 선택"></div><div class="object-cast-grid" role="list"></div>';
  document.body.appendChild(dialog);
  const grid=dialog.querySelector('.object-cast-grid'),controls=dialog.querySelector('.object-cast-controls');
  const keys=['green_zombie',...Object.keys(atlas.names)],canvases=[];
+ const width=148,height=168;
+ const density=Math.min(3,Math.max(1,window.devicePixelRatio||1));
  for(const key of keys){
   const card=document.createElement('article');card.className='object-cast-card';card.setAttribute('role','listitem');
-  const c=document.createElement('canvas');c.width=148;c.height=168;c.setAttribute('aria-label',(key==='green_zombie'?'그린 좀비':atlas.names[key])+' 애니메이션');
+  const c=document.createElement('canvas');c.width=Math.round(width*density);c.height=Math.round(height*density);c.setAttribute('aria-label',(key==='green_zombie'?'그린 좀비':atlas.names[key])+' 애니메이션');
   const label=document.createElement('strong');label.textContent=key==='green_zombie'?'그린 좀비':atlas.names[key];
   card.append(c,label);grid.append(card);canvases.push({key,c});
  }
@@ -51,7 +53,8 @@ function setup(){
   for(const {key,c} of canvases){
    if(c.parentElement.hidden)continue;
    const ctx=c.getContext('2d');if(!ctx)continue;
-   ctx.clearRect(0,0,c.width,c.height);
+   ctx.setTransform(c.width/width,0,0,c.height/height,0,0);
+   ctx.clearRect(0,0,width,height);
    const isGreen=key==='green_zombie';
    const pack=isGreen?window.ZZGreenWalk:atlas;
    const entry=isGreen?pack:pack.images[key];
@@ -66,21 +69,16 @@ function setup(){
     if(!isGreen){
      const critical=mode==='critical',duration=actor.boss?(critical?.94:.78):(critical?.58:.52);
      const w=actor.boss?66:33,h=actor.boss?88:44;
-     const preview={...actor,x:(c.width-w)/2,y:c.height-h-16,w,h,flash:0};
+     const preview={...actor,x:(width-w)/2,y:height-h-16,w,h,flash:0};
      pack.drawDeath(ctx,preview,critical,seconds%duration,duration);
      continue;
     }
-    if(isGreen){
-     const death=window.ZZGreenDeath;
-     if(!death?.ready)continue;
-     const clip=death[mode],elapsed=(seconds%clip.duration)*1000;
-     frame=Math.min(clip.count-1,Math.floor(elapsed/clip.frameMs));
-     rect=[frame*48,clip.row*48,48,48];source=death.image;
-    }else{
-     const first=mode==='normal'?26:28;
-     frame=first+Math.floor((seconds%(.52))/(.52/2));
-     rect=pack.sourceRect(actor,frame,img);
+    const death=window.ZZGreenDeath;
+    if(death?.ready){
+     const preview={...actor,x:(width-33)/2,y:height-60,w:33,h:44};
+     death.draw(ctx,preview,mode==='critical',seconds%death[mode].duration);
     }
+    continue;
    }else{
     const vx=mode==='left'?-1:mode==='right'?1:0;
     actor.moveDir=vx;
@@ -97,8 +95,8 @@ function setup(){
     }
    }
    const [sx,sy,sw,sh]=rect;
-   const scale=Math.min((c.width-12)/sw,(c.height-12)/sh);
-   const w=sw*scale,h=sh*scale,x=(c.width-w)/2,y=(c.height-h)/2;
+   const scale=Math.min((width-12)/sw,(height-12)/sh);
+   const w=sw*scale,h=sh*scale,x=(width-w)/2,y=(height-h)/2;
    ctx.imageSmoothingEnabled=true;
    ctx.drawImage(source,sx,sy,sw,sh,x,y,w,h);
   }

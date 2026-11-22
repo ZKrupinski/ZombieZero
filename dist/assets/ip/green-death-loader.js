@@ -94,9 +94,12 @@
          window.ZZGreenWalk.draw(ctx,z,0);ctx.restore();
        }
        ctx.save();ctx.globalAlpha=(ctx.globalAlpha??1)*blend;
-       ctx.drawImage(bitmap,f*96,0,96,128,x,y,width,height);
+       if(art.hd)ctx.drawImage(bitmap,f*240,0,240,320,x,y,width,height);
+       else ctx.drawImage(bitmap,f*96,0,96,128,x,y,width,height);
        const hair=art.hairSheets[z.hairColor];
-       if(hair?.complete&&hair.naturalWidth===768)
+       if(hair?.complete&&hair.naturalWidth===1920)
+         ctx.drawImage(hair,f*240,0,240,320,x,y,width,height);
+       else if(hair?.complete&&hair.naturalWidth===768)
          ctx.drawImage(hair,f*96,0,96,128,x,y,width,height);
        ctx.restore();
        return true;
@@ -119,7 +122,11 @@
    for(const color of ['chestnut','blond','red']){
      const sheet=new Image();
      sheet.decoding='async';
-     sheet.src='assets/ip/green-death-'+kind+'-v95-'+color+'.webp';
+     const fallback=()=>{sheet.onerror=null;sheet.src='assets/ip/green-death-'+kind+'-v95-'+color+'.webp'};
+     if(window.ZZDeathStrips){
+       sheet.onerror=fallback;
+       sheet.src=window.ZZDeathStrips.root+'green-'+kind+'-'+color+'.webp';
+     }else fallback();
      part.hairSheets[color]=sheet;
    }
    // Facial edits are baked from the canonical death strip on load.
@@ -128,7 +135,9 @@
    part.expressions={};
    part.image.decoding='async';
    part.image.onload=()=>{
-     part.ready=part.image.naturalWidth===768&&part.image.naturalHeight===128;
+     part.hd=part.image.naturalWidth===1920&&part.image.naturalHeight===320;
+     part.ready=part.hd||(part.image.naturalWidth===768&&part.image.naturalHeight===128);
+     if(!part.ready&&part.image.onerror){part.image.onerror();return}
      if(part.ready){
        part.variants=window.ZZGreenPalette?.variants(part.image)||[part.image];
        // The first eight death frames already contain authored facial changes.
@@ -142,7 +151,14 @@
    };
    part.image.onerror=()=>{part.ready=false};
    // V121: critical edges decontaminated once after loading; original PNG retained.
-   part.image.src='assets/ip/green-death-'+kind+'-v95.png'+'?v=112-sharp-alpha';
+   const fallback=()=>{
+     part.image.onerror=()=>{part.ready=false};
+     part.image.src='assets/ip/green-death-'+kind+'-v95.png'+'?v=112-sharp-alpha';
+   };
+   if(window.ZZDeathStrips){
+     part.image.onerror=fallback;
+     part.image.src=window.ZZDeathStrips.root+'green-'+kind+'.webp';
+   }else fallback();
  }
 
  // In-game review control (same atlas/frame timings as real lethal-hit path).
@@ -157,17 +173,20 @@
    if(!open||!dialog||!close||!normal||!critical||!canvas)return;
    const c=canvas.getContext('2d');
    if(!c)return;
+   const width=360,height=220,density=Math.min(3,Math.max(1,window.devicePixelRatio||1));
+   canvas.width=Math.round(width*density);canvas.height=Math.round(height*density);
+   c.setTransform(canvas.width/width,0,0,canvas.height/height,0,0);
    let current='critical',began=0,request=0,active=false;
    const actor={x:176,y:115,w:33,h:44};
    function drawFrame(now){
      if(!active)return;
-     c.clearRect(0,0,canvas.width,canvas.height);
-     c.fillStyle='#172235';c.fillRect(0,0,canvas.width,canvas.height);
-     c.fillStyle='#25364a';for(let y=8;y<canvas.height;y+=44)c.fillRect(0,y,canvas.width,1);
-     for(let x=8;x<canvas.width;x+=44)c.fillRect(x,0,1,canvas.height);
+     c.clearRect(0,0,width,height);
+     c.fillStyle='#172235';c.fillRect(0,0,width,height);
+     c.fillStyle='#25364a';for(let y=8;y<height;y+=44)c.fillRect(0,y,width,1);
+     for(let x=8;x<width;x+=44)c.fillRect(x,0,1,height);
      const clip=pack[current],t=Math.min(clip.duration,Math.max(0,(now-began)/1000));
      if(pack.ready)pack.draw(c,actor,current==='critical',Math.min(t,clip.duration-.001),pack.remaster[current].ready?1.28:2.6);
-     else{c.font='bold 15px sans-serif';c.textAlign='center';c.fillStyle='#f9e1a4';c.fillText('스프라이트 로딩 중…',canvas.width/2,canvas.height/2)}
+     else{c.font='bold 15px sans-serif';c.textAlign='center';c.fillStyle='#f9e1a4';c.fillText('스프라이트 로딩 중…',width/2,height/2)}
      if(t<clip.duration||!pack.ready)request=requestAnimationFrame(drawFrame);
      else request=0;
    }

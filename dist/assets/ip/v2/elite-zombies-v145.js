@@ -161,6 +161,8 @@ function request(kind){
  const s=cache[kind];
  if(!s||s.loading||s.ready||s.failed)return;
  s.loading=true;
+ s.death={};
+ window.ZZDeathStrips?.load(s.death,s.id+'-death');
  const img=new Image();s.image=img;img.decoding='async';
  img.onload=()=>{
    const valid=img.naturalWidth>=READY_MIN_WIDTH &&
@@ -219,7 +221,11 @@ function drawDeath(ctx,z,elapsed,duration){
  const h=col<2?56:56+Math.sin((col-1)/6*Math.PI)*15;
  const w=h*(img.naturalWidth/8)/(img.naturalHeight/7);
  const x=z.x+z.w/2-w/2,y=z.y+z.h+2-h;
- ctx.save();frame(ctx,cache[z.eliteKind].cleanImage||img,CLIPS.death,col,x,y,w,h);ctx.restore();
+ ctx.save();
+ const strip=cache[z.eliteKind].death?.strip;
+ if(strip)window.ZZDeathStrips.draw(ctx,strip,col,x,y,h);
+ else frame(ctx,cache[z.eliteKind].cleanImage||img,CLIPS.death,col,x,y,w,h);
+ ctx.restore();
  return true;
 }
 window.ZZEliteSprites={cache,SPECS,CLIPS,request,requestForStage,available,draw,drawDeath};

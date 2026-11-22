@@ -253,7 +253,9 @@ for(const id of P1_FINISHED_DEATH_KEYS){
    asset.failed=!asset.ready;
   };
   img.onerror=()=>{asset.failed=true;asset.ready=false};
-  img.src='assets/ip/v2/p1-deaths/'+id+'-'+kind+'-v97.png';
+  const fallback=()=>{img.src='assets/ip/v2/p1-deaths/'+id+'-'+kind+'-v97.png';};
+  if(window.ZZDeathStrips)window.ZZDeathStrips.load(asset,id+'-'+kind,fallback);
+  else fallback();
  }
 }
 function drawP1FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
@@ -270,7 +272,8 @@ function drawP1FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
   drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-blend);
  if(blend>0){
   ctx.save();ctx.globalAlpha*=blend;
-  ctx.drawImage(clip.image,f*P1_FINISHED_DEATH_CELL,0,256,256,
+  if(clip.strip)window.ZZDeathStrips.draw(ctx,clip.strip,f,dx,dy,size);
+  else ctx.drawImage(clip.image,f*P1_FINISHED_DEATH_CELL,0,256,256,
    dx,dy,size,size);
   ctx.restore();
  }
@@ -292,7 +295,9 @@ for(const id of P2_FINISHED_DEATH_KEYS){
    entry.failed=!entry.ready;
   };
   image.onerror=()=>{entry.ready=false;entry.failed=true};
-  image.src='assets/ip/v2/p2-deaths/'+id+'-'+kind+'-v100.png';
+  const fallback=()=>{image.src='assets/ip/v2/p2-deaths/'+id+'-'+kind+'-v100.png';};
+  if(window.ZZDeathStrips)window.ZZDeathStrips.load(entry,id+'-'+kind,fallback);
+  else fallback();
  }
 }
 function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
@@ -310,7 +315,8 @@ function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
  if(blend<1&&livingAtlas)drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-blend);
  if(blend>0){
   ctx.save();ctx.globalAlpha*=blend;
-  ctx.drawImage(clip.image,f*P2_FINISHED_DEATH_CELL,0,256,256,x,y,size,size);
+  if(clip.strip)window.ZZDeathStrips.draw(ctx,clip.strip,f,x,y,size);
+  else ctx.drawImage(clip.image,f*P2_FINISHED_DEATH_CELL,0,256,256,x,y,size,size);
   ctx.restore();
  }
  return true;
@@ -333,7 +339,9 @@ for(const id of P3_DEATH_NAMES){
    entry.failed=!entry.ready;
   };
   image.onerror=()=>{entry.failed=true;entry.ready=false};
-  image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+(id==='trash_can'?'-v106.png':'-v108.png');
+  const fallback=()=>{image.src='assets/ip/v2/p3-deaths/'+id+'-'+type+(id==='trash_can'?'-v106.png':'-v108.png');};
+  if(window.ZZDeathStrips)window.ZZDeathStrips.load(entry,id+'-'+type,fallback);
+  else fallback();
  }
 }
 function drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,livingAtlas){
@@ -358,7 +366,8 @@ function drawP3AnatomicalDeath(ctx,z,critical,elapsed,duration,livingAtlas){
   drawFrame(ctx,livingAtlas,{...z,flash:0},0,1-fadeIn);
  if(fadeIn>0){
   ctx.save();ctx.globalAlpha*=fadeIn;
-  ctx.drawImage(asset.image,frame*P3_DEATH_CELL,0,P3_DEATH_CELL,P3_DEATH_CELL,
+  if(asset.strip)window.ZZDeathStrips.draw(ctx,asset.strip,frame,x,y,side);
+  else ctx.drawImage(asset.image,frame*P3_DEATH_CELL,0,P3_DEATH_CELL,P3_DEATH_CELL,
    x,y,side,side);
   ctx.restore();
  }
