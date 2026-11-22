@@ -115,9 +115,17 @@
   save();refresh();
   return true;
  }
- function garage(){return state.garage||(state.garage=window.ZZGarage.blank())}
+ function garage(){
+  const data=state.garage||(state.garage=window.ZZGarage.blank());
+  // Backward-compatible fifth survivor: keep every existing level, loadout and coin.
+  if(!Array.isArray(data.loads))data.loads=[];
+  if(!Array.isArray(data.xp))data.xp=[];
+  while(data.loads.length<5)data.loads.push({});
+  while(data.xp.length<5)data.xp.push(0);
+  return data;
+ }
  function garageAction(action,id,hero){
-  if(!Number.isInteger(hero)||hero<0||hero>3||hero===3&&!garage().mechanic)return false;
+  if(!Number.isInteger(hero)||hero<0||hero>4||hero===3&&!garage().mechanic)return false;
   const draft=JSON.parse(JSON.stringify(garage()));
   const spent=window.ZZGarage.modify(draft,action,id,hero,state.chips);
   if(spent===undefined)return false;
