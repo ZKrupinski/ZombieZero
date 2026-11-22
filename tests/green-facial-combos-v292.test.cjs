@@ -105,6 +105,20 @@ for(const [row,region] of [
  }
  console.log('MOUTH_INK_TOPOLOGY row '+row+' '+JSON.stringify(frames));
 }
+
+for(let frame=0;frame<8;frame++){
+ const runs=[];
+ for(let y=73;y<=90;y++){
+  const ink=[];
+  for(let x=43;x<=85;x++){
+   const i=(y*1024+frame*128+x)*4,r=img.pixels[i],
+    g=img.pixels[i+1],b=img.pixels[i+2],a=img.pixels[i+3];
+   if(a>=230&&r<87&&g<87&&b<87)ink.push(x);
+  }
+  if(ink.length>=6)runs.push([y,ink.length,ink[0],ink[ink.length-1]]);
+ }
+ console.log('FRONT_MOUTH_BLACK_ROWS '+frame+' '+JSON.stringify(runs));
+}
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
 // Preserve expression frames while a hit is flashing instead of switching
 // to a temporary expression-less hurt face.
