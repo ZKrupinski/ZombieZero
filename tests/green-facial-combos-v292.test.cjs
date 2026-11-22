@@ -84,6 +84,27 @@ const img=decodeRGBA(fs.readFileSync(path.join(BASE,'assets/ip/v2/green_zombie.p
 assert.equal(img.naturalWidth,1024);assert.equal(img.naturalHeight,512);
 
 
+
+for(const [row,region] of [
+ [0,{x0:44,x1:84,y0:80,y1:86}],
+ [1,{x0:35,x1:68,y0:68,y1:82}],
+ [2,{x0:64,x1:93,y0:68,y1:82}]
+]){
+ const frames=[];
+ for(let frame=0;frame<8;frame++){
+  let count=0,minX=127,minY=127,maxX=0,maxY=0;
+  for(let y=region.y0;y<region.y1;y++)for(let x=region.x0;x<region.x1;x++){
+   const i=((row*128+y)*1024+frame*128+x)*4,
+    r=img.pixels[i],g=img.pixels[i+1],b=img.pixels[i+2],a=img.pixels[i+3];
+   if(a>=230&&r<87&&g<87&&b<87){
+    count++;minX=Math.min(minX,x);minY=Math.min(minY,y);
+    maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);
+   }
+  }
+  frames.push({f:frame,n:count,x:[minX,maxX],y:[minY,maxY]});
+ }
+ console.log('MOUTH_INK_TOPOLOGY row '+row+' '+JSON.stringify(frames));
+}
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
 // Preserve expression frames while a hit is flashing instead of switching
 // to a temporary expression-less hurt face.
@@ -123,6 +144,7 @@ for(const name of labels){
  assert(counts.some(row=>row.some(x=>x>0)),name+': zero art edits on REAL sprite');
  // Every direction must keep the approved face feature through all 8 frames.
  // In particular, never return to default teeth/jaw on diagonal movement.
+ if(name==='extra-teeth')console.log('MOUTH_APPLIED_COUNTS '+JSON.stringify(counts));
  assert(counts.every(row=>row.every(n=>n>0)),
   name+': facial feature must exist in front and both diagonal walks');
  if(name==='heart-eyes'){
