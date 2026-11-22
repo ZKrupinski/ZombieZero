@@ -131,9 +131,10 @@
      part.ready=part.image.naturalWidth===768&&part.image.naturalHeight===128;
      if(part.ready){
        part.variants=window.ZZGreenPalette?.variants(part.image)||[part.image];
-       part.expressions=window.ZZGreenPalette?.createFaceExpressions?.(part.image)||{};
-       if(kind==='critical')for(const key of Object.keys(part.expressions))
-        part.expressions[key]=part.expressions[key].map(cleanCriticalFringeBitmap);
+       // The first eight death frames already contain authored facial changes.
+       // Do not run live-eye geometry on the 96px dying/exploding faces:
+       // the eye topology changes while the face breaks apart and would strobe.
+       part.expressions={};
        // Run once after palette baking, never during sprite animation.
        if(kind==='critical')part.variants=part.variants.map(cleanCriticalFringeBitmap);
        pack.ready=true;
