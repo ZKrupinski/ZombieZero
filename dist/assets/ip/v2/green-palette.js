@@ -265,6 +265,179 @@
    const data=c.createImageData(w,h);data.data.set(pixels);c.putImageData(data,0,0);
    expressions[kind]=variants(canvas);
   }
+
+  // v292: Four approved face concepts + two restrained combinations.
+  // Art is synthesized once from the canonical 8x3 walk atlas. All edits
+  // remain inside original opaque face material; no attached brow layer,
+  // interpolation, frame-dependent randomization, or per-enemy canvas work.
+  function redMouth(x,y){
+   const i=at(x,y),r=src[i],g=src[i+1],b=src[i+2];
+   return src[i+3]>=200&&r>=77&&r>g*1.35&&r>b*1.2&&g<150;
+  }
+  function detectMouth(fx,fy,eyes){
+   if(eyes.length!==2)return null;
+   const y0=Math.max(fy+67,fy+Math.max(...eyes.map(e=>e.y+e.h))+2);
+   const y1=Math.min(fy+102,y0+28);
+   const x0=fx+Math.max(24,Math.min(...eyes.map(e=>e.x))-5);
+   const x1=fx+Math.min(104,Math.max(...eyes.map(e=>e.x+e.w))+5);
+   const seen=new Uint8Array(cell*cell),groups=[];
+   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+    const key=(y-fy)*cell+x-fx;
+    if(seen[key]||!redMouth(x,y))continue;
+    const queue=[key];seen[key]=1;
+    let lowX=x,highX=x,lowY=y,highY=y;
+    for(let k=0;k<queue.length;k++){
+     const id=queue[k],px=fx+(id%cell),py=fy+((id/cell)|0);
+     lowX=Math.min(lowX,px);highX=Math.max(highX,px);
+     lowY=Math.min(lowY,py);highY=Math.max(highY,py);
+     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const xx=px+dx,yy=py+dy;
+      if(xx<x0||xx>=x1||yy<y0||yy>=y1)continue;
+      const next=(yy-fy)*cell+xx-fx;
+      if(seen[next]||!redMouth(xx,yy))continue;
+      seen[next]=1;queue.push(next);
+     }
+    }
+    const rw=highX-lowX+1,rh=highY-lowY+1,cx=(lowX+highX)/2-fx;
+    if(queue.length>=7&&rw>=6&&rw<=38&&rh>=2&&rh<=18&&
+       cx>=35&&cx<=91&&highY<fy+101)
+     groups.push({x:lowX-fx,y:lowY-fy,w:rw,h:rh,area:queue.length});
+   }
+   groups.sort((a,b)=>b.area-a.area);
+   return groups[0]||null;
+  }
+  // All eight walk frames of a direction must detect the same mouth track.
+  // Otherwise keep the original authored mouth in that whole direction.
+  const mouthsByRow={};
+  for(const {row,group} of stable){
+   const arr=group.map((eyes,col)=>detectMouth(col*cell,row*cell,eyes));
+   if(arr.some(m=>!m))continue;
+   const medX=median(arr.map(m=>m.x)),medY=median(arr.map(m=>m.y));
+   const medW=median(arr.map(m=>m.w)),medH=median(arr.map(m=>m.h));
+   if(arr.every(m=>Math.abs(m.x-medX)<=6&&Math.abs(m.y-medY)<=5&&
+      Math.abs(m.w-medW)<=6&&Math.abs(m.h-medH)<=5))
+    mouthsByRow[row]=arr;
+  }
+  function makePixel(out,x,y,r,g,b){
+   const i=at(x,y);
+   if(src[i+3]<230)return;
+   out[i]=Math.round(r);out[i+1]=Math.round(g);out[i+2]=Math.round(b);
+  }
+  function heartEyes(out,fx,fy,eyes){
+   for(const eye of eyes){
+    const cx=eye.x+(eye.w-1)*.5,cy=eye.y+(eye.h-1)*.51;
+    // Preserve every white edge of the original eye and every dark eyebrow.
+    const whites=[];
+    for(let y=eye.y;y<eye.y+eye.h;y++)
+     for(let x=eye.x;x<eye.x+eye.w;x++)
+      if(isWhite(fx+x,fy+y)){const i=at(fx+x,fy+y);whites.push([src[i],src[i+1],src[i+2]])}
+    if(!whites.length)continue;
+    const shade=[0,1,2].map(k=>median(whites.map(c=>c[k])));
+    for(let y=eye.y;y<eye.y+eye.h;y++)for(let x=eye.x;x<eye.x+eye.w;x++){
+     const xx=fx+x,yy=fy+y;
+     if(!isWhite(xx,yy)&&!isPupil(xx,yy))continue;
+     // Remove the original rectangular red pupil before drawing the heart.
+     if(isPupil(xx,yy))makePixel(out,xx,yy,...shade);
+     const u=(x-cx)/(eye.w*.44),v=-(y-cy)/(eye.h*.49);
+     const f=Math.pow(u*u+v*v-1,3)-u*u*Math.pow(v,3);
+     if(f>.005)continue;
+     const border=Math.abs(f)<.25;
+     const bright=(u<-.08&&v>.10&&v<.67);
+     makePixel(out,xx,yy,
+      border?151:bright?246:216,
+      border?27:bright?115:43,
+      border?52:bright?139:73);
+    }
+   }
+  }
+  function extraTeeth(out,fx,fy,mouth){
+   if(!mouth||mouth.w<9||mouth.h<3)return;
+   const left=mouth.x+Math.max(1,Math.round(mouth.w*.12));
+   const right=mouth.x+mouth.w-Math.max(1,Math.round(mouth.w*.12));
+   const start=mouth.y+1,bottom=Math.min(mouth.y+mouth.h-1,mouth.y+Math.max(2,Math.round(mouth.h*.66)));
+   const span=right-left,teeth=4;
+   for(let x=left;x<right;x++)for(let y=start;y<=bottom;y++){
+    const i=at(fx+x,fy+y);
+    const r=src[i],g=src[i+1],b=src[i+2];
+    // Only the mouth interior, not the red tie or skin.
+    const isInterior=redMouth(fx+x,fy+y)||
+      (src[i+3]>230&&r>160&&g>145&&b>125);
+    if(!isInterior)continue;
+    const normalized=(x-left)/span*teeth;
+    const within=normalized-Math.floor(normalized);
+    if(within<.15||within>.88)continue;
+    const light=y===bottom?[191,187,172]:[246,235,214];
+    makePixel(out,fx+x,fy+y,...light);
+   }
+  }
+  function slackJaw(out,fx,fy,mouth){
+   if(!mouth)return;
+   const cx=mouth.x+mouth.w/2,cy=mouth.y+mouth.h/2+1.2;
+   const rx=Math.min(16,Math.max(6.4,mouth.w*.56));
+   const ry=Math.min(10,Math.max(5.4,mouth.h*.88+2.7));
+   for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++)
+    for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){
+     if(x<22||x>105||y<67||y>99)continue;
+     const xx=fx+x,yy=fy+y,i=at(xx,yy);
+     if(src[i+3]<240)continue;
+     // This guard rejects shirt/neck and is independent of palette variations.
+     const r=src[i],g=src[i+1],b=src[i+2];
+     if(!isSkin(xx,yy)&&!redMouth(xx,yy)&&!(r>150&&g>145&&b>125))continue;
+     const u=(x-cx)/rx,v=(y-cy)/ry,ell=u*u+v*v;
+     if(ell>1)continue;
+     const lip=ell>.75;
+     const tongue=v>.29&&Math.abs(u)<.47;
+     makePixel(out,xx,yy,
+       lip?143:tongue?213:73,
+       lip?36:tongue?81:23,
+       lip?52:tongue?89:34);
+    }
+  }
+  function lazyPaletteSet(canvas){
+   // Body recolors are generated on demand, not every spawn or render.
+   // Most new expressions never need all five large atlas copies on mobile.
+   const set=[canvas];let made=false;
+   for(let k=1;k<tones.length;k++)
+    Object.defineProperty(set,k,{enumerable:true,configurable:true,get(){
+     if(!made){
+      made=true;
+      const colors=variants(canvas);
+      for(let j=1;j<tones.length;j++)
+       Object.defineProperty(set,j,{value:colors[j]||canvas,enumerable:true});
+     }
+     return set[k];
+    }});
+   set.length=tones.length;
+   return set;
+  }
+  const faceStyles={
+   'heart-eyes':{heart:true},
+   'extra-teeth':{teeth:true},
+   'uneven-eyes':{uneven:true},
+   'slack-jaw':{jaw:true},
+   'heart-teeth':{heart:true,teeth:true},
+   'uneven-jaw':{uneven:true,jaw:true}
+  };
+  for(const [kind,style] of Object.entries(faceStyles)){
+   const out=new Uint8ClampedArray(src);
+   for(const {row,group} of stable){
+    const mouthTrack=mouthsByRow[row];
+    for(let col=0;col<cols;col++){
+     const fx=col*cell,fy=row*cell,eyes=group[col],mouth=mouthTrack?.[col];
+     if(style.uneven){
+      paint(out,eyes[0],fx,fy,.58,.03);
+      paint(out,eyes[1],fx,fy,.13,-.02);
+     }
+     if(style.heart)heartEyes(out,fx,fy,eyes);
+     if(style.teeth)extraTeeth(out,fx,fy,mouth);
+     if(style.jaw)slackJaw(out,fx,fy,mouth);
+    }
+   }
+   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+   const c=canvas.getContext('2d');if(!c)continue;
+   const data=c.createImageData(w,h);data.data.set(out);c.putImageData(data,0,0);
+   expressions[kind]=lazyPaletteSet(canvas);
+  }
   return expressions;
  }
 
