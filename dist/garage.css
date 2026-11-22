@@ -2195,3 +2195,26 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  transform-origin:center bottom!important;
  scale:.8!important;
 }
+
+/* v283: fix the horizontal drift introduced by independent CSS scale.
+   With left:50%, scale:.8 and transform:translateX(-50%), the transform's
+   translation was itself scaled to -40% of the artwork width. The visible
+   center ended up 10% of that width to the right of the card center.
+   Combine translation and scale in ONE transform so translateX(-50%)
+   refers to the original image width, regardless of the card dimensions.
+   Keep wheels anchored to the same lower baseline as the other heroes. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet{
+ left:50%!important;
+ right:auto!important;
+ top:auto!important;
+ bottom:0!important;
+ scale:1!important;
+ transform:translateX(-50%) scale(.8)!important;
+ transform-origin:center bottom!important;
+ margin:0!important;
+ object-fit:contain!important;
+ object-position:center bottom!important;
+}
