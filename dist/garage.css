@@ -2123,3 +2123,19 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  height:auto!important;
  margin:0!important;
 }
+
+
+/* v281: Scarlet's car + rider always render at 80% of their former size.
+   The independent scale property preserves the five-card reel's translateX()
+   positioning and keeps the wheels anchored to the bottom of the art region.
+   Applies to title selection, game-over and other hero-card layouts. */
+#overlay #heroes .hero-options img.hero-vehicle-scarlet,
+#overlay #hero-4 img.hero-vehicle-scarlet{
+ scale:.8!important;
+ transform-origin:center bottom!important;
+}
+#garage-dialog .garage-reel-figure img.scarlet-preview,
+#radio-dialog .rx-portrait[src*="scarlet-portrait"]{
+ scale:.8!important;
+ transform-origin:center bottom!important;
+}
