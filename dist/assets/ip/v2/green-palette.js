@@ -283,7 +283,10 @@
    // The canonical front mouth is y73..80; two diagonal mouths are higher
    // (left y64..72, right y63..72), not the shirt below y83.
    const front=(fy===0);
-   const y0=fy+(front?70:62);
+   // Measured against the approved original atlas: the front lip begins
+   // at y73; pixels at y66..72 belong to the nose/under-eye, not the mouth.
+   // Left/right diagonal lips begin at 64/63 respectively.
+   const y0=fy+(front?73:fy===128?64:63);
    const y1=fy+(front?87:78);
    const x0=fx+Math.max(24,Math.min(...eyes.map(e=>e.x))-5);
    const x1=fx+Math.min(104,Math.max(...eyes.map(e=>e.x+e.w))+5);
