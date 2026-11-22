@@ -64,7 +64,7 @@ gearData.loads[2][1]='heavy';
 const aceGear=garage.heroGearStats(gearData,0);
 assert.equal(aceGear[0].bonus,14,'Ace grip = 10 + 2*2 percent');
 assert.equal(aceGear[1].bonus,20,'Ace spring = 15 + 5 percent');
-assert.equal(aceGear[2].bonus,0,'unloaded filter does not affect Ace');
+assert.equal(aceGear[2].bonus,12,'Ace has equipped steering, not Ruby\'s filter');
 assert.equal(garage.heroGearStats(gearData,1)[2].bonus,48,'Ruby filter = 30 + 6*3 percent');
 assert.equal(garage.heroGearStats(gearData,2)[0].bonus,8,'Ria wide module does not inherit Ace grip');
 assert.equal(garage.heroStats({speed:480,paddle:82,damage:1,lives:3},gearData,null,0)[0].bonus,58,'steering affects only equipped driver speed');
@@ -94,3 +94,38 @@ assert(css.includes('v269: permanent, per-hero garage')&&css.includes('.hero-min
 assert(html.includes('v269-garage-stat-feedback'));
 assert(sw.includes('v269-garage-stat-feedback'));
 console.log('PASS v269: independent loadouts, all six equipment stat effects, actual grip hit, permanent highlighted bonuses');
+
+
+// v270: all six modules grant a passive core stat + their original perk.
+const bvals=Object.fromEntries(garage.parts.map(p=>[p.id,garage.value(p,2)]));
+const inspect=({slot,id,index})=>{
+ const data=garage.blank(),hero={speed:500,paddle:68,damage:1,lives:3};
+ data.levels[id]=2;data.loads[index][slot]=id;
+ const stats=garage.heroStats(hero,data,null,index);
+ garage.load(index,data);
+ const active=garage.combatStats();
+ return {rows:stats,active,descript:garage.partBenefits(garage.parts.find(p=>p.id===id),2)};
+};
+const variants=[
+ {slot:0,id:'grip',index:0,stat:1},
+ {slot:0,id:'wide',index:1,stat:3},
+ {slot:1,id:'cushion',index:2,stat:3},
+ {slot:1,id:'heavy',index:3,stat:1},
+ {slot:2,id:'steer',index:0,stat:0},
+ {slot:2,id:'filter',index:1,stat:4}
+];
+for(const v of variants){
+ const res=inspect(v);
+ assert(res.rows[v.stat].bonus>0,v.id+' raises its matching core stat');
+ assert(res.descript.stat.includes('+')&&res.descript.unique.includes('+'),v.id+' has both stat boost and unique effect');
+}
+const noGear=garage.blank();
+for(let i=0;i<4;i++)assert(garage.heroStats({speed:500,paddle:68,damage:1,lives:3},noGear,null,i).filter(row=>row.bonus>0).length===0,'bare hero should have no fake boost');
+assert(gameSource.includes('moduleAttack')&&gameSource.includes('garageCombat().attack/100'),'passive damage scales actual hits');
+assert(gameSource.includes('garageCombat().resist/100'),'passive filter resistance affects live poison');
+assert(gameSource.includes('combatStats?.()?.guard'),'passive guard expands real catch and animation range');
+assert(css.includes('v270: garage fits a portrait viewport')&&css.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'),'all six parts occupy visible three-slot grid');
+assert(css.includes('#garage-dialog[open]')&&css.includes('overflow:hidden!important'),'garage dialog cannot scroll');
+assert(uiSource.includes('garage-shell')&&uiSource.includes('garage-part-grid'),'garage panel is one fixed layout');
+assert(html.includes('v270-all-modules-no-scroll')&&sw.includes('v270-all-modules-no-scroll'));
+console.log('PASS v270: all six core stat upgrades, original special effects, no-scroll 9:16 garage and cache');
