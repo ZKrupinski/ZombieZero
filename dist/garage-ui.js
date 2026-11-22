@@ -3,7 +3,7 @@
  const system=window.ZZGarage,progress=window.ZZProgression;
  let panel,body,note,garageHero;
  const slots=['무기','공','차량'];
- const styles=['가장 넓은 수비 판정과 하트 4개. 코너까지 안정적으로 지킵니다.','최고 이동 속도와 긴 스킬 시간. 중심에 맞히면 적을 강하게 밀어냅니다.','기본 화력 2.2. 두 번째 리턴마다 주변 적에게 충격이 전이됩니다.','가벼운 조작에도 크게 꺾이는 트릭샷. 벽 반사 후 첫 적을 강타하고 주변 2명까지 타격.'];
+ const styles=['가장 넓은 수비 판정과 정교한 코너 컨트롤. 안정적으로 방어합니다.','최고 이동 속도와 긴 스킬 시간. 중심에 맞히면 적을 강하게 밀어냅니다.','기본 화력 2.2. 두 번째 리턴마다 주변 적에게 충격이 전이됩니다.','가벼운 조작에도 크게 꺾이는 트릭샷. 벽 반사 후 첫 적을 강타하고 주변 2명까지 타격.'];
  let activePart=system.parts[0],tab='parts',frame=0;
  // The first three survivors belong to the player from the start.
  // The tow mechanic joins the reel only after the radio actually recruits them.
@@ -208,9 +208,9 @@
     source.innerHTML.match(/<span[^>]*class="[^"]*hero-vehicle-portrait[^"]*"[^>]*><\/span>/)?.[0]||
     source.innerHTML;
    const stats=source.querySelector?.('.hero-mini-stats')?.outerHTML||'';
-   return '<div class="hero-reel-artwork hero-kit-'+(model.id||'survivor')+'" style="--hero-accent:'+(model.accent||'#d5fc71')+'">'+art+
-    '<span class="hero-class-badge">'+(model.role||'SURVIVOR')+'</span>'+
-    '<div class="hero-reel-id"><b>'+model.name+'</b><small>'+(model.className||model.role||'')+'</small></div>'+
+   return '<div class="hero-reel-artwork">'+art+
+    '<span class="hero-class-badge" style="--hero-accent:'+(model.accent||'#d5fc71')+'">'+(model.role||'SURVIVOR')+'</span>'+
+    '<div class="hero-reel-id"><b>'+model.name+'</b><small>'+(model.role||'')+'</small></div>'+
     '</div><div class="hero-reel-bottom">'+stats+'</div>';
   }
   function syncFiveReel(){
