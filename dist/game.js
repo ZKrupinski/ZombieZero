@@ -408,7 +408,16 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTra
 // the sprite. A bounded set of overlapping soft ellipses forms a readable
 // floor streak on bright stage roads, without another full-size particle pass.
 // Fixed hero colors are not allocated again for every ball and frame.
-const TRAIL_GROUND_HERO_COLORS=[[192,234,112],[255,227,183],[255,191,129]];
+// v282: index every playable hero. The missing Scarlet entry used to
+// fall back to Ace's lime tennis light even when her diamond trail was blue.
+const TRAIL_GROUND_HERO_COLORS=[
+ [192,234,112], // Ace: tennis lime
+ [255,227,183], // Ruby: warm baseball ivory
+ [255,191,129], // Ria: orange toy ball
+ [174,213,221], // Wrench: brushed steel cyan
+ [180,212,255]  // Scarlet: ice-blue diamond refraction
+];
+const SCARLET_DIAMOND_GROUND_ACCENT=[245,187,237]; // subtle violet-pink facet
 // Stable source arrays allow the color stamps to remain cached between frames.
 const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[255,139,51]],TRAIL_GROUND_PIERCE=[[89,213,255]],TRAIL_GROUND_POWER=[[255,214,110]];
 function drawTrailGroundReflections(b,r,path){
@@ -433,7 +442,12 @@ function drawTrailGroundReflections(b,r,path){
    return;
   }
   // One cached soft pool per ball replaces up to 36 large blended pools.
-  const rgb=has('fire')?TRAIL_GROUND_FIRE[0]:TRAIL_GROUND_PIERCE[0];
+  // With no elemental skill, keep the hero's own ball color instead of
+  // the formerly hard-coded cyan lightning stamp.
+  const fire=has('fire'),pierce=has('pierce'),power=has('power');
+  const rgb=fire?TRAIL_GROUND_FIRE[0]:pierce?TRAIL_GROUND_PIERCE[0]:
+    power?TRAIL_GROUND_POWER[0]:
+    (TRAIL_GROUND_HERO_COLORS[selectedHero]||TRAIL_GROUND_HERO_COLORS[0]);
   drawProjectedLightSpill(b.x,b.y,r*2.4,rgb,.22,30,.82,true,false);
   return;
  }
@@ -463,7 +477,12 @@ function drawTrailGroundReflections(b,r,path){
   if(!p)continue;
   const fade=Math.pow(Math.max(.045,1-d/(length+12)),.86);
   const variation=.94+.06*Math.sin(clock*12+i*1.1);
-  const rgb=(!fire&&!pierce&&!power)?(defaultColors[selectedHero]||defaultColors[0]):colors[i%colors.length];
+  // Diamond floor lights match its cyan/blue body with a faint pink facet
+  // reflection. Do not use the Ace lime fallback on the fifth hero.
+  const normal=!fire&&!pierce&&!power;
+  const rgb=normal&&selectedHero===4&&i%5===3?
+    SCARLET_DIAMOND_GROUND_ACCENT:
+    normal?(defaultColors[selectedHero]||defaultColors[0]):colors[i%colors.length];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
   if(multiSkillFast)
    drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
