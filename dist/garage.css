@@ -1631,3 +1631,39 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
 .gear-effects{display:flex;gap:4px;flex-wrap:wrap;list-style:none;margin:5px 0 0;padding:0}
 .gear-effects li{display:flex;align-items:center;gap:4px;background:#203940;padding:3px 6px;font-size:12px}
 .gear-effects .garage-icon{width:20px;height:20px}.gear-effects b,#garage-note{color:#ffdc85}
+
+/* v267: visible per-hero class identity without changing approved bitmap portraits. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork .hero-class-badge,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork .hero-class-badge{
+ position:absolute!important;z-index:4!important;top:4px!important;left:3px!important;
+ display:block!important;max-width:calc(100% - 6px)!important;
+ padding:3px 4px!important;box-sizing:border-box!important;
+ border:1px solid var(--hero-accent,#d5fc71)!important;border-radius:3px!important;
+ background:rgba(7,21,31,.85)!important;color:var(--hero-accent,#d5fc71)!important;
+ font:900 clamp(7px,calc(9px * var(--ui-scale,1)),10px)/1.05 Arial,sans-serif!important;
+ letter-spacing:.015em!important;text-align:left!important;
+ text-shadow:0 1px 2px #000!important;overflow:hidden!important;
+ white-space:nowrap!important;pointer-events:none!important;
+ box-shadow:0 1px 5px #0006!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork .hero-reel-id>small,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy .hero-reel-artwork .hero-reel-id>small{
+ color:var(--hero-accent,#d5fc71)!important;
+ font-weight:900!important;
+}
+#garage-dialog .garage-reel-copy .garage-class-label{
+ display:inline-block;margin:0 0 4px;max-width:100%;
+ font:900 9px/1.2 Arial,'Noto Sans KR',sans-serif;
+ color:var(--hero-accent,#d5fc71);letter-spacing:.025em;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#garage-dialog .garage-reel-card:not([data-reel-focus="true"]) .garage-class-label{display:none}
+@media(max-height:550px){
+ #overlay[data-screen] #heroes[data-five-reel="true"] .hero-reel-artwork .hero-class-badge{
+  font-size:7px!important;padding:2px 3px!important;
+ }
+}
