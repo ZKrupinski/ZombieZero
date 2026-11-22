@@ -2411,6 +2411,7 @@ function cleanScarletAttackHandle(sheet){
     // Remove only near-white/cream leftover matte within the exact handle hole.
     // Skin, gold beads, the sleeve and all other pixels are left in place.
     const white=Math.max(0,Math.min(1,(g-207)/29,(b-189)/35,(r-222)/28));
+    if(white<.01)continue;
     const reduction=.22+.78*white;
     data[i+3]=Math.round(data[i+3]*(1-reduction));
    }
