@@ -2451,3 +2451,28 @@ html:fullscreen #overlay[data-screen="selection"] #heroes{
  transform-origin:center bottom!important;
  object-position:center bottom!important;
 }
+
+/* v305: Ace, Ruby, Ria only: lower portraits by four screen-css pixels
+   relative to the shared wheel alignment. Wrench and Scarlet retain their
+   v304 sizes/centers; all cards, equipment stats and gameplay are untouched.
+   The portrait sits in an overflow-visible art area so wheel pixels remain
+   visible rather than being cropped by the art layer. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="0"] .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="1"] .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="2"] .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="0"] .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="1"] .hero-reel-artwork>.hero-vehicle-portrait,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="2"] .hero-reel-artwork>.hero-vehicle-portrait{
+ bottom:-4px!important;
+ top:auto!important;
+ left:50%!important;
+ right:auto!important;
+ transform:translateX(-50%)!important;
+ transform-origin:center bottom!important;
+}
