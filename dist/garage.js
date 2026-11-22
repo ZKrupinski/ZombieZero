@@ -33,6 +33,19 @@ window.ZZGarage = (() => {
   };
  }
  function combatStats(){return statBoosts(id=>equipped[id]||0)}
+ // A clear two-part benefit label for each upgrade in the garage inspector.
+ function partBenefits(part,level){
+  const n=value(part,level),pct=x=>(Math.round(x*10)/10).toString()+'%';
+  switch(part.id){
+   case 'grip':return {stat:'공격 +'+pct(n*.4),unique:'정타 판정 +'+n+'% · 정타 추가 타격'};
+   case 'wide':return {stat:'수비 +'+(n+Math.ceil(n/2))+'px',unique:'양쪽 방어 +'+n+'px · 코너 정타 보정'};
+   case 'cushion':return {stat:'수비 +'+Math.round(n/5)+'px',unique:'벽 반사 넉백 +'+n+'%'};
+   case 'heavy':return {stat:'공격 +'+pct(n*.25),unique:'첫 충돌 위력 +'+n+'%'};
+   case 'steer':return {stat:'속도 +'+n+'% · 수비 +'+Math.round(n/3)+'px',unique:'차량 반응 속도 +'+n+'%'};
+   case 'filter':return {stat:'내성 +'+Math.round(n/3)+'%',unique:'8초마다 독침 중독 -'+n+'%'};
+  }
+  return {stat:'',unique:''};
+ }
  function reward(data,mode,stage,hero){
   data.xp[hero]=(data.xp[hero]||0)+1;
   if(stage<=(data.best[mode]||0))return;
@@ -171,5 +184,5 @@ window.ZZGarage = (() => {
      '" aria-label="'+label+'">'+label+'</span>';
    }).join('')+'</div></div>';
  }
- return {mastery,masteryDefense,masteryStep,masteryCap,parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,combatStats,statBoosts,heroStats,heroGearStats,heroStatMarkup};
+ return {mastery,masteryDefense,masteryStep,masteryCap,parts,prices,blank,load,value,reward,modify,strike,contact,bonus:id=>equipped[id]||0,combatStats,statBoosts,partBenefits,heroStats,heroGearStats,heroStatMarkup};
 })();
