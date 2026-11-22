@@ -58,20 +58,32 @@ window.ZZGarage = (() => {
   }
  }
  function strike(ball,hero,offset){
+  // Real class steering: Wrench's aim spreads more with ordinary offsets.
   ball.bank=false;ball.first=true;ball.returns=(ball.returns||0)+1;
-  const centered=Math.abs(offset)<=.22+(equipped.grip||0)/100;
+  const centered=Math.abs(offset)<=.28+(equipped.grip||0)/100;
   ball.slam=hero===1&&centered;ball.echo=hero===2&&ball.returns%2===0;
   const edge=Math.abs(offset)>=.68-(equipped.grip||0)/100;
-  return offset*(hero===0&&edge?1.27:1.06);
+  if(hero===3)return Math.sign(offset)*Math.min(1.29,Math.pow(Math.abs(offset),.74)*1.34);
+  if(hero===0)return offset*(edge?1.22:.93);
+  if(hero===2)return offset*.95;
+  return offset*1.09;
  }
  function contact(ball,hero,impact){
   if(ball.bank && (hero===3||equipped.cushion)){
-   if(hero===3){impact.x=Math.sign(impact.x||1);impact.y=0}
-   impact.push=(hero===3?1.45:1)*(1+(equipped.cushion||0)/100);
+   if(hero===3){
+    impact.x=Math.sign(impact.x||ball.vx||1);impact.y=0;
+    impact.ricochet=true;impact.power=1.55;
+   }
+   impact.push=(hero===3?2.15:1)*(1+(equipped.cushion||0)/100);
   }
-  if(ball.slam)impact.push=(impact.push||1)*1.65;
+  if(ball.slam){
+   impact.push=(impact.push||1)*1.9;
+   impact.power=(impact.power||1)*1.15;
+  }
   if(ball.first!==false && equipped.heavy){
-   impact.power=1+equipped.heavy/100;ball.vx*=.96;ball.vy*=.96;
+   // Heavy core stacks with character-specific impacts instead of overwriting.
+   impact.power=(impact.power||1)*(1+equipped.heavy/100);
+   ball.vx*=.96;ball.vy*=.96;
   }
   impact.echo=!!ball.echo;
   ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;
