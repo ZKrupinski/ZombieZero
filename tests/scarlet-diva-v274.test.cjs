@@ -37,7 +37,7 @@ for(const [name,w,h] of [
 }
 assert(html.includes('id="hero-4"'),'fifth hero button exists');
 assert(game.includes("id:'scarlet',name:'스칼렛',role:'DIVA'"),'Scarlett has unique DIVA metadata');
-assert(game.includes('selectedHero===4?{x:-35,y:-37}'),'gem launches beside handbag not face');
+assert(game.includes('selectedHero===4?{x:-35,y:-27}'),'gem begins lower beside handbag, clear of the face (v306)');
 assert(game.includes('if(selectedHero===4){\n  // Same elevated front/side presentation'),'hero uses authored 192px bitmap');
 assert(game.includes("sheet=$(attacking?'scarlet-attack':'scarlet-idle')"),'idle and swinging animation sheets switch');
 assert(game.includes("const frame=Math.floor(clock*12)%8;"),'gem animates internal light independently');
