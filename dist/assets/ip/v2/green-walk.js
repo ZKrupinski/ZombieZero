@@ -12,11 +12,10 @@
    sheet.src='assets/ip/v2/green_zombie-'+color+'.webp';
    hairSheets[color]=sheet;
  }
- const expressions={};
- for(const name of ['half-lid','raised-brow']){
-   expressions[name]=window.ZZGreenPalette?.loadExpression?.(new Image(),
-     'assets/ip/v2/green_zombie-'+name+'.webp',1024,512);
- }
+ // Build both expressions on top of the original pixels only.
+ // Never render the v284-v288 WebP exports: they carry nontransparent
+ // background bands and extra eyebrow shapes between atlas frames.
+ let expressions={};
  const pack={
    image,ready:false,failed:false,cell:128,variants:[image],
    groups:{down:[0,8],left:[8,8],right:[16,8],hurt:[24,2]},
@@ -58,7 +57,10 @@
    }
  };
  window.ZZGreenWalk=pack;
- image.onload=()=>{pack.ready=image.naturalWidth===1024&&image.naturalHeight===512;pack.failed=!pack.ready;if(pack.ready)pack.variants=window.ZZGreenPalette?.variants(image)||[image]};
+ image.onload=()=>{pack.ready=image.naturalWidth===1024&&image.naturalHeight===512;pack.failed=!pack.ready;if(pack.ready){
+    pack.variants=window.ZZGreenPalette?.variants(image)||[image];
+    expressions=window.ZZGreenPalette?.createFaceExpressions?.(image)||{};
+   }};
  image.onerror=()=>{pack.failed=true;pack.ready=false};
  image.src='assets/ip/v2/green_zombie.png';
 })();
