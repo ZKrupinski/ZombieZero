@@ -111,29 +111,28 @@
   const gear=data.loads[h],price=system.prices[level],xp=data.xp[h]||0;
   const rank=system.mastery(xp);
   const next=rank===system.masteryCap?'최고 단계':('다음 단계까지 '+(system.masteryStep-xp%system.masteryStep)+'점');
-  const effects=Object.values(gear).map(id=>{
-   const item=system.parts.find(p=>p.id===id);
-   return '<li>'+icon(id)+item.label+' <b>+'+system.value(item,data.levels[id])+item.unit+'</b></li>';
-  }).join('');
   const statPanel='<section class="garage-stat-panel" aria-label="현재 캐릭터 기본 능력치와 강화분">'+
    '<div class="garage-stat-heading"><b>'+(HEROES[h].role||'SURVIVOR')+' · 현재 능력치</b><small><i class="stat-legend-base"></i>기본 <i class="stat-legend-boost"></i>강화 증가</small></div>'+
    (system.heroStatMarkup?.(HEROES[h],data,progress,h)||'')+
-   '<p class="garage-stat-footnote">숙련 '+xp+'점 · '+next+'<br>클리어·중복 응답당 1점 · 5점마다 수비 폭 +1px (최대 +10px)</p>'+(effects?'<ul class="gear-effects">'+effects+'</ul>':'')+'</section>';
+   '<p class="garage-stat-footnote">숙련 '+xp+'점 · '+next+' · 숙련 Lv당 수비 +1px</p></section>';
   const banner='<section class="garage-driver" aria-label="보유 캐릭터 회전 선택" data-selected-hero="'+h+'" tabindex="0">'+
    '<div class="garage-reel-stage">'+roster.map(i=>reelCard(i,data)).join('')+'</div>'+
    reelArrow(-1)+reelArrow(1)+'</section>';
-  const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','제작 너트',data.badges)+'</div>';
+  const wallet='<div class="garage-wallet">'+(tab==='signal'?currency('ticket','무전권',data.tickets):currency('coin','Z코인',progress.chips()))+currency('nut','너트',data.badges)+'</div>';
   if(tab==='signal'){
    body.innerHTML=radioView(data,wallet);
    return;
   }
   const list=slots.map((slot,i)=>'<section class="garage-slot"><small>'+slot+'</small><div>'+system.parts.filter(p=>p.slot===i).map(p=>card(p,data,gear)).join('')+'</div></section>').join('');
-  const val=n=>system.value(part,n)+part.unit;
-  const effect=part.label+' '+val(level||0)+(owned&&level<5?' → '+val(level+1):'');
+  const details=system.partBenefits?.(part,level||0)||{stat:'',unique:part.label};
+  const nextBenefit=owned&&level<5?system.partBenefits?.(part,level+1):null;
+  const effect='<span class="garage-effect-stat">스탯 '+details.stat+'</span>'+
+   '<span class="garage-effect-unique">고유 '+details.unique+'</span>'+
+   (nextBenefit?'<small class="garage-effect-next">다음: '+nextBenefit.stat+'</small>':'');
   const stage=part.id==='cushion'?1:system.parts.indexOf(part)+1;
   const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
   const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
-  body.innerHTML=banner+wallet+statPanel+'<p class="nut-guide">무전 중복 응답으로 너트 획득 · 2개로 장비 1종 제작</p>'+list+detail;
+  body.innerHTML='<div class="garage-shell">'+banner+wallet+statPanel+'<div class="garage-part-grid">'+list+'</div>'+detail+'</div>';
   refreshGarageReel();
  }
  function handleAction(e){
