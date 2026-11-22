@@ -2063,8 +2063,8 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
 #overlay #heroes .hero-vehicle-portrait.row-4,
 #overlay #heroes[data-five-reel="true"] .hero-options>.hero-reel-proxy[data-reel-hero="4"]
  .hero-reel-artwork>.hero-vehicle-portrait{
- background:url('assets/ip/scarlet-portrait-v275.webp') center center / contain no-repeat!important;
- background-image:url('assets/ip/scarlet-portrait-v275.webp')!important;
+ background:url('assets/ip/scarlet-portrait-v276.webp') center center / contain no-repeat!important;
+ background-image:url('assets/ip/scarlet-portrait-v276.webp')!important;
  background-position:center!important;
  background-size:contain!important;
  animation:none!important;
@@ -2080,6 +2080,6 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  background:none!important;
  background-size:unset!important;
 }
-#radio-dialog .rx-portrait[src*="scarlet-portrait-v274"]{
+#radio-dialog .rx-portrait[src*="scarlet-portrait-v276"]{
  object-fit:contain!important;image-rendering:auto!important;
 }
