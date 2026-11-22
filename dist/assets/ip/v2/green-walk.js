@@ -5,6 +5,7 @@
  'use strict';
  const image=new Image();
  image.decoding='async';
+ const halfLidded=window.ZZGreenPalette?.loadHalfLidded?.(new Image(),'assets/ip/v2/green_zombie-half-lid.webp',1024,512);
  const pack={
    image,ready:false,failed:false,cell:128,variants:[image],
    groups:{down:[0,8],left:[8,8],right:[16,8],hurt:[24,2]},
@@ -29,7 +30,7 @@
      const frame=pack.getFrame(z,t),rect=pack.sourceRect(frame);
      const palette=window.ZZGreenPalette;
      const selected=palette?.paletteFor(z)??0;
-     const bitmap=pack.variants[selected]||image;
+     const bitmap=(z.halfLidded&&halfLidded?.[selected])||pack.variants[selected]||image;
      const walk=window.ZZSpriteGeometry?.green_zombie?.walkUnion||[0,0,128,128];
      // 66px tall mascot: its face and cube almost touch adjacent 46px lanes.
      const scale=Math.min(66/walk[3],55/walk[3],43/walk[2]);

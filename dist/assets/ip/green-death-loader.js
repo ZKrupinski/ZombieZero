@@ -85,7 +85,7 @@
        // Preserve the same foot pivot as live walk sprites for seamless swaps.
        const x=z.x+z.w/2-width/2;
        const y=z.y+z.h+2-height*(657/800);
-       const bitmap=art.variants[selected]||art.image;
+       const bitmap=(z.halfLidded&&art.halfLidded?.[selected])||art.variants[selected]||art.image;
        // First 65 ms crossfade the exact live colored character into frame 0.
        // No silhouette pop, especially for moss/mint/blue/lavender zombies.
        const blend=Math.max(0,Math.min(1,t/.065));
@@ -112,6 +112,9 @@
  image.onerror=()=>{pack.ready=false};
  image.src='assets/ip/green-death.png';
  for(const [kind,part] of Object.entries(pack.remaster)){
+   part.halfLidded=window.ZZGreenPalette?.loadHalfLidded?.(new Image(),
+     'assets/ip/green-death-'+kind+'-v95-half-lid.webp',768,128,
+     kind==='critical'?cleanCriticalFringeBitmap:null);
    part.image.decoding='async';
    part.image.onload=()=>{
      part.ready=part.image.naturalWidth===768&&part.image.naturalHeight===128;

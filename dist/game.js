@@ -1021,7 +1021,7 @@ function rack(){
   const hp=zombieHP(0,kind,stage);
   foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,
    row:r,col,w:33,h:44,hp,max:hp,kind,form:0,flash:0,
-   seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
+   halfLidded:Math.random()<.25,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
  }
  setStageForms(foes,stage);
  insertEliteZombies(foes,stage);
