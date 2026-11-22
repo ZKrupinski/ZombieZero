@@ -2139,3 +2139,59 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  scale:.8!important;
  transform-origin:center bottom!important;
 }
+
+
+/* v282: Scarlet's 80% portrait uses the SAME lower wheel datum and center
+   axis as the other four vehicles. Only the artwork is scaled; the reel card,
+   class badge, name and stats stay in their existing positions. The previous
+   top:1px plus scale:.8 pulled the wheels up away from the car baseline. */
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet{
+ position:absolute!important;
+ top:auto!important;
+ bottom:0!important;
+ left:50%!important;
+ right:auto!important;
+ transform:translateX(-50%)!important;
+ transform-origin:center bottom!important;
+ scale:.8!important;
+ width:min(calc(100% - 2px),calc(100cqh - 59px))!important;
+ max-width:none!important;
+ height:auto!important;
+ margin:0!important;
+ object-fit:contain!important;
+ object-position:center bottom!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options
+ > #hero-4 img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes .hero-options
+ > #hero-4 img.hero-vehicle-scarlet{
+ display:block!important;
+ align-self:center!important;
+ margin-left:auto!important;
+ margin-right:auto!important;
+ margin-bottom:2px!important;
+ object-position:center bottom!important;
+ transform-origin:center bottom!important;
+ scale:.8!important;
+}
+#garage-dialog .garage-reel-card[data-reel-hero="4"] .garage-reel-figure{
+ display:flex!important;
+ align-items:flex-end!important;
+ justify-content:center!important;
+}
+#garage-dialog .garage-reel-card[data-reel-hero="4"] .garage-reel-figure img.scarlet-preview{
+ flex:none!important;
+ align-self:flex-end!important;
+ margin:0 auto!important;
+ object-position:center bottom!important;
+ transform-origin:center bottom!important;
+ scale:.8!important;
+}
+#radio-dialog .rx-portrait[src*="scarlet-portrait"]{
+ object-position:center bottom!important;
+ transform-origin:center bottom!important;
+ scale:.8!important;
+}
