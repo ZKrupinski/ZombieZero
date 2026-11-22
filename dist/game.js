@@ -24,10 +24,10 @@ const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,ballVanish=[],criticalPopups=[],itemPickupFX=[],clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
 const HEROES=[
-{id:'ace',name:'에이스',role:'안정형',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:500,paddle:68,damage:1,lives:3,duration:1,desc:'넓은 라켓 · 목숨 3',stats:'이동 500 · 공격 1 · 라켓 136'},
-{id:'ruby',name:'루비',role:'기동형',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:660,paddle:51,damage:1,lives:3,duration:1.25,desc:'배트 · 이동 +32% · 스킬 +25%',stats:'이동 660 · 공격 1 · 반사 폭 102'},
-{id:'liam',name:'리아',role:'공격형',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:390,paddle:55,damage:2,lives:2,duration:1,desc:'해머 · 공격력 ×2 · 목숨 2',stats:'이동 390 · 공격 2 · 반사 폭 110'}];
-if(window.ZZGarage)HEROES.push({id:'mechanic',name:'렌치',role:'벽 반사형',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:60,damage:1,lives:3,duration:1,desc:'메카 쇠공 · 측면 밀치기',stats:'벽을 맞힌 메카 쇠공이 첫 적을 옆으로 밀칩니다.'});
+ {id:'ace',name:'에이스',role:'GUARDIAN',className:'철벽 수비',trait:'와이드 커버',accent:'#99e49c',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:480,paddle:82,damage:1,lives:4,duration:1,desc:'넓은 라켓 · 하트 4 · 안정적인 정타',stats:'GUARDIAN · 넓은 반사 범위 · 하트 4'},
+ {id:'ruby',name:'루비',role:'SPEEDSTER',className:'초고속 기동',trait:'센터 스매시',accent:'#78e4f6',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:720,paddle:46,damage:1,lives:3,duration:1.35,desc:'스피드 720 · 정타 강타 · 스킬 +35%',stats:'SPEEDSTER · 중심 타격 넉백 · 스킬 +35%'},
+ {id:'liam',name:'리아',role:'BREAKER',className:'파괴 화력',trait:'2타 충격파',accent:'#ff8c76',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:375,paddle:49,damage:2.2,lives:2,duration:1,desc:'해머 · 공격 2.2 · 2회 리턴마다 연쇄 타격',stats:'BREAKER · 파괴력 2.2 · 반사 2회마다 연쇄 충격'}];
+if(window.ZZGarage)HEROES.push({id:'mechanic',name:'렌치',role:'TRICKSHOT',className:'반사각 특화',trait:'BANK SHOT',accent:'#ffdc75',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:56,damage:1.15,lives:3,duration:1,desc:'스패너 · 넓은 반사각 · 벽 충전 연쇄 타격',stats:'TRICKSHOT · 특수 반사각 · 벽 반사 후 강화 및 연쇄 타격'});
 const gearBonus=id=>window.ZZGarage?.bonus(id)||0;
 let filterReady=0;
 let touchUsed=false,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0,lastCameraFeedback=0,bubbles=[],bubbleTimer=.25;
@@ -2109,9 +2109,19 @@ function hit(z,impact=null,piercing=false){
  const critical=!piercing&&criticalEligible(z)&&Math.random()<(z.form===0&&!Number.isInteger(z.eliteKind)?CRITICAL_GREEN_CHANCE:CRITICAL_SPECIAL_CHANCE);
  // Piercing deals two times the normal damage to ALL enemies, including
  // bosses, but never turns a full-health boss into a one-hit kill.
- const echo=impact?.echo?fireTargetsNear(z,84).find(other=>other!==z):null;
+ const echo=impact?.echo?fireTargetsNear(z,110).find(other=>other!==z):null;
+ const bankTargets=impact?.ricochet?fireTargetsNear(z,84).slice(0,2):[];
  damage(z,hero().damage*(has('power')?2:1)*(piercing?2:1)*(impact?.power||1),false,impact,critical,piercing);
- if(echo){spawnContact({vx:0,vy:-1},echo.x+echo.w/2,echo.y+echo.h/2,0,1,'enemy');damage(echo,1,false,{x:0,y:-1})}
+ if(echo&&foes.includes(echo)){spawnContact({vx:0,vy:-1},echo.x+echo.w/2,echo.y+echo.h/2,0,1,'enemy');damage(echo,1.35,false,{x:0,y:-1})}
+ if(impact?.ricochet){
+  // Wrench: first enemy hit after a side-wall bounce splashes at most two nearby foes.
+  effect(z.x+z.w/2,z.y+z.h/2,'#8aefff',34,'BANK!');
+  for(const other of bankTargets){
+   if(!foes.includes(other)||mode!=='playing')continue;
+   spawnContact({vx:impact.x||1,vy:-.2},other.x+other.w/2,other.y+other.h/2,0,1,'enemy');
+   damage(other,.8,false,{x:impact.x||1,y:-.2,push:1.1});
+  }
+ }
  if(has('fire')){
   const targets=foes.includes(z)?[z,...fireTargetsNear(z,82)]:foes.filter(other=>
    Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82);
@@ -2208,7 +2218,7 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
 for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
-for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
+for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);if(selectedHero===3&&!b.bank)effect(b.x,b.y,'#82ebff',26,'BANK');ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);if(selectedHero===3&&!b.bank)effect(b.x,b.y,'#82ebff',26,'BANK');ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
  // Once it fully exits that enemy, the contact can be struck on a later pass.
@@ -2233,7 +2243,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    break;
   }
  }
-if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.masteryDefense?.()||0)){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(600,Math.hypot(b.vx,b.vy)+7),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
+if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.masteryDefense?.()||0)){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(selectedHero===1?650:600,Math.hypot(b.vx,b.vy)+(selectedHero===1?35:7)),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1,'shield');sfx('shield');feedback('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
@@ -3264,6 +3274,11 @@ function drawHeroBallSprite(b,r,col){
   g.beginPath();g.arc(-r*.7,0,r*.85,-1.1,1.1);g.stroke();
   g.beginPath();g.arc(r*.7,0,r*.85,2,4.3);g.stroke();
  }
+ if(selectedHero===3&&b.bank){
+  // Lightweight charged border, no persistent particle allocations.
+  g.save();g.globalCompositeOperation='lighter';g.strokeStyle='#8aefff';
+  g.globalAlpha=.75;g.lineWidth=1.8;g.beginPath();g.arc(0,0,r*1.52,0,Math.PI*2);g.stroke();g.restore();
+ }
  g.restore();
 }
 // Hit reaction stays attached to the actual zombie sprite, not a detached flash.
@@ -3377,7 +3392,7 @@ function portrait(h){
 function heroMiniStats(h){
  return window.ZZGarage?.heroStatMarkup?.(h,window.ZZProgression?.garage?.(),window.ZZProgression,HEROES.indexOf(h))||'';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.className+' · '+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
