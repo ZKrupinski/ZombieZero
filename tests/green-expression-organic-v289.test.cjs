@@ -10,8 +10,8 @@ assert.match(paletteCode,/function createFaceExpressions\(/);
 assert(!walkCode.includes("green_zombie-'+name+'.webp'"),'do not use the contaminated WebP sheets');
 assert(!deathCode.includes("green-death-'+kind+'-v95-'+name+'.webp'"),'do not use contaminated death WebPs');
 assert.match(deathCode,/part.expressions=\{\}/,'dying characters use original facial art');
-assert.match(html,/v290-stable-eyelids/);
-assert.match(sw,/v290-stable-eyelids/);
+assert.match(html,/v291-hair-mask/);
+assert.match(sw,/v291-hair-mask/);
 class Canvas{
  constructor(){this.width=0;this.height=0;this.pixels=null}
  getContext(){
@@ -32,6 +32,7 @@ function put(x,y,rgba){pixels.set(rgba,at(x,y))}
 for(let row=0;row<3;row++)for(let frame=0;frame<8;frame++){
  const fx=frame*128,fy=row*128,shift=frame%2;
  for(let y=38;y<101;y++)for(let x=28;x<98;x++)put(fx+x+shift,fy+y,[71,164,75,255]);
+ for(let y=8;y<=39;y++)for(let x=33;x<=95;x++)put(fx+x+shift,fy+y,[60,56,49,255]);
  for(const [a,b] of [[41,55],[67,81]])for(let y=54;y<=70;y++)
   for(let x=a;x<=b;x++)put(fx+x+shift,fy+y,[240,245,228,255]);
  for(const [a,b] of [[46,49],[72,75]])for(let y=59;y<=63;y++)
@@ -71,4 +72,18 @@ assert.notDeepEqual(changes['half-lid'],changes['raised-brow'],'distinct eyelid 
 assert.deepEqual(px(pixels,46,59),[205,54,64,255],'canonical source unaffected');
 const death=env.window.ZZGreenPalette.createFaceExpressions({naturalWidth:768,naturalHeight:128,pixels:new Uint8ClampedArray(768*128*4)});
 assert.equal(Object.keys(death).length,0,'unstable shrinking death faces are never algorithmically painted');
-console.log('PASS v290: uniform eight-frame eye masks, no brow collisions, original death art, source alpha untouched');
+// A corrupted raw tint sheet fills 65px of every 128px slot, even outside
+// the character. Only connected original hair-cap pixels may survive.
+const contaminated=new Uint8ClampedArray(w*h*4);
+for(let row=0;row<4;row++)for(let col=0;col<8;col++)
+ for(let y=0;y<65;y++)for(let x=0;x<128;x++)
+  contaminated.set([240,181,65,255],at(col*128+x,row*128+y));
+const hair=env.window.ZZGreenPalette.cleanHairOverlay(
+ image,{naturalWidth:w,naturalHeight:h,pixels:contaminated});
+assert(hair?.pixels,'sanitized hair canvas created');
+assert.equal(hair.pixels[at(10,15)+3],0,'horizontal color strip outside source alpha discarded');
+assert.equal(hair.pixels[at(43,49)+3],0,'floating eyebrow never tinted');
+assert.equal(hair.pixels[at(45,18)+3],255,'original dark hair cap stays recolorable');
+assert.equal(hair.pixels[at(75,77)+3],0,'face and mouth remain untouched by hair colors');
+assert.equal(hair.pixels[at(8*128-1,20)+3],0,'no hair color crosses a frame boundary');
+console.log('PASS v291: eight stable eye frames, brow clearance, sanitized brown/blond/red hair masks, source alpha intact');
