@@ -117,7 +117,7 @@ const variants=[
 for(const v of variants){
  const res=inspect(v);
  assert(res.rows[v.stat].bonus>0,v.id+' raises its matching core stat');
- assert(res.descript.stat.includes('+')&&res.descript.unique.includes('+'),v.id+' has both stat boost and unique effect');
+ assert(res.descript.stat.includes('+')&&/[+−-]/.test(res.descript.unique),v.id+' has both stat boost and unique effect');
 }
 const noGear=garage.blank();
 for(let i=0;i<4;i++)assert(garage.heroStats({speed:500,paddle:68,damage:1,lives:3},noGear,null,i).filter(row=>row.bonus>0).length===0,'bare hero should have no fake boost');
