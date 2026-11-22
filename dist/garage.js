@@ -111,9 +111,9 @@ window.ZZGarage = (() => {
    impact.power=(impact.power||1)*1.15;
   }
   if(ball.first!==false && equipped.heavy){
-   // Heavy core stacks with character-specific impacts instead of overwriting.
+   // Heavy core boosts first contact damage only. Never drain the ball's
+   // kinetic speed: a 4% penalty per rally compounded into late-game slow motion.
    impact.power=(impact.power||1)*(1+equipped.heavy/100);
-   ball.vx*=.96;ball.vy*=.96;
   }
   impact.echo=!!ball.echo;
   ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;ball.precision=false;
