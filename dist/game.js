@@ -3446,6 +3446,7 @@ function portrait(h){
  const i=HEROES.indexOf(h);
  // 192px transparent car/hero art, sampled sharply for the narrow selection UI.
  // Public hero names: Ace / Ruby / Ria. The Liam sprite ID remains stable.
+ if(i===4)return '<img class="hero-portrait hero-vehicle-portrait hero-vehicle-scarlet row-4" src="assets/ip/scarlet-portrait-v277.webp" alt="'+h.name+' · 스포츠카와 명품백" draggable="false">';
  return '<span class="hero-portrait hero-vehicle-portrait row-'+i+'" role="img" aria-label="'+h.name+' · 차량과 전용 무기"></span>';
 }
 // Menu-only character stat gauges; native hero portraits and gameplay values stay unchanged.

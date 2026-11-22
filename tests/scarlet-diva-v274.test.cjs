@@ -12,10 +12,10 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 const progSrc=fs.readFileSync('dist/progression.js','utf8');
 
 for(const [name,w,h] of [
- ['scarlet-idle-v276.webp',768,384],
- ['scarlet-attack-v276.webp',768,384],
+ ['scarlet-idle-v277.webp',768,384],
+ ['scarlet-attack-v277.webp',768,384],
  ['scarlet-diamond-v275.webp',384,192],
- ['scarlet-portrait-v276.webp',256,256]
+ ['scarlet-portrait-v277.webp',256,256]
 ]){
  const path='dist/assets/ip/'+name,buf=fs.readFileSync(path);
  assert(buf.length>8000,name+' contains actual image bytes');
@@ -38,8 +38,8 @@ assert(game.includes("if(selectedHero===4){b.spinVelocity=0;b.spinAngle=0;return
 assert(game.includes("if(impact?.sparkle)burst("),'prism finisher has a small nonverbal flash');
 assert(!game.includes("'PRISM!'")&&!game.includes("'SCARLET!'"),'no new floating hit text');
 assert(ui.includes('i<3||i===4||(i===3&&progress.garage().mechanic)'),'Scarlett is available immediately, Wrench stays radio-locked');
-assert(ui.includes('scarlet-portrait-v276.webp'),'garage uses actual artwork');
-assert(css.includes('.hero-vehicle-portrait.row-4')&&css.includes('scarlet-portrait-v276.webp'),'five-card reel draws Scarlett');
+assert(ui.includes('scarlet-portrait-v277.webp'),'garage uses actual artwork');
+assert(css.includes('.hero-vehicle-portrait.row-4')&&css.includes('scarlet-portrait-v277.webp'),'five-card reel draws Scarlett');
 assert(html.includes('v274-scarlet-diva')&&sw.includes('v274-scarlet-diva'),'new files cannot be hidden by stale cache');
 
 const context=vm.createContext({window:{}});

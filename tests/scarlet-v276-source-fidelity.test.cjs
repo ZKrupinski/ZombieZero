@@ -31,11 +31,12 @@ for(const [name,w,h,hash] of assets){
  assert(buf[20]&16,name+' retains true alpha transparency');
  assert.equal(buf[24]+(buf[25]<<8)+(buf[26]<<16)+1,w,name+' pixel width');
  assert.equal(buf[27]+(buf[28]<<8)+(buf[29]<<16)+1,h,name+' pixel height');
- assert(html.includes('src="assets/ip/'+name+'"'),name+' is actually loaded by the game');
- assert(sw.includes("'./assets/ip/"+name+"'"),name+' is cached for offline play');
+ const current=name.replace('-v276.webp','-v277.webp');
+ assert(html.includes('src="assets/ip/'+current+'"'),current+' is the active game asset');
+ assert(sw.includes("'./assets/ip/"+current+"'"),current+' is cached for offline play');
 }
-assert(ui.includes('scarlet-portrait-v276.webp'),'garage uses reference-matched static portrait');
-assert(css.includes('scarlet-portrait-v276.webp'),'character selection uses full original portrait');
+assert(ui.includes('scarlet-portrait-v277.webp'),'garage uses reference-matched static portrait');
+assert(css.includes('scarlet-portrait-v277.webp'),'character selection uses full original portrait');
 assert(!html.includes('scarlet-idle-v275.webp')&&!html.includes('scarlet-attack-v275.webp'),
  'do not render previous inaccurate cutout sprites');
 assert(html.includes('v276-exact-master-clean-alpha')&&sw.includes('v276-exact-master-clean-alpha'),

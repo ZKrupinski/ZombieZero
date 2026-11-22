@@ -2063,8 +2063,8 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
 #overlay #heroes .hero-vehicle-portrait.row-4,
 #overlay #heroes[data-five-reel="true"] .hero-options>.hero-reel-proxy[data-reel-hero="4"]
  .hero-reel-artwork>.hero-vehicle-portrait{
- background:url('assets/ip/scarlet-portrait-v276.webp') center center / contain no-repeat!important;
- background-image:url('assets/ip/scarlet-portrait-v276.webp')!important;
+ background:url('assets/ip/scarlet-portrait-v277.webp') center center / contain no-repeat!important;
+ background-image:url('assets/ip/scarlet-portrait-v277.webp')!important;
  background-position:center!important;
  background-size:contain!important;
  animation:none!important;
@@ -2082,4 +2082,44 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
 }
 #radio-dialog .rx-portrait[src*="scarlet-portrait-v276"]{
  object-fit:contain!important;image-rendering:auto!important;
+}
+
+
+/* v277: Scarlet is a true image, NEVER a background atlas.
+   Old selection animation forced background-position from 0% to 100% and
+   made a single-frame portrait zoom into just an eye. */
+#overlay #heroes .hero-options .hero-card img.hero-vehicle-scarlet,
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet{
+ display:block!important;
+ background:none!important;
+ background-image:none!important;
+ animation:none!important;
+ object-fit:contain!important;
+ object-position:center bottom!important;
+ clip-path:none!important;
+ border:0!important;
+ padding:0!important;
+ image-rendering:auto!important;
+ aspect-ratio:1/1!important;
+ min-width:0!important;
+ max-width:100%!important;
+ pointer-events:none!important;
+}
+#overlay[data-screen="selection"] #heroes .hero-options .hero-card
+ > img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes .hero-options .hero-card
+ > img.hero-vehicle-scarlet{
+ width:min(100%,180px)!important;
+ height:auto!important;
+}
+#overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet,
+#overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
+ > .hero-card.hero-reel-proxy[data-reel-hero="4"] .hero-reel-artwork>img.hero-vehicle-scarlet{
+ width:min(calc(100% - 2px),calc(100cqh - 72px))!important;
+ height:auto!important;
+ margin:0!important;
 }
