@@ -43,10 +43,10 @@
  }
  function variants(source){
   const out=[source];
+  const w=source?.naturalWidth||source?.width,h=source?.naturalHeight||source?.height;
   if(typeof document==='undefined'||typeof document.createElement!=='function'||
-     !source?.naturalWidth||!source?.naturalHeight)return out;
+     !w||!h)return out;
   try {
-   const w=source.naturalWidth,h=source.naturalHeight;
    const base=document.createElement('canvas');base.width=w;base.height=h;
    const context=base.getContext('2d',{willReadFrequently:true});
    if(!context)return out;
@@ -77,6 +77,64 @@
   return result;
  }
 
+ // v291: Existing tinted-hair WebPs have opaque horizontal strips between
+ // frames. Mask them by the actual source hair silhouette (not just a
+ // rectangular crop) before the player can see them. Never tint eyebrows.
+ const hairMaskCache=new WeakMap();
+ function cleanHairOverlay(original,sheet){
+  const w=original?.naturalWidth,h=original?.naturalHeight;
+  if(w!==1024||h!==512||sheet?.naturalWidth!==w||sheet?.naturalHeight!==h||
+     typeof document==='undefined')return null;
+  try{
+   const baseCanvas=document.createElement('canvas');baseCanvas.width=w;baseCanvas.height=h;
+   const bc=baseCanvas.getContext('2d',{willReadFrequently:true});if(!bc)return null;
+   bc.drawImage(original,0,0);
+   const src=bc.getImageData(0,0,w,h).data;
+   let mask=hairMaskCache.get(original);
+   if(!mask){
+    mask=new Uint8Array(w*h);
+    for(let row=0;row<4;row++)for(let col=0;col<8;col++){
+     const x0=col*128,y0=row*128,maxY=row===0?47:row===3?48:58;
+     const seen=new Uint8Array(128*128),queue=[];
+     const isCap=(x,y)=>{
+      if(x<0||x>=128||y<0||y>=maxY)return false;
+      const i=((y0+y)*w+x0+x)*4;
+      const r=src[i],g=src[i+1],b=src[i+2];
+      return src[i+3]>140&&Math.max(r,g,b)<126&&
+       Math.max(r,g,b)-Math.min(r,g,b)<65;
+     };
+     // Seeds are on the original top cap, not on the floating eyebrow.
+     for(let y=0;y<Math.min(26,maxY);y++)for(let x=18;x<111;x++){
+      const key=y*128+x;
+      if(isCap(x,y)&&!seen[key]){seen[key]=1;queue.push(key)}
+     }
+     for(let q=0;q<queue.length;q++){
+      const id=queue[q],x=id%128,y=(id/128)|0;
+      mask[(y0+y)*w+x0+x]=1;
+      for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]]){
+       const xx=x+dx,yy=y+dy,at=yy*128+xx;
+       if(xx<0||xx>=128||yy<0||yy>=maxY||seen[at]||!isCap(xx,yy))continue;
+       seen[at]=1;queue.push(at);
+      }
+     }
+    }
+    hairMaskCache.set(original,mask);
+   }
+   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+   const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)return null;
+   ctx.drawImage(sheet,0,0);
+   const data=ctx.getImageData(0,0,w,h);
+   for(let p=0;p<mask.length;p++){
+    const i=p*4;
+    // Keep original darkest outline. Do not let a tinted sheet recolor it.
+    const lum=(src[i]+src[i+1]+src[i+2])/3;
+    if(!mask[p]||lum<32) data.data[i+3]=0;
+    else data.data[i+3]=Math.min(data.data[i+3],src[i+3]);
+   }
+   ctx.putImageData(data,0,0);
+   return canvas;
+  }catch(_){return null}
+ }
  // v290: Stable, eyebrow-safe expressions.
  // Work entirely INSIDE the existing eye whites / pupils. Never paint eyebrows,
  // outline pixels or transparent gutters; reject a whole animated pose if eye
@@ -210,5 +268,5 @@
   return expressions;
  }
 
- window.ZZGreenPalette={tones,paletteFor,recolorGreen,variants,loadExpression,createFaceExpressions};
+ window.ZZGreenPalette={tones,paletteFor,recolorGreen,variants,loadExpression,createFaceExpressions,cleanHairOverlay};
 })();
