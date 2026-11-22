@@ -47,3 +47,50 @@ assert(uiSource.includes('hero-class-badge')&&css.includes('v267: visible per-he
 assert(html.includes('v267-ricochet-classes')&&html.includes('v267-class-combat')&&html.includes('v267-class-badges'));
 assert(sw.includes('v268-clean-ricochet-fx'),'service worker must invalidate old game');
 console.log('PASS v267: Wrench aim, charged first impact, Ruby center slam, Ria second echo, class badges and PWA cache');
+
+ 
+// v269: each character has an individual loadout; all six upgrade parts
+// have truthful readouts and their gameplay effect remains separate from
+// unrelated permanent stats.
+const gearData=garage.blank();
+gearData.levels.grip=2; gearData.levels.cushion=1;gearData.levels.filter=3;
+gearData.levels.steer=2;gearData.levels.heavy=1;gearData.levels.wide=2;
+gearData.loads[0][0]='grip';
+gearData.loads[0][1]='cushion';
+gearData.loads[0][2]='steer';
+gearData.loads[1][2]='filter';
+gearData.loads[2][0]='wide';
+gearData.loads[2][1]='heavy';
+const aceGear=garage.heroGearStats(gearData,0);
+assert.equal(aceGear[0].bonus,14,'Ace grip = 10 + 2*2 percent');
+assert.equal(aceGear[1].bonus,20,'Ace spring = 15 + 5 percent');
+assert.equal(aceGear[2].bonus,0,'unloaded filter does not affect Ace');
+assert.equal(garage.heroGearStats(gearData,1)[2].bonus,48,'Ruby filter = 30 + 6*3 percent');
+assert.equal(garage.heroGearStats(gearData,2)[0].bonus,0,'Ria does not inherit Ace grip');
+assert.equal(garage.heroStats({speed:480,paddle:82,damage:1,lives:3},gearData,null,0)[0].bonus,58,'steering affects only equipped driver speed');
+assert.equal(garage.heroStats({speed:375,paddle:49,damage:2.2,lives:2},gearData,null,2)[3].bonus,8,'Ria wide panel increases paddle area');
+assert(garage.heroStats({speed:375,paddle:49,damage:2.2,lives:2},gearData,null,2)[1].bonus>0,'Ria heavy core increases first impact');
+const aceMarkup=garage.heroStatMarkup({speed:480,paddle:82,damage:1,lives:3},gearData,null,0);
+assert(aceMarkup.includes('hero-gear-traits')&&aceMarkup.includes('정타 +14%')&&aceMarkup.includes('반사 +20%'));
+assert(aceMarkup.includes('hero-mini-value boosted'),'final improved stat values have a persistent highlight');
+const rubyMarkup=garage.heroStatMarkup({speed:720,paddle:46,damage:1,lives:3},gearData,null,1);
+assert(rubyMarkup.includes('방독 +48%')&&!rubyMarkup.includes('정타 +14%'),'each hero display uses own loadout');
+garage.load(0,gearData);
+const accurate=ball();
+garage.strike(accurate,0,.2);
+const boostedImpact={x:1,y:-1};
+garage.contact(accurate,0,boostedImpact);
+assert(Math.abs(boostedImpact.power-1.14)<.001,'grip buffs real precision damage for Ace, not just Ruby');
+const pushed=ball();
+garage.strike(pushed,0,.5);pushed.bank=true;
+const pushImpact={x:1,y:-1};
+garage.contact(pushed,0,pushImpact);
+assert(Math.abs(pushImpact.push-1.2)<.001,'spring buffs actual first post-wall knockback');
+garage.load(1,gearData);
+const plainRuby=ball();garage.strike(plainRuby,1,.2);
+const rubyImpact={x:1,y:-1};garage.contact(plainRuby,1,rubyImpact);
+assert(Math.abs(rubyImpact.power-1.15)<.001,'Ace grip is not applied to Ruby');
+assert(css.includes('v269: permanent, per-hero garage')&&css.includes('.hero-mini-value.boosted'));
+assert(html.includes('v269-garage-stat-feedback'));
+assert(sw.includes('v269-garage-stat-feedback'));
+console.log('PASS v269: independent loadouts, all six equipment stat effects, actual grip hit, permanent highlighted bonuses');
