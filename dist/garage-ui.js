@@ -31,7 +31,7 @@
   const rank=system.mastery(data.xp[h]);
   const portrait=h===3
    ?'<img class="tow-preview" src="assets/ip/wrench-mid-v261.webp?v=263" alt="">'
-   :h===4?'<img class="tow-preview scarlet-preview" src="assets/ip/scarlet-portrait-v275.webp" alt="">'
+   :h===4?'<img class="tow-preview scarlet-preview" src="assets/ip/scarlet-portrait-v276.webp" alt="">'
    :'<span class="garage-portrait" style="--row:'+h+'"></span>';
   return '<div class="garage-reel-card" data-reel-hero="'+h+'">'+
    '<div class="garage-reel-figure">'+portrait+'</div>'+
@@ -45,7 +45,7 @@
  let receipt=null,receiving=false,receiveTimer;
  function radioPortrait(hero){
   return hero===3?'<img class="rx-portrait" src="assets/ip/wrench-mid-v261.webp?v=263" alt="">':
-   hero===4?'<img class="rx-portrait" src="assets/ip/scarlet-portrait-v275.webp" alt="">':
+   hero===4?'<img class="rx-portrait" src="assets/ip/scarlet-portrait-v276.webp" alt="">':
    '<span class="rx-portrait rx-sprite" style="--row:'+hero+'" aria-hidden="true"></span>';
  }
  function radioView(data,wallet){
