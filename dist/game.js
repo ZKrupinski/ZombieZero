@@ -51,10 +51,12 @@ const growth=id=>window.ZZProgression?.level?.(id)||0;
 // Tennis racket face (58,76), pink bat tip (54,75), hammer head (141,75).
 // Balls sit on the UPWARD rim (face-safe), not in the character's hand or face.
 const HELD_BALL_OFFSETS=[{x:-21,y:-30},{x:-23,y:-31},{x:25,y:-30}];
-// Ball rests on the upper edge of the ring spanner in each Wrench idle cell.
-const wrenchServeOffsets=[{x:-34,y:-45},{x:-34,y:-47},{x:-34,y:-50},{x:-35,y:-53},
- {x:-35,y:-50},{x:-34,y:-47},{x:-34,y:-46},{x:-35,y:-46}];
-const heldBallOffset=()=>selectedHero===4?{x:-35,y:-37}:selectedHero===3?wrenchServeOffsets[Math.floor(clock*8)%8]:
+// v306: lower the held ball to the current 80%-scale vehicle artwork.
+// Preserve the subtle 8-frame vertical sway on Wrench's pre-serve ball,
+// and leave the other three survivors and all live-ball physics untouched.
+const wrenchServeOffsets=[{x:-34,y:-34},{x:-34,y:-36},{x:-34,y:-39},{x:-35,y:-42},
+ {x:-35,y:-39},{x:-34,y:-36},{x:-34,y:-35},{x:-35,y:-35}];
+const heldBallOffset=()=>selectedHero===4?{x:-35,y:-27}:selectedHero===3?wrenchServeOffsets[Math.floor(clock*8)%8]:
  HELD_BALL_OFFSETS[selectedHero]||HELD_BALL_OFFSETS[0];
 // Impact pose is cosmetic only; physics uses the unchanged 8/16px ball radius.
 function ballImpact(b,axis,dir=1,kind='wall'){

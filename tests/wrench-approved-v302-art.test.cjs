@@ -20,7 +20,7 @@ for(const [name,w,h,checksum] of items){
  assert(data.length>10_000,'asset not empty');
 }
 assert.match(html,/id="wrench-idle" src="assets\/ip\/wrench-idle-v264\.webp\?v=302-approved-buggy"/);
-assert.match(html,/id="wrench-swing" src="assets\/ip\/wrench-swing-v264\.webp\?v=302-approved-buggy"/);
+assert.match(html,/id="wrench-swing" src="assets\/ip\/wrench-swing-v306\.webp\?v=306-steering-hand-clean"/);
 assert.match(html,/id="mechanic-art" src="assets\/ip\/wrench-mid-v261\.webp\?v=263-v302-approved-buggy"/);
 assert.equal((css.match(/wrench-mid-v261\.webp\?v=263-v302-approved-buggy/g)||[]).length,3,'selection/result/garage share new portrait');
 assert.match(sw,/v302-approved-wrench-art/,'service worker cache reloaded');
@@ -28,4 +28,4 @@ assert(game.includes("const sheet=$(swinging?'wrench-swing':'wrench-idle')"),'ga
 assert(game.includes('(frame%4)*192,Math.floor(frame/4)*192,192,192'),'8 frames packed in 4x2 grid');
 assert(game.includes("const size=124"),'hero gameplay size and wheel anchoring unchanged');
 assert(game.includes("if(selectedHero===3 && $('wrench-ball-art')"),'steel ball identity untouched');
-console.log('PASS v302: actual approved Wrench/buggy PNG converted to three sharp transparent WebP assets, 8 idle + 8 attack frames and matching garage/selection portrait');
+console.log('PASS v302: original approved Wrench assets kept intact; game now uses the hand-cleaned v306 attack sheet with the same pose count');
