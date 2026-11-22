@@ -1992,3 +1992,68 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
  #garage-dialog .garage-part-grid .garage-slot>small{font-size:9px!important}
  #garage-dialog .garage-detail .part-inspect>.garage-icon{display:none!important}
 }
+
+
+/* v271: permanent equipped state, separate from gold inspection selection. */
+#garage-dialog .garage-part-grid .garage-slot>small{
+ display:flex!important;justify-content:space-between!important;align-items:center!important;
+ gap:2px!important;text-align:left!important;white-space:nowrap!important;
+}
+#garage-dialog .garage-slot-current,
+#garage-dialog .garage-slot-empty{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ padding:2px 3px!important;box-sizing:border-box!important;
+ border-radius:3px!important;font:900 8px/1.1 Arial,'Noto Sans KR',sans-serif!important;
+ white-space:nowrap!important;
+}
+#garage-dialog .garage-slot-current{
+ color:#a6ffdf!important;background:#144a48!important;border:1px solid #4abda4!important;
+}
+#garage-dialog .garage-slot-empty{
+ color:#9aafb2!important;background:#243840!important;border:1px solid #567079!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button{
+ position:relative!important;
+ border:2px solid #547783!important;
+ transition:border-color .12s ease,box-shadow .12s ease!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-equipped="true"]{
+ border-color:#40d9b5!important;
+ background:linear-gradient(150deg,#285a57,#193f46)!important;
+ box-shadow:inset 0 0 0 1px #71f6d555,0 0 6px #27d8b22e!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-equipped="true"][aria-pressed="true"]{
+ border-color:#ffd47c!important;
+ background:linear-gradient(145deg,#68563a,#314c46)!important;
+ box-shadow:inset 0 0 0 2px #40d9b5,0 0 6px #d8a95445!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[aria-pressed="true"]:not([data-equipped="true"]){
+ border-color:#f4c46d!important;
+ background:linear-gradient(145deg,#65503b,#343e40)!important;
+ box-shadow:inset 0 0 0 1px #e0b76a77!important;
+}
+#garage-dialog .garage-part-grid .garage-slot .garage-equip-badge{
+ display:block!important;position:absolute!important;
+ top:3px!important;right:3px!important;z-index:2!important;
+ padding:2px 4px!important;margin:0!important;
+ border:1px solid #8cf6d6!important;border-radius:3px!important;
+ background:#105b51ee!important;color:#dafff2!important;
+ box-shadow:0 1px 4px #05292299!important;
+ font:900 clamp(7px,1.4dvh,9px)/1.1 Arial,'Noto Sans KR',sans-serif!important;
+ font-style:normal!important;white-space:nowrap!important;
+ pointer-events:none!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button:not([data-equipped="true"]) .garage-equip-badge{
+ display:none!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-equipped="true"]>span:not(.garage-icon)>small{
+ color:#a6f9dd!important;font-weight:900!important;
+}
+@media(max-height:570px){
+ #garage-dialog .garage-part-grid .garage-slot .garage-equip-badge{
+  top:2px!important;right:2px!important;padding:1px 2px!important;font-size:7px!important;
+ }
+ #garage-dialog .garage-slot-current,#garage-dialog .garage-slot-empty{
+  font-size:7px!important;padding:1px 2px!important;
+ }
+}
