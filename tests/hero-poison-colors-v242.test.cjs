@@ -46,8 +46,29 @@ run('drawHeroBitmap("hero")');
 assert.equal(draws.length,1,'recovered character returns immediately to untouched sprite');
 assert(!game.includes("g.filter='hue-rotate(85deg)'"),'no XP-based permanent mechanic recolor');
 assert(!game.includes("g.filter='hue-rotate(35deg)'"),'no XP-based permanent regular hero recolor');
-assert(game.includes('drawHeroBitmap(atlas,')&&game.includes('drawHeroBitmap(sprite.image,')&&game.includes('drawHeroBitmap(sprite,-50'),
+assert(game.includes('drawHeroBitmap(atlas,')&&game.includes('drawHeroBitmap(sprite.image,'),
  'approved animation, legacy sprite and mechanic share poison tint logic');
+const idle={naturalWidth:768,naturalHeight:384},swing={...idle},still={naturalWidth:297,naturalHeight:300};
+Object.assign(ctx,{selectedHero:3,drawTrashContact(){},car:200,VIEW_DELTA:0,clock:.25,heroAttackTime:0,
+ HERO_ATTACK_DURATION:.42,has:()=>false,hero:()=>({paddle:60}),gearBonus:()=>0,window:{},balls:[],PY:600,
+ $:id=>({'wrench-idle':idle,'wrench-swing':swing,'mechanic-art':still})[id]});
+run(game.slice(b,game.indexOf('\nfunction ',b+1)));
+ctx.poison=34;
+function checkFrame(image,x,y){
+ draws.length=0;run('player()');
+ assert.equal(draws.length,2,'Wrench base sprite and tint overlay');
+ assert.equal(draws[0].args[0],image);
+ if(image!==still)assert.deepEqual(draws[0].args.slice(1,5),[x,y,192,192]);
+}
+checkFrame(idle,384,0);
+ctx.balls=[{x:200,y:588,vx:0,vy:200}];
+checkFrame(swing,576,0);
+ctx.heroAttackTime=.42;
+checkFrame(swing,0,192);
+ctx.heroAttackTime=.04;
+checkFrame(swing,576,192);
+swing.naturalWidth=0;
+checkFrame(still);
 assert(css.includes('v242: the selection spotlight itself must not cast a persistent green hue'));
 assert(html.includes('v242-poison-tint')&&/garage\.css\?v=(10-clean-tint|11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(html));
 assert(/v24[2-5]-(poison-tint|layout-stats-dock|five-portrait-no-dock-box|clear-top-centered-icons)/.test(sw));
