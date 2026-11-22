@@ -31,7 +31,7 @@ for(const [name,w,h,hash] of assets){
  assert(buf[20]&16,name+' retains true alpha transparency');
  assert.equal(buf[24]+(buf[25]<<8)+(buf[26]<<16)+1,w,name+' pixel width');
  assert.equal(buf[27]+(buf[28]<<8)+(buf[29]<<16)+1,h,name+' pixel height');
- const current=name.replace('-v276.webp','-v277.webp');
+ const current=name.startsWith('scarlet-idle-')?'scarlet-idle-v278.webp':name.replace('-v276.webp','-v277.webp');
  assert(html.includes('src="assets/ip/'+current+'"'),current+' is the active game asset');
  assert(sw.includes("'./assets/ip/"+current+"'"),current+' is cached for offline play');
 }

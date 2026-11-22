@@ -12,7 +12,7 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 const progSrc=fs.readFileSync('dist/progression.js','utf8');
 
 for(const [name,w,h] of [
- ['scarlet-idle-v277.webp',768,384],
+ ['scarlet-idle-v278.webp',768,384],
  ['scarlet-attack-v277.webp',768,384],
  ['scarlet-diamond-v275.webp',384,192],
  ['scarlet-portrait-v277.webp',256,256]
@@ -21,9 +21,17 @@ for(const [name,w,h] of [
  assert(buf.length>8000,name+' contains actual image bytes');
  assert.equal(buf.toString('ascii',0,4),'RIFF',name+' has RIFF signature');
  assert.equal(buf.toString('ascii',8,12),'WEBP',name+' has WebP signature');
- assert.equal(buf.toString('ascii',12,16),'VP8X',name+' preserves full RGBA');
- assert.equal(buf[24]+(buf[25]<<8)+(buf[26]<<16)+1,w,name+' atlas width');
- assert.equal(buf[27]+(buf[28]<<8)+(buf[29]<<16)+1,h,name+' atlas height');
+ if(name==='scarlet-idle-v278.webp'){
+  assert.equal(buf.toString('ascii',12,16),'VP8L',name+' is lossless RGBA');
+  const packed=buf.readUInt32LE(21);
+  assert.equal((packed&0x3fff)+1,w);
+  assert.equal(((packed>>>14)&0x3fff)+1,h);
+  assert((packed>>>28)&1,'lossless WebP carries alpha');
+ }else{
+  assert.equal(buf.toString('ascii',12,16),'VP8X',name+' preserves full RGBA');
+  assert.equal(buf[24]+(buf[25]<<8)+(buf[26]<<16)+1,w,name+' atlas width');
+  assert.equal(buf[27]+(buf[28]<<8)+(buf[29]<<16)+1,h,name+' atlas height');
+ }
  assert(html.includes('src="assets/ip/'+name+'"'),name+' is loaded by the page');
  assert(sw.includes("'./assets/ip/"+name+"'"),name+' has offline pre-cache');
 }

@@ -1,0 +1,18 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const file='dist/assets/ip/scarlet-idle-v278.webp';
+const b=fs.readFileSync(file);
+assert.equal(b.toString('ascii',0,4),'RIFF');
+assert.equal(b.toString('ascii',8,12),'WEBP');
+assert.equal(b.toString('ascii',12,16),'VP8L','lossless alpha prevents white compression artifacts');
+const bits=b.readUInt32LE(21);
+assert.equal((bits&0x3fff)+1,768);
+assert.equal(((bits>>>14)&0x3fff)+1,384);
+assert((bits>>>28)&1,'alpha preserved');
+assert.equal(crypto.createHash('sha256').update(b).digest('hex'),'d2bac0058ce16c2f51bdeffcb281b3e53b3b94ba6af348d04e3b13888b46b52a','QA approved alpha matte for both idle poses');
+const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
+assert(html.includes('src="assets/ip/scarlet-idle-v278.webp"'),'new idle is active');
+assert(!html.includes('src="assets/ip/scarlet-idle-v277.webp"'),'white cavity no longer displayed');
+assert(sw.includes("'./assets/ip/scarlet-idle-v278.webp'"),'new file cached offline');
+assert(html.includes('v278-handle-alpha')&&sw.includes('v278-handle-alpha'),'new cache version');
+console.log('PASS v278: eight frames with transparent handle cavity, lossless RGBA and mobile cache refresh');

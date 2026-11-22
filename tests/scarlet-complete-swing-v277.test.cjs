@@ -6,7 +6,7 @@ const css=fs.readFileSync('dist/garage.css','utf8');
 const ui=fs.readFileSync('dist/garage-ui.js','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const expected=[
- ['scarlet-idle-v277.webp',768,384],
+ ['scarlet-idle-v278.webp',768,384],
  ['scarlet-attack-v277.webp',768,384],
  ['scarlet-portrait-v277.webp',256,256]
 ];
@@ -15,10 +15,18 @@ for(const [file,width,height] of expected){
  assert(buf.length>19000,file+' contains authored bitmap pixels');
  assert.equal(buf.toString('ascii',0,4),'RIFF');
  assert.equal(buf.toString('ascii',8,12),'WEBP');
- assert.equal(buf.toString('ascii',12,16),'VP8X');
- assert(buf[20]&16,file+' preserves transparency');
- assert.equal(buf[24]+(buf[25]<<8)+(buf[26]<<16)+1,width);
- assert.equal(buf[27]+(buf[28]<<8)+(buf[29]<<16)+1,height);
+ if(file==='scarlet-idle-v278.webp'){
+  assert.equal(buf.toString('ascii',12,16),'VP8L','lossless WebP prevents white fringes');
+  const packed=buf.readUInt32LE(21);
+  assert.equal((packed&0x3fff)+1,width);
+  assert.equal(((packed>>>14)&0x3fff)+1,height);
+  assert((packed>>>28)&1,'lossless alpha preserved');
+ }else{
+  assert.equal(buf.toString('ascii',12,16),'VP8X');
+  assert(buf[20]&16,file+' preserves transparency');
+  assert.equal(buf[24]+(buf[25]<<8)+(buf[26]<<16)+1,width);
+  assert.equal(buf[27]+(buf[28]<<8)+(buf[29]<<16)+1,height);
+ }
  assert(html.includes('src="assets/ip/'+file+'"'),file+' actively loaded');
  assert(sw.includes("'./assets/ip/"+file+"'"),file+' PWA pre-cached');
 }
