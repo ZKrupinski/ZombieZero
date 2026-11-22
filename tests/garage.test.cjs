@@ -44,5 +44,5 @@ for(const [xp,expected] of [[4,0],[5,1],[49,9],[50,10],[100,10]]){
  inventory.xp[3]=xp;
  system.load(3,inventory);
  assert.equal(system.masteryDefense(),expected);
- assert.equal(system.heroStats({paddle:60},inventory,null,3)[3].bonus,expected);
+ assert.equal(system.heroStats({paddle:60},inventory,null,3)[3].bonus,expected+4,'equipped spring adds +4px guard above mastery');
 }
