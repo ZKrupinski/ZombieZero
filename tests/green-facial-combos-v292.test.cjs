@@ -114,11 +114,15 @@ for(const name of labels){
  // Center bridge pixels above the original mouth may never become a
  // synthetic dark nose (particularly with an open-mouth expression).
  if(name==='slack-jaw'||name==='uneven-jaw'){
-  const original=img.pixels,edited=atlas;
+  // Compare mouth-only edits against the same eye treatment: the
+  // asymmetric-eye variant intentionally edits original eye pixels near
+  // the nasal bridge; the mouth layer must NEVER touch those pixels.
+  const baseline=name==='uneven-jaw'?faces['uneven-eyes'][0].pixels:img.pixels;
+  const edited=atlas;
   for(let f=0;f<8;f++)for(let y=66;y<71;y++)for(let x=61;x<65;x++){
    const i=(y*1024+f*128+x)*4;
-   assert.deepEqual([...edited.slice(i,i+3)],[...original.slice(i,i+3)],
-    'the original nose bridge must be untouched');
+   assert.deepEqual([...edited.slice(i,i+3)],[...baseline.slice(i,i+3)],
+    'mouth transformation must never create a fake dark nose');
   }
  }
  console.log('FACE '+name+' changed px per row/frame: '+JSON.stringify(counts));
