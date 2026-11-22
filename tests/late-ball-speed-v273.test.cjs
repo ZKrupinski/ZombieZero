@@ -56,7 +56,7 @@ physics.ball.held=false;physics.ball.vx=100;physics.ball.vy=-150;delete physics.
 assert(Math.abs(vm.runInContext('ensureBallCruiseSpeed(ball)',physics)-Math.hypot(100,150))<1e-9,
  'scripted low-speed colliders are not accelerated');
 assert.equal(physics.ball.vx,100,'scripted collision speed remains untouched');
-assert(game.includes('balls[0].cruiseFloor=BASE_BALL_CRUISE_SPEED')&&
+assert(game.includes('balls[0].cruiseFloor=speed')&&
  game.includes('extra.cruiseFloor=BASE_BALL_CRUISE_SPEED')&&
  game.includes('split.cruiseFloor=BASE_BALL_CRUISE_SPEED'),
  'actual serve and multi-ball launch set cruise floor');
