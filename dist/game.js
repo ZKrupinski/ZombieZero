@@ -2326,11 +2326,36 @@ function drawHeroBitmap(image,...args){
 function player(){
  drawTrashContact("hero");
  if(selectedHero===3){
-  const sprite=$('mechanic-art');
-  if(sprite?.naturalWidth){
-   const h=100*sprite.naturalHeight/sprite.naturalWidth;
-   g.save();g.translate(car,625+VIEW_DELTA);g.rotate(Math.sin(heroAttackTime/HERO_ATTACK_DURATION*Math.PI)*-.09);
-   drawHeroBitmap(sprite,-50,-h,100,h);g.restore();
+  let swinging=heroAttackTime>0;
+  let frame=Math.floor(clock*8)%8;
+  if(swinging){
+   // The bounce has already occurred. Start at impact, then follow through.
+   frame=Math.min(7,4+Math.floor((HERO_ATTACK_DURATION-heroAttackTime)/.055));
+  }else{
+   const radius=has('power')?12:8;
+   const reach=hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.masteryDefense?.()||0);
+   let soonest=.20;
+   for(const ball of balls){
+    if(ball.held||ball.vy<=0)continue;
+    const until=(PY-radius-ball.y)/ball.vy;
+    if(until>=0&&until<soonest&&Math.abs(ball.x+ball.vx*until-car)<reach){
+     soonest=until;swinging=true;
+    }
+   }
+   if(swinging)frame=Math.min(3,Math.floor((.20-soonest)/.05));
+  }
+  const sheet=$(swinging?'wrench-swing':'wrench-idle');
+  if(sheet?.naturalWidth===768&&sheet.naturalHeight===384){
+   // Both sheets share the same wheel pivot (244,455) in a 480px source cell.
+   const size=124;
+   drawHeroBitmap(sheet,(frame%4)*192,Math.floor(frame/4)*192,192,192,
+    car-size*244/480,625+VIEW_DELTA-size*455/480,size,size);
+  }else{
+   const sprite=$('mechanic-art');
+   if(sprite?.naturalWidth){
+    const h=100*sprite.naturalHeight/sprite.naturalWidth;
+    drawHeroBitmap(sprite,car-50,625+VIEW_DELTA-h,100,h);
+   }
   }
   return;
  }
