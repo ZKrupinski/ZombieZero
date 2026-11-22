@@ -85,40 +85,6 @@ assert.equal(img.naturalWidth,1024);assert.equal(img.naturalHeight,512);
 
 
 
-for(const [row,region] of [
- [0,{x0:44,x1:84,y0:80,y1:86}],
- [1,{x0:35,x1:68,y0:68,y1:82}],
- [2,{x0:64,x1:93,y0:68,y1:82}]
-]){
- const frames=[];
- for(let frame=0;frame<8;frame++){
-  let count=0,minX=127,minY=127,maxX=0,maxY=0;
-  for(let y=region.y0;y<region.y1;y++)for(let x=region.x0;x<region.x1;x++){
-   const i=((row*128+y)*1024+frame*128+x)*4,
-    r=img.pixels[i],g=img.pixels[i+1],b=img.pixels[i+2],a=img.pixels[i+3];
-   if(a>=230&&r<87&&g<87&&b<87){
-    count++;minX=Math.min(minX,x);minY=Math.min(minY,y);
-    maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);
-   }
-  }
-  frames.push({f:frame,n:count,x:[minX,maxX],y:[minY,maxY]});
- }
- console.log('MOUTH_INK_TOPOLOGY row '+row+' '+JSON.stringify(frames));
-}
-
-for(let frame=0;frame<8;frame++){
- const runs=[];
- for(let y=73;y<=90;y++){
-  const ink=[];
-  for(let x=43;x<=85;x++){
-   const i=(y*1024+frame*128+x)*4,r=img.pixels[i],
-    g=img.pixels[i+1],b=img.pixels[i+2],a=img.pixels[i+3];
-   if(a>=230&&r<87&&g<87&&b<87)ink.push(x);
-  }
-  if(ink.length>=6)runs.push([y,ink.length,ink[0],ink[ink.length-1]]);
- }
- console.log('FRONT_MOUTH_BLACK_ROWS '+frame+' '+JSON.stringify(runs));
-}
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
 // Preserve expression frames while a hit is flashing instead of switching
 // to a temporary expression-less hurt face.
@@ -158,7 +124,6 @@ for(const name of labels){
  assert(counts.some(row=>row.some(x=>x>0)),name+': zero art edits on REAL sprite');
  // Every direction must keep the approved face feature through all 8 frames.
  // In particular, never return to default teeth/jaw on diagonal movement.
- if(name==='extra-teeth')console.log('MOUTH_APPLIED_COUNTS '+JSON.stringify(counts));
  assert(counts.every(row=>row.every(n=>n>0)),
   name+': facial feature must exist in front and both diagonal walks');
  if(name==='heart-eyes'){
@@ -188,7 +153,7 @@ for(const name of ['heart-eyes','extra-teeth','slack-jaw']){
 }
 
 const regions=[
- {x0:44,x1:84,y0:80,y1:86},
+ {x0:44,x1:84,y0:76,y1:89},
  {x0:35,x1:68,y0:68,y1:82},
  {x0:64,x1:93,y0:68,y1:82}
 ];

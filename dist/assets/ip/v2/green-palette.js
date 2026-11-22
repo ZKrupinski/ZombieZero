@@ -273,7 +273,7 @@
   // front: ink x48..80/y81..84; left: x39..61/y69..80;
   // right: x67..89/y69..80. Only existing ink may become teeth.
   const MOUTH_ZONES=[
-   {x0:44,x1:84,y0:80,y1:86,axis:'x'},
+   {x0:44,x1:84,y0:76,y1:89,axis:'x'},
    {x0:35,x1:68,y0:68,y1:82,axis:'y'},
    {x0:64,x1:93,y0:68,y1:82,axis:'y'}
   ];
@@ -296,7 +296,7 @@
    }
    if(count<19||x1-x0<5||y1-y0<2)return null;
    // Prevent a nearby black eyebrow, hair or clothing pixel being selected.
-   if(row===0&&(y0<80||y1>85||x0<42||x1>87))return null;
+   if(row===0&&(y0<76||y1>88||x0<42||x1>87))return null;
    if(row===1&&(x0<33||x1>70||y0<68||y1>81))return null;
    if(row===2&&(x0<62||x1>94||y0<68||y1>81))return null;
    return {x:x0,y:y0,w:x1-x0+1,h:y1-y0+1,byY,zone,inkCount:count};
@@ -376,7 +376,7 @@
    // Add only 2-3 central teeth on the true black slit. For diagonals,
    // place them along its own downward slope (never mirror/rotate the nose).
    const front=mouth.zone.axis==='x';
-   const positions=front?[.35,.51,.67]:[.36,.58,.79];
+   const positions=front?[.31,.51,.71]:[.32,.56,.80];
    let rendered=0;
    for(const position of positions){
     let cx,cy;
@@ -390,7 +390,7 @@
      cx=Math.round((row[0]+row[row.length-1])*.5);
     }
     let made=0;
-    for(let dy=-1;dy<=1;dy++)for(let dx=-2;dx<=2;dx++){
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
      const lx=cx+dx,ly=cy+dy;
      if(lx<mouth.zone.x0||lx>=mouth.zone.x1||
         ly<mouth.zone.y0||ly>=mouth.zone.y1)continue;
