@@ -424,22 +424,6 @@
    return set;
   }
 
-  function preserveNoseBridge(out,eyes,mouth,fx,fy){
-   if(!mouth||eyes.length!==2)return;
-   // The nose belongs to the original mesh, not the facial cosmetics.
-   // Restore the narrow central bridge exactly even when mouth/pupil masks
-   // approach it at some diagonal frames.
-   const x0=Math.max(0,eyes[0].x+eyes[0].w);
-   const x1=Math.min(cell,eyes[1].x);
-   if(x1<=x0)return;
-   const y0=Math.max(0,Math.min(eyes[0].y+eyes[0].h,
-      eyes[1].y+eyes[1].h)-3);
-   const y1=Math.min(cell,mouth.y);
-   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
-    const i=at(fx+x,fy+y);
-    out[i]=src[i];out[i+1]=src[i+1];out[i+2]=src[i+2];
-   }
-  }
   const faceStyles={
    'heart-eyes':{heart:true},
    'extra-teeth':{teeth:true},
@@ -461,7 +445,6 @@
      if(style.heart)heartEyes(out,fx,fy,eyes);
      if(style.teeth)extraTeeth(out,fx,fy,mouth);
      if(style.jaw)slackJaw(out,fx,fy,mouth);
-     preserveNoseBridge(out,eyes,mouth,fx,fy);
     }
    }
    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;

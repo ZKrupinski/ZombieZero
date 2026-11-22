@@ -18,7 +18,8 @@ assert.match(html,/v292-face-mix/);
 assert.match(sw,/v292-face-mix/);
 assert.match(sw,/v294-small-hearts-locked-lids/);
 assert.match(paletteCode,/reference\.h\*\(depth/,'eyelid thickness frozen to per-direction reference');
-assert.match(paletteCode,/preserveNoseBridge\(out,eyes,mouth,fx,fy\)/);
+assert.match(paletteCode,/y<mouth\.y\|\|y>mouth\.y\+mouth\.h\+3/,'mouth stays entirely below the nasal bridge');
+assert.doesNotMatch(paletteCode,/preserveNoseBridge/,'no eye pixels restored by a second pass');
 // Small actual-PNG decoder for the approved unmodified 8-bit RGBA walking atlas.
 // The tests render against production image pixels, not only mocked rectangles.
 function decodeRGBA(data){
