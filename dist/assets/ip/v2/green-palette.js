@@ -265,63 +265,54 @@
   // Art is synthesized once from the canonical 8x3 walk atlas. All edits
   // remain inside original opaque face material; no attached brow layer,
   // interpolation, frame-dependent randomization, or per-enemy canvas work.
-  function redMouth(x,y){
+
+  // v297: The red shape at y73..80 (front) / y64..71 (diagonal)
+  // is the NOSE, NEVER the mouth. Real mouth = dark horizontal slit
+  // immediately beneath it, with original white fangs at the two ends.
+  // The perspective-specific regions below were mapped from canonical PNG:
+  // front: ink x48..80/y81..84; left: x39..61/y69..80;
+  // right: x67..89/y69..80. Only existing ink may become teeth.
+  const MOUTH_ZONES=[
+   {x0:44,x1:84,y0:80,y1:86,axis:'x'},
+   {x0:35,x1:68,y0:68,y1:82,axis:'y'},
+   {x0:64,x1:93,y0:68,y1:82,axis:'y'}
+  ];
+  function isMouthInk(x,y){
    const i=at(x,y),r=src[i],g=src[i+1],b=src[i+2];
-   // The approved mouth is warm terracotta and pink, not flat saturated red.
-   // Sample its actual color ramp; the red jacket starts well below this zone.
-   return src[i+3]>=200&&r>=112&&r>g*1.12&&r>b*1.22&&
-     g<184&&b<206;
+   return src[i+3]>=230&&r<87&&g<87&&b<87;
   }
-  function detectMouth(fx,fy,eyes){
-   if(eyes.length!==2)return null;
-   // The canonical front mouth is y73..80; two diagonal mouths are higher
-   // (left y64..72, right y63..72), not the shirt below y83.
-   const front=(fy===0);
-   // Measured against the approved original atlas: the front lip begins
-   // at y73; pixels at y66..72 belong to the nose/under-eye, not the mouth.
-   // Left/right diagonal lips begin at 64/63 respectively.
-   const y0=fy+(front?73:fy===128?64:63);
-   const y1=fy+(front?87:78);
-   const x0=fx+Math.max(24,Math.min(...eyes.map(e=>e.x))-5);
-   const x1=fx+Math.min(104,Math.max(...eyes.map(e=>e.x+e.w))+5);
-   const seen=new Uint8Array(cell*cell),groups=[];
-   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
-    const key=(y-fy)*cell+x-fx;
-    if(seen[key]||!redMouth(x,y))continue;
-    const queue=[key];seen[key]=1;
-    let lowX=x,highX=x,lowY=y,highY=y;
-    for(let k=0;k<queue.length;k++){
-     const id=queue[k],px=fx+(id%cell),py=fy+((id/cell)|0);
-     lowX=Math.min(lowX,px);highX=Math.max(highX,px);
-     lowY=Math.min(lowY,py);highY=Math.max(highY,py);
-     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-      const xx=px+dx,yy=py+dy;
-      if(xx<x0||xx>=x1||yy<y0||yy>=y1)continue;
-      const next=(yy-fy)*cell+xx-fx;
-      if(seen[next]||!redMouth(xx,yy))continue;
-      seen[next]=1;queue.push(next);
-     }
-    }
-    const rw=highX-lowX+1,rh=highY-lowY+1,cx=(lowX+highX)/2-fx;
-    if(queue.length>=9&&rw>=6&&rw<=38&&rh>=3&&rh<=18&&
-       cx>=35&&cx<=91&&highY<fy+(front?87:78))
-     groups.push({x:lowX-fx,y:lowY-fy,w:rw,h:rh,area:queue.length});
+  function detectMouth(fx,fy,row){
+   const zone=MOUTH_ZONES[row];
+   if(!zone)return null;
+   let x0=127,y0=127,x1=0,y1=0;
+   let count=0;
+   const byY={};
+   for(let ly=zone.y0;ly<zone.y1;ly++)for(let lx=zone.x0;lx<zone.x1;lx++){
+    if(!isMouthInk(fx+lx,fy+ly))continue;
+    x0=Math.min(x0,lx);x1=Math.max(x1,lx);
+    y0=Math.min(y0,ly);y1=Math.max(y1,ly);
+    if(!byY[ly])byY[ly]=[];
+    byY[ly].push(lx);count++;
    }
-   groups.sort((a,b)=>b.area-a.area);
-   return groups[0]||null;
+   if(count<19||x1-x0<5||y1-y0<2)return null;
+   // Prevent a nearby black eyebrow, hair or clothing pixel being selected.
+   if(row===0&&(y0<80||y1>85||x0<42||x1>87))return null;
+   if(row===1&&(x0<33||x1>70||y0<68||y1>81))return null;
+   if(row===2&&(x0<62||x1>94||y0<68||y1>81))return null;
+   return {x:x0,y:y0,w:x1-x0+1,h:y1-y0+1,byY,zone,inkCount:count};
   }
-  // All eight walk frames of a direction must detect the same mouth track.
-  // Otherwise keep the original authored mouth in that whole direction.
+  // Ensure all eight frames of a direction have a real, coherent mouth.
+  // No eye movement, nose color, or shirt shade is used as an anchor.
   const mouthsByRow={};
-  for(const {row,group} of stable){
-   const arr=group.map((eyes,col)=>detectMouth(col*cell,row*cell,eyes));
-   if(arr.some(m=>!m))continue;
-   const medX=median(arr.map(m=>m.x)),medY=median(arr.map(m=>m.y));
-   const medW=median(arr.map(m=>m.w)),medH=median(arr.map(m=>m.h));
-   if(arr.every(m=>Math.abs(m.x-medX)<=6&&Math.abs(m.y-medY)<=5&&
-      Math.abs(m.w-medW)<=6&&Math.abs(m.h-medH)<=5))
-    mouthsByRow[row]=arr;
+  for(const {row} of stable){
+   const found=[];
+   for(let col=0;col<cols;col++)found.push(detectMouth(col*cell,row*cell,row));
+   if(found.some(v=>!v))continue;
+   const mx=median(found.map(v=>v.x)),my=median(found.map(v=>v.y));
+   if(found.every(v=>Math.abs(v.x-mx)<=5&&Math.abs(v.y-my)<=4))
+    mouthsByRow[row]=found;
   }
+
   function makePixel(out,x,y,r,g,b){
    const i=at(x,y);
    if(src[i+3]<230)return;
@@ -378,65 +369,57 @@
     }
    }
   }
+
   function extraTeeth(out,fx,fy,mouth){
-   if(!mouth||mouth.w<8||mouth.h<3)return;
-   // The actual mouth is only ~12px wide in the source (~5px at game
-   // scale). Painting small ivory flecks INSIDE it was invisible.
-   // Enlarge the voxel mouth modestly, from its already-tracked position,
-   // then draw FOUR bold individual teeth with dark natural separations.
-   // Nothing is added above the original mouth or near the nose.
-   const middle=mouth.x+mouth.w*.5;
-   const width=Math.max(19,Math.min(24,mouth.w+8));
-   const left=Math.round(middle-width*.5),right=left+width-1;
-   const top=mouth.y,bottom=Math.min(96,top+Math.max(7,Math.min(9,mouth.h+2)));
-   const faceMin=20,faceMax=105;
-   for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
-    if(x<faceMin||x>faceMax||y>=100)continue;
-    const xx=fx+x,yy=fy+y,i=at(xx,yy);
-    if(src[i+3]<235)continue;
-    // Rounded voxel-corner silhouette rather than a black rectangular nose.
-    const corner=(y===top||y===bottom)&&(x===left||x===right);
-    if(corner)continue;
-    const edge=y===top||y===bottom||x===left||x===right;
-    const shade=edge?[158,66,77]:[149,62,72];
-    makePixel(out,xx,yy,...shade);
-   }
-   const innerWidth=width-4;
-   const gap=1;
-   const toothWidth=Math.floor((innerWidth-3*gap)/4);
-   const toothTotal=toothWidth*4+gap*3;
-   const first=left+Math.floor((width-toothTotal)/2);
-   const toothTop=top+1;
-   const toothBottom=Math.min(bottom-1,top+5);
-   for(let n=0;n<4;n++)for(let x=first+n*(toothWidth+gap);
-      x<first+n*(toothWidth+gap)+toothWidth;x++)
-    for(let y=toothTop;y<=toothBottom;y++){
-     if(x<faceMin||x>faceMax||y>=100)continue;
-     const i=at(fx+x,fy+y);
-     if(src[i+3]<235)continue;
-     makePixel(out,fx+x,fy+y,...(y===toothBottom?
-       [213,203,189]:[250,242,224]));
+   if(!mouth)return;
+   // The two outer ivory teeth already belong to the approved original.
+   // Add only 2-3 central teeth on the true black slit. For diagonals,
+   // place them along its own downward slope (never mirror/rotate the nose).
+   const front=mouth.zone.axis==='x';
+   const positions=front?[.35,.51,.67]:[.36,.58,.79];
+   let rendered=0;
+   for(const position of positions){
+    let cx,cy;
+    if(front){
+     cx=Math.round(mouth.x+position*(mouth.w-1));
+     cy=Math.round(mouth.y+(mouth.h-1)*.48);
+    }else{
+     cy=Math.round(mouth.y+position*(mouth.h-1));
+     const row=mouth.byY[cy]||mouth.byY[cy-1]||mouth.byY[cy+1];
+     if(!row||!row.length)continue;
+     cx=Math.round((row[0]+row[row.length-1])*.5);
     }
+    let made=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-2;dx<=2;dx++){
+     const lx=cx+dx,ly=cy+dy;
+     if(lx<mouth.zone.x0||lx>=mouth.zone.x1||
+        ly<mouth.zone.y0||ly>=mouth.zone.y1)continue;
+     const x=fx+lx,y=fy+ly;
+     if(!isMouthInk(x,y))continue; // Nose, skin, eye, end teeth unchanged.
+     makePixel(out,x,y,...(dy===1?[214,204,189]:[251,241,218]));
+     made++;
+    }
+    rendered+=made;
+   }
+   return rendered;
   }
   function slackJaw(out,fx,fy,mouth){
    if(!mouth)return;
-   // Recolor the mouth INTERIOR only; do not draw skin, a dark nose, any
-   // nostrils, or a second oval over the actual voxel face.
-   const cx=mouth.x+(mouth.w-1)*.5,cy=mouth.y+(mouth.h-1)*.52;
-   const rx=Math.max(2,mouth.w*.47),ry=Math.max(2,mouth.h*.48);
-   for(let y=mouth.y+1;y<mouth.y+mouth.h-1;y++)
-    for(let x=mouth.x+1;x<mouth.x+mouth.w-1;x++){
-     const xx=fx+x,yy=fy+y;
-     if(!redMouth(xx,yy))continue;
-     const u=(x-cx)/rx,v=(y-cy)/ry;
-     if(u*u+v*v>.80)continue;
-     const tongue=v>.36&&Math.abs(u)<.42;
-     makePixel(out,xx,yy,
-      tongue?216:144,
-      tongue?102:62,
-      tongue?119:78);
+   // Slightly deepen the actual ink line, not an oval over the red nose.
+   // Add a one-pixel dark lip underneath ORIGINAL mouth ink, on skin only.
+   const front=mouth.zone.axis==='x';
+   for(let y=mouth.zone.y0;y<mouth.zone.y1;y++)
+    for(let x=mouth.zone.x0;x<mouth.zone.x1;x++){
+     const sx=fx+x,sy=fy+y;
+     if(!isMouthInk(sx,sy))continue;
+     if(front&&y<mouth.y+1)continue;
+     const below=sy+1;
+     const j=at(sx,below);
+     if(below>=fy+cell||src[j+3]<230||!isSkin(sx,below))continue;
+     makePixel(out,sx,below,75,43,47);
     }
   }
+
   function lazyPaletteSet(canvas){
    // Body recolors are generated on demand, not every spawn or render.
    // Most new expressions never need all five large atlas copies on mobile.

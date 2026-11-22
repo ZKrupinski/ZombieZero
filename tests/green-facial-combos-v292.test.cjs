@@ -16,18 +16,20 @@ assert.match(walkCode,/expressions\[z\.expression\]/,'active sprite uses express
 assert.match(paletteCode,/lazyPaletteSet\(/,'rare palettes made only if needed');
 assert.match(paletteCode,/const HEART_PIXELS=/,'single-color pixel hearts');
 assert.match(paletteCode,/const sizeX=ref\.w<13\?7:9/,'heart large enough to survive game-scale downsampling');
-assert.match(paletteCode,/const width=Math\.max\(19,Math\.min\(24,mouth\.w\+8\)\)/,'mouth backing wide enough to show 4 teeth');
+assert.match(paletteCode,/const MOUTH_ZONES=/,'distinct true-mouth zones for all three directions');
+assert.match(paletteCode,/if\(!isMouthInk\(x,y\)\)continue/,'teeth appear only on original black mouth pixels');
+assert.doesNotMatch(paletteCode,/function redMouth\(/,'red nose must never serve as mouth anchor');
 assert.match(game,/faceRoll<\.73\?'heart-eyes'/,'heart eyes should be easy to encounter');
 assert.match(game,/faceRoll<\.55\?'extra-teeth'/,'extra teeth should be easy to encounter');
 assert.doesNotMatch(paletteCode,/Math\.pow\(u\*u\+v\*v-1,3\)/,'remove flame-like cubic cusp');
-assert.match(paletteCode,/if\(!redMouth\(xx,yy\)\)continue/,'mouth does not paint skin or fake noses');
+assert.match(paletteCode,/if\(!isMouthInk\(sx,sy\)\)continue/,'open jaw is anchored to actual black mouth line');
 assert.match(walkCode,/recoil\|\|0\)>\.015&&!z\.expression/,'no facial flicker when hit');
 assert.match(html,/v292-face-mix/);
 assert.match(sw,/v292-face-mix/);
 assert.match(sw,/v294-small-hearts-locked-lids/);
 assert.match(sw,/v296-visible-hearts-teeth/);
 assert.match(paletteCode,/Math\.round\(reference\.h\*depth/,'eyelid thickness frozen to per-direction reference');
-assert.match(paletteCode,/for\(let y=mouth\.y\+1;y<mouth\.y\+mouth\.h-1;y\+\+\)/,'mouth drawing remains within source lip rectangle');
+assert.match(paletteCode,/const front=mouth\.zone\.axis==='x'/,'direction-aware mouth geometry');
 assert.doesNotMatch(paletteCode,/preserveNoseBridge/,'no eye pixels restored by a second pass');
 // Small actual-PNG decoder for the approved unmodified 8-bit RGBA walking atlas.
 // The tests render against production image pixels, not only mocked rectangles.
@@ -81,27 +83,6 @@ vm.createContext(sandbox);vm.runInContext(paletteCode,sandbox);
 const img=decodeRGBA(fs.readFileSync(path.join(BASE,'assets/ip/v2/green_zombie.png')));
 assert.equal(img.naturalWidth,1024);assert.equal(img.naturalHeight,512);
 
-
-for(let row=0;row<3;row++){
- const map=[];
- for(let y=57;y<=102;y++){
-  let line='';
-  for(let x=30;x<=99;x++){
-   const i=((row*128+y)*1024+x)*4,r=img.pixels[i],g=img.pixels[i+1],b=img.pixels[i+2],a=img.pixels[i+3];
-   let code='?';
-   if(a<125)code=' ';
-   else if(g>r+13&&g>b+6)code='g';
-   else if(r>170&&g>162&&b>137&&Math.max(r,g,b)-Math.min(r,g,b)<85)code='W';
-   else if(r>g*1.22&&r>b*1.22&&r>110)code='r';
-   else if(r<83&&g<83&&b<83)code='X';
-   else if(r<120&&g<120&&b<120)code='d';
-   else code='.';
-   line+=code;
-  }
-  map.push(String(y).padStart(3,'0')+' '+line);
- }
- console.log('DIAGNOSTIC TRUE NOSE MOUTH '+row+' (x30..99)\n'+map.join('\n'));
-}
 
 const faces=sandbox.window.ZZGreenPalette.createFaceExpressions(img);
 // Preserve expression frames while a hit is flashing instead of switching
@@ -169,8 +150,54 @@ for(const name of ['heart-eyes','extra-teeth','slack-jaw']){
  const count=changes(faces[name][0].pixels,img.pixels,0,0);
  assert(count.n>6,name+': visible first-frame face change');
 }
-for(const row of [0,1,2])for(const frame of [0,3,7]){
- const toothArea=changes(faces['extra-teeth'][0].pixels,img.pixels,row,frame).n;
- assert(toothArea>=80,'extra teeth must occupy visible source pixels on all walk directions: '+row+'/'+frame+'/'+toothArea);
+
+const regions=[
+ {x0:44,x1:84,y0:80,y1:86},
+ {x0:35,x1:68,y0:68,y1:82},
+ {x0:64,x1:93,y0:68,y1:82}
+];
+for(let row=0;row<3;row++)for(let frame=0;frame<8;frame++){
+ const source=img.pixels,teeth=faces['extra-teeth'][0].pixels;
+ const region=regions[row],ox=frame*128,oy=row*128;
+ let changed=0,brightened=0,illegal=0;
+ for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+  const i=((oy+y)*1024+ox+x)*4;
+  if(teeth[i]===source[i]&&teeth[i+1]===source[i+1]&&teeth[i+2]===source[i+2])continue;
+  changed++;
+  const dark=source[i+3]>=230&&source[i]<87&&source[i+1]<87&&source[i+2]<87;
+  if(x<region.x0||x>=region.x1||y<region.y0||y>=region.y1||!dark)illegal++;
+  if(teeth[i]>200&&teeth[i+1]>180&&teeth[i+2]>150)brightened++;
+ }
+ assert.equal(illegal,0,'new teeth only on source black mouth, never red nose/skin/eyes: '+row+'/'+frame);
+ assert(changed>=9&&brightened>=9,'bright central ivory teeth in every walk frame: '+row+'/'+frame);
+ assert(changed<80,'no giant painted red-nose teeth overlay: '+row+'/'+frame);
+ // Mouth geometry naturally tilts left/right, rather than borrowing front.
+ if(row===1||row===2){
+  let minX=128,maxX=0;
+  for(let y=region.y0;y<region.y1;y++)for(let x=region.x0;x<region.x1;x++){
+   const i=((oy+y)*1024+ox+x)*4;
+   if(teeth[i]!==source[i]||teeth[i+1]!==source[i+1]||teeth[i+2]!==source[i+2]){
+    minX=Math.min(minX,x);maxX=Math.max(maxX,x);
+   }
+  }
+  assert(row===1?maxX<69:minX>63,'true-side mouth, not mirrored wrong-side nose');
+ }
 }
-console.log('PASS v292: 4 distinctive + 2 combined faces, source alpha unchanged, no flicker or eyebrow edits, real sprite decoded');
+for(const name of ['slack-jaw','uneven-jaw']){
+ const source=name==='uneven-jaw'?faces['uneven-eyes'][0].pixels:img.pixels;
+ const output=faces[name][0].pixels;
+ for(let row=0;row<3;row++)for(let frame=0;frame<8;frame++){
+  const region=regions[row],ox=frame*128,oy=row*128;
+  let changed=0;
+  for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+   const i=((oy+y)*1024+ox+x)*4;
+   if(source[i]===output[i]&&source[i+1]===output[i+1]&&source[i+2]===output[i+2])continue;
+   changed++;
+   assert(x>=region.x0&&x<region.x1&&y>=region.y0&&y<=region.y1,
+    'open jaw cannot repaint red nose or cheek: '+name+'/'+row+'/'+frame);
+  }
+  assert(changed>0,'open jaw must alter the actual mouth in all frames');
+ }
+}
+
+console.log('PASS v297: tooth sprites inside actual black mouth in all 24 front/side frames; red noses unchanged; alpha preserved');
