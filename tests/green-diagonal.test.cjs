@@ -23,8 +23,8 @@ while(off+12<=png.length){
  off+=12+n;if(type==='IEND'){finished=true;break}
 }
 assert(finished&&transparent&&off===png.length,'no opaque backdrop or corrupt chunks');
-assert(html.includes('src="assets/ip/v2/green-walk.js?v=287-blond"'),'green loader before game');
-assert(html.indexOf('src="assets/ip/v2/green-walk.js?v=287-blond"')<html.indexOf('src="game.js?v='),'load ordering');
+assert(html.includes('src="assets/ip/v2/green-walk.js?v=288-red-brow"'),'green loader before game');
+assert(html.indexOf('src="assets/ip/v2/green-walk.js?v=288-red-brow"')<html.indexOf('src="game.js?v='),'load ordering');
 assert(sw.includes('./assets/ip/v2/green_zombie.png')&&sw.includes('./assets/ip/v2/green-walk.js'),'offline assets');
 assert(sw.includes('shell-v21-visible-loot-chain-knock'),'cache version');
 assert(game.includes('window.ZZGreenWalk?.draw(g,z,enemyAnimationClock)'),'runtime connected');

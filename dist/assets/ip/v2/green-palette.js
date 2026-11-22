@@ -65,7 +65,7 @@
   }catch(_){/* Canvas readback blocked: fall back to original sprites. */}
   return out;
  }
- function loadHalfLidded(image,src,w,h,finish){
+ function loadExpression(image,src,w,h,finish){
   const result=[];
   image.decoding='async';
   image.onload=()=>{
@@ -76,5 +76,5 @@
   image.src=src;
   return result;
  }
- window.ZZGreenPalette={tones,paletteFor,recolorGreen,variants,loadHalfLidded};
+ window.ZZGreenPalette={tones,paletteFor,recolorGreen,variants,loadExpression};
 })();
