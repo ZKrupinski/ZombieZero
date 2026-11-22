@@ -9,9 +9,13 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert.equal(image.toString('ascii',0,4),'RIFF');
 assert.equal(image.toString('ascii',8,12),'WEBP');
-assert.equal(image.toString('ascii',12,16),'VP8X');
-assert.equal(1+image.readUIntLE(24,3),768,'four 192px columns');
-assert.equal(1+image.readUIntLE(27,3),384,'two 192px rows');
+// Repaired sheet is saved as WebP lossless VP8L to preserve EVERY
+// untouched original pixel and the exact alpha channel.
+assert.equal(image.toString('ascii',12,16),'VP8L');
+const packed=image.readUInt32LE(21);
+assert.equal((packed&0x3fff)+1,768,'four 192px columns');
+assert.equal(((packed>>>14)&0x3fff)+1,384,'two 192px rows');
+assert((packed>>>28)&1,'same transparent RGBA canvas');
 assert.equal(crypto.createHash('sha1').update(image).digest('hex'),
  '536ff232f7f170e16b8d985514543bc19eed0a42',
  'pixel-verified source: only 64-88 skin/steering pixels altered in frames 0-6, final frame unchanged');
