@@ -55,7 +55,7 @@
   const title=receiving?'주파수 동조 중…':receipt?HEROES[hero].name:(data.mechanic?'생존자 통신망':'폐차장 신호 포착');
   const visual=receipt&&!receiving?radioPortrait(hero):icon('radio');
   const caption=receiving?'호출을 보냈습니다.':receipt?(newHero?'구조 성공! 이제 함께 출전할 수 있습니다.':HEROES[hero].role):
-   (data.mechanic?'보유 생존자 5명 · 응답 확률 각 20%':'첫 호출 확정 합류 · 렌치');
+   (data.mechanic?'보유 생존자 5명 · 무전 대상 4명 각 25%':'첫 호출 확정 합류 · 렌치');
   const screen='<section class="rx-screen '+(receiving?'rx-tuning':receipt?(newHero?'rx-reveal rx-new':'rx-reveal'):'')+'">'+
    '<div class="rx-status"><i></i>'+label+'</div><div class="rx-art">'+visual+'</div>'+
    '<h3>'+title+'</h3><p>'+caption+'</p></section>';
