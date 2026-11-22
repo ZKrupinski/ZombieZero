@@ -77,142 +77,138 @@
   return result;
  }
 
- // v289: Author expressions from the untouched, approved bitmap, not a
- // separately exported WebP with polluted transparency or pasted eyebrows.
- // Only recolor pixels inside real eye/mouth shapes; retain original alpha,
- // lighting, hair, silhouettes, directional poses, and frame boundaries.
+ // v290: Stable, eyebrow-safe expressions.
+ // Work entirely INSIDE the existing eye whites / pupils. Never paint eyebrows,
+ // outline pixels or transparent gutters; reject a whole animated pose if eye
+ // tracking becomes unreliable, rather than alternating edited/neutral frames.
  function createFaceExpressions(source){
   if(typeof document==='undefined'||!source?.naturalWidth)return {};
-  const width=source.naturalWidth,height=source.naturalHeight;
-  const cell=width===1024&&height===512?128:width===768&&height===128?96:0;
-  if(!cell)return {};
+  const w=source.naturalWidth,h=source.naturalHeight;
+  if(w!==1024||h!==512)return {}; // Full walking atlas only: dying/exploding stays original.
+  const cell=128,cols=w/cell,rows=h/cell;
   let original;
   try{
-   const base=document.createElement('canvas');base.width=width;base.height=height;
-   const c=base.getContext('2d',{willReadFrequently:true});if(!c)return {};
-   c.drawImage(source,0,0);original=c.getImageData(0,0,width,height);
+   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+   const c=canvas.getContext('2d',{willReadFrequently:true});if(!c)return {};
+   c.drawImage(source,0,0);original=c.getImageData(0,0,w,h);
   }catch(_){return {}}
-  const pixels=original.data,frameCols=width/cell,frameRows=height/cell;
-  const idx=(x,y)=>(y*width+x)*4;
-  const skin=(x,y)=>{
-   const i=idx(x,y),r=pixels[i],g=pixels[i+1],b=pixels[i+2];
-   return pixels[i+3]>190&&g>r+13&&g>b+7&&g>42;
-  };
-  const white=(x,y)=>{
-   const i=idx(x,y),r=pixels[i],g=pixels[i+1],b=pixels[i+2];
-   return pixels[i+3]>170&&r>172&&g>178&&b>157&&
-     Math.max(r,g,b)-Math.min(r,g,b)<89;
-  };
-  // A 4-connected white eye component remains recognizable in every
-  // perspective; mouth/teeth are rejected by location and component size.
-  function eyeRegions(fx,fy){
-   const x0=fx+Math.round(cell*.16),x1=fx+Math.round(cell*.87);
-   const y0=fy+Math.round(cell*.24),y1=fy+Math.round(cell*.77);
-   const visited=new Uint8Array(cell*cell),eyes=[];
+  const src=original.data;
+  const at=(x,y)=>(y*w+x)*4;
+  function isWhite(x,y){
+   const i=at(x,y),r=src[i],g=src[i+1],b=src[i+2];
+   return src[i+3]>=210&&r>=175&&g>=177&&b>=155&&
+    Math.max(r,g,b)-Math.min(r,g,b)<68;
+  }
+  function isPupil(x,y){
+   const i=at(x,y),r=src[i],g=src[i+1],b=src[i+2];
+   return src[i+3]>=210&&r>=90&&r>g*1.55&&r>b*1.17;
+  }
+  function isSkin(x,y){
+   const i=at(x,y),r=src[i],g=src[i+1],b=src[i+2];
+   return src[i+3]>=210&&g>r+17&&g>b+8&&g>55;
+  }
+  function detect(fx,fy){
+   // Only the upper face, never teeth or bright accessories.
+   const x0=fx+Math.round(cell*.14),x1=fx+Math.round(cell*.87);
+   const y0=fy+Math.round(cell*.30),y1=fy+Math.round(cell*.69);
+   const seen=new Uint8Array(cell*cell),hits=[];
    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
-    const mark=(y-fy)*cell+x-fx;
-    if(visited[mark]||!white(x,y))continue;
-    const queue=[[x,y]];visited[mark]=1;
-    let count=0,minX=x,maxX=x,minY=y,maxY=y;
-    for(let k=0;k<queue.length;k++){
-     const [px,py]=queue[k];count++;
+    const root=(y-fy)*cell+x-fx;
+    if(seen[root]||!isWhite(x,y))continue;
+    const queue=[root];seen[root]=1;
+    let minX=x,maxX=x,minY=y,maxY=y;
+    for(let i=0;i<queue.length;i++){
+     const id=queue[i],px=fx+(id%cell),py=fy+Math.floor(id/cell);
      minX=Math.min(minX,px);maxX=Math.max(maxX,px);
      minY=Math.min(minY,py);maxY=Math.max(maxY,py);
      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-      const nx=px+dx,ny=py+dy;
-      if(nx<x0||nx>=x1||ny<y0||ny>=y1)continue;
-      const at=(ny-fy)*cell+nx-fx;
-      if(visited[at]||!white(nx,ny))continue;
-      visited[at]=1;queue.push([nx,ny]);
+      const xx=px+dx,yy=py+dy;
+      if(xx<x0||xx>=x1||yy<y0||yy>=y1)continue;
+      const ni=(yy-fy)*cell+xx-fx;
+      if(seen[ni]||!isWhite(xx,yy))continue;
+      seen[ni]=1;queue.push(ni);
      }
     }
     const ew=maxX-minX+1,eh=maxY-minY+1;
-    if(count>=Math.max(5,Math.round(cell*cell/1500))&&
-       ew>=3&&eh>=3&&ew<cell*.31&&eh<cell*.27&&
-       (minY+maxY)/2<fy+cell*.68)
-     eyes.push({x:minX,y:minY,w:ew,h:eh,area:count});
+    if(queue.length>=10&&ew>=4&&eh>=4&&ew<=34&&eh<=32)
+     hits.push({x:minX-fx,y:minY-fy,w:ew,h:eh,area:queue.length});
    }
-   return eyes.sort((a,b)=>b.area-a.area).slice(0,2).sort((a,b)=>a.x-b.x);
+   return hits.sort((a,b)=>b.area-a.area).slice(0,2).sort((a,b)=>a.x-b.x);
   }
-  // Sample real shaded skin immediately beside each eye. No flat color,
-  // artificial black eyebrow, outside-the-sprite paint, or shadow box.
-  function nearbySkin(x,y,fx,fy,region){
-   for(let radius=1;radius<=15;radius++){
-    const choices=[
-     [region.x-radius,y],[region.x+region.w-1+radius,y],
-     [x,region.y-radius],[x,region.y+region.h-1+radius]
-    ];
-    for(const [sx,sy] of choices)
-     if(sx>=fx&&sx<fx+cell&&sy>=fy&&sy<fy+cell&&skin(sx,sy)){
-      const k=idx(sx,sy);return [pixels[k],pixels[k+1],pixels[k+2]];
-     }
-   }
+  const median=arr=>arr.slice().sort((a,b)=>a-b)[Math.floor(arr.length/2)];
+  const stable=[];
+  for(let row=0;row<3;row++){
+   const group=[];
+   for(let col=0;col<cols;col++)group.push(detect(col*cell,row*cell));
+   // Even a single missing component risks a visible eye-pop in an 8-frame walk.
+   if(group.some(eyes=>eyes.length!==2))continue;
+   const reference=[0,1].map(k=>({
+    x:median(group.map(eyes=>eyes[k].x)),
+    y:median(group.map(eyes=>eyes[k].y)),
+    w:median(group.map(eyes=>eyes[k].w)),
+    h:median(group.map(eyes=>eyes[k].h))
+   }));
+   const consistent=group.every(eyes=>eyes.every((eye,k)=>{
+    const ref=reference[k];
+    return Math.abs(eye.x-ref.x)<=5&&Math.abs(eye.y-ref.y)<=4&&
+     Math.abs(eye.w-ref.w)<=5&&Math.abs(eye.h-ref.h)<=5;
+   }));
+   if(consistent)stable.push({row,group,reference});
+  }
+  // A stable skin sample from the adjacent existing green material for each
+  // eye. Never sample the eyebrow itself; preserve source shading via distance.
+  function skinColor(fx,fy,eye){
+   for(const x of [eye.x-3,eye.x+eye.w+2,eye.x-6,eye.x+eye.w+5])
+    for(const y of [eye.y+Math.floor(eye.h*.6),eye.y+Math.floor(eye.h*.3),eye.y+eye.h+2]){
+     const px=fx+x,py=fy+y;
+     if(px<fx||px>=fx+cell||py<fy||py>=fy+cell||!isSkin(px,py))continue;
+     const i=at(px,py);return [src[i],src[i+1],src[i+2]];
+    }
    return null;
   }
-  function paintEye(out,eye,fx,fy,amount,tilt){
-   // An uneven fold traces each existing eye; the original brow survives.
-   const right=eye.x+eye.w;
-   for(let x=eye.x;x<right;x++){
-    const local=(x-eye.x+.5)/eye.w-.5;
-    const cut=eye.y+Math.max(1,Math.round(eye.h*(amount+tilt*local)));
-    for(let y=eye.y;y<=cut&&y<eye.y+eye.h;y++){
-     const i=idx(x,y),a=pixels[i+3],r=pixels[i],g=pixels[i+1],b=pixels[i+2];
-     if(a<160||r<35&&g<45&&b<45||skin(x,y))continue;
-     const color=nearbySkin(x,y,fx,fy,eye);
-     if(!color)continue; // Failed detection must NEVER damage the atlas.
-     const atFold=y===cut,weight=atFold?.77:.95;
+  function paint(out,eye,fx,fy,depth,lean){
+   const color=skinColor(fx,fy,eye);
+   if(!color)return;
+   for(let dx=0;dx<eye.w;dx++){
+    const curve=Math.abs((dx+.5)/eye.w-.5)*2;
+    // Fixed normalized lid position within all frames of a direction.
+    // Shallow corners avoid squared patches and random blinking edges.
+    const edge=Math.max(1,Math.min(eye.h-2,Math.round(
+      eye.h*(depth-.055*curve+lean*((dx+.5)/eye.w-.5)))));
+    for(let dy=0;dy<=edge;dy++){
+     const x=fx+eye.x+dx,y=fy+eye.y+dy;
+     // Restrict to original eye paint only. This expressly excludes dark brows.
+     if(!isWhite(x,y)&&!isPupil(x,y))continue;
+     const i=at(x,y);
+     const fold=dy===edge,weight=fold?.76:.97;
      for(let c=0;c<3;c++){
-      const shade=atFold?color[c]*.57:color[c];
-      out[i+c]=Math.round(pixels[i+c]*(1-weight)+shade*weight);
+      // Subtle shaded seam; no new black line above the eye.
+      const tone=fold?color[c]*.81:color[c];
+      out[i+c]=Math.round(src[i+c]*(1-weight)+tone*weight);
      }
     }
    }
   }
-  function paintMouth(out,eyes,fx,fy,kind){
-   if(cell!==128||!eyes.length)return;
-   const top=Math.max(...eyes.map(e=>e.y+e.h))+5;
-   const x0=Math.max(fx+25,Math.min(...eyes.map(e=>e.x))-2);
-   const x1=Math.min(fx+104,Math.max(...eyes.map(e=>e.x+e.w))+2);
-   const y1=Math.min(fy+103,top+18);
-   const mouth=[];
-   for(let y=top;y<y1;y++)for(let x=x0;x<x1;x++){
-    const i=idx(x,y),r=pixels[i],g=pixels[i+1],b=pixels[i+2];
-    if(pixels[i+3]>200&&r>72&&r>g*1.22&&r>b*1.19)
-     mouth.push([x,y]);
-   }
-   if(mouth.length<8||mouth.length>210)return;
-   const minX=Math.min(...mouth.map(p=>p[0])),maxX=Math.max(...mouth.map(p=>p[0]));
-   const minY=Math.min(...mouth.map(p=>p[1])),maxY=Math.max(...mouth.map(p=>p[1]));
-   for(const [x,y] of mouth){
-    const shorten=kind==='half-lid'?
-      y===minY&&x>minX+1&&x<maxX-1:
-      (x>=maxX-2&&y>=minY&&y<maxY);
-    if(!shorten)continue;
-    const color=nearbySkin(x,y,fx,fy,{x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1});
-    if(!color)continue;
-    const i=idx(x,y);
-    for(let c=0;c<3;c++)out[i+c]=Math.round(pixels[i+c]*.12+color[c]*.88);
-   }
-  }
-  const result={};
+  const expressions={};
   for(const kind of ['half-lid','raised-brow']){
-   const out=new Uint8ClampedArray(pixels);
-   for(let row=0;row<frameRows;row++)for(let col=0;col<frameCols;col++){
-    const fx=col*cell,fy=row*cell,eyes=eyeRegions(fx,fy);
-    if(!eyes.length)continue;
-    for(let n=0;n<eyes.length;n++){
-     const amount=kind==='half-lid'?(n===0?.47:.39):
-       (n===0?.29:.13);
-     paintEye(out,eyes[n],fx,fy,amount,kind==='half-lid'?.10:-.08);
+   const pixels=new Uint8ClampedArray(src);
+   for(const {row,group} of stable)for(let col=0;col<cols;col++){
+    const eyes=group[col],fx=col*cell,fy=row*cell;
+    for(let k=0;k<2;k++){
+     // raised-brow is a legacy save-data key; the art is an asymmetric squint,
+     // not an eyebrow pasted on top of the approved source brow.
+     const sleepy=kind==='half-lid';
+     const depth=sleepy?(k===0?.43:.39):(k===0?.29:.15);
+     paint(pixels,eyes[k],fx,fy,depth,sleepy?.025:-.035);
     }
-    paintMouth(out,eyes,fx,fy,kind);
    }
-   const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
    const c=canvas.getContext('2d');if(!c)continue;
-   const data=c.createImageData(width,height);data.data.set(out);c.putImageData(data,0,0);
-   result[kind]=variants(canvas);
+   const data=c.createImageData(w,h);data.data.set(pixels);c.putImageData(data,0,0);
+   expressions[kind]=variants(canvas);
   }
-  return result;
+  return expressions;
  }
+
  window.ZZGreenPalette={tones,paletteFor,recolorGreen,variants,loadExpression,createFaceExpressions};
 })();
