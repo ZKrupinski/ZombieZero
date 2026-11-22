@@ -1,6 +1,6 @@
 #overlay #hero-3[hidden]{display:none!important}
 #overlay[data-screen] .hero-options:has(#hero-3:not([hidden])){grid-template-columns:repeat(4,minmax(0,1fr))!important}
-#overlay #hero-3 .hero-vehicle-portrait{background:url(assets/ip/tow-mechanic.webp) center / contain no-repeat!important;animation:none!important}
+#overlay #hero-3 .hero-vehicle-portrait{background:url(assets/ip/wrench-mid-v261.webp) center / contain no-repeat!important;animation:none!important}
 :is(#garage-dialog,#radio-dialog){box-sizing:border-box;margin:auto;padding:16px;width:min(96vw,440px,64svh);max-height:94svh;overflow:auto;background:#172a35;color:#f7f0dc;border:2px solid #819e94;border-radius:10px;font:600 14px/1.4 Arial,sans-serif;box-shadow:0 12px 60px #07111be0}
 :is(#garage-dialog,#radio-dialog)::backdrop{background:#07121cde}
 :is(#garage-dialog,#radio-dialog) header,:is(#garage-dialog,#radio-dialog) nav,.garage-driver,.garage-slot>div{display:flex;align-items:center;gap:8px}
@@ -1052,7 +1052,7 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
 }
 #overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
  > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait{
- background:url('assets/ip/tow-mechanic.webp') center / contain no-repeat!important;
+ background:url('assets/ip/wrench-mid-v261.webp') center / contain no-repeat!important;
  animation:none!important;
 }
 #overlay[data-screen="selection"] #heroes[data-five-reel="true"] .hero-options
@@ -1296,7 +1296,7 @@ html.landscape-game #overlay[data-screen="selection"]>.overlay-logo{
 }
 #overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options
  > .hero-card.hero-reel-proxy[data-reel-hero="3"] .hero-reel-artwork>.hero-vehicle-portrait{
- background:url('assets/ip/tow-mechanic.webp') center / contain no-repeat!important;
+ background:url('assets/ip/wrench-mid-v261.webp') center / contain no-repeat!important;
  animation:none!important;
 }
 #overlay[data-screen="results"] #heroes[data-five-reel="true"] .hero-options

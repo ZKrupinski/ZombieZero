@@ -26,7 +26,7 @@
  function reelCard(h,data){
   const rank=system.mastery(data.xp[h]);
   const portrait=h===3
-   ?'<img class="tow-preview" src="assets/ip/tow-mechanic.webp" alt="">'
+   ?'<img class="tow-preview" src="assets/ip/wrench-mid-v261.webp" alt="">'
    :'<span class="garage-portrait" style="--row:'+h+'"></span>';
   return '<div class="garage-reel-card" data-reel-hero="'+h+'">'+
    '<div class="garage-reel-figure">'+portrait+'</div>'+
@@ -38,7 +38,7 @@
  let refreshGarageReel=()=>{};
  let receipt=null,receiving=false,receiveTimer;
  function radioPortrait(hero){
-  return hero===3?'<img class="rx-portrait" src="assets/ip/tow-mechanic.webp" alt="">':
+  return hero===3?'<img class="rx-portrait" src="assets/ip/wrench-mid-v261.webp" alt="">':
    '<span class="rx-portrait rx-sprite" style="--row:'+hero+'" aria-hidden="true"></span>';
  }
  function radioView(data,wallet){

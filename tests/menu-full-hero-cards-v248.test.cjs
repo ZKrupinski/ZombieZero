@@ -58,7 +58,7 @@ assert(body.includes('z-index:3!important')&&body.includes('z-index:4!important'
 assert(body.includes(':not([data-reel-focus="true"]) .hero-reel-bottom>.hero-mini-stats'),
  'both left/right side cards retain their stats despite legacy hide rules');
 assert(body.includes('display:flex!important'),'side card stats force visible');
-assert(body.includes('[data-reel-hero="3"]')&&body.includes('tow-mechanic.webp'),
+assert(body.includes('[data-reel-hero="3"]')&&body.includes('wrench-mid-v261.webp'),
  'special one-frame mechanic art never uses mistaken 8x3 sprite source');
 assert(body.includes('#overlay[data-screen="selection"]')&&!body.includes('#overlay[data-screen="results"]'),
  'garage and death/result screens are untouched');
