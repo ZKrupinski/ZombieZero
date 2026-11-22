@@ -72,3 +72,45 @@ assert.match(radio.innerHTML,/아군 응답 확인/);
 assert.match(radio.innerHTML,/제작 너트 \+1/);
 assert.equal(inventory.badges,12);
 console.log('PASS radio batch unlock, duplicate reward, double press and interrupted reveal');
+
+
+// v271 — selecting a card and actually equipping a part are two different
+// states. One distinct equipped marker must remain visible per occupied slot.
+let equippedData={
+ mechanic:false,levels:{grip:3,wide:4,cushion:1,heavy:1,steer:1,filter:1},
+ loads:[{0:'wide',1:'heavy',2:'steer'},{},{},{}],xp:[0,0,0,0],tickets:0,badges:0
+};
+app.selectedHero=0;
+app.window.ZZProgression.garage=()=>equippedData;
+app.window.ZZProgression.garageAction=(action,id,hero)=>{
+ const draft=JSON.parse(JSON.stringify(equippedData));
+ const changed=app.window.ZZGarage.modify(draft,action,id,hero,1000);
+ if(changed===undefined)return false;
+ equippedData=draft;return true;
+};
+element('garage-open').onclick();
+const listMarkup=()=>body.innerHTML;
+const equippedCount=()=> (listMarkup().match(/data-equipped="true"/g)||[]).length;
+const badgeCount=()=> (listMarkup().match(/class="garage-equip-badge"/g)||[]).length;
+assert.equal(equippedCount(),3,'each occupied weapon/ball/vehicle slot has a marked equipped choice');
+assert.equal(badgeCount(),3,'only three equipped cards receive the permanent badge');
+assert.match(listMarkup(),/data-part="wide" data-equipped="true"/,'wide is actually equipped');
+assert.match(listMarkup(),/data-part="grip" data-equipped="false" aria-pressed="true"/,'inspected grip is NOT equipped');
+assert.match(listMarkup(),/data-part="heavy" data-equipped="true"/);
+assert.match(listMarkup(),/data-part="steer" data-equipped="true"/);
+assert.equal((listMarkup().match(/class="garage-slot-current"/g)||[]).length,3,'all three slot headings show equipped state');
+assert.equal((listMarkup().match(/class="garage-slot-empty"/g)||[]).length,0);
+click({part:'filter'});
+assert.match(listMarkup(),/data-part="filter" data-equipped="false" aria-pressed="true"/,
+ 'inspection of an unequipped module changes the amber selection only');
+assert.equal(badgeCount(),3,'inspection does not move equipped indicators');
+click({part:'grip'});
+click({action:'equip'});
+assert.equal(equippedData.loads[0][0],'grip','equipping grip replaces wide in exactly its weapon slot');
+assert.equal(equippedCount(),3,'switching one slot never equips two cards within that slot');
+assert.match(listMarkup(),/data-part="grip" data-equipped="true" aria-pressed="true"/);
+assert.match(listMarkup(),/data-part="wide" data-equipped="false"/);
+assert.match(listMarkup(),/data-part="heavy" data-equipped="true"/);
+assert.match(listMarkup(),/data-part="steer" data-equipped="true"/);
+element('garage-close').onclick();
+console.log('PASS v271: persistent equipment badge, 3 exclusive slots, inspection highlight distinct from equipped state');
