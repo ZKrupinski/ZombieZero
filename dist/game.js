@@ -29,6 +29,7 @@ const HEROES=[
  {id:'liam',name:'리아',role:'BREAKER',className:'파괴 화력',trait:'2타 충격파',accent:'#ff8c76',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:375,paddle:49,damage:2.2,lives:2,duration:1,desc:'해머 · 공격 2.2 · 2회 리턴마다 연쇄 타격',stats:'BREAKER · 파괴력 2.2 · 반사 2회마다 연쇄 충격'}];
 if(window.ZZGarage)HEROES.push({id:'mechanic',name:'렌치',role:'TRICKSHOT',className:'반사각 특화',trait:'BANK SHOT',accent:'#ffdc75',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:56,damage:1.15,lives:3,duration:1,desc:'스패너 · 넓은 반사각 · 벽 충전 연쇄 타격',stats:'TRICKSHOT · 특수 반사각 · 벽 반사 후 강화 및 연쇄 타격'});
 const gearBonus=id=>window.ZZGarage?.bonus(id)||0;
+const garageCombat=()=>window.ZZGarage?.combatStats?.()||{attack:0,guard:0,resist:0};
 let filterReady=0;
 let touchUsed=false,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0,lastCameraFeedback=0,bubbles=[],bubbleTimer=.25;
 const HERO_ATTACK_DURATION=.42;let heroAttackTime=0;
@@ -2111,14 +2112,15 @@ function hit(z,impact=null,piercing=false){
  // bosses, but never turns a full-health boss into a one-hit kill.
  const echo=impact?.echo?fireTargetsNear(z,110).find(other=>other!==z):null;
  const bankTargets=impact?.ricochet?fireTargetsNear(z,84).slice(0,2):[];
- damage(z,hero().damage*(has('power')?2:1)*(piercing?2:1)*(impact?.power||1),false,impact,critical,piercing);
- if(echo&&foes.includes(echo)){spawnContact({vx:0,vy:-1},echo.x+echo.w/2,echo.y+echo.h/2,0,1,'enemy');damage(echo,1.35,false,{x:0,y:-1})}
+ const moduleAttack=1+garageCombat().attack/100;
+ damage(z,hero().damage*moduleAttack*(has('power')?2:1)*(piercing?2:1)*(impact?.power||1),false,impact,critical,piercing);
+ if(echo&&foes.includes(echo)){spawnContact({vx:0,vy:-1},echo.x+echo.w/2,echo.y+echo.h/2,0,1,'enemy');damage(echo,1.35*moduleAttack,false,{x:0,y:-1})}
  if(impact?.ricochet){
   // Wrench: first enemy hit after a side-wall bounce splashes at most two nearby foes.
   for(const other of bankTargets){
    if(!foes.includes(other)||mode!=='playing')continue;
    spawnContact({vx:impact.x||1,vy:-.2},other.x+other.w/2,other.y+other.h/2,0,1,'enemy');
-   damage(other,.8,false,{x:impact.x||1,y:-.2,push:1.1});
+   damage(other,.8*moduleAttack,false,{x:impact.x||1,y:-.2,push:1.1});
   }
  }
  if(has('fire')){
@@ -2242,7 +2244,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    break;
   }
  }
-if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.masteryDefense?.()||0)){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(selectedHero===1?650:600,Math.hypot(b.vx,b.vy)+(selectedHero===1?35:7)),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
+if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+garageCombat().guard+(window.ZZGarage?.masteryDefense?.()||0)){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(selectedHero===1?650:600,Math.hypot(b.vx,b.vy)+(selectedHero===1?35:7)),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1,'shield');sfx('shield');feedback('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
@@ -2346,7 +2348,7 @@ function player(){
    frame=Math.min(7,4+Math.floor((HERO_ATTACK_DURATION-heroAttackTime)/.055));
   }else{
    const radius=has('power')?12:8;
-   const reach=hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.masteryDefense?.()||0);
+   const reach=hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+garageCombat().guard+(window.ZZGarage?.masteryDefense?.()||0);
    let soonest=.20;
    for(const ball of balls){
     if(ball.held||ball.vy<=0)continue;
@@ -3893,7 +3895,9 @@ function blockHostileShot(shot,x,y){
  if(!shielded&&groggyTime<=0){
   const filtered=shot.type==='spit'&&clock>=filterReady?gearBonus('filter'):0;
   if(filtered)filterReady=clock+8;
-  poison=Math.min(POISON_MAX,poison+(1-filtered/100)*(shot.type==='spit'?POISON_SPIT:POISON_TRASH)*(1-growth('poisonResist')*.06));
+  // Filter's passive toxic resistance applies on EVERY blocked projectile;
+  // the timed spit cleansing remains an additional unique effect.
+  poison=Math.min(POISON_MAX,poison+(1-filtered/100)*(1-garageCombat().resist/100)*(shot.type==='spit'?POISON_SPIT:POISON_TRASH)*(1-growth('poisonResist')*.06));
   poisonGrace=2.35-growth('recover')*.22;poisonFlash=.26;
   if(poison>=POISON_MAX){
    poison=POISON_MAX;groggyTime=POISON_GROGGY_SECONDS-growth('mental')*.1;target=car;
