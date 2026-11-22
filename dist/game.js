@@ -3251,6 +3251,9 @@ function drawHeroBallSprite(b,r,col){
  // independently rotate by spinAngle. No angle snap when a ball hits a wall.
  g.translate(b.x,b.y);g.rotate(pose.rotation);g.scale(pose.sx,pose.sy);
  g.rotate(pose.spin-pose.rotation);
+ // Compensate for the bitmap margins at the shared gameplay radius.
+ if(selectedHero===3)g.scale(1.38,1.38);
+ else if(selectedHero===1)g.scale(1.08,1.08);
  if(selectedHero===3 && $('wrench-ball-art')?.naturalWidth){g.drawImage($('wrench-ball-art'),-r,-r,r*2,r*2)}else if(ready){
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
   const size=r*3.40;
