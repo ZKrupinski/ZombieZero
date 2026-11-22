@@ -3,7 +3,7 @@
  const system=window.ZZGarage,progress=window.ZZProgression;
  let panel,body,note,garageHero;
  const slots=['무기','공','차량'];
- const styles=['라켓 끝으로 받으면 코너를 깊게 노립니다.','배트 중심에 맞히면 적 무리를 강하게 밀어냅니다.','두 번째 리턴마다 첫 충돌이 주변 적에게 한 번 더 튑니다.','벽을 맞힌 메카 쇠공이 첫 적을 옆으로 밀어냅니다.'];
+ const styles=['가장 넓은 수비 판정과 하트 4개. 코너까지 안정적으로 지킵니다.','최고 이동 속도와 긴 스킬 시간. 중심에 맞히면 적을 강하게 밀어냅니다.','기본 화력 2.2. 두 번째 리턴마다 주변 적에게 충격이 전이됩니다.','가벼운 조작에도 크게 꺾이는 트릭샷. 벽 반사 후 첫 적을 강타하고 주변 2명까지 타격.'];
  let activePart=system.parts[0],tab='parts',frame=0;
  // The first three survivors belong to the player from the start.
  // The tow mechanic joins the reel only after the radio actually recruits them.
@@ -32,6 +32,7 @@
    '<div class="garage-reel-figure">'+portrait+'</div>'+
    '<div class="garage-reel-copy"><span class="garage-reel-count">OWNED</span>'+
    '<h3>'+HEROES[h].name+'</h3>'+
+   '<span class="garage-class-label" style="--hero-accent:'+(HEROES[h].accent||'#c2e88e')+'">'+(HEROES[h].role||'SURVIVOR')+' · '+(HEROES[h].className||'생존자')+'</span>'+
    '<p>'+styles[h]+'</p>'+
    '<small>숙련 Lv.'+rank+' · 수비 +'+rank+'px</small></div></div>';
  }
@@ -115,7 +116,7 @@
    return '<li>'+icon(id)+item.label+' <b>+'+system.value(item,data.levels[id])+item.unit+'</b></li>';
   }).join('');
   const statPanel='<section class="garage-stat-panel" aria-label="현재 캐릭터 기본 능력치와 강화분">'+
-   '<div class="garage-stat-heading"><b>현재 장착 능력치</b><small><i class="stat-legend-base"></i>기본 <i class="stat-legend-boost"></i>강화 증가</small></div>'+
+   '<div class="garage-stat-heading"><b>'+(HEROES[h].role||'SURVIVOR')+' · 현재 능력치</b><small><i class="stat-legend-base"></i>기본 <i class="stat-legend-boost"></i>강화 증가</small></div>'+
    (system.heroStatMarkup?.(HEROES[h],data,progress,h)||'')+
    '<p class="garage-stat-footnote">숙련 '+xp+'점 · '+next+'<br>클리어·중복 응답당 1점 · 5점마다 수비 폭 +1px (최대 +10px)</p>'+(effects?'<ul class="gear-effects">'+effects+'</ul>':'')+'</section>';
   const banner='<section class="garage-driver" aria-label="보유 캐릭터 회전 선택" data-selected-hero="'+h+'" tabindex="0">'+
@@ -207,8 +208,9 @@
     source.innerHTML.match(/<span[^>]*class="[^"]*hero-vehicle-portrait[^"]*"[^>]*><\/span>/)?.[0]||
     source.innerHTML;
    const stats=source.querySelector?.('.hero-mini-stats')?.outerHTML||'';
-   return '<div class="hero-reel-artwork">'+art+
-    '<div class="hero-reel-id"><b>'+model.name+'</b><small>'+(model.role||'')+'</small></div>'+
+   return '<div class="hero-reel-artwork hero-kit-'+(model.id||'survivor')+'" style="--hero-accent:'+(model.accent||'#d5fc71')+'">'+art+
+    '<span class="hero-class-badge">'+(model.role||'SURVIVOR')+'</span>'+
+    '<div class="hero-reel-id"><b>'+model.name+'</b><small>'+(model.className||model.role||'')+'</small></div>'+
     '</div><div class="hero-reel-bottom">'+stats+'</div>';
   }
   function syncFiveReel(){
