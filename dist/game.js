@@ -1675,7 +1675,7 @@ function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  balls[0].bounceAxis='y';balls[0].bounceDir=-1;
  balls[0].impactKind='serve';balls[0].impactStrength=.7;
  balls[0].vx=Math.sin(angle)*speed;balls[0].vy=-Math.cos(angle)*speed;
- balls[0].cruiseFloor=BASE_BALL_CRUISE_SPEED;
+ balls[0].cruiseFloor=speed;
  balls[0].spinDirection=balls[0].vx<0?-1:1;
  // V150: first serve is a real weapon strike. Reuse the approved 8-frame
  // hero ATTACK bitmap already played on ball return; never delay ball physics.
