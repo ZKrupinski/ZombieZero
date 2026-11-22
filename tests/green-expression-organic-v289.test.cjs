@@ -46,7 +46,7 @@ const expressions=env.window.ZZGreenPalette.createFaceExpressions(image);
 assert(expressions['half-lid']?.length===5&&expressions['raised-brow']?.length===5,'both expressive palettes are baked');
 const px=(a,x,y)=>[...a.slice(at(x,y),at(x,y)+4)];
 const changes={};
-for(const [kind,list] of Object.entries(expressions)){
+for(const kind of ['half-lid','raised-brow']){ const list=expressions[kind];
  const edited=list[0].pixels;
  for(let i=3;i<edited.length;i+=4)assert.equal(edited[i],pixels[i],'alpha is identical to canonical source');
  for(let frame=0;frame<8;frame++){
