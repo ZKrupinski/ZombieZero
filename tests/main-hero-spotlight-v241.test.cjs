@@ -8,7 +8,7 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(game.includes('function heroMiniStats(h)'), 'hero stat meter renderer exists');
 assert(game.includes('window.ZZGarage?.heroStatMarkup?.(h,'),'both menus use shared real upgrade data');
 const garage=fs.readFileSync('dist/garage.js','utf8');
-for(const phrase of ['name:\'속도\'','name:\'첫타\'','name:\'체력\'','name:\'수비\'','gear(\'steer\')','gear(\'heavy\')','gear(\'wide\')','sweetSpot']){
+for(const phrase of ['name:\'속도\'','name:\'공격\'','name:\'체력\'','name:\'수비\'','gear(\'steer\')','gear(\'heavy\')','gear(\'wide\')','sweetSpot']){
  assert(garage.includes(phrase),'true game stat and equipment formula: '+phrase);
 }
 assert(game.includes("if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h)"),'compact meters on both selection and game-over retry screens');
