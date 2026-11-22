@@ -132,6 +132,8 @@
      if(part.ready){
        part.variants=window.ZZGreenPalette?.variants(part.image)||[part.image];
        part.expressions=window.ZZGreenPalette?.createFaceExpressions?.(part.image)||{};
+       if(kind==='critical')for(const key of Object.keys(part.expressions))
+        part.expressions[key]=part.expressions[key].map(cleanCriticalFringeBitmap);
        // Run once after palette baking, never during sprite animation.
        if(kind==='critical')part.variants=part.variants.map(cleanCriticalFringeBitmap);
        pack.ready=true;
