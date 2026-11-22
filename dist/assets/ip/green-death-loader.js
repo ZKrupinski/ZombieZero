@@ -122,17 +122,16 @@
      sheet.src='assets/ip/green-death-'+kind+'-v95-'+color+'.webp';
      part.hairSheets[color]=sheet;
    }
+   // Facial edits are baked from the canonical death strip on load.
+   // Reject the old exported expressions: only real silhouette pixels
+   // should ever be displayed during the death animation.
    part.expressions={};
-   for(const name of ['half-lid','raised-brow']){
-     part.expressions[name]=window.ZZGreenPalette?.loadExpression?.(new Image(),
-       'assets/ip/green-death-'+kind+'-v95-'+name+'.webp',768,128,
-       kind==='critical'?cleanCriticalFringeBitmap:null);
-   }
    part.image.decoding='async';
    part.image.onload=()=>{
      part.ready=part.image.naturalWidth===768&&part.image.naturalHeight===128;
      if(part.ready){
        part.variants=window.ZZGreenPalette?.variants(part.image)||[part.image];
+       part.expressions=window.ZZGreenPalette?.createFaceExpressions?.(part.image)||{};
        // Run once after palette baking, never during sprite animation.
        if(kind==='critical')part.variants=part.variants.map(cleanCriticalFringeBitmap);
        pack.ready=true;
