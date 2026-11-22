@@ -3,12 +3,12 @@
  const system=window.ZZGarage,progress=window.ZZProgression;
  let panel,body,note,garageHero;
  const slots=['무기','공','차량'];
- const styles=['가장 넓은 수비 판정과 정교한 코너 컨트롤. 안정적으로 방어합니다.','최고 이동 속도와 긴 스킬 시간. 중심에 맞히면 적을 강하게 밀어냅니다.','기본 화력 2.2. 두 번째 리턴마다 주변 적에게 충격이 전이됩니다.','가벼운 조작에도 크게 꺾이는 트릭샷. 벽 반사 후 첫 적을 강타하고 주변 2명까지 타격.'];
+ const styles=['가장 넓은 수비 판정과 정교한 코너 컨트롤. 안정적으로 방어합니다.','최고 이동 속도와 긴 스킬 시간. 중심에 맞히면 적을 강하게 밀어냅니다.','기본 화력 2.2. 두 번째 리턴마다 주변 적에게 충격이 전이됩니다.','가벼운 조작에도 크게 꺾이는 트릭샷. 벽 반사 후 첫 적을 강타하고 주변 2명까지 타격.','명품백으로 받아치고 3번째 리턴마다 보석빛 강타. 스킬 지속시간 +12%.'];
  let activePart=system.parts[0],tab='parts',frame=0;
  // The first three survivors belong to the player from the start.
  // The tow mechanic joins the reel only after the radio actually recruits them.
  function availableHeroes(){
-  return HEROES.map((_,i)=>i).filter(i=>i<3||(i===3&&progress.garage().mechanic));
+  return HEROES.map((_,i)=>i).filter(i=>i<3||i===4||(i===3&&progress.garage().mechanic));
  }
  const btn=(action,label,disabled=false)=>'<button type="button" data-action="'+action+'" '+(disabled?'disabled':'')+'>'+label+'</button>';
  const artIndex={grip:0,wide:1,cushion:2,heavy:3,steer:4,filter:5,nut:6,ticket:7,radio:8};
@@ -31,6 +31,7 @@
   const rank=system.mastery(data.xp[h]);
   const portrait=h===3
    ?'<img class="tow-preview" src="assets/ip/wrench-mid-v261.webp?v=263" alt="">'
+   :h===4?'<img class="tow-preview scarlet-preview" src="assets/ip/scarlet-portrait-v274.webp" alt="">'
    :'<span class="garage-portrait" style="--row:'+h+'"></span>';
   return '<div class="garage-reel-card" data-reel-hero="'+h+'">'+
    '<div class="garage-reel-figure">'+portrait+'</div>'+
@@ -44,6 +45,7 @@
  let receipt=null,receiving=false,receiveTimer;
  function radioPortrait(hero){
   return hero===3?'<img class="rx-portrait" src="assets/ip/wrench-mid-v261.webp?v=263" alt="">':
+   hero===4?'<img class="rx-portrait" src="assets/ip/scarlet-portrait-v274.webp" alt="">':
    '<span class="rx-portrait rx-sprite" style="--row:'+hero+'" aria-hidden="true"></span>';
  }
  function radioView(data,wallet){
@@ -53,7 +55,7 @@
   const title=receiving?'주파수 동조 중…':receipt?HEROES[hero].name:(data.mechanic?'생존자 통신망':'폐차장 신호 포착');
   const visual=receipt&&!receiving?radioPortrait(hero):icon('radio');
   const caption=receiving?'호출을 보냈습니다.':receipt?(newHero?'구조 성공! 이제 함께 출전할 수 있습니다.':HEROES[hero].role):
-   (data.mechanic?'보유 생존자 4명 · 응답 확률 각 25%':'첫 호출 확정 합류 · 렌치');
+   (data.mechanic?'보유 생존자 5명 · 응답 확률 각 20%':'첫 호출 확정 합류 · 렌치');
   const screen='<section class="rx-screen '+(receiving?'rx-tuning':receipt?(newHero?'rx-reveal rx-new':'rx-reveal'):'')+'">'+
    '<div class="rx-status"><i></i>'+label+'</div><div class="rx-art">'+visual+'</div>'+
    '<h3>'+title+'</h3><p>'+caption+'</p></section>';
