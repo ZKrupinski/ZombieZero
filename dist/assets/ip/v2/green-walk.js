@@ -5,12 +5,23 @@
  'use strict';
  const image=new Image();
  image.decoding='async';
- const hairSheets={};
+ const hairSheets={},rawHairSheets={};
  for(const color of ['chestnut','blond','red']){
    const sheet=new Image();
    sheet.decoding='async';
    sheet.src='assets/ip/v2/green_zombie-'+color+'.webp';
-   hairSheets[color]=sheet;
+   rawHairSheets[color]=sheet;
+ }
+ // Colors never render directly from the source WebPs: those files have
+ // opaque horizontal junk across the sprite sheet. Only their sanitized,
+ // canonical-hair-masked canvases may be painted.
+ function refreshHairSheets(){
+  if(!pack.ready)return;
+  for(const [color,sheet] of Object.entries(rawHairSheets)){
+   if(hairSheets[color]||sheet.naturalWidth!==1024||sheet.naturalHeight!==512)continue;
+   const clean=window.ZZGreenPalette?.cleanHairOverlay?.(image,sheet);
+   if(clean)hairSheets[color]=clean;
+  }
  }
  // Build both expressions on top of the original pixels only.
  // Never render the v284-v288 WebP exports: they carry nontransparent
@@ -50,7 +61,7 @@
      if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
      ctx.drawImage(bitmap,...rect,x,y,rect[2]*scale,rect[3]*scale);
      const hair=hairSheets[z.hairColor];
-     if(hair?.complete&&hair.naturalWidth===1024)
+     if(hair?.width===1024)
        ctx.drawImage(hair,...rect,x,y,rect[2]*scale,rect[3]*scale);
      ctx.restore();
      return true;
@@ -60,7 +71,9 @@
  image.onload=()=>{pack.ready=image.naturalWidth===1024&&image.naturalHeight===512;pack.failed=!pack.ready;if(pack.ready){
     pack.variants=window.ZZGreenPalette?.variants(image)||[image];
     expressions=window.ZZGreenPalette?.createFaceExpressions?.(image)||{};
+    refreshHairSheets();
    }};
  image.onerror=()=>{pack.failed=true;pack.ready=false};
  image.src='assets/ip/v2/green_zombie.png';
+ for(const sheet of Object.values(rawHairSheets))sheet.onload=refreshHairSheets;
 })();
