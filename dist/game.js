@@ -24,7 +24,7 @@ const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,ballVanish=[],criticalPopups=[],itemPickupFX=[],clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
 const HEROES=[
- {id:'ace',name:'에이스',role:'GUARDIAN',className:'철벽 수비',trait:'와이드 커버',accent:'#99e49c',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:480,paddle:82,damage:1,lives:4,duration:1,desc:'넓은 라켓 · 하트 4 · 안정적인 정타',stats:'GUARDIAN · 넓은 반사 범위 · 하트 4'},
+ {id:'ace',name:'에이스',role:'GUARDIAN',className:'철벽 수비',trait:'와이드 커버',accent:'#99e49c',color:'#ed684c',hair:'#503627',skin:'#ffd4a0',speed:480,paddle:82,damage:1,lives:3,duration:1,desc:'넓은 라켓 · 코너 커버 · 안정적인 정타',stats:'GUARDIAN · 최대 수비 범위 · 정교한 코너 컨트롤'},
  {id:'ruby',name:'루비',role:'SPEEDSTER',className:'초고속 기동',trait:'센터 스매시',accent:'#78e4f6',color:'#5ecba7',hair:'#e7843c',skin:'#ffe0ba',speed:720,paddle:46,damage:1,lives:3,duration:1.35,desc:'스피드 720 · 정타 강타 · 스킬 +35%',stats:'SPEEDSTER · 중심 타격 넉백 · 스킬 +35%'},
  {id:'liam',name:'리아',role:'BREAKER',className:'파괴 화력',trait:'2타 충격파',accent:'#ff8c76',color:'#f0b84e',hair:'#ed6c34',skin:'#f1bc87',speed:375,paddle:49,damage:2.2,lives:2,duration:1,desc:'해머 · 공격 2.2 · 2회 리턴마다 연쇄 타격',stats:'BREAKER · 파괴력 2.2 · 반사 2회마다 연쇄 충격'}];
 if(window.ZZGarage)HEROES.push({id:'mechanic',name:'렌치',role:'TRICKSHOT',className:'반사각 특화',trait:'BANK SHOT',accent:'#ffdc75',color:'#ffae40',hair:'#273842',skin:'#ddb48c',speed:480,paddle:56,damage:1.15,lives:3,duration:1,desc:'스패너 · 넓은 반사각 · 벽 충전 연쇄 타격',stats:'TRICKSHOT · 특수 반사각 · 벽 반사 후 강화 및 연쇄 타격'});
@@ -3392,7 +3392,7 @@ function portrait(h){
 function heroMiniStats(h){
  return window.ZZGarage?.heroStatMarkup?.(h,window.ZZProgression?.garage?.(),window.ZZProgression,HEROES.indexOf(h))||'';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.className+' · '+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
