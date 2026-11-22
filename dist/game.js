@@ -1012,10 +1012,11 @@ function rack(){
   foes.push({x:bossForm===3?169:192,y:74,row:-1,col:4,
    w:bossForm===3?112:66,h:bossForm===3?124:88,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
-  sfx('boss');feedback('bossSpawn');effect(225,130,'#ff687e',145,BOSS_FORMS[bossForm]);
+  // Boss arrival keeps the shock burst, audio and device feedback, but no name caption.
+  sfx('boss');feedback('bossSpawn');effect(225,130,'#ff687e',145);
  }
  $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():'STAGE '+wave)
-  +' · '+(bossStage?BOSS_FORMS[bossForm]:stageRosterLabel(stage))
+  +' · '+(bossStage?'BOSS WAVE':stageRosterLabel(stage))
   +' / 진군 속도 '+marchBase().toFixed(1);
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
  breakoutNextCheck=clock+.85;
@@ -1584,8 +1585,7 @@ function advanceStage(){
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);
  mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;
- toast(isBossWave()?'WARNING · '+BOSS_FORMS[foes.find(z=>z.boss)?.bossForm??0]:
-  'STAGE '+String(wave).padStart(2,'0')+' · '+stageRosterLabel(combatStage()));
+ toast(isBossWave()?'WARNING':'STAGE '+String(wave).padStart(2,'0')+' · '+stageRosterLabel(combatStage()));
 }
 // Switch the background and entire enemy formation during the intermission.
 // Original assets and the 9x4 formation are preserved, with staggered fade-in.
@@ -2067,7 +2067,8 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  else feedback(critical?'critical':z.boss?(z.hp<=0?'bossKill':'bossHit'):(z.hp<=0?'kill':amount>=2?'powerHit':'hit'));
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
-  z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':'+'+(100*z.max)):burning?'':'-'+amount,
+  // Hit and kill values belong to the score calculation, not floating text.
+  z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':''):'',
   !burning&&z.hp>0&&!critical,false);
  score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;
  if(z.hp<=0||critical||burning)burst(hitPosition.x+z.w/2,hitPosition.y+z.h/2,
