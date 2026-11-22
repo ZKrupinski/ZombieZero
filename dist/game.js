@@ -2363,65 +2363,8 @@ function drawHeroBitmap(image,...args){
  g.restore();
 }
 
-// v279: Alpha-only cleanup for Scarlet's handbag handle in ALL eight swing poses.
-// The approved full-body sprite remains untouched: no redrawing, no cutout of
-// hands, cuffs, handbag or jewellery. Cached once per loaded image.
-let scarletAttackCleanSprite=null;
-let scarletAttackCleanSource=null;
-const scarletHandleCavities=[
- [[65,82],[62,84],[58,86],[55,89],[54,92],[58,94],[62,91],[65,87]],
- [[61,72],[57,73],[55,76],[52,79],[52,83],[57,84],[61,82],[63,77]],
- [[58,56],[62,54],[67,55],[68,60],[65,63],[63,65],[59,61],[57,60]],
- [[57,39],[61,39],[65,41],[65,46],[63,49],[57,47],[54,43]],
- [[57,82],[53,82],[49,84],[46,88],[44,91],[50,92],[55,91],[59,88],[60,85]],
- [[57,81],[52,80],[47,83],[45,87],[46,90],[52,90],[56,88],[59,85]],
- [[63,76],[59,75],[56,77],[54,81],[53,84],[58,85],[62,84]],
- [[65,81],[61,83],[57,86],[54,89],[54,92],[58,93],[61,91],[64,85]]
-];
-function scarletPointInPoly(x,y,poly){
- let inside=false;
- for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-  const a=poly[i],b=poly[j];
-  if((a[1]>y)!==(b[1]>y) && x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])inside=!inside;
- }
- return inside;
-}
-function cleanScarletAttackHandle(sheet){
- if(!sheet||sheet.naturalWidth!==768||sheet.naturalHeight!==384)return sheet;
- if(scarletAttackCleanSource===sheet && scarletAttackCleanSprite)return scarletAttackCleanSprite;
- try{
-  const canvas=document.createElement('canvas');
-  canvas.width=768;canvas.height=384;
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});
-  if(!ctx||typeof ctx.getImageData!=='function')return sheet;
-  ctx.drawImage(sheet,0,0);
-  const image=ctx.getImageData(0,0,768,384);
-  const data=image.data;
-  for(let frame=0;frame<8;frame++){
-   const poly=scarletHandleCavities[frame];
-   const left=Math.floor(Math.min(...poly.map(p=>p[0])));
-   const right=Math.ceil(Math.max(...poly.map(p=>p[0])));
-   const top=Math.floor(Math.min(...poly.map(p=>p[1])));
-   const bottom=Math.ceil(Math.max(...poly.map(p=>p[1])));
-   const bx=(frame%4)*192,by=Math.floor(frame/4)*192;
-   for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
-    if(!scarletPointInPoly(x+.5,y+.5,poly))continue;
-    const i=((by+y)*768+bx+x)*4;
-    const r=data[i],g=data[i+1],b=data[i+2];
-    // Remove only near-white/cream leftover matte within the exact handle hole.
-    // Skin, gold beads, the sleeve and all other pixels are left in place.
-    const white=Math.max(0,Math.min(1,(g-207)/29,(b-189)/35,(r-222)/28));
-    if(white<.01)continue;
-    const reduction=.22+.78*white;
-    data[i+3]=Math.round(data[i+3]*(1-reduction));
-   }
-  }
-  ctx.putImageData(image,0,0);
-  scarletAttackCleanSource=sheet;
-  scarletAttackCleanSprite=canvas;
-  return canvas;
- }catch{return sheet}
-}
+// v280: approved attack atlas has correctly authored per-frame transparency.
+// Draw its native bitmap directly; no runtime RGB/alpha substitution or cutouts.
 
 function player(){
  drawTrashContact("hero");
@@ -2431,7 +2374,7 @@ function player(){
   const t=attacking?Math.max(0,1-heroAttackTime/HERO_ATTACK_DURATION):0;
   const frame=attacking?Math.min(7,Math.floor(t*8)):(Math.floor(clock*8)%8);
   const sheet=$(attacking?'scarlet-attack':'scarlet-idle');
-  const renderSheet=attacking?cleanScarletAttackHandle(sheet):sheet;
+  const renderSheet=sheet;
   const size=112,win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);

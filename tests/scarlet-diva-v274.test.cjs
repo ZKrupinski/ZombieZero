@@ -13,7 +13,7 @@ const progSrc=fs.readFileSync('dist/progression.js','utf8');
 
 for(const [name,w,h] of [
  ['scarlet-idle-v278.webp',768,384],
- ['scarlet-attack-v277.webp',768,384],
+ ['scarlet-attack-v280.webp',768,384],
  ['scarlet-diamond-v275.webp',384,192],
  ['scarlet-portrait-v277.webp',256,256]
 ]){
@@ -21,7 +21,7 @@ for(const [name,w,h] of [
  assert(buf.length>8000,name+' contains actual image bytes');
  assert.equal(buf.toString('ascii',0,4),'RIFF',name+' has RIFF signature');
  assert.equal(buf.toString('ascii',8,12),'WEBP',name+' has WebP signature');
- if(name==='scarlet-idle-v278.webp'){
+ if(name==='scarlet-idle-v278.webp'||name==='scarlet-attack-v280.webp'){
   assert.equal(buf.toString('ascii',12,16),'VP8L',name+' is lossless RGBA');
   const packed=buf.readUInt32LE(21);
   assert.equal((packed&0x3fff)+1,w);

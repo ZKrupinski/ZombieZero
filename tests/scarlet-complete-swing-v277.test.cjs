@@ -7,7 +7,7 @@ const ui=fs.readFileSync('dist/garage-ui.js','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const expected=[
  ['scarlet-idle-v278.webp',768,384],
- ['scarlet-attack-v277.webp',768,384],
+ ['scarlet-attack-v280.webp',768,384],
  ['scarlet-portrait-v277.webp',256,256]
 ];
 for(const [file,width,height] of expected){
@@ -15,7 +15,7 @@ for(const [file,width,height] of expected){
  assert(buf.length>19000,file+' contains authored bitmap pixels');
  assert.equal(buf.toString('ascii',0,4),'RIFF');
  assert.equal(buf.toString('ascii',8,12),'WEBP');
- if(file==='scarlet-idle-v278.webp'){
+ if(file==='scarlet-idle-v278.webp'||file==='scarlet-attack-v280.webp'){
   assert.equal(buf.toString('ascii',12,16),'VP8L','lossless WebP prevents white fringes');
   const packed=buf.readUInt32LE(21);
   assert.equal((packed&0x3fff)+1,width);
