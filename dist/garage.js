@@ -10,7 +10,7 @@ window.ZZGarage = (() => {
  ];
  const prices=[10,25,45,75,120];
  const byId=Object.fromEntries(parts.map(p=>[p.id,p]));
- const blank=()=>({mechanic:false,tickets:0,badges:0,best:{},levels:{},loads:[{},{},{},{}],xp:[0,0,0,0]});
+ const blank=()=>({mechanic:false,tickets:0,badges:0,best:{},levels:{},loads:[{},{},{},{},{}],xp:[0,0,0,0,0]});
  let equipped={},activeData,activeHero;
  const masteryStep=5,masteryCap=10;
  function mastery(xp){return Math.min(masteryCap,Math.floor((xp||0)/masteryStep))}
@@ -61,7 +61,7 @@ window.ZZGarage = (() => {
    if(data.tickets<count)return;
    data.tickets-=count;data.calls=[];
    for(let i=0;i<count;i++){
-    const survivor=data.mechanic?Math.floor(Math.random()*4):3;
+    const survivor=data.mechanic?Math.floor(Math.random()*5):3;
     if(data.mechanic){
      data.badges++;
      data.xp[survivor]=(data.xp[survivor]||0)+1;
@@ -89,6 +89,8 @@ window.ZZGarage = (() => {
   // It widens the centered contact window and adds a conditional hit bonus.
   ball.precision=!!equipped.grip&&centered;
   ball.slam=hero===1&&centered;ball.echo=hero===2&&ball.returns%2===0;
+  // Scarlett: the third successful return charges one jewel-bright impact.
+  ball.gemReady=hero===4&&ball.returns%3===0;
   const edge=Math.abs(offset)>=.68-(equipped.grip||0)/100;
   if(hero===3)return Math.sign(offset)*Math.min(1.29,Math.pow(Math.abs(offset),.74)*1.34);
   if(hero===0)return offset*(edge?1.22:.93);
@@ -115,8 +117,12 @@ window.ZZGarage = (() => {
    // kinetic speed: a 4% penalty per rally compounded into late-game slow motion.
    impact.power=(impact.power||1)*(1+equipped.heavy/100);
   }
+  if(hero===4&&ball.gemReady){
+   impact.power=(impact.power||1)*1.45;
+   impact.sparkle=true;
+  }
   impact.echo=!!ball.echo;
-  ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;ball.precision=false;
+  ball.first=false;ball.slam=false;ball.bank=false;ball.echo=false;ball.precision=false;ball.gemReady=false;
  }
 
  // Core and special bonuses share one formula between the game, selection and garage.
