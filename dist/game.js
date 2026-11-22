@@ -2073,6 +2073,8 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
    t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),
    piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
+  // Scarlett's third handbag return earns a prismatic hit without floating text.
+  if(impact?.sparkle)burst(z.x+z.w/2,z.y+z.h/2,'#c9dfff',12);
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
  }
  const hitPosition=knockVisualPosition(z);
