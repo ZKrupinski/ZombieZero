@@ -1616,6 +1616,19 @@ function updateEndlessShift(dt){
  }
 }
 function newBall(x=car+heldBallOffset().x,y=PY+heldBallOffset().y,vx=0,vy=0,held=true){return{x,y,vx,vy,held,trail:[],lastHit:null,hitLock:0,pierceContacts:new Set(),bounceTime:0,bounceDuration:.19,bounceAxis:'y',bounceDir:1,impactKind:'wall',impactStrength:.5,spinAngle:0,spinVelocity:0,spinDirection:vx<0?-1:1}}
+// The first serve establishes the unskilled ball's minimum cruise speed.
+// Keep its direction when restoring speed; never slow down a fast rally.
+const BASE_BALL_CRUISE_SPEED=Math.hypot(125,365);
+function ensureBallCruiseSpeed(b){
+ if(!b||b.held)return 0;
+ const speed=Math.hypot(b.vx,b.vy);
+ if(speed>1&&speed<BASE_BALL_CRUISE_SPEED){
+  const ratio=BASE_BALL_CRUISE_SPEED/speed;
+  b.vx*=ratio;b.vy*=ratio;
+  return BASE_BALL_CRUISE_SPEED;
+ }
+ return speed;
+}
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 let menuRunChipsAtStart=0;
@@ -2219,7 +2232,7 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&standReady()){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
-for(const b of [...balls]){updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,steps=Math.max(1,Math.ceil(Math.max(Math.hypot(b.vx,b.vy)*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
+for(const b of [...balls]){const cruise=ensureBallCruiseSpeed(b);updateBallSpin(b,dt);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,steps=Math.max(1,Math.ceil(Math.max(cruise*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
