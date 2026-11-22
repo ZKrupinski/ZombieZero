@@ -1023,7 +1023,16 @@ function rack(){
   foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,
    row:r,col,w:33,h:44,hp,max:hp,kind,form:0,flash:0,
    hairColor:hairRoll<.10?'blond':hairRoll<.20?'red':hairRoll<.45?'chestnut':null,
-   expression:faceRoll<.25?'half-lid':faceRoll<.45?'raised-brow':null,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
+   // v292: Each face remains independent of the zombie's palette and hair.
+   // Heart eyes and paired features are uncommon; no gameplay/stat changes.
+   expression:faceRoll<.19?'half-lid':
+     faceRoll<.34?'raised-brow':
+     faceRoll<.44?'uneven-eyes':
+     faceRoll<.54?'extra-teeth':
+     faceRoll<.62?'slack-jaw':
+     faceRoll<.67?'heart-eyes':
+     faceRoll<.70?'heart-teeth':
+     faceRoll<.72?'uneven-jaw':null,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
  }
  setStageForms(foes,stage);
  insertEliteZombies(foes,stage);
