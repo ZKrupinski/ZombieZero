@@ -2988,3 +2988,39 @@ html.landscape-game #overlay[data-screen="pause"]>#pause-main-menu{
  background-image:none!important;
  box-shadow:none!important;
 }
+
+/* v299: Small fullscreen retry directly beneath the ZERO brand art.
+   The element is absolutely positioned, so this never pushes the carousel,
+   START/ENDLESS actions, lower dock, or copyright out of the 9:16 board.
+   Results/pause retain their existing placement. */
+#overlay[data-screen="selection"] > #overlay-fullscreen:not([hidden]){
+ position:absolute!important;
+ z-index:9!important;
+ left:50%!important;
+ top:var(--logo-fullscreen-top,32%)!important;
+ transform:translateX(-50%)!important;
+ box-sizing:border-box!important;
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ width:min(46%,174px)!important;
+ min-width:132px!important;
+ height:28px!important;
+ min-height:28px!important;
+ margin:0!important;
+ padding:4px 10px!important;
+ border:1px solid #9abdbc!important;
+ border-radius:5px!important;
+ background:#132b39ee!important;
+ color:#e5f6e8!important;
+ font:700 10px/1.15 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:.07em!important;
+ white-space:nowrap!important;
+ box-shadow:0 2px 7px #03162188!important;
+ pointer-events:auto!important;
+ touch-action:manipulation;
+}
+#overlay[data-screen="selection"] > #overlay-fullscreen:focus-visible{
+ outline:2px solid #d5fc71!important;
+ outline-offset:2px!important;
+}

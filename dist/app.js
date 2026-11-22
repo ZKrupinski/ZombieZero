@@ -70,6 +70,30 @@ function fit(){
  // phones don't change control placements or gameplay distances.
  root.style.setProperty('--ui-scale',String(scale));
  resizeCanvas();
+ placeOverlayFullscreen();
+}
+// Position the retry control beside the logo, not after the bottom menu.
+// The absolute element never consumes vertical space or shifts cards/actions.
+// Re-measure after screen changes, font/image loads, or a window resize.
+function placeOverlayFullscreen(){
+ const overlay=button('overlay'),retry=button('overlay-fullscreen');
+ if(!overlay||!retry||retry.hidden||overlay.hidden||
+    overlay.dataset?.screen!=='selection')return;
+ const logo=overlay.querySelector?.('.overlay-logo'),heroes=button('heroes');
+ if(!logo||!heroes||typeof overlay.getBoundingClientRect!=='function'||
+    typeof logo.getBoundingClientRect!=='function'||
+    typeof heroes.getBoundingClientRect!=='function')return;
+ const box=overlay.getBoundingClientRect();
+ const logoBox=logo.getBoundingClientRect();
+ const heroesBox=heroes.getBoundingClientRect();
+ if(!box.height||!logoBox.height||!heroesBox.height)return;
+ // Follow the REAL bottom edge of the ZOMBIE ZERO image at any viewport.
+ // On short phones, tuck upward rather than overlapping the hero selector.
+ const buttonHeight=Math.max(28,retry.getBoundingClientRect?.().height||28);
+ const belowLogo=logoBox.bottom-box.top+3;
+ const beforeCards=heroesBox.top-box.top-buttonHeight-4;
+ const y=Math.max(0,Math.round(Math.min(belowLogo,beforeCards)));
+ retry.style.setProperty('--logo-fullscreen-top',y+'px');
 }
 function updateLabels(){
  button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':'⛶ 전체화면';
@@ -78,6 +102,7 @@ function updateLabels(){
  // Offer a visible one-tap, user-gesture retry rather than claiming success.
  const retry=button('overlay-fullscreen');
  if(retry)retry.hidden=!!document.fullscreenElement||standalone();
+ placeOverlayFullscreen();
 }
 
  // Native mobile fullscreen requires a real user gesture. The game-start
@@ -255,6 +280,22 @@ button('help').onclick=()=>{
 button('help-close').onclick=()=>button('help-dialog').close();button('app-close').onclick=()=>button('app-dialog').close();
 // Prevent vertical browser gestures on the play surface; modal contents keep their own scroll.
 document.addEventListener('touchmove',e=>{if(root.classList.contains('compact-app')&&!e.target.closest('dialog,.overlay'))e.preventDefault()},{passive:false});
+// Re-anchor only when the selection layout changes, not each game frame.
+const selectionOverlay=button('overlay');
+const selectionLogo=selectionOverlay?.querySelector?.('.overlay-logo');
+selectionLogo?.addEventListener?.('load',placeOverlayFullscreen);
+if(selectionOverlay&&typeof MutationObserver!=='undefined'){
+ const placementObserver=new MutationObserver(placeOverlayFullscreen);
+ placementObserver.observe(selectionOverlay,{
+  attributes:true,attributeFilter:['hidden','data-screen']
+ });
+}
+if(selectionLogo&&typeof ResizeObserver!=='undefined'){
+ const placementSizer=new ResizeObserver(placeOverlayFullscreen);
+ placementSizer.observe(selectionLogo);
+ const cards=button('heroes');
+ if(cards)placementSizer.observe(cards);
+}
 window.addEventListener('resize',fit);window.visualViewport?.addEventListener('resize',fit);document.addEventListener('fullscreenchange',()=>{fit();updateLabels()});window.addEventListener('pageshow',()=>{fit();updateLabels()});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});}
 fit();updateLabels();requestAnimationFrame(fit);

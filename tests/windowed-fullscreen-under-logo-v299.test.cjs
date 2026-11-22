@@ -1,0 +1,47 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync('dist/index.html','utf8');
+const css=fs.readFileSync('dist/style.css','utf8');
+const app=fs.readFileSync('dist/app.js','utf8');
+const sw=fs.readFileSync('dist/sw.js','utf8');
+assert.match(html,/id="overlay-fullscreen"/,'existing fullscreen button reused, not duplicated');
+assert.equal((html.match(/id="overlay-fullscreen"/g)||[]).length,1,'one only fullscreen retry');
+assert.match(html,/style\.css\?v=[^"]*v299-logo-fullscreen/);
+assert.match(html,/app\.js\?v=[^"]*v299-logo-fullscreen/);
+assert.match(sw,/v299-logo-fullscreen/,'new worker invalidates stale layout');
+assert.match(css,/#overlay\[data-screen="selection"\] > #overlay-fullscreen:not\(\[hidden\]\)/,'selection-only rule');
+assert.match(css,/position:absolute!important/,'button is removed from flex flow');
+assert.match(css,/top:var\(--logo-fullscreen-top/,'align to computed logo bottom');
+assert.match(css,/#overlay \.overlay-fullscreen\[hidden\]\{display:none!important\}/,'fullscreen hides retry');
+assert.match(app,/retry\.hidden=!!document\.fullscreenElement\|\|standalone\(\)/,'native fullscreen and installed app hide retry');
+assert.match(app,/placementObserver\.observe\(selectionOverlay/,'reposition on selection state change');
+assert.match(app,/placementSizer\.observe\(selectionLogo\)/,'reposition after the logo resizes');
+const a=app.indexOf('function placeOverlayFullscreen(){');
+const b=app.indexOf('function updateLabels(){',a);
+assert(a>=0&&b>a,'anchor helper found');
+const code=app.slice(a,b);
+let height=28,overlayTop=100,logoBottom=415,heroesTop=458;
+const vars={};
+const retry={hidden:false,style:{setProperty(k,v){vars[k]=v}},
+ getBoundingClientRect(){return {height}}};
+const overlay={hidden:false,dataset:{screen:'selection'},
+ getBoundingClientRect(){return {top:overlayTop,height:710}},
+ querySelector(sel){assert.equal(sel,'.overlay-logo');return logo}};
+const logo={getBoundingClientRect(){return {bottom:logoBottom,height:250}}};
+const heroes={getBoundingClientRect(){return {top:heroesTop,height:270}}};
+const nodes={'overlay':overlay,'overlay-fullscreen':retry,'heroes':heroes};
+const ctx={button:id=>nodes[id],Math};
+vm.runInNewContext(code+'\nplaceOverlayFullscreen();',ctx);
+assert.equal(vars['--logo-fullscreen-top'],'318px','button lies immediately under logo');
+heroesTop=432;
+vm.runInNewContext('placeOverlayFullscreen();',ctx);
+assert.equal(vars['--logo-fullscreen-top'],'300px','short screen keeps card clear');
+delete vars['--logo-fullscreen-top'];
+retry.hidden=true;
+vm.runInNewContext('placeOverlayFullscreen();',ctx);
+assert.equal(vars['--logo-fullscreen-top'],undefined,'full screen: hidden button receives no layout');
+retry.hidden=false;
+overlay.dataset.screen='results';
+vm.runInNewContext('placeOverlayFullscreen();',ctx);
+assert.equal(vars['--logo-fullscreen-top'],undefined,'results screen placement untouched');
+console.log('PASS v299: windowed fullscreen button pinned below logo, no selection layout shifts or results/pause regressions');
