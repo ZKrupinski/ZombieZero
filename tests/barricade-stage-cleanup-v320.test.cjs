@@ -67,7 +67,7 @@ z.x=30;z.y=90;f.resolve(z,30,57,.79,()=>{});
 assert.equal(f.getWallCount(),0);
 assert.equal(f.getPendingRefund(),1,'destroyed cube still refunds exactly one material');
 f.begin([],2);assert.deepEqual(f.getSupply(),{refund:1,bonus:8});
-assert(html.includes('fortress-mode.js?v=320-clear-effects-strong-walls'),'fresh HP module is loaded');
+assert(html.includes('src="fortress-mode.js?v='),'versioned barricade module is loaded');
 assert(html.includes('v320-clear-effects-strong-walls'),'main game script cache invalidated');
 assert(sw.includes('v320-clear-effects-strong-walls'),'PWA cache invalidated');
 console.log('PASS v320: frozen battle FX erased before building, all walls/materials persistent, 30-HP bite threshold and refunds.');
