@@ -5,8 +5,11 @@ const X=27,Y=82,T=22,COLS=18,ROWS=20,MAX_HP=12,MAX_WALLS=180;
 const walls=new Map(),pending=new Map();
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
- confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),stockLabel=$('fortress-stock'),helpLabel=$('fortress-tip');
+ confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),stockLabel=$('fortress-stock'),helpLabel=$('fortress-tip'),
+ buildCountLabel=$('fortress-build-count'),supplyLabel=$('fortress-supply'),
+ previewLabel=$('fortress-preview-summary'),toolButton=$('fortress-tool');
 let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1,onReady=null;
+let destroyedThisStage=0,lastRefund=0,lastBonus=0,repairMode=false;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
 const valid=(col,row)=>col>=0&&col<COLS&&row>=0&&row<ROWS;
@@ -15,25 +18,45 @@ function pointerCell(e,canvas){
  const col=Math.floor((x-X)/T),row=Math.floor((y-Y)/T);
  return valid(col,row)?cell(col,row):null;
 }
+function totals(){
+ let builds=0,removes=0,repairs=0;
+ for(const p of pending.values()){
+  if(p.action==='remove')removes++;
+  else if(p.action==='repair')repairs++;
+  else builds++;
+ }
+ const balance=stock+removes-builds-repairs;
+ const countAfter=walls.size-removes+builds;
+ return {builds,removes,repairs,balance,valid:balance>=0&&countAfter<=MAX_WALLS};
+}
 function refresh(){
  if(!ui)return;
  ui.hidden=!active;
- const hasPreview=pending.size>0;
- actions.hidden=!active||!hasPreview;
- readyButton.hidden=!active||hasPreview;
- stockLabel.textContent='STAGE '+String(stage).padStart(2,'0')+'  ·  자재 '+stock+'  ·  방벽 '+walls.size;
- helpLabel.textContent=hasPreview?'설치 예정 '+pending.size+'칸 · 확인하면 자재 소모':stock?'전장을 드래그해 설치 · 파손된 칸은 수리 가능':'남은 자재 없음 · 준비 완료로 출전';
+ const hasPreview=pending.size>0,summary=totals();
+ actions.hidden=!active||!hasPreview||dragging;
+ readyButton.hidden=!active||hasPreview||dragging;
+ if(confirmButton)confirmButton.disabled=!summary.valid;
+ if(stockLabel)stockLabel.textContent='STAGE '+String(stage).padStart(2,'0')+' · 자재 '+stock+' · 방벽 '+walls.size+'/'+MAX_WALLS;
+ if(buildCountLabel)buildCountLabel.textContent='추가 건설 '+Math.min(stock,MAX_WALLS-walls.size)+'개';
+ if(supplyLabel)supplyLabel.textContent=stage===1?'초기 건설 자재 +26':'이전 파괴 환급 +'+lastRefund+' · 스테이지 보급 +'+lastBonus;
+ if(previewLabel)previewLabel.textContent=
+  '설치 +'+summary.builds+' · 철거 -'+summary.removes+' (환급 +'+summary.removes+')'+
+  (summary.repairs?' · 수리 +'+summary.repairs:'')+
+  ' · 확정 후 자재 '+summary.balance+
+  (!summary.valid?' · 자재/공간 부족':'');
+ if(helpLabel)helpLabel.textContent=repairMode
+  ?'수리 모드: 손상된 방벽을 드래그 · 칸당 자재 1'
+  :hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
+  :stock?'빈칸 드래그: 건설 · 기존 방벽: 빨간 철거(자재 환급)'
+  :'자재 0 · 기존 방벽 철거로 자재 확보 가능';
+ if(toolButton){toolButton.textContent=repairMode?'수리 모드 ON · 건설/철거로':'🛠 파손 방벽 수리';toolButton.setAttribute?.('aria-pressed',String(repairMode))}
 }
 function addCell(t){
  if(!t||pending.has(t.id))return;
- if(pending.size>=stock)return;
  const current=walls.get(t.id);
- if(current){if(current.hp>=MAX_HP)return}
- else {
-  const newPending=[...pending.values()].filter(p=>!p.repair).length;
-  if(walls.size+newPending>=MAX_WALLS)return;
- }
- pending.set(t.id,{...t,repair:!!current});
+ const action=repairMode?(current&&current.hp<MAX_HP?'repair':null):(current?'remove':'build');
+ if(!action)return;
+ pending.set(t.id,{...t,action});
 }
 function lineTo(to){
  if(!to)return;
@@ -56,24 +79,58 @@ function down(e,canvas){
  return true;
 }
 function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;lineTo(pointerCell(e,canvas));refresh();return true}
-function up(e,canvas){if(!dragging||e.pointerId!==pointer)return false;lineTo(pointerCell(e,canvas));dragging=false;pointer=null;last=null;refresh();return true}
+function showActionsAt(e,canvas){
+ if(!ui||!actions||!actions.style)return;
+ const rect=ui.getBoundingClientRect?.()||canvas.getBoundingClientRect?.();
+ if(!rect)return;
+ const width=rect.width||450,height=rect.height||710;
+ const half=Math.min(124,width*.48),x=Math.max(half,Math.min(width-half,e.clientX-rect.left));
+ const y=Math.max(0,Math.min(height,e.clientY-rect.top));
+ const below=y<height*.32;
+ actions.style.left=x+'px';
+ actions.style.top=(below?Math.min(height-90,y+18):Math.max(100,y-18))+'px';
+ actions.dataset&&(actions.dataset.side=below?'below':'above');
+}
+function up(e,canvas){
+ if(!dragging||e.pointerId!==pointer)return false;
+ lineTo(pointerCell(e,canvas));dragging=false;pointer=null;last=null;
+ showActionsAt(e,canvas);refresh();return true;
+}
 function cancel(){dragging=false;pointer=null;last=null;pending.clear();refresh()}
 function confirm(){
- if(!active||dragging||!pending.size)return;
- let placed=0;
+ if(!active||dragging||!pending.size)return 0;
+ const summary=totals();
+ if(!summary.valid)return 0;
+ // Refund dismantled blocks before spending on construction/repair. Neither
+ // cancellation nor a preview changes resources or the actual collision map.
+ for(const t of pending.values())if(t.action==='remove'&&walls.delete(t.id))stock++;
+ let changed=0;
  for(const t of pending.values()){
+  if(t.action==='remove')continue;
   if(stock<=0)break;
   const w=walls.get(t.id);
-  if(w){if(w.hp>=MAX_HP)continue;w.hp=MAX_HP;w.hit=.15}
-  else if(walls.size<MAX_WALLS){walls.set(t.id,{...t,hp:MAX_HP,hit:.12});}
-  else continue;
-  stock--;placed++;
+  if(t.action==='repair'&&w&&w.hp<MAX_HP){w.hp=MAX_HP;w.hit=.15;stock--;changed++}
+  else if(t.action==='build'&&!w&&walls.size<MAX_WALLS){
+   walls.set(t.id,{...t,hp:MAX_HP,hit:.12});stock--;changed++;
+  }
  }
- pending.clear();refresh();return placed;
+ pending.clear();refresh();return changed+summary.removes;
 }
-function reset(){walls.clear();pending.clear();queued=[];stock=0;stage=1;active=false;dragging=false;pointer=null;last=null;refresh()}
+function reset(){
+ walls.clear();pending.clear();queued=[];stock=0;stage=1;
+ active=false;dragging=false;pointer=null;last=null;
+ destroyedThisStage=0;lastRefund=0;lastBonus=0;repairMode=false;refresh();
+}
 function begin(enemies,wave){
- queued=enemies.splice(0,enemies.length);stage=wave;stock=wave===1?26:Math.min(52,stock+Math.min(14,8+Math.floor(wave/5)));
+ queued=enemies.splice(0,enemies.length);stage=wave;
+ if(wave===1){stock=26;lastBonus=26;lastRefund=0;destroyedThisStage=0}
+ else{
+  lastRefund=destroyedThisStage;
+  lastBonus=Math.min(14,8+Math.floor(wave/5));
+  // Every cube eaten last stage is refunded at full value, PLUS the stage
+  // allowance. Preserve leftovers; do not silently clip refunds at 52.
+  stock+=lastRefund+lastBonus;destroyedThisStage=0;
+ }
  active=true;dragging=false;pointer=null;last=null;pending.clear();refresh();
 }
 function intersects(x,y,w,h,other,margin=0){
@@ -203,7 +260,7 @@ function resolve(z,oldX,oldY,dt,onBreak){
  if(z.fortressBite>=.78){
   const damage=Math.floor(z.fortressBite/.78);
   z.fortressBite%=.78;hit.hp-=damage;hit.hit=.14;
-  if(hit.hp<=0){walls.delete(hit.id);z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T/2,hit.y+T/2)}
+  if(hit.hp<=0){walls.delete(hit.id);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T/2,hit.y+T/2)}
  }
  return true;
 }
@@ -243,10 +300,21 @@ function draw(g,building=false){
  if(!building)return;
  g.save();g.globalAlpha=.22;g.fillStyle='#a3d1b0';
  for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++)g.fillRect(X+col*T+10,Y+row*T+10,2,2);
- g.globalAlpha=.72;
+ g.globalAlpha=.8;
  for(const p of pending.values()){
-  g.drawImage(tile,0,0,T,T,p.x,p.y,T,T);
-  g.strokeStyle=p.repair?'#8be7ed':'#ffe78f';g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,T-2,T-2);
+  if(p.action==='remove'){
+   // Demolition must be unmistakably red without deleting real walls until
+   // Confirm. Keep the underlying cube visible through the overlay.
+   g.globalAlpha=.63;g.fillStyle='#fc334c';g.fillRect(p.x+1,p.y+1,T-2,T-2);
+   g.globalAlpha=1;g.strokeStyle='#ff3f5c';g.lineWidth=2.4;
+   g.strokeRect(p.x+1,p.y+1,T-2,T-2);
+   g.beginPath();g.moveTo(p.x+5,p.y+5);g.lineTo(p.x+T-5,p.y+T-5);
+   g.moveTo(p.x+T-5,p.y+5);g.lineTo(p.x+5,p.y+T-5);g.stroke();
+  }else{
+   g.globalAlpha=.8;g.drawImage(tile,0,0,T,T,p.x,p.y,T,T);
+   g.globalAlpha=1;g.strokeStyle=p.action==='repair'?'#62e7ef':'#ffe78f';
+   g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,T-2,T-2);
+  }
  }
  g.restore();
 }
@@ -254,5 +322,12 @@ function tick(dt){for(const w of walls.values())w.hit=Math.max(0,(w.hit||0)-dt)}
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
-window.ZZFortress={reset,begin,deploy,resolve,bounceBall,draw,tick,down,move,up,cancel,ready,bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,getQueueCount:()=>queued.length};
+if(toolButton)toolButton.addEventListener('click',()=>{
+ if(!active||dragging)return;repairMode=!repairMode;pending.clear();refresh();
+});
+window.ZZFortress={reset,begin,deploy,resolve,bounceBall,draw,tick,down,move,up,cancel,ready,
+ bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
+ getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
+ getSupply:()=>({refund:lastRefund,bonus:lastBonus}),
+ getPreview:()=>totals(),getWallHP:(col,row)=>walls.get(id(col,row))?.hp||0};
 })();
