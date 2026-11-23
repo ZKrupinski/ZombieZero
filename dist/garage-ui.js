@@ -286,9 +286,9 @@
     const distance=Math.abs(relative),side=Math.min(1,distance);
     const visible=distance<1.28;
     const scale=1-.30*side,turn=-relative*13;
-    const dx=relative*step,drop=side*9;
+    const dx=relative*(fiveReel?step:(surface()?.clientWidth||320)*.93),drop=side*9;
     node.style.transform='translate(-50%, -50%) translate3d('+dx.toFixed(1)+'px,'+drop.toFixed(1)+'px,0) scale('+scale.toFixed(3)+') rotateY('+turn.toFixed(1)+'deg)';
-    node.style.opacity=visible?Math.min(1,Math.max(0,(1.28-distance)*4)).toFixed(3):'0';
+    node.style.opacity=visible?(fiveReel?Math.min(1,(1.28-distance)*4):Math.max(0,1-distance)).toFixed(3):'0';
     node.style.zIndex=String(100-Math.round(distance*30));
     node.style.filter='brightness('+(1-.27*side).toFixed(2)+') saturate('+(1-.17*side).toFixed(2)+')';
     node.style.pointerEvents=distance<1.08?'auto':'none';
