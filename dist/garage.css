@@ -2540,3 +2540,20 @@ html:fullscreen #overlay[data-screen="selection"] #heroes{
   font-size:10px!important;
  }
 }
+
+/* v313: portrait/landscape page rules also style #endless with !important.
+   Equal-or-higher specificity is required for the paired mode row to work
+   on the actual 9:16 board, not just a desktop unclassified viewport. */
+html.portrait-play #overlay[data-screen="selection"]>#endless,
+html.landscape-game #overlay[data-screen="selection"]>#endless{
+ box-sizing:border-box!important;
+ width:calc(50% - 3px)!important;
+ max-width:none!important;
+ height:var(--zz-secondary-mode-height)!important;
+ min-height:var(--zz-secondary-mode-height)!important;
+ margin:4px 0 2px!important;
+ padding:3px 4px!important;
+ flex:0 0 var(--zz-secondary-mode-height)!important;
+ align-self:flex-start!important;
+ font:900 clamp(10px,calc(13px * var(--ui-scale,1)),14px)/1.15 Arial,'Noto Sans KR',sans-serif!important;
+}
