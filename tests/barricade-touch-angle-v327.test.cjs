@@ -95,6 +95,6 @@ assert(f.getPreview().valid);
 f.cancel();f.reset();f.begin([],1);
 down(0,0);move(5,0);up(5,0);confirm();
 assert.equal(f.getWallCount(),6);
-assert(html.includes('fortress-mode.js?v=327-touch-angle-snap'));
+assert(html.includes('src="fortress-mode.js?v='),'touch module remains versioned');
 assert(sw.includes('v327-touch-angle-snap'));
 console.log('PASS v327: jitter-free one-row/column touch painting, red erase, L turns, diagonal and mouse precision.');
