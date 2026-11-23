@@ -98,7 +98,7 @@ assert(dock.includes('background:transparent!important')&&dock.includes('border:
 assert(dock.includes('assets/ui/main-dock.webp'),
  'approved large raster menu icons reused without re-illustrating');
 assert(html.includes('garage.css?v=15-v254-gameover-reel')&&
- html.includes('garage-ui.js?v=13-v254-gameover-reel')&&
+ /garage-ui\.js\?v=(13-v254-gameover-reel|14-v310-scroll-stability)/.test(html)&&
  html.includes('v254-results-five-card-refresh'),'updated CSS and both JS files loaded');
 assert(sw.includes('v254-results-five-card-reel'),'installed PWA receives new assets');
 console.log('PASS v254: Game over and victory have full five-hero carousel, drag, arrows, tap, stats, retry selected character, and centered title-style icon dock.');
