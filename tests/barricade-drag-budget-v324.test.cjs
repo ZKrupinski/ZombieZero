@@ -16,41 +16,41 @@ const doc={getElementById:id=>nodes[id]||null,createElement:()=>({getContext:()=
 const w={};new Function('window','document',src)(w,doc);
 const fort=w.ZZFortress,canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}};
-const p=(col,row=0)=>({pointerId:2,button:0,clientX:59+col*22,clientY:92+row*22});
+const p=(col,row=0)=>({pointerId:2,button:0,clientX:48+col*22,clientY:92+row*22});
 const start=(col,row=0)=>assert.equal(fort.down(p(col,row),canvas),true);
 const move=(col,row=0)=>assert.equal(fort.move(p(col,row),canvas),true);
 const stop=(col,row=0)=>assert.equal(fort.up(p(col,row),canvas),true);
 const confirm=()=>nodes['fortress-confirm'].click();
 const drag=(a,b,row=0)=>{start(a,row);move(b,row);stop(b,row)};
 function bite(col,row=0){
- const x=52+col*22,y=90+row*22,z={x,y,w:16,h:22};
+ const x=41+col*22,y=90+row*22,z={x,y,w:16,h:22};
  fort.resolve(z,x,y-35,.79,()=>{});
 }
 fort.reset();fort.begin([],1);
-// Spend 16 cubes on the first row. Remaining ten are visible immediately.
-drag(0,15);confirm();
-assert.equal(fort.getStock(),10);
-assert.equal(fort.getWallCount(),16);
+// Spend 17 cubes on the first row. Remaining nine are visible immediately.
+drag(0,16);confirm();
+assert.equal(fort.getStock(),9);
+assert.equal(fort.getWallCount(),17);
 // Draw past capacity over several pointermove events, without releasing.
 start(0,1);move(4,1);
 assert.equal(fort.getPreview().builds,5);
-assert.equal(fort.getPreview().balance,5);
-assert.match(nodes['fortress-build-count'].textContent,/5개/);
-move(15,1);
-assert.equal(fort.getPreview().builds,10,'the preview stops at 10 cubes');
+assert.equal(fort.getPreview().balance,4);
+assert.match(nodes['fortress-build-count'].textContent,/4개/);
+move(16,1);
+assert.equal(fort.getPreview().builds,9,'the preview stops at 9 cubes');
 assert.equal(fort.getPreview().balance,0);
 assert.match(nodes['fortress-build-count'].textContent,/0개/);
 assert.equal(fort.getPreview().valid,true,'drawn preview always affordable');
-stop(15,1);
-assert.match(nodes['fortress-preview-summary'].textContent,/설치 \+10/);
+stop(16,1);
+assert.match(nodes['fortress-preview-summary'].textContent,/설치 \+9/);
 confirm();
 assert.equal(fort.getStock(),0);
 assert.equal(fort.getWallCount(),26);
 // No stock prevents any further blank-cell previews already on pointerDown.
-start(0,2);move(15,2);
+start(0,2);move(16,2);
 assert.equal(fort.getPreview().builds,0);
 assert.equal(fort.getPreview().balance,0);
-stop(15,2);
+stop(16,2);
 assert.equal(nodes['fortress-actions'].hidden,true);
 // Red removal works with zero materials, since it refunds rather than costs.
 start(0,0);move(2,0);
