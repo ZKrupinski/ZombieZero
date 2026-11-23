@@ -74,10 +74,10 @@ down(0,0);
 move(4,0);
 move(4,2);
 up(4,3);
-assert.equal(f.getPreview().builds,7,'five along top plus two at the corner');
+assert.equal(f.getPreview().builds,8,'five along top plus three at the corner');
 confirm();
 for(let col=0;col<=4;col++)assert.equal(f.getWallHP(col,0),30);
-for(let row=1;row<=2;row++)assert.equal(f.getWallHP(4,row),30);
+for(let row=1;row<=3;row++)assert.equal(f.getWallHP(4,row),30);
 assert.equal(f.getWallHP(3,1),0,'corner does not create a thick second row');
 // Diagonal drawing is not forced to horizontal or vertical.
 f.reset();f.begin([],1);
