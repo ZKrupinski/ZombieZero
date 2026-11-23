@@ -44,9 +44,9 @@ assert(css.includes('#overlay[data-screen="selection"][hidden]'),
  'selection grid must remain hidden when playing a wave');
 assert(!css.includes('position:absolute!important;\\n  z-index:5!important;'),
  'mode buttons must not be a free-floating layer');
-assert(css.includes('grid-column:1!important;background-position:0% 50%'));
-assert(css.includes('grid-column:2!important;background-position:50% 50%'));
-assert(css.includes('grid-column:3!important;background-position:100% 50%'));
+assert(css.includes('grid-column:2!important;background-position:0% 50%'));
+assert(css.includes('grid-column:3!important;background-position:50% 50%'));
+assert(css.includes('grid-column:4!important;background-position:100% 50%'));
 assert(css.includes('calc(306px * var(--ui-scale,1))'),
  'large zombie logo reduced from 360px to about 85%');
 assert(css.includes('#overlay[data-screen="selection"]'),
@@ -69,12 +69,12 @@ for(const [width,height] of [[450,710],[360,640],[400,711],[450,800],[320,568]])
  assert(heights[2]>22,'main START remains tappable');
  assert(heights[4]>40&&heights[5]>40,'both secondary mode and dock rows stay visible');
 }
-assert(html.includes('selection-layout-v332.css?v=333-menu-vertical-spacing'),
+assert(html.includes('selection-layout-v332.css?v=334-compact-six-button-feedback'),
  'new layout must load after existing badge art styles');
 assert(html.indexOf('mode-icons-v330.css')<html.indexOf('selection-layout-v332.css'));
 assert.equal(sw.split("'./selection-layout-v332.css'").length-1,2,
  'PWA precaches new layout in both resource lists');
-assert(sw.includes('v333-menu-vertical-spacing'),'PWA cache invalidated');
+assert(sw.includes('v334-compact-six-button-feedback'),'PWA cache invalidated');
 assert(css.includes('transform:translateY(calc(-6px * var(--ui-scale,1)))!important'),
  'character selector moved slightly up, while retaining grid layout');
 assert(css.includes('transform:translateY(calc(-4px * var(--ui-scale,1)))!important'),
@@ -87,4 +87,34 @@ assert(css.includes('justify-self:center!important;align-self:start!important'),
  'secondary icon row aligns to its top instead of floating between rows');
 assert(css.includes('margin:calc(-2px * var(--ui-scale,1)) 0 0!important'),
  'secondary icons sit slightly closer to the EXTRA MODE label');
-console.log('PASS v332: Game Start label, integrated 9:16 grid, hero and all six mode/dock buttons accessible without scroll.');
+// v334: the same centered 3 lanes are shared by both lower button rows.
+// They stay in flow and expose clear pressed states on touch and keyboard.
+assert(css.includes('repeat(3,minmax(0,calc(112px * var(--ui-scale,1))))'),
+ 'both icon rows use compact 112px center spacing');
+assert(css.includes('grid-column:2/5!important;grid-row:6!important'),
+ 'garage/radio/upgrade centers must align with three extra-mode badges');
+assert(css.includes('gap:0!important'),
+ 'equipment dock must not introduce unnecessary lateral gaps');
+assert(css.includes('width:min(96%,calc(82px * var(--ui-scale,1)))'),
+ 'garage icon artwork grows to occupy narrower 112px lanes');
+assert(css.includes('translateY(calc(3px * var(--ui-scale,1))) scale(.91)'),
+ 'extra-mode tap visibly squashes and moves down');
+assert(css.includes('translateY(calc(3px * var(--ui-scale,1))) scale(.95)'),
+ 'garage/radio/upgrade tap visibly squashes and moves down');
+assert(css.includes('filter:brightness(1.2) saturate(1.15)!important'),
+ 'dock tap visibly brightens');
+assert(css.includes('brightness(1.3) saturate(1.14)'),
+ 'mode tap visibly brightens');
+assert(css.includes('@media(prefers-reduced-motion:reduce)'),
+ 'reduced-motion mode disables spring transitions');
+for(const size of [450,360,320]){
+ const scale=size/450;
+ const centers=[-112,0,112].map(dx=>(225+dx)*scale);
+ assert(centers[1]-centers[0]===112*scale);
+ assert(centers[2]-centers[1]===112*scale);
+ const badgeWidth=102*scale;
+ assert((centers[1]-centers[0]-badgeWidth)>=9*scale,
+  'badges remain distinct independent tap targets');
+}
+console.log('PASS v332/v334: compact aligned 6-button icon grid, press squash/flash, no-scroll Game Start layout.');
+
