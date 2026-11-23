@@ -275,9 +275,9 @@ function resolve(z,oldX,oldY,dt,onBreak){
  }
  return true;
 }
-// Five transparent hand-painted bitmap damage stages (56x56 each).
+// Five re-cut bitmap damage states (56x56 each), each with the exact same\n// 52x52 visible area at (2,2). No scale drift as damage progresses.
 // A 5x1 atlas is cached once; procedural cubes remain only a loading fallback.
-const BARRICADE_BITMAP_URL='assets/ip/v2/barricades/barricade-damage-v322.png';
+const BARRICADE_BITMAP_URL='assets/ip/v2/barricades/barricade-damage-v323-aligned.png';
 const BARRICADE_FRAME=56;
 let barricadeSprite=null,barricadeSpriteRequested=false;
 function bitmapTiles(){
