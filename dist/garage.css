@@ -2476,3 +2476,67 @@ html:fullscreen #overlay[data-screen="selection"] #heroes{
  transform:translateX(-50%)!important;
  transform-origin:center bottom!important;
 }
+
+/* v313: MINI HORDE is a third game type, not a fourth equipment dock tile.
+   Pair it with ENDLESS on the same flex-column line (no extra viewport
+   height), leaving 9:16 hero carousel, START and bottom 3-icon dock intact. */
+#overlay[data-screen="selection"]{
+ --zz-secondary-mode-height:clamp(34px,calc(40px * var(--ui-scale,1)),42px);
+}
+#overlay[data-screen="selection"]>#endless{
+ box-sizing:border-box!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 var(--zz-secondary-mode-height)!important;
+ width:calc(50% - 3px)!important;
+ min-width:0!important;max-width:none!important;
+ height:var(--zz-secondary-mode-height)!important;
+ min-height:var(--zz-secondary-mode-height)!important;
+ padding:3px 4px!important;
+ margin:4px 0 2px 0!important;
+ align-self:flex-start!important;
+ font:900 clamp(10px,calc(13px * var(--ui-scale,1)),14px)/1.15 Arial,'Noto Sans KR',sans-serif!important;
+ white-space:nowrap!important;
+}
+#overlay[data-screen="selection"]>#mini-horde{
+ box-sizing:border-box!important;
+ display:flex!important;flex:0 0 var(--zz-secondary-mode-height)!important;
+ flex-direction:column!important;align-items:center!important;justify-content:center!important;
+ gap:1px!important;
+ width:calc(50% - 3px)!important;
+ min-width:0!important;max-width:none!important;
+ height:var(--zz-secondary-mode-height)!important;
+ min-height:var(--zz-secondary-mode-height)!important;
+ padding:2px 4px!important;
+ margin:calc(0px - var(--zz-secondary-mode-height) - 2px) 0 2px auto!important;
+ align-self:flex-end!important;
+ border:1px solid #f4be70!important;border-radius:5px!important;
+ background:linear-gradient(175deg,#5b4931,#2e333c)!important;
+ color:#ffe2a6!important;
+ box-shadow:inset 0 1px #ffeab269,0 2px #07131d!important;
+ text-shadow:0 1px 2px #0c101c!important;
+ font:900 clamp(10px,calc(13px * var(--ui-scale,1)),14px)/1.05 Arial,'Noto Sans KR',sans-serif!important;
+ white-space:nowrap!important;
+ cursor:pointer;touch-action:manipulation;
+}
+#overlay[data-screen="selection"]>#mini-horde small{
+ display:block!important;
+ color:#b9efda!important;
+ font:800 clamp(8px,calc(9px * var(--ui-scale,1)),10px)/1 Arial,sans-serif!important;
+ letter-spacing:.10em!important;
+}
+#overlay[data-screen="selection"]>#mini-horde:active{filter:brightness(1.24)}
+#overlay[data-screen="selection"]>#mini-horde:focus-visible{
+ outline:2px solid #fff3c3!important;outline-offset:1px!important;
+}
+#overlay[data-screen="selection"]>#mini-horde[hidden],
+#overlay:not([data-screen="selection"])>#mini-horde{display:none!important}
+@media(max-height:560px){
+ #overlay[data-screen="selection"]{--zz-secondary-mode-height:32px}
+ #overlay[data-screen="selection"]>#endless{
+  margin-top:2px!important;font-size:10px!important;
+ }
+ #overlay[data-screen="selection"]>#mini-horde{
+  margin-top:calc(0px - var(--zz-secondary-mode-height) - 2px)!important;
+  font-size:10px!important;
+ }
+}
