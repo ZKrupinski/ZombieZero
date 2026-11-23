@@ -29,14 +29,14 @@ const fort=win.ZZFortress,c={
  getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}
 };
-const ptr=(col)=>({pointerId:7,button:0,clientX:59+col*22,clientY:92});
+const ptr=(col)=>({pointerId:7,button:0,clientX:48+col*22,clientY:92});
 fort.reset();fort.begin([],1);
 assert.equal(fort.down(ptr(0),c),true);
 fort.move(ptr(4),c);fort.up(ptr(4),c);
 nodes['fortress-confirm'].click();
 assert.equal(fort.getWallCount(),5);
 function bite(col,n){
- const x=52+col*22,z={x,y:90,w:16,h:22};
+ const x=41+col*22,z={x,y:90,w:16,h:22};
  for(let i=0;i<n;i++){z.x=x;z.y=90;fort.resolve(z,x,57,.79,()=>{})}
 }
 for(let i=1;i<5;i++)bite(i,i*6);
@@ -55,10 +55,10 @@ for(let i=0;i<5;i++){
  if(i===0)assert.equal(call.filter,'none','undamaged block unaffected by neighbor bite');
  else assert(call.filter.includes('brightness('),'bitten block flashes independently');
 }
-assert.notEqual(g.drawn[1].a[5],71,'bite shaking displaces bitten wall only');
+assert.notEqual(g.drawn[1].a[5],60,'bite shaking displaces bitten wall only');
 fort.tick(.30);g.drawn.length=0;fort.draw(g,false);
 assert(g.drawn.every(d=>d.filter==='none'),'bite flash expires');
-for(let i=0;i<5;i++)assert.equal(g.drawn[i].a[5],49+i*22,'shake ends without shifting actual collisions');
+for(let i=0;i<5;i++)assert.equal(g.drawn[i].a[5],38+i*22,'shake ends without shifting actual collisions');
 assert(html.includes('src="fortress-mode.js?v='),'versioned barricade module present');
 assert(sw.includes('v323-aligned-damage-frames'));
 assert(sw.includes("'./"+asset+"'"),'PWA precaches actual bitmap');
