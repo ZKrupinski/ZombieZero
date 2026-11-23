@@ -1,7 +1,7 @@
 /* BARRICADE HORDE: independent construction + persistent wall simulation. */
 (function(){
 'use strict';
-const X=27,Y=82,T=22,COLS=18,ROWS=20,MAX_HP=30,MAX_WALLS=180;
+const X=27,Y=82,T=22,COLS=18,ROWS=20,MAX_HP=30,MAX_WALLS=180,REPAIRS_PER_MATERIAL=5;
 const walls=new Map(),pending=new Map();
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
@@ -25,9 +25,12 @@ function totals(){
   else if(p.action==='repair')repairs++;
   else builds++;
  }
- const balance=stock+removes-builds-repairs;
+ // One material fully restores up to five damaged cubes in a single
+ // confirmed repair stroke; fractional groups round up once per action.
+ const repairCost=Math.ceil(repairs/REPAIRS_PER_MATERIAL);
+ const balance=stock+removes-builds-repairCost;
  const countAfter=walls.size-removes+builds;
- return {builds,removes,repairs,balance,valid:balance>=0&&countAfter<=MAX_WALLS};
+ return {builds,removes,repairs,repairCost,balance,valid:balance>=0&&countAfter<=MAX_WALLS};
 }
 function refresh(){
  if(!ui)return;
@@ -44,15 +47,15 @@ function refresh(){
  if(supplyLabel)supplyLabel.textContent=stage===1?'초기 건설 자재 +26':'이전 파괴 환급 +'+lastRefund+' · 스테이지 보급 +'+lastBonus;
  if(previewLabel)previewLabel.textContent=
   '설치 +'+summary.builds+' · 철거 -'+summary.removes+' (환급 +'+summary.removes+')'+
-  (summary.repairs?' · 수리 +'+summary.repairs:'')+
+  (summary.repairs?' · 수리 '+summary.repairs+'칸 (자재 -'+summary.repairCost+')':'')+
   ' · 확정 후 자재 '+summary.balance+
   (!summary.valid?' · 자재/공간 부족':'');
  if(helpLabel)helpLabel.textContent=repairMode
-  ?'수리 모드: 손상된 방벽을 드래그 · 칸당 자재 1'
+  ?'수리 모드: 손상 방벽 최대 5칸에 자재 1개 · 전부 완전 복구'
   :hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
   :stock?'빈칸 드래그: 건설 · 기존 방벽: 빨간 철거(자재 환급)'
   :'자재 0 · 기존 방벽 철거로 자재 확보 가능';
- if(toolButton){toolButton.textContent=repairMode?'수리 모드 ON · 건설/철거로':'🛠 파손 방벽 수리';toolButton.setAttribute?.('aria-pressed',String(repairMode))}
+ if(toolButton){toolButton.textContent=repairMode?'수리 ON · 5칸/자재1 · 건설로':'🛠 수리(5칸/자재1)';toolButton.setAttribute?.('aria-pressed',String(repairMode))}
 }
 function addCell(t){
  if(!t||pending.has(t.id))return;
@@ -108,15 +111,20 @@ function confirm(){
  // cancellation nor a preview changes resources or the actual collision map.
  for(const t of pending.values())if(t.action==='remove'&&walls.delete(t.id))stock++;
  let changed=0;
+ // Reserve the batched repair cost before constructing new walls. Otherwise
+ // a stroke that draws many cells could spend materials promised to repairs.
  for(const t of pending.values()){
-  if(t.action==='remove')continue;
-  if(stock<=0)break;
-  const w=walls.get(t.id);
-  if(t.action==='repair'&&w&&w.hp<MAX_HP){w.hp=MAX_HP;w.hit=.15;stock--;changed++}
-  else if(t.action==='build'&&!w&&walls.size<MAX_WALLS){
-   walls.set(t.id,{...t,hp:MAX_HP,hit:.12});stock--;changed++;
-  }
+  if(t.action!=='build'||walls.has(t.id)||walls.size>=MAX_WALLS)continue;
+  if(stock<=summary.repairCost)break;
+  walls.set(t.id,{...t,hp:MAX_HP,hit:.12});stock--;changed++;
  }
+ let repaired=0;
+ for(const t of pending.values()){
+  if(t.action!=='repair')continue;
+  const w=walls.get(t.id);
+  if(w&&w.hp<MAX_HP){w.hp=MAX_HP;w.hit=.15;repaired++}
+ }
+ if(repaired){stock-=Math.ceil(repaired/REPAIRS_PER_MATERIAL);changed+=repaired}
  pending.clear();refresh();return changed+summary.removes;
 }
 function reset(){
