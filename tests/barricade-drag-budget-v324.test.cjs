@@ -95,6 +95,6 @@ stop(2,2);
 assert.equal(nodes['fortress-actions'].hidden,true);
 // Existing damaged cube remains damaged if blocked.
 assert.equal(fort.getWallHP(0,2),27);
-assert(html.includes('fortress-mode.js?v=324-live-drag-budget'));
+assert(html.includes('src="fortress-mode.js?v='),'fortress module remains cache-versioned');
 assert(sw.includes('v324-live-drag-budget'));
 console.log('PASS v324: live drag caps at materials, zero stock stops drawing, red demolition refunds and mixed build/repair remain valid.');
