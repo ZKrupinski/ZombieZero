@@ -3812,8 +3812,10 @@ function syncHapticsToggle(){
  hapticsToggle.setAttribute('aria-pressed',String(hapticsMode!=='off'));
  hapticsToggle.setAttribute('aria-label','기기 진동 · '+label+' · 누르면 다음 모드');
  hapticsToggle.setAttribute('title','진동 없음 → 플레이어 중심 → 풀 진동');
- hapticsToggle.dataset.mode=hapticsMode;
- hapticsToggle.dataset.state=hapticsMode==='off'?'off':'on';
+ if(hapticsToggle.dataset){
+  hapticsToggle.dataset.mode=hapticsMode;
+  hapticsToggle.dataset.state=hapticsMode==='off'?'off':'on';
+ }
  const status=hapticsToggle.querySelector?.('.option-status');
  if(status)status.textContent=label;
  else hapticsToggle.textContent='VIBRATION '+(hapticsMode==='off'?'OFF':hapticsMode==='player'?'PLAYER':'FULL');
