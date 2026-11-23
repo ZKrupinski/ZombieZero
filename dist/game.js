@@ -3651,9 +3651,25 @@ function tryCitizenGuard(p){
 // Weak simultaneous hits cannot cancel a longer critical or boss vibration.
 // Browser vibration has no strength parameter. Duration/pattern control perceived
 // emphasis; short (<20ms) requests can be imperceptible on Android motors.
+// v315: Three real haptic modes. New installs default to player-only.
+ // Read the old toggle ONLY when the 3-mode preference does not exist,
+ // so existing explicit ON/OFF users do not unexpectedly change settings.
 const HAPTICS_STORAGE_KEY='zz-device-haptics-enabled';
-let hapticsEnabled=true;
-try{if(typeof localStorage!=='undefined')hapticsEnabled=localStorage.getItem(HAPTICS_STORAGE_KEY)!=='0'}catch{}
+const HAPTICS_MODE_STORAGE_KEY='zz-device-haptics-mode';
+const HAPTIC_MODES=['off','player','full'];
+let hapticsMode='player';
+try{
+ if(typeof localStorage!=='undefined'){
+  const saved=localStorage.getItem(HAPTICS_MODE_STORAGE_KEY);
+  if(HAPTIC_MODES.includes(saved))hapticsMode=saved;
+  else{
+   const legacy=localStorage.getItem(HAPTICS_STORAGE_KEY);
+   if(legacy==='0')hapticsMode='off';
+   else if(legacy==='1')hapticsMode='full';
+  }
+ }
+}catch{}
+let hapticsEnabled=hapticsMode!=='off';
 const FEEDBACK_PRESETS={
  wall:{v:28,s:0.28,p:0},
  racket:{v:38,s:0.9,p:2},
@@ -3682,8 +3698,16 @@ const FEEDBACK_PRESETS={
  serve:{v:28,s:0.4,p:1},
  start:{v:25,s:0,p:1},
  wave:{v:[45,30,45],s:1.15,p:3},
- victory:{v:[55,35,110],s:2,p:6}
+ victory:{v:[55,35,110],s:2,p:6},
+ groggyRecover:{v:[42,28,62],s:0,p:6}
 };
+// Player-only mode vibrates exclusively for the player's own ball controls,
+// direct interception of a zombie projectile, and groggy entry/recovery.
+// Zombie damage/deaths, explosions, drops, civilian actions, walls and stage
+// transitions still keep the same SCREEN SHAKE / sounds, but not motor output.
+const PLAYER_HAPTIC_KINDS=new Set([
+ 'serve','racket','car','poisonBlock','blocked','groggy','groggyRecover'
+]);
 // A real-time 5–9-frame shake envelope independent of the graphics FX switch.
 // Previous v182 shake lost most of its intensity before the render frame.
 const screenShake={power:0,started:0,until:0,phase:0};
@@ -3746,6 +3770,12 @@ function feedback(kind){
   updateFeedbackDiagnostics();
  };
  if(!hapticsEnabled){report('사용자 설정 OFF');return}
+ // typeof guard retains older isolated dispatcher tests (which deliberately
+ // construct the original full-feedback scope without UI initialization).
+ if(typeof hapticsMode!=='undefined'&&hapticsMode==='player'&&
+    !PLAYER_HAPTIC_KINDS.has(kind)){
+  report('플레이어 전용 모드에서 제외');return;
+ }
  if(typeof navigator==='undefined'||typeof navigator.vibrate!=='function'){
   report('API 미지원');return;
  }
@@ -3772,28 +3802,39 @@ function feedback(kind){
 }
 // QA signal only: physical motor output cannot be measured from JavaScript.
 window.ZZHapticDebug={version:'v186',counts:feedbackDiagnostics};
-// Game options: persisted device vibration toggle; no test controls in settings.
+// One toggle cycles OFF -> PLAYER -> FULL -> OFF. It remains clickable
+// in OFF mode; only its visual status is marked inactive.
 const hapticsToggle=$('haptics-toggle');
+const HAPTICS_MODE_LABELS={off:'진동 없음',player:'플레이어 중심',full:'풀 진동'};
 function syncHapticsToggle(){
  if(!hapticsToggle)return;
- const on=hapticsEnabled;
- hapticsToggle.setAttribute('aria-pressed',String(on));
- hapticsToggle.setAttribute('aria-label','기기 진동 · '+(on?'켜짐':'꺼짐'));
+ const label=HAPTICS_MODE_LABELS[hapticsMode];
+ hapticsToggle.setAttribute('aria-pressed',String(hapticsMode!=='off'));
+ hapticsToggle.setAttribute('aria-label','기기 진동 · '+label+' · 누르면 다음 모드');
+ hapticsToggle.setAttribute('title','진동 없음 → 플레이어 중심 → 풀 진동');
+ hapticsToggle.dataset.mode=hapticsMode;
+ hapticsToggle.dataset.state=hapticsMode==='off'?'off':'on';
  const status=hapticsToggle.querySelector?.('.option-status');
- if(status){
-  status.textContent=on?'켜짐':'꺼짐';
-  hapticsToggle.dataset.state=on?'on':'off';
- }else hapticsToggle.textContent=on?'VIBRATION ON':'VIBRATION OFF';
+ if(status)status.textContent=label;
+ else hapticsToggle.textContent='VIBRATION '+(hapticsMode==='off'?'OFF':hapticsMode==='player'?'PLAYER':'FULL');
 }
 if(hapticsToggle){
  syncHapticsToggle();
  hapticsToggle.addEventListener('click',()=>{
-  hapticsEnabled=!hapticsEnabled;
-  try{if(typeof localStorage!=='undefined')localStorage.setItem(HAPTICS_STORAGE_KEY,hapticsEnabled?'1':'0')}catch{}
-  if(!hapticsEnabled){
-   buzzLockedUntil=0;buzzPriority=0;
-   try{if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function')navigator.vibrate(0)}catch{}
-  }
+  const index=HAPTIC_MODES.indexOf(hapticsMode);
+  hapticsMode=HAPTIC_MODES[(index+1)%HAPTIC_MODES.length];
+  hapticsEnabled=hapticsMode!=='off';
+  try{
+   if(typeof localStorage!=='undefined'){
+    localStorage.setItem(HAPTICS_MODE_STORAGE_KEY,hapticsMode);
+    // Keep the historical toggle key in sync for an older offline build.
+    localStorage.setItem(HAPTICS_STORAGE_KEY,hapticsEnabled?'1':'0');
+   }
+  }catch{}
+  // Stop an old critical/boss vibration whenever the mode changes.
+  // Otherwise a long FULL-mode pulse can bleed into PLAYER or OFF.
+  buzzLockedUntil=0;buzzPriority=0;lastBuzz=0;
+  try{if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function')navigator.vibrate(0)}catch{}
   syncHapticsToggle();
  });
 }
@@ -4057,6 +4098,9 @@ function updatePoisonStatus(dt){
  if(wasGroggy>0&&groggyTime===0){
   // Recovered: remove ALL character tint immediately, not just the stun.
   poison=0;poisonGrace=0;poisonFlash=0;
+  // Recovery is a meaningful character event even if no poison remains.
+  // The guard preserves isolated poison-gauge regression harnesses.
+  if(typeof feedback==='function')feedback('groggyRecover');
  }
  poisonGrace=Math.max(0,poisonGrace-dt);
  if(groggyTime===0&&poisonGrace===0)poison=Math.max(0,poison-POISON_DECAY*(1+growth('detox')*.12)*dt);
