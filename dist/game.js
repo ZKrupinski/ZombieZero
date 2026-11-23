@@ -732,6 +732,9 @@ const MINI_HORDE_SCALE=.5,MINI_HORDE_COLUMNS=18;
 const isFortress=()=>runMode==='fortress';
 const fortress=window.ZZFortress;
 const isMiniHorde=()=>runMode==='mini'||isFortress();
+// Scale raw zombie displacement to its body size in MINI/BARRICADE modes.
+// Spawn-row and column pitches are already half-size; never scale those twice.
+const enemyDisplacementScale=()=>isMiniHorde()?MINI_HORDE_SCALE:1;
 const miniBallScale=()=>isMiniHorde()?.60:1;
 const heroBallRadius=()=> (has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1);
 const foeColumns=()=>isMiniHorde()?MINI_HORDE_COLUMNS:ENEMY_COLUMNS;
@@ -1103,7 +1106,7 @@ function rack(){
  }
  $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():isFortress()?'BARRICADE '+wave:isMiniHorde()?'MINI HORDE '+wave:'STAGE '+wave)
   +' · '+(bossStage?'BOSS WAVE':stageRosterLabel(stage))
-  +' / 진군 속도 '+marchBase().toFixed(1);
+  +' / 진군 속도 '+(marchBase()*enemyDisplacementScale()).toFixed(1);
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
  breakoutNextCheck=clock+.85;
 }
@@ -1112,7 +1115,7 @@ function enemySpeed(z){
  const seed=Number.isFinite(z.seed)?z.seed:0;
  const pace=Number.isFinite(z.seed)?.80+.43*((seed*.61803398875)%1):1;
  const pulse=Number.isFinite(z.seed)?1+.14*Math.sin(clock*.8+seed*1.73):1;
- return marchBase()*(z.boss?(z.bossForm===3?.44:.62):[1.1,1.04,.97,.89,.82][z.kind])*
+ return marchBase()*enemyDisplacementScale()*(z.boss?(z.bossForm===3?.44:.62):[1.1,1.04,.97,.89,.82][z.kind])*
    pace*pulse*enemySlowRate();
 }
 // Frequent short physical steps blend down/front/left/right animations even
@@ -1170,7 +1173,7 @@ function tryStartBreakouts(){
   clearShortStep(z,duration+.65);
   z.breakoutTime=0;z.breakoutDuration=duration;
   z.breakoutVX=(pick.dest-z.x)/duration;
-  z.breakoutVY=(22+Math.random()*42)/duration;
+  z.breakoutVY=(22+Math.random()*42)*enemyDisplacementScale()/duration;
   z.breakoutTargetX=pick.dest;z.breakoutTargetCol=pick.destCol;
   z.breakoutCooldownUntil=clock+duration+1.5+Math.random()*2.2;
   chosen.push(pick);
@@ -1215,15 +1218,15 @@ function tryStartBreakouts(){
      if(clock<z.shortStepNext)return;
      z.shortStepCount=(z.shortStepCount||0)+1;
      let home=z.shortStepHomeX;
-     if(!Number.isFinite(home)||Math.abs(z.x-home)>SHORT_STEP_RADIUS+4){
+     if(!Number.isFinite(home)||Math.abs(z.x-home)>(SHORT_STEP_RADIUS+4)*enemyDisplacementScale()){
        home=z.x;z.shortStepHomeX=home;
      }
-     const magnitude=4+shortStepNoise(z,3)*2;
+     const magnitude=(4+shortStepNoise(z,3)*2)*enemyDisplacementScale();
      const sign=shortStepNoise(z,4)<.5?-1:1;
      let dest=clamp(home+sign*magnitude,zombieMinX(),zombieMaxX(z));
-     if(Math.abs(dest-z.x)<3)
+     if(Math.abs(dest-z.x)<3*enemyDisplacementScale())
        dest=clamp(home-sign*magnitude,zombieMinX(),zombieMaxX(z));
-     if(Math.abs(dest-z.x)<2||!canKnockback(z,dest,z.y)){
+     if(Math.abs(dest-z.x)<2*enemyDisplacementScale()||!canKnockback(z,dest,z.y)){
        z.shortStepNext=clock+.24+shortStepNoise(z,5)*.38;
        return;
      }
@@ -1270,18 +1273,19 @@ function bossSelectPatrol(z){
  // Near the defense line the boss must continue advancing, not orbit forever.
  if(z.bossHomeY+z.h>DEFENSE_Y-60)return false;
  // Alternate a small forward/back step across successive wide sweeps.
- const depthChoice=[BOSS_DEPTH_SWAY,-BOSS_DEPTH_SWAY,0][(z.bossSweepCount||0)%3];
+ const size=enemyDisplacementScale();
+ const depthChoice=[BOSS_DEPTH_SWAY*size,-BOSS_DEPTH_SWAY*size,0][(z.bossSweepCount||0)%3];
  const options=[];
  for(const direction of [-1,1]){
-  for(const span of [BOSS_SWEEP_MAX,160,125,90]){
+  for(const span of [BOSS_SWEEP_MAX,160,125,90].map(d=>d*size)){
    const x=clamp(z.x+direction*span,zombieMinX(),zombieMaxX(z));
    const travel=Math.abs(x-z.x);
-   if(travel<BOSS_SWEEP_MIN)continue;
-   for(const offsetY of [-BOSS_DEPTH_SWAY,0,BOSS_DEPTH_SWAY]){
+   if(travel<BOSS_SWEEP_MIN*size)continue;
+   for(const offsetY of [-BOSS_DEPTH_SWAY*size,0,BOSS_DEPTH_SWAY*size]){
     const y=clamp(z.bossHomeY+offsetY,ENEMY_TOP_Y,DEFENSE_Y-z.h-38);
     if(!bossPatrolCorridor(z,x,y))continue;
     options.push({x,y,direction,
-     score:travel+(direction===-z.bossLastDir?28:0)+(offsetY===depthChoice?19:0)+Math.random()*10-Math.abs(offsetY)*.25});
+     score:travel+(direction===-z.bossLastDir?28*size:0)+(offsetY===depthChoice?19*size:0)+Math.random()*10*size-Math.abs(offsetY)*.25});
    }
   }
  }
@@ -1295,7 +1299,7 @@ function bossSelectPatrol(z){
 }
 function bossPatrolStep(z,dt){
  z.moveDir=0;
- const speed=BOSS_SWEEP_SPEED*(z.bossForm===3?.45:1)*enemySlowRate();
+ const speed=BOSS_SWEEP_SPEED*enemyDisplacementScale()*(z.bossForm===3?.45:1)*enemySlowRate();
  if(!Number.isFinite(z.bossHomeY))z.bossHomeY=z.y;
  z.bossHomeY+=enemySpeed(z)*dt;
  const nearDefense=z.bossHomeY+z.h>DEFENSE_Y-60;
@@ -1328,7 +1332,7 @@ function bossPatrolStep(z,dt){
  }
  if(nearDefense){
   // Preserve the boss's ability to break the defense line.
-  const nextY=Math.max(z.y,z.bossHomeY-BOSS_DEPTH_SWAY);
+  const nextY=Math.max(z.y,z.bossHomeY-BOSS_DEPTH_SWAY*enemyDisplacementScale());
   if(bossPatrolFree(z,z.x,Math.min(nextY,DEFENSE_Y-z.h-16),0))
    z.y=nextY;
  }
@@ -1446,7 +1450,7 @@ function moveElite(z,dt){
   // Black trash bag: impatient diagonal ambush into a missing slot.
   for(const offset of [foePitch(),foePitch()*2,foePitch()*.65]){
    for(const sign of [direction,-direction])
-    if(beginEliteMotion(z,sign*offset,16+(z.seed||0)%9,
+    if(beginEliteMotion(z,sign*offset,(16+(z.seed||0)%9)*enemyDisplacementScale(),
       .29+offset/foePitch()*.07,'dash',.14)){
      began=true;break;
     }
@@ -1455,12 +1459,12 @@ function moveElite(z,dt){
  }else if(z.eliteKind===1){
   // White 50L regulation bag: heavy backstep / feint / linear counter-charge.
   // It retreats only if there is physical room behind its box.
-  began=beginEliteMotion(z,0,-20,.29,'backstep',.22,
-    {dx:0,dy:31,duration:.37,tag:'charge',windup:.16});
+  began=beginEliteMotion(z,0,-20*enemyDisplacementScale(),.29,'backstep',.22,
+    {dx:0,dy:31*enemyDisplacementScale(),duration:.37,tag:'charge',windup:.16});
   if(!began){
    // Heavy shoulder shove sideways when rear lanes are sealed.
    for(const sign of [direction,-direction])
-    if(beginEliteMotion(z,sign*foePitch(),3,.49,'charge',.22)){
+    if(beginEliteMotion(z,sign*foePitch(),3*enemyDisplacementScale(),.49,'charge',.22)){
      began=true;break;
     }
   }
@@ -1471,8 +1475,8 @@ function moveElite(z,dt){
     Math.abs(b.x-z.x-z.w/2)<58&&Math.abs(b.y-z.y-z.h/2)<95);
   if(threatened||Math.random()<.42){
    for(const sign of [direction,-direction])
-    if(beginEliteMotion(z,sign*foePitch(),-10,.22,'dodge',.065,
-      {dx:-sign*foePitch()*.42,dy:5,duration:.20,tag:'zigzag',windup:0})){
+    if(beginEliteMotion(z,sign*foePitch(),-10*enemyDisplacementScale(),.22,'dodge',.065,
+      {dx:-sign*foePitch()*.42,dy:5*enemyDisplacementScale(),duration:.20,tag:'zigzag',windup:0})){
      began=true;break;
     }
   }
@@ -1552,10 +1556,10 @@ function tryReactiveDodges(dt){
    let moved=false;
    for(const extent of [1,.82]){
     for(const sign of [first,-first]){
-     const dx=sign*profile.distance*extent;
+     const dx=sign*profile.distance*enemyDisplacementScale()*extent;
      // The new position must actually escape this incoming ball's sweep.
      if(Math.abs(threat.x-(center+dx))<z.w*.5+radius+4)continue;
-     if(beginEliteMotion(z,dx,-4,profile.duration,'evade',0)){
+     if(beginEliteMotion(z,dx,-4*enemyDisplacementScale(),profile.duration,'evade',0)){
       z.dodgeReadyAt=clock+profile.cooldown;
       z.eliteNextMove=z.dodgeReadyAt;
       pushDodgeGhost(z);
@@ -2133,7 +2137,7 @@ function applyKnockback(z,impact,n=1){
  if(mag<.01)return false;
  // Contact transfers displacement to successive zombies. Attempt shorter
  // shoves when tightly packed ranks, bosses or road edges block the impulse.
- const distance=Math.min(50,36+Math.min(n,5)*3)*(impact.push||1);
+ const distance=Math.min(50,36+Math.min(n,5)*3)*enemyDisplacementScale()*(impact.push||1);
  const dirX=vx/mag,dirY=vy/mag;
  for(const factor of [1,.85,.7,.55,.4,.25,.12]){
   const plans=new Map();
