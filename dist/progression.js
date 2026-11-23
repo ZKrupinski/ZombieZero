@@ -102,7 +102,7 @@
   save();refresh();
  }
  function grant(kind,wave,amount,heroIndex=0){
-  if(!runKey||!['campaign','endless'].includes(runMode))return false;
+  if(!runKey||!['campaign','endless','mini'].includes(runMode))return false;
   const stage=int(wave,1,100000);
   const key=runKey+':'+kind+':'+stage;
   if(state.claims[key])return false;
