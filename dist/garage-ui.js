@@ -144,7 +144,11 @@
   const stage=part.id==='cushion'?1:system.parts.indexOf(part)+1;
   const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
   const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
+  // Preserve scroll during part selection, equip and upgrades. Redrawing
+  // the garage replaces the shell and otherwise jumps users to the top.
+  const previousScroll=body.scrollTop;
   body.innerHTML='<div class="garage-shell">'+banner+wallet+statPanel+'<div class="garage-part-grid">'+list+'</div>'+detail+'</div>';
+  body.scrollTop=previousScroll;
   refreshGarageReel();
  }
  function handleAction(e){
