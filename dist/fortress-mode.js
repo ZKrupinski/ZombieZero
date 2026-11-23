@@ -233,6 +233,52 @@ function firstWall(x,y,w,h){
  }
  return null;
 }
+// Check the full collider sweep, not only the destination: fast charges,
+// knockback and separation can otherwise skip over a 22px block in one tick.
+// Returning the last clear sample also keeps bite positions outside the cube.
+function firstWallOnPath(x0,y0,x1,y1,w,h){
+ if(!walls.size)return null;
+ const start=firstWall(x0,y0,w,h);
+ if(start)return {wall:start,x:x0,y:y0,startInside:true};
+ const dx=x1-x0,dy=y1-y0;
+ const count=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.min(5,T/4)));
+ let lastX=x0,lastY=y0;
+ for(let i=1;i<=count;i++){
+  const t=i/count,x=x0+dx*t,y=y0+dy*t;
+  const wall=firstWall(x,y,w,h);
+  if(wall)return {wall,x:lastX,y:lastY,startInside:false};
+  lastX=x;lastY=y;
+ }
+ return null;
+}
+function isOpen(z,x,y){return !firstWall(x,y,z.w,z.h)}
+function isPathClear(z,x0,y0,x1,y1){
+ return !firstWallOnPath(x0,y0,x1,y1,z.w,z.h);
+}
+function escapeWall(z,oldX,oldY){
+ // Only used when an enemy was already embedded (older saves/spawns,
+ // complicated chain reactions). Search outwards from its pre-move position,
+ // prioritizing backward movement so it never teleports through a barricade.
+ const x=Number.isFinite(oldX)?oldX:z.x,y=Number.isFinite(oldY)?oldY:z.y;
+ const legal=(a,b)=>a>=FIELD_LEFT&&a+z.w<=FIELD_RIGHT&&
+  b>=35&&b+z.h<=555&&isOpen(z,a,b);
+ for(let d=2;d<=Math.max(T*4,z.w+T);d+=2){
+  for(const [tx,ty] of [[x,y-d],[x-d,y],[x+d,y],[x,y+d]]){
+   if(legal(tx,ty)){z.x=tx;z.y=ty;return true}
+  }
+ }
+ // Last resort: deterministic nearest safe grid point.
+ let best=null;
+ for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
+  const tx=Math.max(FIELD_LEFT,Math.min(FIELD_RIGHT-z.w,X+col*T));
+  const ty=Y+row*T;
+  if(!legal(tx,ty))continue;
+  const distance=(tx-x)*(tx-x)+(ty-y)*(ty-y);
+  if(!best||distance<best.distance)best={x:tx,y:ty,distance};
+ }
+ if(best){z.x=best.x;z.y=best.y;return true}
+ return false;
+}
 // Ball-vs-cube collision uses the real circular ball footprint. Unlike bites,
 // rebounds never reduce a wall's HP (including powerful and piercing shots).
 // The game advances balls in <=4px substeps so side selection is stable.
@@ -333,16 +379,21 @@ function deploy(target){
 }
 function ready(){if(!active||dragging||pending.size)return false;if(typeof onReady==='function')onReady();return true}
 function resolve(z,oldX,oldY,dt,onBreak){
- const hit=firstWall(z.x,z.y,z.w,z.h);
- if(!hit){z.fortressTarget=null;z.fortressBite=0;return false}
- // Do not let a dash/diagonal step clip a cube. Hold at last safe contact.
- if(!firstWall(oldX,oldY,z.w,z.h)){z.x=oldX;z.y=oldY}
- else {
-  // Knockback/teleport fallback: retreat until the unit is outside the cube.
-  for(let i=1;i<=12;i++){
-   const testY=oldY-i*2;
-   if(!firstWall(oldX,testY,z.w,z.h)){z.x=oldX;z.y=testY;break}
-  }
+ const trace=firstWallOnPath(oldX,oldY,z.x,z.y,z.w,z.h);
+ if(!trace){
+  z.fortressTarget=null;z.fortressBite=0;return false;
+ }
+ const hit=trace.wall;
+ if(!trace.startInside){
+  // Stop at the last genuinely safe point along the swept movement.
+  z.x=trace.x;z.y=trace.y;
+ }else if(!isOpen(z,z.x,z.y)){
+  // A previously embedded enemy must be pushed outside immediately.
+  escapeWall(z,oldX,oldY);
+ }
+ // Do not let an overlapping start persist or award bites when already clear.
+ if(!isOpen(z,z.x,z.y)){
+  z.fortressTarget=null;z.fortressBite=0;return true;
  }
  if(z.fortressTarget!==hit.id){z.fortressTarget=hit.id;z.fortressBite=0}
  z.fortressBite=(z.fortressBite||0)+dt*(z.boss?2.25:Number.isInteger(z.eliteKind)?1.5:1);
@@ -450,7 +501,7 @@ if(readyButton)readyButton.addEventListener('click',ready);
 if(toolButton)toolButton.addEventListener('click',()=>{
  if(!active||dragging)return;repairMode=!repairMode;pending.clear();refresh();
 });
-window.ZZFortress={reset,begin,deploy,resolve,bounceBall,draw,tick,down,move,up,cancel,ready,
+window.ZZFortress={reset,begin,deploy,resolve,isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
  bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus}),
