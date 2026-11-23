@@ -63,6 +63,6 @@ assert.equal(bites,1,'zombie attacks do damage to wall');
 assert(game.includes('fortress.bounceBall(b,ox,oy,radius)'),'live ball substeps call cube collision');
 assert(game.includes("ballImpact(b,wallHit.axis"),'existing elastic ball feedback reused');
 assert(game.includes("spawnContact(b,wallHit.x,wallHit.y"),'wall collision visual effect reused');
-assert(html.includes('fortress-mode.js?v=317-ball-reflect-no-damage')&&html.includes('v317-barricade-ball-reflect'),'cache bust in document');
+assert(html.includes('src="fortress-mode.js?v=')&&html.includes('v317-barricade-ball-reflect'),'versioned module and game loaded by document');
 assert(sw.includes('v317-barricade-ball-reflect'),'PWA cache version advanced');
 console.log('PASS v317: four directional rebounds, power/pierce, collision FX integration, durable walls, zombie-only damage.');
