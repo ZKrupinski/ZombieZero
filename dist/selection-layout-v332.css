@@ -1,0 +1,275 @@
+/* v332 — 9:16 selection screen. One native layout, no absolute mode
+   badge layer, no vertical scroll and no gesture needed to reach START.
+   The 384x128 approved zombie mode atlas is intentionally reused intact.
+   Only selection is changed: GAME OVER / PAUSED retain existing controls. */
+
+html #overlay[data-screen="selection"]{
+  /* 38px reserved for the two title lines, 39px for bottom citizens/copyright.
+     Grid children share the actual stage height; nothing can scroll away. */
+  display:grid!important;
+  box-sizing:border-box!important;
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;height:100%!important;
+  min-height:0!important;max-height:100%!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:
+    minmax(0,28.5fr)
+    minmax(0,30fr)
+    minmax(0,8.5fr)
+    minmax(0,3.5fr)
+    minmax(0,16fr)
+    minmax(0,13.5fr)!important;
+  gap:0!important;
+  padding:
+    calc(38px * var(--ui-scale,1) + env(safe-area-inset-top,0px))
+    calc(9px * var(--ui-scale,1))
+    calc(39px * var(--ui-scale,1) + env(safe-area-inset-bottom,0px))!important;
+  justify-content:stretch!important;
+  justify-items:stretch!important;
+  align-content:stretch!important;
+  align-items:stretch!important;
+  overflow:hidden!important;
+  overflow-x:hidden!important;overflow-y:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:manipulation;
+}
+
+/* Keep the two small title lines in the header. They are decorative
+   absolutes only; all interactive sections below are real grid children. */
+html #overlay[data-screen="selection"]>.label,
+html #overlay[data-screen="selection"]>#title{
+  grid-column:1/-1!important;
+  pointer-events:none!important;
+}
+html #overlay[data-screen="selection"]>.overlay-logo{
+  grid-column:1/-1!important;grid-row:1!important;
+  order:0!important;
+  position:relative!important;inset:auto!important;
+  display:block!important;justify-self:center!important;align-self:center!important;
+  width:min(94%,calc(306px * var(--ui-scale,1)))!important;
+  max-width:100%!important;
+  height:100%!important;max-height:100%!important;
+  flex:none!important;
+  object-fit:contain!important;object-position:center center!important;
+  margin:0 auto!important;padding:0!important;
+}
+
+/* The five character cards keep their actual resources, selection and
+   left/right arrows. Only their vertical allocation is made responsive. */
+html #overlay[data-screen="selection"] #heroes{
+  grid-column:1/-1!important;grid-row:2!important;
+  position:relative!important;inset:auto!important;
+  display:block!important;box-sizing:border-box!important;
+  width:100%!important;max-width:none!important;
+  min-width:0!important;min-height:0!important;
+  height:100%!important;max-height:100%!important;
+  flex:none!important;flex-basis:auto!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+}
+html #overlay[data-screen="selection"] #heroes .hero-options{
+  width:100%!important;height:100%!important;
+  min-height:0!important;max-height:100%!important;
+  margin:0!important;
+}
+
+/* Main campaign action always comes straight after character selection.
+   It is one touch target; subtitle and chevrons are CSS, not extra buttons. */
+html #overlay[data-screen="selection"]>#start{
+  grid-column:1/-1!important;grid-row:3!important;
+  position:relative!important;inset:auto!important;
+  justify-self:center!important;align-self:center!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;
+  width:96%!important;max-width:calc(390px * var(--ui-scale,1))!important;
+  height:calc(100% - 3px)!important;min-height:0!important;
+  flex:none!important;
+  margin:0 auto!important;
+  padding:1px calc(35px * var(--ui-scale,1)) calc(10px * var(--ui-scale,1))!important;
+  border:2px solid #fff5ac!important;border-radius:9px!important;
+  background:linear-gradient(180deg,#ffe884 0%,#ffca41 39%,#f8a91e 100%)!important;
+  box-shadow:inset 0 2px 0 #fff6c7,0 4px 0 #6b3c13,0 6px 9px #07111bd1!important;
+  color:#fffcf3!important;
+  font:1000 clamp(17px,calc(25px * var(--ui-scale,1)),28px)/1 Arial,'Noto Sans KR',sans-serif!important;
+  letter-spacing:-.035em!important;
+  text-shadow:-2px -2px 0 #4b302a,2px -2px 0 #4b302a,
+    -2px 2px 0 #4b302a,2px 2px 0 #4b302a,
+    0 3px 2px #46280dc0!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  cursor:pointer;touch-action:manipulation;
+}
+html #overlay[data-screen="selection"]>#start::before{
+  content:"»";position:absolute;right:4%;top:43%;
+  transform:translateY(-50%);
+  font:1000 calc(28px * var(--ui-scale,1))/1 system-ui,sans-serif;
+  color:#fff7bc;text-shadow:2px 2px 0 #ab5e1c,-1px -1px 0 #7d451d;
+  pointer-events:none;
+}
+html #overlay[data-screen="selection"]>#start::after{
+  content:"BASIC MODE START";position:absolute;left:0;right:0;bottom:3%;
+  font:900 clamp(7px,calc(9px * var(--ui-scale,1)),11px)/1 Arial,sans-serif;
+  color:#543b1c;text-shadow:none;letter-spacing:.045em;text-align:center;
+  pointer-events:none;
+}
+html #overlay[data-screen="selection"]>#start:active{
+  filter:brightness(1.1)!important;transform:translateY(2px)!important;
+  box-shadow:inset 0 2px 0 #fff6c7,0 2px 0 #6b3c13!important;
+}
+
+/* EXTRA MODE is a heading within the same stage grid, not a floating panel. */
+#overlay>.zz-mode-heading{display:none!important}
+html #overlay[data-screen="selection"]>.zz-mode-heading{
+  grid-column:1/-1!important;grid-row:4!important;
+  position:static!important;display:flex!important;
+  justify-self:stretch!important;align-self:stretch!important;
+  align-items:center!important;justify-content:center!important;gap:8px!important;
+  width:100%!important;max-width:none!important;
+  height:100%!important;min-height:0!important;
+  padding:0!important;margin:0!important;
+  color:#d9ebec!important;
+  font:900 clamp(9px,calc(12px * var(--ui-scale,1)),13px)/1 Arial,sans-serif!important;
+  letter-spacing:.12em!important;text-align:center!important;
+  text-shadow:0 2px 3px #06121c!important;
+  pointer-events:none!important;
+}
+html #overlay[data-screen="selection"]>.zz-mode-heading::before,
+html #overlay[data-screen="selection"]>.zz-mode-heading::after{
+  content:"";display:block;flex:0 1 20%;
+  height:2px;background:linear-gradient(90deg,transparent,#eac96b);
+}
+html #overlay[data-screen="selection"]>.zz-mode-heading::after{
+  transform:scaleX(-1);
+}
+
+/* Approved 3-frame bitmap atlas, each button occupies a REAL grid cell.
+   No absolute positioning, negative margins or transform-based offsets. */
+html #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde){
+  grid-row:5!important;
+  position:relative!important;inset:auto!important;
+  display:block!important;box-sizing:border-box!important;
+  justify-self:center!important;align-self:center!important;
+  width:min(100%,calc(102px * var(--ui-scale,1)))!important;
+  height:min(100%,calc(102px * var(--ui-scale,1)))!important;
+  aspect-ratio:1/1!important;
+  min-width:0!important;min-height:0!important;
+  max-width:100%!important;max-height:100%!important;
+  flex:none!important;
+  margin:0!important;padding:0!important;
+  transform:none!important;
+  border:0!important;border-radius:0!important;
+  background-color:transparent!important;
+  background-image:url("assets/ui/mode-icons-v330.avif")!important;
+  background-repeat:no-repeat!important;
+  background-size:300% 100%!important;
+  font-size:0!important;line-height:0!important;
+  color:transparent!important;text-shadow:none!important;
+  box-shadow:none!important;
+  filter:drop-shadow(0 3px 3px #07111ace)!important;
+  cursor:pointer;touch-action:manipulation;
+}
+html #overlay[data-screen="selection"]>#endless{
+  grid-column:1!important;background-position:0% 50%!important;
+}
+html #overlay[data-screen="selection"]>#mini-horde{
+  grid-column:2!important;background-position:50% 50%!important;
+}
+html #overlay[data-screen="selection"]>#fortress-horde{
+  grid-column:3!important;background-position:100% 50%!important;
+}
+html #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde) small{
+  display:none!important;
+}
+html #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde):active{
+  filter:drop-shadow(0 1px 1px #07111a) brightness(1.2)!important;
+}
+html #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde)[hidden]{
+  display:none!important;
+}
+
+/* Garage / Radio / Upgrade remain the same approved raster buttons. Their
+   previously absolute dock is now the SIXTH grid row below extra modes. */
+html #overlay[data-screen="selection"] #main-dock{
+  grid-column:1/-1!important;grid-row:6!important;
+  position:relative!important;inset:auto!important;
+  left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+  transform:none!important;
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  justify-self:stretch!important;align-self:stretch!important;
+  box-sizing:border-box!important;
+  width:100%!important;max-width:100%!important;
+  height:100%!important;min-height:0!important;max-height:100%!important;
+  flex:none!important;
+  margin:0!important;padding:0!important;
+  gap:4px!important;
+  align-items:stretch!important;justify-items:stretch!important;
+}
+html #overlay[data-screen="selection"] #main-dock>button{
+  width:100%!important;height:100%!important;
+  min-height:0!important;max-height:100%!important;
+  padding:0 0 2px!important;margin:0!important;
+  font-size:clamp(9px,calc(12px * var(--ui-scale,1)),13px)!important;
+  touch-action:manipulation;
+}
+html #overlay[data-screen="selection"] #main-dock>button::before{
+  width:min(90%,calc(64px * var(--ui-scale,1)))!important;
+  max-height:calc(100% - 14px)!important;
+  height:auto!important;aspect-ratio:1!important;
+}
+html #overlay[data-screen="selection"] #main-dock .zz-chip-amount{
+  top:0!important;right:2px!important;
+}
+
+/* These are non-interactive legacy menu bits; hide them instead of
+   letting implicit grid items create an extra row below the viewport. */
+html #overlay[data-screen="selection"]>:is(#message,#results,#pause-settings,
+ #pause-main-menu,#hint,#overlay-fullscreen){
+  display:none!important;
+}
+html #overlay[data-screen="selection"]>.selection-copyright{
+  position:absolute!important;
+  bottom:calc(4px * var(--ui-scale,1) + env(safe-area-inset-bottom,0px))!important;
+  left:3px!important;right:3px!important;
+  margin:0!important;padding:0!important;
+  font-size:clamp(7px,calc(9px * var(--ui-scale,1)),10px)!important;
+  line-height:1.1!important;
+  z-index:2!important;
+  pointer-events:none!important;
+}
+html #overlay[data-screen="selection"] #heroes .reel-arrow{
+  touch-action:manipulation!important;
+}
+
+/* On short windows the SAME six rows shrink together, never scroll. */
+@media(max-height:650px){
+ html #overlay[data-screen="selection"]{
+  padding-top:calc(34px * var(--ui-scale,1) + env(safe-area-inset-top,0px))!important;
+  padding-bottom:calc(32px * var(--ui-scale,1) + env(safe-area-inset-bottom,0px))!important;
+  grid-template-rows:minmax(0,26fr) minmax(0,31fr) minmax(0,9fr)
+   minmax(0,4fr) minmax(0,16fr) minmax(0,14fr)!important;
+ }
+ html #overlay[data-screen="selection"]>.overlay-logo{
+  width:min(90%,calc(278px * var(--ui-scale,1)))!important;
+ }
+ html #overlay[data-screen="selection"] #main-dock>button::before{
+  width:min(90%,calc(58px * var(--ui-scale,1)))!important;
+ }
+}
+@media(max-height:490px){
+ html #overlay[data-screen="selection"]{
+  padding-top:calc(30px * var(--ui-scale,1) + env(safe-area-inset-top,0px))!important;
+  padding-bottom:calc(27px * var(--ui-scale,1) + env(safe-area-inset-bottom,0px))!important;
+  grid-template-rows:minmax(0,21fr) minmax(0,34fr) minmax(0,10fr)
+   minmax(0,4fr) minmax(0,16fr) minmax(0,15fr)!important;
+ }
+ html #overlay[data-screen="selection"]>.overlay-logo{
+  width:min(87%,calc(250px * var(--ui-scale,1)))!important;
+ }
+ html #overlay[data-screen="selection"]>#start{
+  font-size:clamp(14px,calc(19px * var(--ui-scale,1)),21px)!important;
+  padding-bottom:7px!important;
+ }
+ html #overlay[data-screen="selection"] #main-dock>button::before{
+  width:min(90%,calc(48px * var(--ui-scale,1)))!important;
+ }
+}
