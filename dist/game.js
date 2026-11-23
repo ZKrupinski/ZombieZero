@@ -145,7 +145,7 @@ function spawnContact(b,x,y,nx,ny,kind){
  if(!b||b.held)return;
  if(Number.isFinite(b.contactAt)&&clock-b.contactAt<.045)return;
  b.contactAt=clock;
- queueContact(ballContactFX,x,y,nx,ny,kind,null);
+ queueContact(ballContactFX,x,y,nx,ny,kind,null,miniBallScale());
 }
 function queueContact(queue,x,y,nx,ny,kind,target,sizeMultiplier=1){
  queue.push({x,y,nx,ny,kind,target,sizeMultiplier,tone:0,
@@ -186,6 +186,10 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
    const impactScale=f.kind==='ground'?.68:.2175;
    const size=impactScale*f.sizeMultiplier;
    g.scale(size,size);
+  }else if(f.sizeMultiplier!==1){
+   // Player-ball sparks shrink only in Mini Horde; citizen shots are never
+   // part of ballContactFX and keep their original bitmap dimensions.
+   g.scale(f.sizeMultiplier,f.sizeMultiplier);
   }
   g.globalCompositeOperation=trash&&u<.18?'lighter':'source-over';
   g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
@@ -443,7 +447,7 @@ function drawTrailGroundReflections(b,r,path){
     const rgb=has('fire')&&i%2===0?
       (typeof TRAIL_GROUND_FIRE!=='undefined'?TRAIL_GROUND_FIRE[0]:[255,139,51]):
       TRAIL_GROUND_PIERCE[0];
-    drawProjectedLightSpill(p.x,p.y,(r>8?34:30)*(1-.12*u),
+    drawProjectedLightSpill(p.x,p.y,(has('power')?34:30)*miniBallScale()*(1-.12*u),
      rgb,.34*fade,30,.82,true,false);
    }
    return;
@@ -467,7 +471,7 @@ function drawTrailGroundReflections(b,r,path){
  const colors=fire&&pierce?TRAIL_GROUND_FIRE_PIERCE:fire?TRAIL_GROUND_FIRE:
    pierce?TRAIL_GROUND_PIERCE:power?TRAIL_GROUND_POWER:defaultColors;
  const baseAlpha=fire||pierce?(power ? .66 : .60):(power ? .53 : .39);
- const radius=fire||pierce?(power?34:28):power?28:24;
+ const radius=(fire||pierce?(power?34:28):power?28:24)*miniBallScale();
  // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
  // both ends present. At most 20 two-layer pools per ball for mobile GPUs.
  // 3+ simultaneous fire/pierce balls already have a bright elemental ribbon.
@@ -526,7 +530,7 @@ function drawEffectLightSpills(){
     clamp(f.groundY-f.y+6,26,105):29;
   const rgb=f.piercing?[87,213,255]:f.critical?[255,226,142]:[255,194,105];
   const alpha=(f.critical?.79:.64)*Math.pow(1-u,1.25);
-  drawProjectedLightSpill(f.x,f.y,f.critical?74:54,rgb,alpha,drop,.94);
+  drawProjectedLightSpill(f.x,f.y,(f.critical?74:54)*(f.miniFxScale||1),rgb,alpha,drop,.94);
   drawHitGroundGlint(f,u,drop);
  }
  for(const b of barrelBlasts){
@@ -572,15 +576,15 @@ function drawEffectLightSpills(){
   if(b.held)continue;
   const r=heroBallRadius(),drop=ballProjectionDrop(r);
   if(has('pierce')){
-   drawProjectedLightSpill(b.x,b.y,has('power')?24:20,
+   drawProjectedLightSpill(b.x,b.y,(has('power')?24:20)*miniBallScale(),
      [81,204,255],has('fire')?.10:.16,drop,.82,false,false);
   }
   if(has('fire')){
-   drawProjectedLightSpill(b.x,b.y,has('power')?28:24,
+   drawProjectedLightSpill(b.x,b.y,(has('power')?28:24)*miniBallScale(),
      [255,133,47],has('pierce')?.12:.20,drop,.82,false,false);
   }
   if(has('power')&&!has('fire')&&!has('pierce'))
-   drawProjectedLightSpill(b.x,b.y,26,[255,219,111],.17,drop,.82,false,false);
+   drawProjectedLightSpill(b.x,b.y,26*miniBallScale(),[255,219,111],.17,drop,.82,false,false);
  }
 }
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
@@ -1798,7 +1802,7 @@ function end(reason,detail=null){
 function retireBall(b,reason='expire'){
  if(!b||b.held)return;
  ballVanish.push({x:b.x,y:clamp(b.y,18,H-14),trail:(b.trail||[]).slice(0,8),
-   reason,t:0,life:reason==='lost'?.65:.5});
+   miniScale:miniBallScale(),reason,t:0,life:reason==='lost'?.65:.5});
  if(ballVanish.length>22)ballVanish.splice(0,ballVanish.length-22);
  if(fxEnabled)burst(b.x,clamp(b.y,24,H-24),reason==='lost'?'#ff9d9f':'#b8f9ef',6);
 }
@@ -2148,6 +2152,7 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  if(!burning){
   hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,groundY:z.y+z.h,
    t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),
+   miniFxScale:isMiniHorde()?MINI_HORDE_SCALE:1,
    piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});
   if(hitFlashes.length>36)hitFlashes.shift();
   // Scarlett's third handbag return earns a prismatic hit without floating text.
@@ -2780,6 +2785,9 @@ function drawBallVanish(){
   if(!fade)continue;
   const col=f.reason==='lost'?'#ff9bad':f.reason==='clear'?'#fff2a0':'#b8f9ed';
   g.save();
+  if((f.miniScale||1)<1){
+   g.translate(f.x,f.y);g.scale(f.miniScale,f.miniScale);g.translate(-f.x,-f.y);
+  }
   for(let i=0;i<13;i++){
    const a=i*2.39996,dist=5+t*(18+i%3*7),sz=Math.max(1,Math.ceil((5-i%3)*(1-t*.6)));
    g.globalAlpha=fade*(i%2?.6:1);g.fillStyle=i%4===0?'#fff6e5':col;
@@ -2823,7 +2831,7 @@ function drawImpactFlashes(){
   const t=clamp((f.t-(f.delay||0))/Math.max(.01,f.life-(f.delay||0)),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  const drawHit=()=>drawPixelBurst(f.x,f.y,t,f.critical?55:(f.spread||44),f.critical?32:16,
+  const drawHit=()=>drawPixelBurst(f.x,f.y,t,(f.critical?55:(f.spread||44))*(f.miniFxScale||1),(f.critical?32:16)*(f.miniFxScale||1),
     (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.75,
     f.critical?.56:1.45,f.critical?1.3:.78,f.critical?1:.35);
   // Critical hits retain full shader; ordinary hits get only subtle local glow.
