@@ -111,9 +111,14 @@ function touchLineTo(e,canvas,allowCorner=true){
  const stroke=touchStroke;
  if(!stroke.axis){
   const dx=p.x-stroke.originX,dy=p.y-stroke.originY;
-  if(Math.max(Math.abs(dx),Math.abs(dy))<TOUCH_DIRECTION_START)return;
-  stroke.axis=Math.abs(dx)>Math.abs(dy)*TOUCH_AXIS_RATIO?'x':
-    Math.abs(dy)>Math.abs(dx)*TOUCH_AXIS_RATIO?'y':'diagonal';
+  const ax=Math.abs(dx),ay=Math.abs(dy),major=Math.max(ax,ay),minor=Math.min(ax,ay);
+  if(major<TOUCH_DIRECTION_START)return;
+  // The first 1-tile movement may contain nearly as much finger jitter as
+  // intentional travel. Defer ambiguous angles until a longer gesture makes
+  // its true direction apparent; don't commit a diagonal ghost prematurely.
+  const ratio=allowCorner?TOUCH_AXIS_RATIO:1.2;
+  if(major<minor*ratio && major<T*1.5 && allowCorner)return;
+  stroke.axis=ax>ay*ratio?'x':ay>ax*ratio?'y':'diagonal';
  }
  if(stroke.axis==='diagonal'){
   lineTo(raw);
