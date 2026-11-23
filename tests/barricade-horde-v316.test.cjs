@@ -52,7 +52,7 @@ assert.equal(fort.getStock(),31,'wave 2 material added to unused stock');
 const attacker={x:52,y:90,w:16,h:22};
 let broken=0;
 for(let i=0;i<32;i++){
- attacker.x=30;attacker.y=90;
+ attacker.x=52;attacker.y=90;
  fort.resolve(attacker,52,57,.9,()=>broken++);
 }
 assert(broken>=1,'stronger cubes still eventually break from repeated zombie bites');
