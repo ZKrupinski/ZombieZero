@@ -22,6 +22,7 @@ function make(seed={}){
  };
  const box={
   window:{},navigator:{vibrate(pattern){pulses.push(pattern);return true}},
+  $:id=>id==='haptics-toggle'?btn:null,
   document:{hidden:false,getElementById(id){return id==='haptics-toggle'?btn:null}},
   localStorage:{
    getItem(k){return data.has(k)?data.get(k):null},
