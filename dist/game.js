@@ -3514,8 +3514,12 @@ function drawHeroBallSprite(b,r,col){
  // independently rotate by spinAngle. No angle snap when a ball hits a wall.
  g.translate(b.x,b.y);g.rotate(pose.rotation);g.scale(pose.sx,pose.sy);
  g.rotate(pose.spin-pose.rotation);
- // Compensate for the bitmap margins at the shared gameplay radius.
- if(selectedHero===3)g.scale(1.38,1.38);
+ // Wrench uses a separate steel-ball bitmap drawn at 2r before scaling.
+ // The old 1.38x rendered it at 2.76r, about 81% of Ace's 3.40r tennis
+ // sprite. 1.85x renders it at 3.70r (about 9% larger than Ace), as intended.
+ // Keep the shared collision radius, wall reflection, trail and ball velocity.
+ // This visual correction applies equally to held and airborne steel balls.
+ if(selectedHero===3)g.scale(1.85,1.85);
  else if(selectedHero===1)g.scale(1.08,1.08);
  if(selectedHero===3 && $('wrench-ball-art')?.naturalWidth){g.drawImage($('wrench-ball-art'),-r,-r,r*2,r*2)}else if(ready){
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
