@@ -82,3 +82,6 @@
  #fortress-actions button,#fortress-ready{min-height:41px;font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){#fortress-ready{animation:none}}
+
+/* Keep pause/results dialogs unobstructed when a build is suspended. */
+.stage:has(#overlay:not([hidden])) .zz-fortress-builder{display:none!important}
