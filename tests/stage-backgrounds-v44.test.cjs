@@ -11,7 +11,7 @@ assert(html.indexOf('stage-backgrounds-v57.js')<html.indexOf('game.js?v=93-multi
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'offline cache invalidated');
 assert(!game.includes('setStageBackground();PY='),'stage transitions never modify ball collision Y');
 assert(game.includes('wave++;setStageBackground();'),'every advancing stage switches theme');
-assert(game.includes("setStageBackground(true);lives=hero().lives"),'new campaign and endless runs reset backdrop correctly');
+assert(game.includes("setStageBackground(true);lives=maxHeroLives()"),'new campaign and endless runs reset backdrop correctly');
 assert(game.includes("STAGE_FADE_SECONDS=.9"),'fade lasts 0.9 seconds');
 assert(game.includes('proceduralBackground();return'),'original background remains safe fallback');
 assert(game.includes('STAGE_PLAYFIELD_VEIL'),'central contrast veil exists');
