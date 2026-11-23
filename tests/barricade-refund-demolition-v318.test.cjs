@@ -129,4 +129,14 @@ for(const id of ['fortress-build-count','fortress-supply','fortress-tool','fortr
 assert(html.includes('fortress-mode.js?v=318-refund-erase-builder'));
 assert(html.includes('fortress-mode.css?v=318-refund-erase-builder'));
 assert(sw.includes('v318-refund-erase-builder'),'PWA cache refreshed');
-console.log('PASS v318: zombie-loss refund plus bonus, dynamic buildable budget, red erase preview, finger actions, cancellation, repairs and zero-stock recycling.');
+// V319: all 20 wall-grid rows (y=82..522) must remain uncovered by
+// persistent HUD. Ready stays below row 20 but above the relocated panel.
+const panel=css.match(/\\.zz-fortress-top\\s*\\{([^}]*)\\}/)?.[1]||'';
+const ready=css.match(/#fortress-ready\\s*\\{([^}]*)\\}/)?.[1]||'';
+assert(panel.includes('top:auto;bottom:1.2%'),'construction info must be anchored to lower hero/citizen strip');
+assert(!panel.includes('top:2.8%'),'old top-covering HUD removed');
+assert(ready.includes('top:79%'),'ready moved below the bottommost building cell');
+assert(710*.79-46/2 > 82+20*22,'ready button never covers a buildable grid row');
+assert(html.includes('fortress-mode.css?v=318-refund-erase-builder-v319-bottom-ui'),'changed stylesheet invalidates web cache');
+assert(sw.includes('v319-bottom-ui'),'service-worker shell refreshes the bottom HUD');
+console.log('PASS v318/v319: resource refund, erase/repair, floating controls, bottom HUD outside building grid.');
