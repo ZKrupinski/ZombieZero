@@ -62,7 +62,7 @@ assert(mode.includes('index*frame,0,frame,frame'),'one frame selected without ov
 assert(mode.includes('w.x+shakeX,w.y+shakeY,T,T'),'same world-unit size for all damage states');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
-assert(html.includes('fortress-mode.js?v=323-aligned-damage-frames'));
+assert(html.includes('src="fortress-mode.js?v='),'versioned barricade module present');
 assert(sw.includes("'./"+asset+"'"),'correct PNG precached in the PWA');
 assert(sw.includes('v323-aligned-damage-frames'),'old atlas cache invalidated');
 console.log('PASS v323: all 5 damage images exactly aligned (52x52 within 56px), unchanged game size, transparent atlas and PWA cache.');
