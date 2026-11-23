@@ -23,14 +23,14 @@ const canvas={
  getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}
 };
-const point=(col,row=0)=>({pointerId:17,button:0,clientX:59+22*col,clientY:92+22*row});
+const point=(col,row=0)=>({pointerId:17,button:0,clientX:48+22*col,clientY:92+22*row});
 function drag(first,last,row=0){
  assert.equal(fort.down(point(first,row),canvas),true);
  fort.move(point(last,row),canvas);
  assert.equal(fort.up(point(last,row),canvas),true);
 }
 function chip(col,row=0){
- const x=52+22*col,y=90+22*row,enemy={x,y,w:16,h:22};
+ const x=41+22*col,y=90+22*row,enemy={x,y,w:16,h:22};
  assert.equal(fort.resolve(enemy,x,y-35,.79,()=>{}),true);
 }
 fort.reset();fort.begin([],1);
