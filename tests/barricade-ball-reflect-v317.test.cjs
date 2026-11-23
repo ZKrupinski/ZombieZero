@@ -51,12 +51,12 @@ assert.equal(fort.getWallCount(),1,'durability unaffected by repeated ball impac
 const attacker={x:52,y:90,w:16,h:22};
 let bites=0;
 for(let i=0;i<9;i++){
- attacker.x=30;attacker.y=90;
+ attacker.x=52;attacker.y=90;
  fort.resolve(attacker,52,57,.79,()=>bites++);
 }
 assert.equal(bites,0,'zombie needs substantially more bites even after repeated ball hits');
 for(let i=0;i<23;i++){
- attacker.x=30;attacker.y=90;
+ attacker.x=52;attacker.y=90;
  fort.resolve(attacker,52,57,.79,()=>bites++);
 }
 assert.equal(bites,1,'zombie attacks do damage to wall');
