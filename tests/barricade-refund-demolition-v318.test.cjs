@@ -23,7 +23,7 @@ const win={};new Function('window','document',mod)(win,doc);
 const fort=win.ZZFortress;
 const canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}};
-const p=(col,row)=>({clientX:27+col*22+10,
+const p=(col,row)=>({clientX:49+col*22+10,
  clientY:82+row*22+10,pointerId:42,button:0});
 function drag(a,b,row){
  assert.equal(fort.down(p(a,row),canvas),true);
@@ -31,7 +31,7 @@ function drag(a,b,row){
  assert.equal(fort.up(p(b,row),canvas),true);
 }
 function bite(col,row,count){
- const x=27+col*22+3,y=82+row*22+3;
+ const x=49+col*22+3,y=82+row*22+3;
  const z={x,y,w:15,h:16};
  for(let i=0;i<count;i++){
   z.x=x;z.y=y;fort.resolve(z,x,y-30,.79,()=>{});
@@ -105,8 +105,8 @@ assert.equal(fort.getStock(),39,'no duplicate refund in following wave');
 assert.deepEqual(fort.getSupply(),{refund:0,bonus:8});
 // When stock runs out, construction is blocked but removal is still possible.
 fort.reset();fort.begin([],1);
-drag(0,17,0);nodes['fortress-confirm'].click();
-drag(0,7,1);nodes['fortress-confirm'].click();
+drag(0,15,0);nodes['fortress-confirm'].click();
+drag(0,9,1);nodes['fortress-confirm'].click();
 assert.equal(fort.getStock(),0);
 assert.match(nodes['fortress-build-count'].textContent,/0개/);
 drag(0,0,2);
