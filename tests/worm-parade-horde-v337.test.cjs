@@ -99,6 +99,41 @@ for(const mode of ['mini','fortress']){
  assert(ctx.foes.every(z=>z.y>=115||z.y===before.get(z).y),
   'barricade prevents a worm member from passing through its collision blocks');
 }
+// Priority must be the FRONT line after the space below it opens, not
+// the rows nearest the back wall (the earlier v337 random-row behavior).
+for(const mode of ['mini','fortress']){
+ for(const size of [7,10]){
+  const ctx=setup(size,mode);
+  assert(ctx.startWormParade(),'open front should admit the chosen size');
+  assert(state(ctx).members.every(m=>m.z.row===1),
+   'frontmost surviving row has priority over the packed rear row');
+ }
+ const blocked=setup(7,mode);
+ const barrier={x:42,y:164,w:366,h:30,hp:10,boss:true};
+ blocked.foes.push(barrier);
+ assert.equal(blocked.startWormParade(),false,
+  'a boss body directly in front of the pack blocks parade selection');
+ blocked.foes.splice(blocked.foes.indexOf(barrier),1);
+ blocked.clock+=4;
+ assert.equal(blocked.startWormParade(),true,
+  'when the lower lane is cleared, the frontmost zombies may parade');
+ if(mode==='fortress'){
+  const wall=setup(7,mode);
+  // Use the connected game's real fortress hook, with an intentionally
+  // blocked corridor in front of every leading zombie.
+  wall.isFortress=()=>true;
+  wall.fortress={isPathClear:(z,x0,y0,x1,y1)=>y1<=y0};
+  assert.equal(wall.startWormParade(),false,
+   'barricade under the frontline blocks the group event before it begins');
+ }
+}
+assert(source.includes('function wormForwardClearance(group){'),
+ 'use collider space in front, not just stage index or row number');
+assert(source.includes("typeof isFortress==='function'&&isFortress()&&fortress"),
+ 'barriers are part of the candidate-front safety filter');
+assert(source.includes("!fortress.isPathClear(z,z.x,z.y,z.x,z.y+travel)"),
+ 'blocked fortress corridors must not start a group surge');
+
 // Production integration must not double-advance a worm member, spawn extra
 // zombies, interrupt knockback or skip fortress wall resolution.
 assert(source.includes('updateWormParade(dt);\n tryStartBreakouts();'));
