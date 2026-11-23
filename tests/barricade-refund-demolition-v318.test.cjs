@@ -132,7 +132,7 @@ assert(sw.includes('v318-refund-erase-builder'),'PWA cache refreshed');
 // V319: all 20 wall-grid rows (y=82..522) must remain uncovered by
 // persistent HUD. Ready stays below row 20 but above the relocated panel.
 const panel=css.slice(css.indexOf('.zz-fortress-top{'),css.indexOf('}',css.indexOf('.zz-fortress-top{'))+1);
-const ready=css.slice(css.indexOf('#fortress-ready{'),css.indexOf('}',css.indexOf('#fortress-ready{'))+1);
+const ready=css.slice(css.indexOf('\n#fortress-ready{'),css.indexOf('}',css.indexOf('\n#fortress-ready{'))+1);
 assert(panel.includes('top:auto;bottom:1.2%'),'construction info must be anchored to lower hero/citizen strip');
 assert(!panel.includes('top:2.8%'),'old top-covering HUD removed');
 assert(ready.includes('top:79%'),'ready moved below the bottommost building cell');
