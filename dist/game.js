@@ -256,7 +256,7 @@ function drawWorldGroundShadows(){
  // Large trash-bag boss: approved 256px sprite has transparent space below
  // its visible feet. Only its cast-shadow foot pivot gets an upward trim.
  // Keep sprite positions, collider, ground contact and all other mobs intact.
- const zombieGroundShadowFoot=z=>z.y+z.h-3-(z.boss&&z.bossForm===3?18:0);
+ const zombieGroundShadowFoot=z=>z.y+z.h-3*(z.miniScale||1)-(z.boss&&z.bossForm===3?18*(z.miniScale||1):0);
  for(const actor of foes){
   // ObjectZombie and GreenWalk use bottom pivot z.y+z.h+2.
   // Knockback shadows follow their displayed sprites, not future colliders.
@@ -2599,18 +2599,35 @@ function drawEnemyDeaths(){
   const deathAlpha=progress<=.75?1:Math.max(0,(1-progress)*4);
   g.save();
   g.globalAlpha=(Number.isFinite(g.globalAlpha)?g.globalAlpha:1)*deathAlpha;
-  if(d.spriteMode&&window.ZZLargeBossSprites?.available(d.z)===true)
-   window.ZZLargeBossSprites.drawDeath(g,d.z,elapsed,duration);
-  else if(d.spriteMode&&window.ZZEliteSprites?.available(d.z)===true)
-   window.ZZEliteSprites.drawDeath(g,d.z,elapsed,duration);
-  else if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true)
-   window.ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration);
-  else if(d.spriteMode&&window.ZZGreenDeath?.ready===true)
-   window.ZZGreenDeath.draw(g,d.z,d.critical,elapsed);
+  drawMiniEnemy(d.z,visual=>{
+   if(d.spriteMode&&window.ZZLargeBossSprites?.available(visual)===true)
+    window.ZZLargeBossSprites.drawDeath(g,visual,elapsed,duration);
+   else if(d.spriteMode&&window.ZZEliteSprites?.available(visual)===true)
+    window.ZZEliteSprites.drawDeath(g,visual,elapsed,duration);
+   else if(d.spriteMode&&window.ZZObjectSprite?.available(visual)===true)
+    window.ZZObjectSprite.drawDeath(g,visual,d.critical,elapsed,duration);
+   else if(d.spriteMode&&window.ZZGreenDeath?.ready===true)
+    window.ZZGreenDeath.draw(g,visual,d.critical,elapsed);
+  });
   g.restore();
  }
 }
-function zombie(z){
+// Apply a single uniform canvas transform to the APPROVED bitmap renderers,
+// including their death strips. Geometry/physics stay in mini world-space,
+// while all art is sampled from the identical original sprite files.
+function drawMiniEnemy(z,paint){
+ const scale=z?.miniScale||1;
+ if(scale>=1)return paint(z);
+ g.save();
+ g.translate(z.x+z.w/2,z.y+z.h+2*scale);
+ g.scale(scale,scale);
+ try{
+  return paint({...z,x:-z.miniBaseW/2,y:-z.miniBaseH-2,
+   w:z.miniBaseW,h:z.miniBaseH});
+ }finally{g.restore();}
+}
+function zombie(z){return drawMiniEnemy(z,paintOriginalZombie)}
+function paintOriginalZombie(z){
  if(z.boss&&window.ZZLargeBossSprites?.draw(g,z,enemyAnimationClock))return;
  if(!z.boss&&window.ZZEliteSprites?.draw(g,z,enemyAnimationClock))return;
  const originalObject=window.ZZObjectSprite;
