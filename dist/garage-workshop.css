@@ -747,3 +747,53 @@
 #radio-dialog .rx-list{grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))!important}
 #radio-dialog .rx-list li{min-width:0!important}
 #radio-dialog .rx-list li>div{min-width:0!important;overflow-wrap:anywhere!important}
+
+/* v311: multi-stat rewards are visible on each collectible, not only inside
+   the inspector. The previous no-scroll limits remain overridden by v310. */
+#garage-dialog .garage-part-grid{
+ min-height:252px!important;
+ flex:1 0 252px!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-part]{
+ min-height:104px!important;
+ gap:2px!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-part]>.garage-icon{
+ width:clamp(32px,5.6dvh,44px)!important;
+ height:clamp(32px,5.6dvh,44px)!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-part] .garage-part-stat-tags{
+ display:block!important;
+ margin-top:4px!important;
+ padding:2px 0 0!important;
+ border-top:1px solid #8cb7a044!important;
+ color:#c1ebd8!important;
+ font:700 clamp(8px,1.3dvh,10px)/1.2 Arial,'Noto Sans KR',sans-serif!important;
+ white-space:normal!important;
+ word-break:keep-all!important;
+ overflow:visible!important;
+}
+#garage-dialog .garage-shell .garage-stat-explainer{
+ margin:5px 0 0!important;
+ padding:4px 0 0!important;
+ border-top:1px solid #627b7f55!important;
+ color:#cfe3d4!important;
+ font:700 9px/1.3 Arial,'Noto Sans KR',sans-serif!important;
+ white-space:normal!important;overflow:visible!important;
+ word-break:keep-all!important;
+}
+#garage-dialog .garage-detail .garage-effect-stat{
+ color:#ffdd93!important;
+ font-weight:900!important;
+ line-height:1.35!important;
+}
+@media(max-height:540px){
+ #garage-dialog .garage-part-grid{min-height:244px!important;flex-basis:244px!important}
+ #garage-dialog .garage-part-grid .garage-slot button[data-part]{
+  min-height:100px!important;
+ }
+ #garage-dialog .garage-part-grid .garage-slot button[data-part]>.garage-icon{
+  width:31px!important;height:31px!important;
+ }
+ #garage-dialog .garage-shell .garage-stat-explainer{font-size:9px!important}
+}
