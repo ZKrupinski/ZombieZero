@@ -7,7 +7,7 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const ids=['fortress-builder','fortress-actions','fortress-confirm','fortress-cancel',
  'fortress-ready','fortress-stock','fortress-tip','fortress-build-count',
- 'fortress-supply','fortress-preview-summary','fortress-tool'];
+ 'fortress-supply','fortress-preview-summary'];
 const nodes={};
 for(const id of ids)nodes[id]={hidden:false,disabled:false,textContent:'',style:{},dataset:{},
  addEventListener(name,fn){this[name]=fn},setAttribute(){},
@@ -77,26 +77,25 @@ assert.equal(fort.getPreview().balance,0);
 stop(0,0);confirm();
 assert.equal(fort.getStock(),0);
 assert.equal(fort.getWallCount(),26);
-// Repair preview also obeys material budget while dragging.
+// Surviving walls heal free at the next stage, irrespective of materials.
 fort.begin([],2);
 assert.equal(fort.getStock(),8);
 for(let i=0;i<9;i++)bite(i%3,2);
-nodes['fortress-tool'].click();
-drag(0,2,2);
-assert.equal(fort.getPreview().repairs,3);
-nodes['fortress-cancel'].click();
-// Consume 8 supplies using new blocks, leaving 0 for repairs.
-nodes['fortress-tool'].click();
-drag(0,7,3);confirm();
-assert.equal(fort.getStock(),0);
-nodes['fortress-tool'].click();
+assert.equal(fort.getWallHP(0,2),27,'survivors may be damaged in combat');
+fort.begin([],3);
+assert.equal(fort.getStock(),16,'only normal supply replenishes stock');
+assert.equal(fort.getWallHP(0,2),30,'surviving barricade heals at no cost');
+assert.equal(fort.getSupply().healed,26);
+drag(0,15,3);confirm();
+assert.equal(fort.getStock(),0,'all 16 materials spent on new blocks');
+assert.equal(fort.getWallHP(0,2),30,'healed wall does not require material');
+// Already-built cells can still be demolished and refunded at zero stock.
 start(0,2);move(2,2);
-assert.equal(fort.getPreview().repairs,0);
-assert.equal(fort.getPreview().repairCost,0);
-stop(2,2);
-assert.equal(nodes['fortress-actions'].hidden,true);
-// Existing damaged cube remains damaged if blocked.
-assert.equal(fort.getWallHP(0,2),27);
+assert.equal(fort.getPreview().removes,3);
+assert.equal(fort.getPreview().balance,3);
+stop(2,2);nodes['fortress-cancel'].click();
+assert.equal(fort.getStock(),0);
+assert.equal(fort.getWallHP(0,2),30,'cancel preserves healed wall');
 assert(html.includes('src="fortress-mode.js?v='),'fortress module remains cache-versioned');
 assert(sw.includes('v324-live-drag-budget'));
-console.log('PASS v324: live drag caps at materials, zero stock stops drawing, red demolition refunds and mixed build/repair remain valid.');
+console.log('PASS v324: live drag caps at materials, zero stock stops drawing, red demolition refunds and free wave healing remain valid.');
