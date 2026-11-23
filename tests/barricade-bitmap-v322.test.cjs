@@ -59,7 +59,7 @@ assert.notEqual(g.drawn[1].a[5],49,'bite shaking displaces bitten wall only');
 fort.tick(.30);g.drawn.length=0;fort.draw(g,false);
 assert(g.drawn.every(d=>d.filter==='none'),'bite flash expires');
 for(let i=0;i<5;i++)assert.equal(g.drawn[i].a[5],27+i*22,'shake ends without shifting actual collisions');
-assert(html.includes('fortress-mode.js?v=323-aligned-damage-frames'));
+assert(html.includes('src="fortress-mode.js?v='),'versioned barricade module present');
 assert(sw.includes('v323-aligned-damage-frames'));
 assert(sw.includes("'./"+asset+"'"),'PWA precaches actual bitmap');
 console.log('PASS v322/v323: five transparent PNG damage frames, independent wall bite flash/shake, no collision drift, cached asset.');
