@@ -1253,7 +1253,8 @@ function tryStartBreakouts(){
 // Its long lateral sweeps use ordinary sprite movement with modest depth jukes.
 const BOSS_SWEEP_MIN=84,BOSS_SWEEP_MAX=190,BOSS_SWEEP_SPEED=118,BOSS_DEPTH_SWAY=18;
 function bossPatrolFree(z,x,y,gap=8){
- if(!insideZombieRoad(z,{x,y}))return false;
+ if(!insideZombieRoad(z,{x,y})||
+   isFortress()&&fortress&&!fortress.isPathClear(z,z.x,z.y,x,y))return false;
  return foes.every(other=>other===z||
   !zombieBoxesOverlap(z,{x,y},other,{x:other.x,y:other.y},gap));
 }
@@ -2072,8 +2073,14 @@ function knockVisualPosition(z){
  if(!(z.knockTime>0)||!Number.isFinite(z.knockFromX))return z;
  const t=knockMotionProgress(z);
  const ease=1-Math.pow(1-t,3);
- return {...z,x:z.knockFromX+(z.x-z.knockFromX)*ease,
-              y:z.knockFromY+(z.y-z.knockFromY)*ease};
+ const x=z.knockFromX+(z.x-z.knockFromX)*ease,
+       y=z.knockFromY+(z.y-z.knockFromY)*ease;
+ // Final knockback colliders may be safe while a visual tween crosses an
+ // intervening wall. Never paint a zombie on top of the barricade bitmap.
+ if(isFortress()&&fortress&&
+   (!fortress.isOpen(z,x,y)||
+    !fortress.isPathClear(z,z.knockFromX,z.knockFromY,x,y)))return z;
+ return {...z,x,y};
 }
 function zombieBoxesOverlap(a,pa,b,pb,gap=.5){
  return pa.x<pb.x+b.w+gap&&pa.x+a.w+gap>pb.x&&
@@ -2081,19 +2088,23 @@ function zombieBoxesOverlap(a,pa,b,pb,gap=.5){
 }
 function insideZombieRoad(z,p){
  return p.x>=zombieMinX()&&p.x<=zombieMaxX(z)&&
-        p.y>=ENEMY_TOP_Y&&p.y+z.h<=DEFENSE_Y-16;
+        p.y>=ENEMY_TOP_Y&&p.y+z.h<=DEFENSE_Y-16&&
+        (!isFortress()||!fortress||fortress.isOpen(z,p.x,p.y));
 }
 function canKnockback(z,x,y){
  const pos={x,y};
- return insideZombieRoad(z,pos)&&!foes.some(other=>other!==z&&
-   zombieBoxesOverlap(z,pos,other,{x:other.x,y:other.y},1));
+ return insideZombieRoad(z,pos)&&
+   (!isFortress()||!fortress||fortress.isPathClear(z,z.x,z.y,x,y))&&
+   !foes.some(other=>other!==z&&
+    zombieBoxesOverlap(z,pos,other,{x:other.x,y:other.y},1));
 }
 function planKnockPush(z,dx,dy,plans,depth=0){
  // Knockback must NEVER move an enemy toward the defense line (positive Y),
  // including recursive pushes and the overlap-repair pass in march().
  if(dy>0||z.boss||depth>KNOCK_CHAIN_LIMIT||plans.has(z))return false;
  const pos={x:z.x+dx,y:z.y+dy};
- if(!insideZombieRoad(z,pos))return false;
+ if(!insideZombieRoad(z,pos)||
+   isFortress()&&fortress&&!fortress.isPathClear(z,z.x,z.y,pos.x,pos.y))return false;
  plans.set(z,{...pos,chainDepth:depth});
  const pushX=Math.abs(dx)>=Math.abs(dy);
  const direction=Math.sign(pushX?dx:dy);
@@ -3543,6 +3554,9 @@ function drawStruckZombie(z){
 function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building');
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
+  // A ghost streak must not be drawn straight through a barricade either.
+  if(isFortress()&&fortress&&
+    !fortress.isPathClear(z,z.knockFromX,z.knockFromY,z.x,z.y))continue;
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
   g.save();g.globalAlpha=.4*fade;
   zombie({...z,x:z.knockFromX,y:z.knockFromY,flash:0,burn:0,knockTime:0});
