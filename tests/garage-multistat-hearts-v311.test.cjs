@@ -55,7 +55,7 @@ assert.equal((game.match(/lives=maxHeroLives\(\)/g)||[]).length,2,
  'both game start and retry must use equipped max hearts');
 assert.equal((game.match(/lives=Math.min\(maxHeroLives\(\),lives\+1\)/g)||[]).length,2,
  'campaign and endless 5-wave healing must respect equipped max hearts');
-assert(game.includes('const driveSpeed=hero().speed*(1+garageCombat().speed/100)'),
+assert(game.includes('const driveSpeed=hero().speed*(1+(garageCombat().speed||0)/100)'),
  'combined equipment speed must affect real movement');
 assert(game.includes('const moduleAttack=1+garageCombat().attack/100'),
  'combined attack must affect real damage');
