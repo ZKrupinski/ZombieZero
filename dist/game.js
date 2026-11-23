@@ -845,7 +845,7 @@ function hud(){
  document.documentElement?.classList?.toggle?.('zz-endless-hud',runMode==='endless');
  $('survival-metric').hidden=runMode!=='endless';
  $('survival-time').textContent=survivalClock(endlessSurvival);
- $('wave-label').textContent=runMode==='endless'?'WAVE':'현재 스테이지';
+ $('wave-label').textContent=runMode==='endless'?'WAVE':isMiniHorde()?'MINI HORDE':'현재 스테이지';
  $('score').textContent=String(score);
   // Long scores scale gently within their fixed HUD column, never ellipsize.
   $('score').style?.setProperty?.('--zz-score-shrink',String(Math.min(1,6/Math.max(6,score.toString().length))));
@@ -1771,7 +1771,7 @@ function end(reason,detail=null){
   $('result-stage').textContent=survivalClock(endlessSurvival);
   $('result-cleared').textContent='최장 '+survivalClock(bestEndlessSurvival)+' · ∞ '+endlessWaveNumber()+' 웨이브';
  }else{
-  $('result-stage-label').textContent='도달 스테이지';
+  $('result-stage-label').textContent=isMiniHorde()?'미니 호드 도달 스테이지':'도달 스테이지';
   $('result-stage').textContent=wave+' 스테이지';
   $('result-cleared').textContent=(wave-1)+'개 클리어';
  }
