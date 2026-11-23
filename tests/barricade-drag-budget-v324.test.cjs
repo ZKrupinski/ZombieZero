@@ -24,7 +24,9 @@ const confirm=()=>nodes['fortress-confirm'].click();
 const drag=(a,b,row=0)=>{start(a,row);move(b,row);stop(b,row)};
 function bite(col,row=0){
  const x=41+col*22,y=90+row*22,z={x,y,w:16,h:22};
- fort.resolve(z,x,y-35,.79,()=>{});
+ // Approach the selected row from the empty row below; the upper rows
+ // already have solid barricades and are not a valid bite origin.
+ fort.resolve(z,x,y+30,.79,()=>{});
 }
 fort.reset();fort.begin([],1);
 // Spend 17 cubes on the first row. Remaining nine are visible immediately.
