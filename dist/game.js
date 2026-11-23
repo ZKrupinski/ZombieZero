@@ -1596,8 +1596,14 @@ function march(dt){
  // and diagonally repositioned rogues. The sprites may touch, never interpenetrate.
  for(let pass=0;pass<2;pass++){
   let corrected=0;
+  const compact=isMiniHorde();
   for(let i=0;i<foes.length;i++)for(let j=i+1;j<foes.length;j++){
-   const a=foes[i],b=foes[j],pa={x:a.x,y:a.y},pb={x:b.x,y:b.y};
+   const a=foes[i],b=foes[j];
+   // 18x8 mobs make 10k pairs: reject distant rectangles before allocating
+   // any temporary position objects. Base mode keeps the original code path.
+   if(compact&&(a.x>=b.x+b.w||b.x>=a.x+a.w||
+      a.y>=b.y+b.h||b.y>=a.y+a.h))continue;
+   const pa={x:a.x,y:a.y},pb={x:b.x,y:b.y};
    if(!zombieBoxesOverlap(a,pa,b,pb,0))continue;
    const dx=a.x+a.w/2-b.x-b.w/2,dy=a.y+a.h/2-b.y-b.h/2,
      overlapX=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),
