@@ -28,7 +28,7 @@ for(const name of ['campaign','endless']){
  assert.equal(el('label').textContent,'NOVALIGHT ARCADE 001 / ZOMBIE SURVIVAL');
  assert.equal(el('title').textContent,'From HERO to ZERO');
  assert.equal(el('endless').textContent,'ENDLESS WAVE');
- assert.equal(el('start').innerHTML.includes("LET'S ROLL, RIA!"),true);
+ assert.equal(el('start').textContent,'Game Start!','campaign start CTA stays constant after returning to character selection');
  assert.equal(run('selectedHero'),2);
  el('start').onclick();
  assert.equal(run('runMode'),'campaign');
