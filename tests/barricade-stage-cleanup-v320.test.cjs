@@ -66,7 +66,7 @@ assert.equal(f.getWallHP(0,0),1,'normal zombie needs 30 bites to destroy');
 z.x=41;z.y=90;f.resolve(z,41,57,.79,()=>{});
 assert.equal(f.getWallCount(),0);
 assert.equal(f.getPendingRefund(),1,'destroyed cube still refunds exactly one material');
-f.begin([],2);assert.deepEqual(f.getSupply(),{refund:1,bonus:8});
+f.begin([],2);assert.deepEqual(f.getSupply(),{refund:1,bonus:8,healed:0});
 assert(html.includes('src="fortress-mode.js?v='),'versioned barricade module is loaded');
 assert(html.includes('v320-clear-effects-strong-walls'),'main game script cache invalidated');
 assert(sw.includes('v320-clear-effects-strong-walls'),'PWA cache invalidated');
