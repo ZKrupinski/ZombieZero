@@ -12,7 +12,10 @@ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selec
   inset:0!important;
   width:100%!important;height:100%!important;
   min-height:0!important;max-height:100%!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  /* Three shared 112px lanes centered in the available 9:16 width:
+     both button rows have matching centers and roughly 10px badge gaps.
+     Side gutters shrink naturally with the existing --ui-scale. */
+  grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,calc(112px * var(--ui-scale,1)))) minmax(0,1fr)!important;
   grid-template-rows:
     minmax(0,28.5fr)
     minmax(0,30fr)
@@ -183,13 +186,13 @@ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selec
   cursor:pointer;touch-action:manipulation;
 }
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>#endless{
-  grid-column:1!important;background-position:0% 50%!important;
+  grid-column:2!important;background-position:0% 50%!important;
 }
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>#mini-horde{
-  grid-column:2!important;background-position:50% 50%!important;
+  grid-column:3!important;background-position:50% 50%!important;
 }
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>#fortress-horde{
-  grid-column:3!important;background-position:100% 50%!important;
+  grid-column:4!important;background-position:100% 50%!important;
 }
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde) small{
   display:none!important;
@@ -204,7 +207,7 @@ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selec
 /* Garage / Radio / Upgrade remain the same approved raster buttons. Their
    previously absolute dock is now the SIXTH grid row below extra modes. */
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock{
-  grid-column:1/-1!important;grid-row:6!important;
+  grid-column:2/5!important;grid-row:6!important;
   position:relative!important;inset:auto!important;
   left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
   transform:none!important;
@@ -215,7 +218,7 @@ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selec
   height:100%!important;min-height:0!important;max-height:100%!important;
   flex:none!important;
   margin:0!important;padding:0!important;
-  gap:4px!important;
+  gap:0!important;
   align-items:stretch!important;justify-items:stretch!important;
 }
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button{
@@ -226,12 +229,61 @@ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selec
   touch-action:manipulation;
 }
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button::before{
-  width:min(90%,calc(64px * var(--ui-scale,1)))!important;
+  width:min(96%,calc(82px * var(--ui-scale,1)))!important;
   max-height:calc(100% - 14px)!important;
   height:auto!important;aspect-ratio:1!important;
 }
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock .zz-chip-amount{
   top:0!important;right:2px!important;
+}
+
+/* v334 — Compact paired menu rows with tactile arcade tap feedback.
+   Keep six independent buttons with their original event listeners; only
+   their press state is animated. Click targets stay in the grid. */
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde){
+  transition:transform 100ms cubic-bezier(.18,.85,.28,1.35),
+             filter 120ms ease-out!important;
+  will-change:transform,filter;
+  -webkit-tap-highlight-color:transparent;
+}
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde):active{
+  transform:translateY(calc(3px * var(--ui-scale,1))) scale(.91)!important;
+  filter:drop-shadow(0 1px 1px #07111a) brightness(1.3) saturate(1.14)!important;
+}
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde):focus-visible{
+  outline:2px solid #ffec99!important;
+  outline-offset:calc(2px * var(--ui-scale,1))!important;
+}
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button{
+  position:relative!important;
+  transition:transform 105ms cubic-bezier(.18,.85,.28,1.35),
+             filter 120ms ease-out!important;
+  transform-origin:center 60%;
+  -webkit-tap-highlight-color:transparent;
+}
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button::before{
+  transition:transform 105ms cubic-bezier(.18,.85,.28,1.35),
+             filter 120ms ease-out!important;
+  transform-origin:center 67%;
+}
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button:active{
+  transform:translateY(calc(3px * var(--ui-scale,1))) scale(.95)!important;
+  filter:brightness(1.2) saturate(1.15)!important;
+}
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button:active::before{
+  transform:scale(.91) rotate(-3deg)!important;
+  filter:drop-shadow(0 1px 1px #031521) brightness(1.25)!important;
+}
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button:focus-visible{
+  outline:2px solid #ffec99!important;
+  outline-offset:-2px!important;
+}
+@media(prefers-reduced-motion:reduce){
+ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>:is(#endless,#mini-horde,#fortress-horde),
+ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button,
+ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"] #main-dock>button::before{
+  transition:none!important;
+ }
 }
 
 /* These are non-interactive legacy menu bits; hide them instead of
