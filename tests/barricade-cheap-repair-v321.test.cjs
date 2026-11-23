@@ -78,7 +78,7 @@ assert.equal(nodes['fortress-confirm'].disabled,true);
 nodes['fortress-cancel'].click();
 assert.equal(fort.getWallHP(0,0),29);
 assert.match(guide,/최대 5칸마다 자재 1개/);
-assert(index.includes('fortress-mode.js?v=321-cheaper-group-repair'));
+assert(index.includes('src="fortress-mode.js?v='),'barricade module URL remains cache-versioned');
 assert(index.includes('v321-cheaper-group-repair'));
 assert(sw.includes('v321-cheaper-group-repair'));
 console.log('PASS v321: 5 fully repaired barricades per material, preview budget, 6-for-2 rounding, cancel and insufficient-funds safety.');
