@@ -44,9 +44,12 @@
 }
 .zz-fortress-builder[hidden]{display:none!important}
 .zz-fortress-top{
- position:absolute;left:3%;right:3%;top:2.8%;
- display:flex;flex-direction:column;gap:4px;
- padding:8px 10px;background:#112b30ed;border:2px solid #8dd6cb;
+ /* Construction board spans y=82..522 in the 450x710 playfield.
+    Keep this entire panel in the hero/citizen strip below that board. */
+ position:absolute;left:3%;right:3%;top:auto;bottom:1.2%;
+ display:flex;flex-direction:column;gap:3px;
+ box-sizing:border-box;
+ padding:7px 9px;background:#112b30ed;border:2px solid #8dd6cb;
  box-shadow:0 3px 0 #061b24, inset 0 1px #efffc44d;
  text-align:center;
 }
@@ -93,7 +96,8 @@
 #fortress-confirm{background:#e4fb96;color:#14291d}
 #fortress-cancel{background:#344350;color:#f0f3f4}
 #fortress-ready{
- position:absolute;left:50%;top:74%;
+ /* Center at y=561: just below the last build row and above the bottom HUD. */
+ position:absolute;left:50%;top:79%;
  transform:translate(-50%,-50%);min-width:150px;
  background:#ffe1a0;color:#2c2732;border-color:#fff0b8;
  animation:zz-fortress-ready 1.6s ease-in-out infinite alternate;
@@ -108,5 +112,12 @@
 }
 @media(prefers-reduced-motion:reduce){#fortress-ready{animation:none}}
 
+/* Prevent the build-controls panel from consuming any of the 20 wall rows
+   on small devices. Keep optional guidance compact in the citizens strip. */
+@media(max-width:380px){
+ .zz-fortress-top{left:2%;right:2%;bottom:1%;padding:5px 7px;gap:2px}
+ #fortress-supply,#fortress-tip{font-size:9px;line-height:1.25}
+ #fortress-tool{min-height:20px;padding:2px 9px}
+}
 /* Keep pause/results dialogs unobstructed when a build is suspended. */
 .stage:has(#overlay:not([hidden])) .zz-fortress-builder{display:none!important}
