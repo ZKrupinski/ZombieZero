@@ -110,8 +110,8 @@ assert(css.includes('@media(prefers-reduced-motion:reduce)'),
 for(const size of [450,360,320]){
  const scale=size/450;
  const centers=[-112,0,112].map(dx=>(225+dx)*scale);
- assert(centers[1]-centers[0]===112*scale);
- assert(centers[2]-centers[1]===112*scale);
+ assert(Math.abs((centers[1]-centers[0])-112*scale)<1e-8);
+ assert(Math.abs((centers[2]-centers[1])-112*scale)<1e-8);
  const badgeWidth=102*scale;
  assert((centers[1]-centers[0]-badgeWidth)>=9*scale,
   'badges remain distinct independent tap targets');
