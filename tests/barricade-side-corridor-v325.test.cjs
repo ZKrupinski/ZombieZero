@@ -1,6 +1,6 @@
 'use strict';
-// BARRICADE HORDE only: one whole 22px construction column is removed
-// on each side, and every enemy path shares exactly those protected limits.
+// BARRICADE HORDE only: a half-sized 11px column is removed on each side.
+// Every enemy movement route uses the resulting protected center corridor.
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const src=fs.readFileSync('dist/fortress-mode.js','utf8');
 const game=fs.readFileSync('dist/game.js','utf8');
@@ -17,24 +17,24 @@ const doc={getElementById:k=>dom[k],createElement:()=>({getContext:()=>null})},w
 new Function('window','document',src)(win,doc);
 const f=win.ZZFortress;
 assert.deepEqual(f.bounds(),{
- left:49,right:401,enemyLeft:53,enemyRight:397,columns:16,rows:20,tile:22
-},'one 22px column removed from the original 27..423 build field on each side');
+ left:38,right:412,enemyLeft:42,enemyRight:408,columns:17,rows:20,tile:22
+},'one 11px half-cell removed from the original 27..423 field per side');
 const canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}};
 const point=x=>({button:0,pointerId:9,clientX:x,clientY:92});
 f.reset();f.begin([],1);
 assert.equal(f.down(point(37),canvas),false,'the old leftmost outside column cannot be built');
-assert.equal(f.down(point(411),canvas),false,'the old rightmost outside column cannot be built');
-assert.equal(f.down(point(59),canvas),true,'new first inboard column builds');
-f.move(point(389),canvas);f.up(point(389),canvas);
-assert.equal(f.getPreview().builds,16,'a full construction row contains only 16 cells');
+assert.equal(f.down(point(417),canvas),false,'the old rightmost outside column cannot be built');
+assert.equal(f.down(point(49),canvas),true,'new first inboard column builds');
+f.move(point(401),canvas);f.up(point(401),canvas);
+assert.equal(f.getPreview().builds,17,'a full construction row contains 17 cells');
 dom['fortress-confirm'].click();
-assert.equal(f.getWallCount(),16);
-assert.equal(f.getStock(),10);
+assert.equal(f.getWallCount(),17);
+assert.equal(f.getStock(),9);
 f.reset();
 // All 18 lanes of miniature zombies fit in the narrower corridor without
 // shrinking the creatures or changing their per-row count.
-const cols=18,rows=8,w=16.5,h=22,left=53,right=397;
+const cols=18,rows=8,w=16.5,h=22,left=42,right=408;
 const pitch=(right-w-left)/(cols-1);
 const mobs=Array.from({length:cols*rows},(_,i)=>({
  x:left+(i%cols)*pitch,y:70+Math.floor(i/cols)*29,w,h,
@@ -64,7 +64,7 @@ assert(src.includes('x<FIELD_LEFT||x+z.w>FIELD_RIGHT'),
  'spawning and nearest-placement fallback bound to same inset');
 assert(src.includes('Math.min(FIELD_RIGHT-z.w,ox+dx*T)'),
  'relocations cannot spawn over the right wall');
-assert(html.includes('fortress-mode.js?v=325-wall-safe-center'));
-assert(html.includes('v325-wall-safe-center'));
-assert(sw.includes('v325-wall-safe-center'));
-console.log('PASS v325: 16-column center build grid, 22px side margins, all 144 mini-zombies inside walls and unified movement bounds.');
+assert(html.includes('fortress-mode.js?v=326-mini-half-cell'));
+assert(html.includes('v326-mini-half-cell'));
+assert(sw.includes('v326-mini-half-cell'));
+console.log('PASS v326: 17-column center build grid, 11px side margins, all 144 mini-zombies inside walls and unified movement bounds.');
