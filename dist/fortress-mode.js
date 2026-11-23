@@ -62,7 +62,15 @@ function addCell(t){
  const current=walls.get(t.id);
  const action=repairMode?(current&&current.hp<MAX_HP?'repair':null):(current?'remove':'build');
  if(!action)return;
- pending.set(t.id,{...t,action});
+ // Apply the budget BEFORE displaying each dragged tile. The red demolition
+ // preview refunds one material per existing cube, so it must remain usable
+ // at zero stock; new/repair previews can use refunds in this same stroke.
+ const item={...t,action};
+ pending.set(t.id,item);
+ if(!totals().valid){
+  pending.delete(t.id);
+  return;
+ }
 }
 function lineTo(to){
  if(!to)return;
