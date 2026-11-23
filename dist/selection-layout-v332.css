@@ -35,6 +35,13 @@ html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selec
   touch-action:manipulation;
 }
 
+/* A hidden selection overlay MUST remain hidden during actual gameplay.
+   The selector outranks our display:grid!important rule even when the
+   data-screen attribute still reads 'selection' during the first game tick. */
+html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"][hidden]{
+  display:none!important;
+}
+
 /* Keep the two small title lines in the header. They are decorative
    absolutes only; all interactive sections below are real grid children. */
 html:is(.portrait-play,.landscape-game,:root) .stage #overlay[data-screen="selection"]>.label,
