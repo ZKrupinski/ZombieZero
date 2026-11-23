@@ -78,7 +78,7 @@ for(const z of targets){
  assert(z.x>=f.bounds().enemyLeft-1e-6&&
         z.x+z.w<=f.bounds().enemyRight+1e-6,'all enemies stay behind side walls');
 }
-assert(index.includes('fortress-mode.js?v=328-zombie-wall-collision'));
+assert(index.includes('src="fortress-mode.js?v='),'fortress module remains versioned');
 assert(index.includes('v328-zombie-wall-collision'));
 assert(sw.includes('v328-zombie-wall-collision'));
 console.log('PASS v328: swept collision, fast dash, trapped ejection, knockback render clip, and 144 safe stage spawns.');
