@@ -55,7 +55,7 @@ assert.equal(nodes['fortress-actions'].hidden,true);
 // Red removal works with zero materials, since it refunds rather than costs.
 start(0,0);move(2,0);
 assert.equal(fort.getPreview().removes,3);
-assert.equal(fort.getPreview().balance,5);
+assert.equal(fort.getPreview().balance,3);
 stop(2,0);confirm();
 assert.equal(fort.getStock(),3);
 assert.equal(fort.getWallCount(),23);
