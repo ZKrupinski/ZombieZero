@@ -46,6 +46,9 @@ function survivalClock(seconds){
  return String(Math.floor(whole/60)).padStart(2,'0')+':'+String(whole%60).padStart(2,'0');
 }
 const hero=()=>HEROES[selectedHero];
+// Equipped module heart bonuses raise the real maximum for starting and
+// five-wave recovery; never mutate the original character base stats.
+const maxHeroLives=()=>hero().lives+Math.max(0,garageCombat().lives||0);
 const growth=id=>window.ZZProgression?.level?.(id)||0;
 // V60 approved 192px idle atlas -> 108px game artwork, top-left = (car-54, PY-59).
 // Tennis racket face (58,76), pink bat tip (54,75), hammer head (141,75).
@@ -1618,7 +1621,7 @@ function advanceStage(){
  if(runMode==='endless'){beginEndlessShift();return}
  if(runMode==='campaign'&&wave===50){finishCampaign();return}
  wave++;setStageBackground();
- if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);
+ if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;
  toast(isBossWave()?'WARNING':'STAGE '+String(wave).padStart(2,'0')+' · '+stageRosterLabel(combatStage()));
 }
@@ -1628,7 +1631,7 @@ function refillEndlessWave(){
  if(runMode!=='endless'||mode!=='endlessShift'||endlessShiftSpawned!==true)return;
  resetCitizenSpeech();
  wave++;setStageBackground();
- if((wave-1)%5===0)lives=Math.min(hero().lives,lives+1);
+ if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  rack();
  for(const z of foes)z.arrivalTime=-z.row*.09-Math.random()*.06;
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
@@ -1670,7 +1673,7 @@ function ensureBallCruiseSpeed(b){
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 let menuRunChipsAtStart=0;
-function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=hero().lives;car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
@@ -1688,7 +1691,7 @@ function backToSelection(){
  bossTrashShots.length=0;
  $('pause-main-menu').hidden=true;
  failureScene=null;lastLostBall=null;lastStandUsed=false;resistFlash=0;
- score=0;wave=1;lives=hero().lives;car=target=225;cameraKick=0;screenShake.until=0;
+ score=0;wave=1;lives=maxHeroLives();car=target=225;cameraKick=0;screenShake.until=0;
  particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];
  fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;junk=[];
  clearSkills();resetCitizens();setStageBackground(true);rack();resetBalls();hud();
@@ -2240,7 +2243,7 @@ updatePoisonStatus(dt);
 const previousCar=car;
 if(groggyTime>0){target=car;}
 else{
- const driveSpeed=hero().speed*(1+gearBonus('steer')/100);
+ const driveSpeed=hero().speed*(1+garageCombat().speed/100);
  if(keys.ArrowLeft||keys.a)target-=driveSpeed*dt;
  if(keys.ArrowRight||keys.d)target+=driveSpeed*dt;
  target=clamp(target,72,W-72);
