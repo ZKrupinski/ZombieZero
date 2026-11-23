@@ -729,6 +729,16 @@ const foePitch=()=>isMiniHorde()?(ENEMY_PITCH*(ENEMY_COLUMNS-1)+33-33*MINI_HORDE
 const foeRowPitch=()=>isMiniHorde()?ENEMY_ROW_PITCH*MINI_HORDE_SCALE:ENEMY_ROW_PITCH;
 const foeW=()=>isMiniHorde()?33*MINI_HORDE_SCALE:33;
 const foeH=()=>isMiniHorde()?44*MINI_HORDE_SCALE:44;
+// Reserve only cells physically overlapped by the HALF-SIZE boss, not
+// the old 5x4 vacancy. Place mobs in all remaining 18-column cells.
+function miniBossOverlapsSlot(row,col,bossForm){
+ const bw=(bossForm===3?112:66)*MINI_HORDE_SCALE;
+ const bh=(bossForm===3?124:88)*MINI_HORDE_SCALE;
+ const bx=225-bw/2,by=74,clearance=2;
+ const x=ENEMY_LEFT_X+col*foePitch(),y=70+row*foeRowPitch();
+ return x<bx+bw+clearance&&x+foeW()>bx-clearance&&
+        y<by+bh+clearance&&y+foeH()>by-clearance;
+}
 let lastStandCount=0,lastStandLastAt=-1e9;
 try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
 // Selection opens endless; results return to the character picker.
@@ -1036,8 +1046,9 @@ function rack(){
  // Boss identity must never change because of asynchronous PNG decoding.
  const bossForm=bossStage?requestedBossForm:0;
  for(let r=0;r<rows;r++)for(let col=0;col<foeColumns();col++){
-  if(bossStage&&r<(isMiniHorde()?(bossForm===3?6:4):(bossForm===3?3:2))&&
-     Math.abs(col-(isMiniHorde()?8.5:4))<=(isMiniHorde()?2.5:1))continue;
+  if(bossStage&&(isMiniHorde()
+     ?miniBossOverlapsSlot(r,col,bossForm)
+     :r<(bossForm===3?3:2)&&Math.abs(col-4)<=1))continue;
   const maxKind=Math.min(4,1+Math.floor(stage/2));
   const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-stage*.12))*(maxKind+1));
   const hp=zombieHP(0,kind,stage);
@@ -4022,6 +4033,7 @@ function launchTrashShot(z,citizen){
  // caught item and in-flight projectile, even during a chain knockback.
  bossTrashShots.push({sx:hand.x,sy:hand.y,
   tx:citizen.x,ty:citizen.y-13,citizen,kind:z.throwKind,
+  enemyScale:z.miniScale||1,
   duration:(elite?1.15:1.05)+Math.random()*.22,t:0,
   arc:(elite?67:56)+Math.random()*28,eliteKind:elite?z.eliteKind:null});
  sfx('launch');burst(hand.x,hand.y,'#ffc67e',elite?5:7);
@@ -4046,7 +4058,7 @@ function updatePoisonStatus(dt){
 }
 function shotTouchesHero(shot,from,to,oldCar=car){
  // Swept segment/AABB: fast projectiles and a rapidly moving car cannot tunnel.
- const r=shot.type==='spit'?8:13;
+ const r=(shot.type==='spit'?8:13)*(shot.enemyScale||1);
  const left=Math.min(car,oldCar)-38-r,right=Math.max(car,oldCar)+38+r;
  const top=PY-52-r,bottom=PY+54+r;
  let tMin=0,tMax=1;
@@ -4116,7 +4128,8 @@ function launchSpit(z,citizen){
  // consistent between the final catch frame and the projectile's first frame.
  const mouth=spitMouthAnchor(z),presentation=spitBossPresentation(z);
  bossTrashShots.push({
-  type:'spit',sx:mouth.x,sy:mouth.y,spitScale:presentation.size,
+  type:'spit',sx:mouth.x,sy:mouth.y,
+  enemyScale:z.miniScale||1,spitScale:presentation.size*(z.miniScale||1),
   tx:citizen.x,ty:citizen.y-13,citizen,
   duration:1.0+Math.random()*.20,t:0,arc:35+Math.random()*22
  });
@@ -4132,24 +4145,24 @@ function updateBossTrashShots(dt,previousCar=car){
   const after=bossTrashProjectilePosition(shot);
   if(shotTouchesHero(shot,before,after,previousCar)){
    bossTrashShots.splice(i,1);
-   if(shot.type!=='spit')queueContact(trashContactFX,after.x,after.y,0,-1,'enemy',"hero");
+   if(shot.type!=='spit')queueContact(trashContactFX,after.x,after.y,0,-1,'enemy',"hero",shot.enemyScale||1);
    blockHostileShot(shot,after.x,after.y);
    continue;
   }
   if(shot.t<shot.duration){i++;continue}
   bossTrashShots.splice(i,1);
   if(has('shield')){
-   if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,SHIELD_LINE_Y,0,-1,'enemy','world');
+   if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,SHIELD_LINE_Y,0,-1,'enemy','world',shot.enemyScale||1);
    effect(shot.tx,SHIELD_LINE_Y,'#b9f684',36,'BLOCK!');
    burst(shot.tx,SHIELD_LINE_Y,'#b9f684',9);sfx('shield');feedback('shield');
   }else{
    const citizen=shot.citizen;
    if(citizen?.alive){
-    if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,shot.ty,0,-1,'enemy',citizen);
+    if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,shot.ty,0,-1,'enemy',citizen,shot.enemyScale||1);
     defeatCitizenByTrash(citizen,shot.type==='spit'?'spit':'trash');
    }
    else{
-    if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,shot.ty,0,-1,'ground','world');
+    if(shot.type!=='spit')queueContact(trashContactFX,shot.tx,shot.ty,0,-1,'ground','world',shot.enemyScale||1);
     effect(shot.tx,shot.ty,'#dfb48d',26);burst(shot.tx,shot.ty,'#dbb081',5);feedback('junkGround');
    }
   }
@@ -4259,15 +4272,17 @@ function drawBossTrashShots(){
    const hand=heldTrashAnchor(z),size=z.boss?40:z.eliteKind===0?24:28;
    g.save();
    g.globalAlpha*=phase.alpha;
-   drawThrowable(z.throwKind,hand.x,hand.y+phase.y,size*phase.scale,phase.turn);
+   const mini=z.miniScale||1;
+   drawThrowable(z.throwKind,hand.x,hand.y+phase.y*mini,size*phase.scale*mini,phase.turn);
    g.restore();
   }
   if(spitThrower(z)&&z.spitWindup>0){
    const total=Math.max(.001,z.spitWindupTotal||z.spitWindup);
    const pose=raisedSpitPose(1-z.spitWindup/total);
    const mouth=spitMouthAnchor(z),presentation=spitBossPresentation(z);
-   drawNeonSpit(mouth.x,mouth.y+pose.y*presentation.lift,
-    .15,pose.turn,pose.alpha,pose.scale*presentation.size);
+   const mini=z.miniScale||1;
+   drawNeonSpit(mouth.x,mouth.y+pose.y*presentation.lift*mini,
+    .15,pose.turn,pose.alpha,pose.scale*presentation.size*mini);
   }
  }
  for(const p of bossTrashShots){
@@ -4278,7 +4293,7 @@ function drawBossTrashShots(){
   }else{
    const flare=1-Math.abs(2*pos.t-1);
    const size=p.eliteKind===0?22+5*flare:p.eliteKind===1?24+6*flare:29+7*flare;
-   drawThrowable(p.kind,pos.x,pos.y,size,pos.t*Math.PI*5);
+   drawThrowable(p.kind,pos.x,pos.y,size*(p.enemyScale||1),pos.t*Math.PI*5);
   }
  }
  if(spitBloomDraws.length)captureBloom(drawSpitBloom);
