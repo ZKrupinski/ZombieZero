@@ -62,13 +62,6 @@
 }
 #fortress-supply{color:#a9eac4;font-size:10px;line-height:1.35}
 #fortress-tip{font-size:10px;letter-spacing:0;color:#c4e3df}
-#fortress-tool{
- align-self:center;pointer-events:auto;touch-action:manipulation;
- border:1px solid #86b9c6;border-radius:4px;
- padding:3px 12px;min-height:23px;
- background:#254654;color:#e0f4f8;font:800 10px/1.2 Arial,'Noto Sans KR',sans-serif;
-}
-#fortress-tool[aria-pressed="true"]{background:#bbf1f0;color:#163e48;border-color:#f1ffff}
 #fortress-actions{
  position:absolute;left:50%;top:57%;bottom:auto;
  transform:translate(-50%,-100%);display:flex;flex-direction:column;gap:5px;
@@ -117,7 +110,6 @@
 @media(max-width:380px){
  .zz-fortress-top{left:2%;right:2%;bottom:1%;padding:5px 7px;gap:2px}
  #fortress-supply,#fortress-tip{font-size:9px;line-height:1.25}
- #fortress-tool{min-height:20px;padding:2px 9px}
 }
 /* Keep pause/results dialogs unobstructed when a build is suspended. */
 .stage:has(#overlay:not([hidden])) .zz-fortress-builder{display:none!important}
