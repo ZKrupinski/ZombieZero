@@ -1,7 +1,11 @@
 /* BARRICADE HORDE: independent construction + persistent wall simulation. */
 (function(){
 'use strict';
-const X=27,Y=82,T=22,COLS=18,ROWS=20,MAX_HP=30,MAX_WALLS=180,REPAIRS_PER_MATERIAL=5;
+// One 22px column of clearance is reserved on each side of the artwork.
+// The actual build/AI corridor is [49,401], not the old [27,423].
+const X=49,Y=82,T=22,COLS=16,ROWS=20,MAX_HP=30,MAX_WALLS=180,REPAIRS_PER_MATERIAL=5;
+const FORTRESS_SIDE_INSET=4;
+const FIELD_LEFT=X+FORTRESS_SIDE_INSET,FIELD_RIGHT=X+COLS*T-FORTRESS_SIDE_INSET;
 const walls=new Map(),pending=new Map();
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
@@ -224,7 +228,7 @@ function bounceBall(ball,oldX,oldY,radius){
    Math.max(wall.y,Math.min(wall.y+T,by))};
 }
 function clearPlacement(z,placed,x,y){
- if(x<20||x+z.w>430||y<35||y+z.h>555||firstWall(x,y,z.w,z.h))return false;
+ if(x<FIELD_LEFT||x+z.w>FIELD_RIGHT||y<35||y+z.h>555||firstWall(x,y,z.w,z.h))return false;
  for(const other of placed){
   if(x<other.x+other.w+1&&x+z.w+1>other.x&&y<other.y+other.h+1&&y+z.h+1>other.y)return false;
  }
@@ -242,7 +246,7 @@ function deploy(target){
    for(let radius=1;radius<=20&&!found;radius++){
     for(let dy=-radius;dy<=radius&&!found;dy++)for(let dx=-radius;dx<=radius;dx++){
      if(Math.max(Math.abs(dx),Math.abs(dy))!==radius)continue;
-     const nx=Math.max(22,Math.min(429-z.w,ox+dx*T));
+     const nx=Math.max(FIELD_LEFT,Math.min(FIELD_RIGHT-z.w,ox+dx*T));
      const ny=Math.max(36,Math.min(550-z.h,oy+dy*T));
      if(clearPlacement(z,placed,nx,ny)){z.x=nx;z.y=ny;found=true;break}
     }
@@ -250,7 +254,7 @@ function deploy(target){
    if(!found){
     // Dense late stages: use the next genuinely available upper-board slot.
     for(let row=0;row<21&&!found;row++)for(let col=0;col<COLS;col++){
-     const nx=X+col*T,ny=38+row*24;
+     const nx=Math.max(FIELD_LEFT,Math.min(FIELD_RIGHT-z.w,X+col*T)),ny=38+row*24;
      if(clearPlacement(z,placed,nx,ny)){z.x=nx;z.y=ny;found=true;break}
     }
    }
@@ -384,5 +388,6 @@ window.ZZFortress={reset,begin,deploy,resolve,bounceBall,draw,tick,down,move,up,
  bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus}),
- getPreview:()=>totals(),getWallHP:(col,row)=>walls.get(id(col,row))?.hp||0};
+ getPreview:()=>totals(),getWallHP:(col,row)=>walls.get(id(col,row))?.hp||0,
+ bounds:()=>({left:X,right:X+COLS*T,enemyLeft:FIELD_LEFT,enemyRight:FIELD_RIGHT,columns:COLS,rows:ROWS,tile:T})};
 })();
