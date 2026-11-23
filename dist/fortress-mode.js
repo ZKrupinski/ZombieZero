@@ -87,6 +87,66 @@ function firstWall(x,y,w,h){
  }
  return null;
 }
+// Ball-vs-cube collision uses the real circular ball footprint. Unlike bites,
+// rebounds never reduce a wall's HP (including powerful and piercing shots).
+// The game advances balls in <=4px substeps so side selection is stable.
+function bounceBall(ball,oldX,oldY,radius){
+ const r=Math.max(0,radius||0),bx=ball.x,by=ball.y;
+ const c0=Math.max(0,Math.floor((bx-r-X)/T)),c1=Math.min(COLS-1,Math.floor((bx+r-X)/T));
+ const r0=Math.max(0,Math.floor((by-r-Y)/T)),r1=Math.min(ROWS-1,Math.floor((by+r-Y)/T));
+ let best=null;
+ for(let row=r0;row<=r1;row++)for(let col=c0;col<=c1;col++){
+  const wall=walls.get(id(col,row));if(!wall)continue;
+  const nearX=Math.max(wall.x,Math.min(wall.x+T,bx));
+  const nearY=Math.max(wall.y,Math.min(wall.y+T,by));
+  const dx=bx-nearX,dy=by-nearY;
+  if(dx*dx+dy*dy>r*r)continue;
+  // Sweep the previous and current ball centers against expanded sides.
+  // Prefer the earliest side actually entered to disambiguate corners.
+  const sweepX=bx-oldX,sweepY=by-oldY;
+  const candidates=[];
+  const test=(axis,nx,ny,boundary,prev,delta)=>{
+   if(Math.abs(delta)<1e-8)return;
+   const t=(boundary-prev)/delta;
+   if(t>=-1e-6&&t<=1+1e-6)candidates.push({axis,nx,ny,t:Math.max(0,t)});
+  };
+  if(sweepX>0)test('x',-1,0,wall.x-r,oldX,sweepX);
+  if(sweepX<0)test('x',1,0,wall.x+T+r,oldX,sweepX);
+  if(sweepY>0)test('y',0,-1,wall.y-r,oldY,sweepY);
+  if(sweepY<0)test('y',0,1,wall.y+T+r,oldY,sweepY);
+  candidates.sort((a,b)=>a.t-b.t);
+  let face=candidates.find(f=>f.nx*ball.vx+f.ny*ball.vy<0);
+  if(!face){
+   // Handles an initially overlapping center without repeated flip-flops.
+   const sides=[
+    {axis:'x',nx:-1,ny:0,depth:Math.abs(bx-(wall.x-r))},
+    {axis:'x',nx:1,ny:0,depth:Math.abs(bx-(wall.x+T+r))},
+    {axis:'y',nx:0,ny:-1,depth:Math.abs(by-(wall.y-r))},
+    {axis:'y',nx:0,ny:1,depth:Math.abs(by-(wall.y+T+r))}
+   ];
+   sides.sort((a,b)=>a.depth-b.depth);
+   face=sides.find(f=>f.nx*ball.vx+f.ny*ball.vy<0);
+   if(!face)continue; // touching and moving away
+   face={...face,t:0};
+  }
+  if(!best||face.t<best.t)best={...face,wall};
+ }
+ if(!best)return null;
+ const {wall,axis,nx,ny}=best;
+ const pad=.15;
+ if(axis==='x'){
+  ball.x=nx<0?wall.x-r-pad:wall.x+T+r+pad;
+  ball.vx=nx<0?-Math.abs(ball.vx):Math.abs(ball.vx);
+ }else{
+  ball.y=ny<0?wall.y-r-pad:wall.y+T+r+pad;
+  ball.vy=ny<0?-Math.abs(ball.vy):Math.abs(ball.vy);
+ }
+ wall.hit=Math.max(wall.hit||0,.075); // cosmetic flash only, no HP mutation
+ return {axis,nx,ny,x:axis==='x'?(nx<0?wall.x:wall.x+T):
+   Math.max(wall.x,Math.min(wall.x+T,bx)),
+  y:axis==='y'?(ny<0?wall.y:wall.y+T):
+   Math.max(wall.y,Math.min(wall.y+T,by))};
+}
 function clearPlacement(z,placed,x,y){
  if(x<20||x+z.w>430||y<35||y+z.h>555||firstWall(x,y,z.w,z.h))return false;
  for(const other of placed){
@@ -194,5 +254,5 @@ function tick(dt){for(const w of walls.values())w.hit=Math.max(0,(w.hit||0)-dt)}
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
-window.ZZFortress={reset,begin,deploy,resolve,draw,tick,down,move,up,cancel,ready,bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,getQueueCount:()=>queued.length};
+window.ZZFortress={reset,begin,deploy,resolve,bounceBall,draw,tick,down,move,up,cancel,ready,bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,getQueueCount:()=>queued.length};
 })();
