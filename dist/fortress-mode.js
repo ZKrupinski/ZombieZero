@@ -26,9 +26,13 @@ function refresh(){
 }
 function addCell(t){
  if(!t||pending.has(t.id))return;
- if(pending.size>=stock||walls.size+pending.size>=MAX_WALLS)return;
+ if(pending.size>=stock)return;
  const current=walls.get(t.id);
- if(current&&current.hp>=MAX_HP)return;
+ if(current){if(current.hp>=MAX_HP)return}
+ else {
+  const newPending=[...pending.values()].filter(p=>!p.repair).length;
+  if(walls.size+newPending>=MAX_WALLS)return;
+ }
  pending.set(t.id,{...t,repair:!!current});
 }
 function lineTo(to){
