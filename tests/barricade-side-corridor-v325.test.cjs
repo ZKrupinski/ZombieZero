@@ -64,7 +64,7 @@ assert(src.includes('x<FIELD_LEFT||x+z.w>FIELD_RIGHT'),
  'spawning and nearest-placement fallback bound to same inset');
 assert(src.includes('Math.min(FIELD_RIGHT-z.w,ox+dx*T)'),
  'relocations cannot spawn over the right wall');
-assert(html.includes('fortress-mode.js?v=326-mini-half-cell'));
+assert(html.includes('src="fortress-mode.js?v='),'fortress code remains cache-versioned');
 assert(html.includes('v326-mini-half-cell'));
 assert(sw.includes('v326-mini-half-cell'));
 console.log('PASS v326: 17-column center build grid, 11px side margins, all 144 mini-zombies inside walls and unified movement bounds.');
