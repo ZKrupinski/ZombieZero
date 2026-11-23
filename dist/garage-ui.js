@@ -24,8 +24,9 @@
   // Keep the equipped indicator permanently visible while browsing the other part.
   const status=!owned?'미보유':'강화 +'+level;
   const equipBadge=equipped?'<em class="garage-equip-badge" aria-hidden="true">✓ 장착</em>':'';
-  return '<button data-part="'+p.id+'" data-equipped="'+String(equipped)+'" aria-pressed="'+(p===activePart)+'" aria-label="'+p.name+', '+(equipped?'장착 중, ':'')+status+'">'+
-   icon(p.id)+'<span>'+p.name+'<small>'+status+'</small></span>'+equipBadge+'</button>';
+  const stats={grip:'공격 · 수비',wide:'수비 · 공격 · 내성',cushion:'수비 · 내성',heavy:'공격 · 수비',steer:'속도 · 수비 · 공격',filter:'내성 · 속도'}[p.id]||'';
+  return '<button data-part="'+p.id+'" data-equipped="'+String(equipped)+'" aria-pressed="'+(p===activePart)+'" aria-label="'+p.name+', '+(equipped?'장착 중, ':'')+status+', '+stats+'">'+
+   icon(p.id)+'<span>'+p.name+'<small>'+status+'</small><small class="garage-part-stat-tags">'+stats+'</small></span>'+equipBadge+'</button>';
  }
  function reelCard(h,data){
   const rank=system.mastery(data.xp[h]);
@@ -120,7 +121,8 @@
   const statPanel='<section class="garage-stat-panel" aria-label="현재 캐릭터 기본 능력치와 강화분">'+
    '<div class="garage-stat-heading"><b>'+(HEROES[h].role||'SURVIVOR')+' · 현재 능력치</b><small><i class="stat-legend-base"></i>기본 <i class="stat-legend-boost"></i>강화 증가</small></div>'+
    (system.heroStatMarkup?.(HEROES[h],data,progress,h)||'')+
-   '<p class="garage-stat-footnote">숙련 '+xp+'점 · '+next+' · 숙련 Lv당 수비 +1px</p></section>';
+   '<p class="garage-stat-footnote">숙련 '+xp+'점 · '+next+' · 숙련 Lv당 수비 +1px</p>'+
+   '<p class="garage-stat-explainer">♥ 체력은 최대 하트 수입니다. 공 낙하 시 1개 소모 · 장착 강화로 최대치 증가</p></section>';
   const banner='<section class="garage-driver" aria-label="보유 캐릭터 회전 선택" data-selected-hero="'+h+'" tabindex="0">'+
    '<div class="garage-reel-stage">'+roster.map(i=>reelCard(i,data)).join('')+'</div>'+
    reelArrow(-1)+reelArrow(1)+'</section>';
