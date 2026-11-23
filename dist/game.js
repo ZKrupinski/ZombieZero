@@ -1580,6 +1580,9 @@ function tryReactiveDodges(dt){
 // These are REAL colliders, not an overlay. All movement is swept and bounded.
 // The choreography only retreats UPWARD, never breaches the defense line.
 const WORM_GROUP_SIZES=[7,10,20],WORM_SAFE_MARGIN=90;
+// Require a real open pocket in front of a potential snake line. The front
+// edge is measured using real colliders, not the old logical row number.
+const WORM_FORWARD_GAP=42,WORM_FORWARD_MAX=28;
 let wormParade=null,wormNextAt=0;
 function clearWormParade(){
  if(wormParade)for(const m of wormParade.members){
@@ -1598,6 +1601,19 @@ function wormEligible(z){
   (z.knockTime||0)<=0&&(z.hitHold||0)<=0&&(z.recoil||0)<=.02&&
   (z.trashStopUntil||0)<=clock&&(z.arrivalTime||0)<=0;
 }
+function wormForwardClearance(group){
+ const set=new Set(group);
+ const bottom=Math.max(...group.map(z=>z.y+z.h));
+ const left=Math.min(...group.map(z=>z.x))-3;
+ const right=Math.max(...group.map(z=>z.x+z.w))+3;
+ let room=DEFENSE_Y-WORM_SAFE_MARGIN-bottom;
+ for(const other of foes){
+  if(set.has(other)||other.hp<=0||other.y+other.h<=bottom+1)continue;
+  if(other.x>=right||other.x+other.w<=left)continue;
+  room=Math.min(room,other.y-bottom);
+ }
+ return Math.max(0,room);
+}
 function startWormParade(){
  if(!isMiniHorde()||mode!=='playing'||balls[0]?.held||
     wormParade||clock<wormNextAt)return false;
@@ -1611,7 +1627,17 @@ function startWormParade(){
  }
  const rand=Math.random(),preferred=rand<.38?7:rand<.79?10:20;
  const sizes=[preferred,...WORM_GROUP_SIZES.filter(n=>n!==preferred)];
- let chosen=null;
+ let chosen=null,chosenGap=0;
+ // Score the real front edge: lower surviving rows with an empty pocket in
+ // front are selected before high, still-packed rows. The size preference
+ // (7 / 10 / 20) is retained when that size has a safe front-facing line.
+ const consider=(line,options)=>{
+  if(!line.every(Boolean))return;
+  const gap=wormForwardClearance(line);
+  if(gap<WORM_FORWARD_GAP)return;
+  const front=Math.max(...line.map(z=>z.y+z.h));
+  options.push({line,gap,score:front*2+Math.min(gap,115)*.35});
+ };
  for(const size of sizes){
   const options=[];
   for(const [row,cols] of rows){
@@ -1625,17 +1651,20 @@ function startWormParade(){
      for(let k=0;k<10;k++){
       top.push(cols.get(c+k));bottom.push(next.get(c+k));
      }
-     if(top.every(Boolean)&&bottom.every(Boolean))
-      options.push([...top,...bottom.reverse()]);
+     consider([...top,...bottom.reverse()],options);
     }
    }else for(let c=0;c<=foeColumns()-size;c++){
     const line=[];
     for(let k=0;k<size;k++)line.push(cols.get(c+k));
-    if(line.every(Boolean))options.push(line);
+    consider(line,options);
    }
   }
   if(options.length){
-   chosen=options[Math.floor(Math.random()*options.length)];
+   // Prefer the nearest-to-player OPEN front. Vary only among the best
+   // adjacent groups so it is still an occasional organic event.
+   options.sort((a,b)=>b.score-a.score);
+   const pick=options[Math.floor(Math.random()*Math.min(3,options.length))];
+   chosen=pick.line;chosenGap=pick.gap;
    break;
   }
  }
@@ -1643,11 +1672,14 @@ function startWormParade(){
  const room=Math.min(...chosen.map(z=>z.y-ENEMY_TOP_Y-1));
  if(room<5)return false;
  const members=chosen.map((z,index)=>({z,index,baseX:z.x,baseY:z.y}));
- wormParade={members,elapsed:0,duration:4.4,
-  retreat:Math.min(18,room),seed:Math.random()*Math.PI*2};
+ wormParade={members,elapsed:0,duration:4.8,
+  // Step briefly into the cleared space, bending the former flat row into
+  // a real snake; then recoil behind the original position.
+  advance:Math.min(WORM_FORWARD_MAX,Math.max(0,chosenGap-12)),
+  retreat:Math.min(16,room),seed:Math.random()*Math.PI*2};
  for(const m of members){
   m.z.wormParade=wormParade;
-  clearShortStep(m.z,4.9);
+  clearShortStep(m.z,5.4);
  }
  wormNextAt=clock+19+Math.random()*11;
  return true;
@@ -1658,9 +1690,11 @@ function updateWormParade(dt){
  const p=wormParade,step=Math.max(0,dt*enemySlowRate());
  p.elapsed=Math.min(p.duration,p.elapsed+step);
  const t=p.elapsed;
- const fade=Math.max(0,Math.min(1,t/.45,(p.duration-t)/.50));
- const retreatTime=clamp((t-2.05)/1.25,0,1);
- const back=retreatTime*retreatTime*(3-2*retreatTime)*p.retreat;
+ const fade=Math.max(0,Math.min(1,t/.42,(p.duration-t)/.52));
+ const smooth=u=>{const q=clamp(u,0,1);return q*q*(3-2*q)};
+ // A delayed front-to-tail surge bends the line into the space vacated by
+ // defeated zombies. The whole group then withdraws and breaks formation.
+ const back=smooth((t-2.55)/1.10)*p.retreat;
  let remaining=0;
  for(const m of p.members){
   const z=m.z;
@@ -1671,18 +1705,23 @@ function updateWormParade(dt){
    continue;
   }
   remaining++;
-  const wave=(Math.sin(t*5.2-m.index*.64)*2.7+
-   Math.sin(t*2.35+p.seed)*6.5)*fade;
-  const ripple=Math.sin(t*5.2-m.index*.64)*1.5*fade;
+  const wave=(Math.sin(t*5.5-m.index*.73)*4.2+
+   Math.sin(t*2.1+p.seed)*7.1)*fade;
+  const delay=m.index*.034;
+  const push=smooth((t-delay)/1.20)*
+    (1-smooth((t-delay-2.05)/.88));
+  const ripple=Math.sin(t*5.5-m.index*.73)*3.6*fade;
   const goalX=clamp(m.baseX+wave,zombieMinX(),zombieMaxX(z));
-  const goalY=clamp(m.baseY-Math.max(0,back+ripple),
-   ENEMY_TOP_Y,Math.min(m.baseY,DEFENSE_Y-z.h-WORM_SAFE_MARGIN));
-  const maxStep=72*step;
+  // Downward movement is permitted ONLY inside the verified open pocket,
+  // strictly above the 90px hard safety margin. The delayed forward/reverse
+  // waves scatter the former straight row, and then retreat.
+  const goalY=clamp(m.baseY+Math.max(0,p.advance*push+ripple)-back,
+   ENEMY_TOP_Y,DEFENSE_Y-z.h-WORM_SAFE_MARGIN);
+  const maxStep=76*step;
   const nx=z.x+clamp(goalX-z.x,-maxStep,maxStep);
-  // Enforce NO forward Y travel even when this member falls behind the pack.
-  const ny=Math.min(z.y,z.y+clamp(goalY-z.y,-maxStep,maxStep));
-  // Swept wall & zombie checks, plus an independent 90px defense margin.
-  // The parade itself cannot possibly end the game.
+  const ny=z.y+clamp(goalY-z.y,-maxStep,maxStep);
+  // Collision checks include the fortress swept wall path. No choreography
+  // position may ever overlap a zombie, cross a wall or touch the defense.
   if(ny+z.h>DEFENSE_Y-WORM_SAFE_MARGIN||
      !canKnockback(z,nx,ny))continue;
   const oldX=z.x;z.x=nx;z.y=ny;
