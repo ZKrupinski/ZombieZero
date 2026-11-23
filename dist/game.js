@@ -4205,7 +4205,12 @@ function blockHostileShot(shot,x,y){
   if(filtered)filterReady=clock+8;
   // Filter's passive toxic resistance applies on EVERY blocked projectile;
   // the timed spit cleansing remains an additional unique effect.
-  poison=Math.min(POISON_MAX,poison+(1-filtered/100)*(1-garageCombat().resist/100)*(shot.type==='spit'?POISON_SPIT:POISON_TRASH)*(1-growth('poisonResist')*.06));
+  // Mini/Barricade zombies already stamp their size onto trash and venom
+  // shots at launch (enemyScale=.5). Their poison payload must shrink too:
+  // spit 34 -> 17, trash 20 -> 10, before resistance reductions.
+  // Normal and endless shots keep their original enemyScale=1 damage.
+  const toxicPayload=(shot.type==='spit'?POISON_SPIT:POISON_TRASH)*(shot.enemyScale??1);
+  poison=Math.min(POISON_MAX,poison+(1-filtered/100)*(1-garageCombat().resist/100)*toxicPayload*(1-growth('poisonResist')*.06));
   poisonGrace=2.35-growth('recover')*.22;poisonFlash=.26;
   if(poison>=POISON_MAX){
    poison=POISON_MAX;groggyTime=POISON_GROGGY_SECONDS-growth('mental')*.1;target=car;
