@@ -37,7 +37,10 @@ function refresh(){
  readyButton.hidden=!active||hasPreview||dragging;
  if(confirmButton)confirmButton.disabled=!summary.valid;
  if(stockLabel)stockLabel.textContent='STAGE '+String(stage).padStart(2,'0')+' · 자재 '+stock+' · 방벽 '+walls.size+'/'+MAX_WALLS;
- if(buildCountLabel)buildCountLabel.textContent='추가 건설 '+Math.min(stock,MAX_WALLS-walls.size)+'개';
+ if(buildCountLabel){
+  const freeAfter=MAX_WALLS-(walls.size-summary.removes+summary.builds);
+  buildCountLabel.textContent='더 건설 '+Math.max(0,Math.min(summary.balance,freeAfter))+'개';
+ }
  if(supplyLabel)supplyLabel.textContent=stage===1?'초기 건설 자재 +26':'이전 파괴 환급 +'+lastRefund+' · 스테이지 보급 +'+lastBonus;
  if(previewLabel)previewLabel.textContent=
   '설치 +'+summary.builds+' · 철거 -'+summary.removes+' (환급 +'+summary.removes+')'+
