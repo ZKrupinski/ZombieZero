@@ -718,11 +718,22 @@ function skillUI(){
 }
 let DEFENSE_Y=565;
 let runMode='campaign',endlessUnlocked=false,lastStandUsed=false,resistFlash=0,failureScene=null,lastLostBall=null;
+// Mini Horde halves both enemy dimensions (one-quarter of visible area)
+// and doubles the grid resolution without scaling hero, ball or citizens.
+const MINI_HORDE_SCALE=.5,MINI_HORDE_COLUMNS=18;
+const isMiniHorde=()=>runMode==='mini';
+const foeColumns=()=>isMiniHorde()?MINI_HORDE_COLUMNS:ENEMY_COLUMNS;
+const foePitch=()=>isMiniHorde()?(ENEMY_PITCH*(ENEMY_COLUMNS-1)+33-33*MINI_HORDE_SCALE)/(MINI_HORDE_COLUMNS-1):ENEMY_PITCH;
+const foeRowPitch=()=>isMiniHorde()?ENEMY_ROW_PITCH*MINI_HORDE_SCALE:ENEMY_ROW_PITCH;
+const foeW=()=>isMiniHorde()?33*MINI_HORDE_SCALE:33;
+const foeH=()=>isMiniHorde()?44*MINI_HORDE_SCALE:44;
 let lastStandCount=0,lastStandLastAt=-1e9;
 try{endlessUnlocked=localStorage.getItem('zb-endless-unlocked')==='1'}catch{}
 // Selection opens endless; results return to the character picker.
 function endlessUI(){
  const el=$('endless');
+ const mini=$('mini-horde');
+ if(mini){mini.hidden=mode!=='menu';mini.onclick=mode==='menu'?()=>start('mini'):null;}
  el.hidden=mode!=='menu'&&mode!=='over';
  if(mode==='menu'){
   el.textContent='ENDLESS WAVE';
@@ -879,7 +890,7 @@ function insertEliteZombies(regulars,stage){
  const eligible=ELITE_FIRST_STAGES.map((unlock,i)=>({i,unlock})).filter(e=>stage>=e.unlock&&atlas.cache[e.i]?.ready);
  if(!eligible.length)return;
  const available=regulars.filter(z=>!z.boss&&z.form===0);
- const count=Math.min(stage<5?1:stage<9?2:stage<18?3:4,Math.floor(regulars.length*.15),available.length);
+ const count=Math.min((stage<5?1:stage<9?2:stage<18?3:4)*(isMiniHorde()?3:1),Math.floor(regulars.length*.15),available.length);
  if(!count)return;
  const newest=eligible.find(e=>e.unlock===stage),picks=newest?[newest.i]:[];
  while(picks.length<count){
@@ -943,7 +954,9 @@ const ENDLESS_CAST=[7,3,6,4,5,2,1,7,3,6,4,5,2,7,3,6,4,5,2,7,3];
 function setStageForms(regulars,stage){
  const forms=runMode==='endless'
   ?ENDLESS_CAST.slice(0,Math.floor(regulars.length*.62))
-  :stageRoster(stage,regulars.length);
+  :(isMiniHorde()
+    ?stageRoster(stage,regulars.length).flatMap(form=>Array(form===1?2:4).fill(form))
+    :stageRoster(stage,regulars.length));
  // Shuffle slots, not the counts: no stage ever fills randomly with rare types.
  const available=regulars.slice();
  for(let i=available.length-1;i>0;i--){
@@ -1009,24 +1022,27 @@ function rack(){
  // Prefetch only the imminent boss (including its separate right walk).
  requestBossForWave(wave);requestBossForWave(wave+1);
  // A full four-row, mixed-cast opening; HP and movement scale independently.
- const rows=runMode==='endless'
+ const baseRows=runMode==='endless'
   ?4
   :wave===1?2:Math.min(4,Math.max(2,Math.min(
    Math.floor((DEFENSE_Y-142)/ENEMY_ROW_PITCH)+1,
    Math.max(3,Math.round(Math.min(5,3+Math.floor(wave/2))*7/ENEMY_COLUMNS))
   )));
+ const rows=baseRows*(isMiniHorde()?2:1);
  const bossStage=isBossWave();
  const requestedBossForm=bossIndex()%BOSS_FORMS.length;
  // Boss identity must never change because of asynchronous PNG decoding.
  const bossForm=bossStage?requestedBossForm:0;
- for(let r=0;r<rows;r++)for(let col=0;col<ENEMY_COLUMNS;col++){
-  if(bossStage&&r<(bossForm===3?3:2)&&Math.abs(col-4)<=1)continue;
+ for(let r=0;r<rows;r++)for(let col=0;col<foeColumns();col++){
+  if(bossStage&&r<(isMiniHorde()?(bossForm===3?6:4):(bossForm===3?3:2))&&
+     Math.abs(col-(isMiniHorde()?8.5:4))<=(isMiniHorde()?2.5:1))continue;
   const maxKind=Math.min(4,1+Math.floor(stage/2));
   const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-stage*.12))*(maxKind+1));
   const hp=zombieHP(0,kind,stage);
   const hairRoll=Math.random(),faceRoll=Math.random();
-  foes.push({x:ENEMY_LEFT_X+col*ENEMY_PITCH,y:70+r*ENEMY_ROW_PITCH,
-   row:r,col,w:33,h:44,hp,max:hp,kind,form:0,flash:0,
+  foes.push({x:ENEMY_LEFT_X+col*foePitch(),y:70+r*foeRowPitch(),
+   row:r,col,w:foeW(),h:foeH(),miniScale:isMiniHorde()?MINI_HORDE_SCALE:1,
+   miniBaseW:33,miniBaseH:44,hp,max:hp,kind,form:0,flash:0,
    hairColor:hairRoll<.10?'blond':hairRoll<.20?'red':hairRoll<.45?'chestnut':null,
    // v292: Each face remains independent of the zombie's palette and hair.
    // Heart eyes and paired features are uncommon; no gameplay/stat changes.
@@ -1047,13 +1063,17 @@ function rack(){
   // Easily struck, but a proper durable trash-bag boss with no dodge.
   const hp=bossForm===3?Math.round(baseHP*3.6):baseHP;
   // Identity is stable; a pending new-boss bitmap is never substituted.
-  foes.push({x:bossForm===3?169:192,y:74,row:-1,col:4,
-   w:bossForm===3?112:66,h:bossForm===3?124:88,hp,max:hp,kind:4,
+  const bossWidth=bossForm===3?112:66,bossHeight=bossForm===3?124:88;
+  const scale=isMiniHorde()?MINI_HORDE_SCALE:1;
+  foes.push({x:isMiniHorde()?225-bossWidth*scale/2:(bossForm===3?169:192),
+   y:74,row:-1,col:isMiniHorde()?9:4,
+   w:bossWidth*scale,h:bossHeight*scale,miniScale:scale,
+   miniBaseW:bossWidth,miniBaseH:bossHeight,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   // Boss arrival keeps the shock burst, audio and device feedback, but no name caption.
   sfx('boss');feedback('bossSpawn');effect(225,130,'#ff687e',145);
  }
- $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():'STAGE '+wave)
+ $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():isMiniHorde()?'MINI HORDE '+wave:'STAGE '+wave)
   +' · '+(bossStage?'BOSS WAVE':stageRosterLabel(stage))
   +' / 진군 속도 '+marchBase().toFixed(1);
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
@@ -1619,7 +1639,7 @@ function beginClear(){
 function advanceStage(){
  resetCitizenSpeech();
  if(runMode==='endless'){beginEndlessShift();return}
- if(runMode==='campaign'&&wave===50){finishCampaign();return}
+ if(runMode!=='endless'&&wave===50){finishCampaign();return}
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;
@@ -1673,7 +1693,7 @@ function ensureBallCruiseSpeed(b){
 function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 let menuRunChipsAtStart=0;
-function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();rack();resetBalls();mode='playing';$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':isMiniHorde()?'MINI HORDE · 작은 좀비들의 대군!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
