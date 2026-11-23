@@ -1,6 +1,6 @@
 'use strict';
 // BARRICADE HORDE: full refund for last-wave zombie losses, material
-// budget and near-touch actions, drag-to-dismantle, and repair mode.
+// budget, near-touch actions, drag-to-dismantle and free wave healing.
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const mod=fs.readFileSync('dist/fortress-mode.js','utf8');
@@ -9,7 +9,7 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const ids=['fortress-builder','fortress-actions','fortress-confirm','fortress-cancel',
  'fortress-ready','fortress-stock','fortress-tip','fortress-build-count',
- 'fortress-supply','fortress-preview-summary','fortress-tool'];
+ 'fortress-supply','fortress-preview-summary'];
 const nodes={};
 for(const id of ids)nodes[id]={
  hidden:false,disabled:false,textContent:'',style:{},dataset:{},
@@ -86,23 +86,17 @@ assert.equal(fort.getWallCount(),2);
 assert.equal(fort.getStock(),22,'material only refunded on the next stage');
 fort.begin([],2);
 assert.equal(fort.getStock(),32,'22 leftover + 2 destroyed refunded + 8 new');
-assert.deepEqual(fort.getSupply(),{refund:2,bonus:8});
+assert.deepEqual(fort.getSupply(),{refund:2,bonus:8,healed:2});
 assert.match(nodes['fortress-supply'].textContent,/파괴 환급 \+2/);
 assert.match(nodes['fortress-supply'].textContent,/보급 \+8/);
 assert.match(nodes['fortress-build-count'].textContent,/32개/);
 assert.equal(fort.getPendingRefund(),0,'stage refund counter resets');
 bite(2,3,3);assert.equal(fort.getWallHP(2,3),27);
-nodes['fortress-tool'].click();
-assert.equal(nodes['fortress-tool']['aria-pressed'],'true');
-drag(2,2,3);
-assert.equal(fort.getPreview().repairs,1);
-nodes['fortress-confirm'].click();
-assert.equal(fort.getWallHP(2,3),30,'repair mode fully restores damage');
-assert.equal(fort.getStock(),31,'repair still costs 1 material');
-nodes['fortress-tool'].click();
+assert.equal(fort.getStock(),32,'no material is spent by zombie hits');
 fort.begin([],3);
-assert.equal(fort.getStock(),39,'no duplicate refund in following wave');
-assert.deepEqual(fort.getSupply(),{refund:0,bonus:8});
+assert.equal(fort.getWallHP(2,3),30,'all surviving walls recover to full automatically');
+assert.equal(fort.getStock(),40,'free repair: only new +8 supply changes stock');
+assert.deepEqual(fort.getSupply(),{refund:0,bonus:8,healed:2});
 // When stock runs out, construction is blocked but removal is still possible.
 fort.reset();fort.begin([],1);
 drag(0,15,0);nodes['fortress-confirm'].click();
@@ -121,12 +115,13 @@ assert.equal(fort.getStock(),1,'recycle one cube to recover one material');
 drag(0,0,2);nodes['fortress-confirm'].click();
 assert.equal(fort.getStock(),0);
 assert.equal(fort.getWallCount(),26);
-assert(css.includes('#fortress-actions[data-side="below"]')&&css.includes('#fortress-tool'),
- 'finger-adjacent controls and repair toggle styled');
-for(const id of ['fortress-build-count','fortress-supply','fortress-tool','fortress-preview-summary'])
+assert(css.includes('#fortress-actions[data-side="below"]')&&!css.includes('#fortress-tool'),
+ 'finger-adjacent controls remain; obsolete repair CSS removed');
+for(const id of ['fortress-build-count','fortress-supply','fortress-preview-summary'])
  assert(html.includes('id="'+id+'"'),id+' present in DOM');
+assert(!html.includes('id="fortress-tool"'),'repair button no longer exists');
 assert(html.includes('src="fortress-mode.js?v='),'barricade module has versioned URL');
-assert(html.includes('fortress-mode.css?v=318-refund-erase-builder'));
+assert(html.includes('fortress-mode.css?v=329-free-auto-wall-repair'));
 assert(sw.includes('v318-refund-erase-builder'),'PWA cache refreshed');
 // V319: all 20 wall-grid rows (y=82..522) must remain uncovered by
 // persistent HUD. Ready stays below row 20 but above the relocated panel.
@@ -136,6 +131,6 @@ assert(panel.includes('top:auto;bottom:1.2%'),'construction info must be anchore
 assert(!panel.includes('top:2.8%'),'old top-covering HUD removed');
 assert(ready.includes('top:79%'),'ready moved below the bottommost building cell');
 assert(710*.79-46/2 > 82+20*22,'ready button never covers a buildable grid row');
-assert(html.includes('fortress-mode.css?v=318-refund-erase-builder-v319-bottom-ui'),'changed stylesheet invalidates web cache');
+assert(html.includes('fortress-mode.css?v=329-free-auto-wall-repair'),'changed stylesheet invalidates web cache');
 assert(sw.includes('v319-bottom-ui'),'service-worker shell refreshes the bottom HUD');
-console.log('PASS v318/v319: resource refund, erase/repair, floating controls, bottom HUD outside building grid.');
+console.log('PASS v318/v319/v329: refund, demolition, automatic free healing and floating bottom HUD.');
