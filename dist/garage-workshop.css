@@ -462,3 +462,288 @@
  #garage-dialog .garage-part-grid .garage-slot>small{font-size:10px!important}
  #garage-dialog .garage-shell .garage-reel-card{width:86%!important}
 }
+
+
+/* v310 — Content-first responsive layout, never clip actionable UI.
+   The old 5-row board was forced into viewport fractions and hid overflow.
+   Preserve the art direction; allow the CONTENT AREA to scroll only when
+   available height cannot fit accessible full-size modules and controls. */
+#garage-dialog[open]{
+ width:min(96vw,470px)!important;
+ max-width:calc(100vw - 12px)!important;
+ height:min(96dvh,790px)!important;
+ max-height:calc(100dvh - 8px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))!important;
+ grid-template-rows:auto minmax(0,1fr) auto!important;
+ overflow:hidden!important;
+ margin:auto!important;
+}
+#garage-dialog>header{
+ flex:0 0 auto!important;min-height:42px!important;
+ gap:7px!important;overflow:visible!important;
+}
+#garage-dialog>header h2{flex:1 1 auto!important;min-width:0!important;overflow-wrap:anywhere!important}
+#garage-dialog #garage-close{
+ flex:0 0 auto!important;min-width:64px!important;
+ min-height:36px!important;white-space:nowrap!important;
+}
+#garage-dialog #garage-body{
+ box-sizing:border-box!important;
+ min-width:0!important;min-height:0!important;
+ height:100%!important;
+ overflow-x:hidden!important;overflow-y:auto!important;
+ overscroll-behavior:contain!important;
+ -webkit-overflow-scrolling:touch;
+ scrollbar-width:thin;scrollbar-color:#6c8a89 #112630;
+ padding-right:2px!important;
+}
+#garage-dialog #garage-body::-webkit-scrollbar{width:5px}
+#garage-dialog #garage-body::-webkit-scrollbar-thumb{border-radius:4px;background:#6c8a89}
+#garage-body>.garage-shell{
+ display:flex!important;flex-direction:column!important;
+ flex-wrap:nowrap!important;align-items:stretch!important;
+ width:100%!important;min-width:0!important;
+ height:auto!important;min-height:100%!important;max-height:none!important;
+ grid-template-rows:none!important;grid-template-columns:none!important;
+ overflow:visible!important;
+ gap:7px!important;padding:1px 1px 4px!important;
+}
+#garage-dialog .garage-shell>.garage-driver{
+ flex:0 0 auto!important;
+ height:clamp(156px,22dvh,198px)!important;
+ min-height:156px!important;max-height:none!important;
+ overflow:hidden!important;
+}
+#garage-dialog .garage-shell .garage-reel-card{
+ width:min(82%,400px)!important;
+ min-width:0!important;
+ overflow:visible!important;
+}
+#garage-dialog .garage-shell .garage-reel-figure{
+ flex:0 0 42%!important;width:42%!important;
+ min-width:0!important;max-width:none!important;
+}
+#garage-dialog .garage-shell .garage-reel-copy{
+ align-self:center!important;
+ overflow:visible!important;
+}
+#garage-dialog .garage-shell .garage-reel-copy p{
+ display:block!important;
+ max-height:none!important;
+ overflow:visible!important;
+ margin:3px 0!important;
+ line-height:1.24!important;
+ word-break:keep-all!important;
+ overflow-wrap:anywhere!important;
+}
+#garage-dialog .garage-shell .garage-reel-copy small{
+ white-space:normal!important;overflow:visible!important;
+}
+#garage-dialog .garage-shell>.garage-wallet{
+ flex:0 0 auto!important;min-height:26px!important;
+ height:auto!important;flex-wrap:wrap!important;
+ justify-content:flex-end!important;
+}
+#garage-dialog .garage-shell>.garage-wallet>span{
+ min-width:0!important;white-space:nowrap!important;
+}
+#garage-dialog .garage-shell>.garage-stat-panel{
+ flex:0 0 auto!important;
+ box-sizing:border-box!important;
+ height:auto!important;min-height:105px!important;max-height:none!important;
+ overflow:visible!important;
+ padding:8px 7px!important;
+}
+#garage-dialog .garage-shell .garage-stat-heading{flex-wrap:wrap!important;row-gap:3px!important}
+#garage-dialog .garage-shell .hero-mini-stats{min-width:0!important}
+#garage-dialog .garage-shell .hero-mini-stat{
+ min-width:0!important;height:16px!important;min-height:16px!important;
+ grid-template-columns:12px 25px minmax(0,1fr) minmax(26px,auto) minmax(23px,auto)!important;
+}
+#garage-dialog .garage-shell .hero-gear-traits{
+ display:grid!important;min-width:0!important;
+}
+#garage-dialog .garage-shell .hero-gear-trait{
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;overflow-wrap:anywhere!important;
+}
+#garage-dialog .garage-shell .garage-stat-footnote{
+ display:block!important;
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;line-height:1.3!important;
+}
+#garage-dialog .garage-part-grid{
+ box-sizing:border-box!important;
+ flex:1 0 206px!important;
+ width:100%!important;
+ min-height:206px!important;max-height:none!important;
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ align-items:stretch!important;
+ overflow:visible!important;
+}
+#garage-dialog .garage-part-grid .garage-slot,
+#garage-dialog .garage-part-grid .garage-slot>div{
+ box-sizing:border-box!important;min-width:0!important;min-height:0!important;
+ max-width:none!important;max-height:none!important;
+ overflow:visible!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-part]{
+ box-sizing:border-box!important;
+ flex:1 1 0!important;min-height:78px!important;height:auto!important;
+ overflow:visible!important;
+ padding:7px 3px 4px!important;
+ justify-content:center!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-part]>span:not(.garage-icon){
+ display:block!important;
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;
+ overflow-wrap:anywhere!important;word-break:keep-all!important;
+ line-height:1.14!important;
+}
+#garage-dialog .garage-part-grid .garage-slot button[data-part] small{
+ white-space:normal!important;overflow:visible!important;
+ overflow-wrap:anywhere!important;line-height:1.15!important;
+}
+#garage-dialog .garage-part-grid .garage-slot>small{
+ min-width:0!important;
+ white-space:normal!important;overflow:visible!important;
+}
+#garage-dialog .garage-shell>.garage-detail{
+ box-sizing:border-box!important;
+ flex:0 0 auto!important;width:100%!important;
+ min-height:116px!important;height:auto!important;max-height:none!important;
+ overflow:visible!important;
+ grid-template-columns:minmax(0,1fr) minmax(92px,29%)!important;
+ align-items:stretch!important;
+ padding:18px 8px 9px!important;
+}
+#garage-dialog .garage-detail .part-inspect{
+ align-items:center!important;
+ height:auto!important;min-height:0!important;
+ min-width:0!important;overflow:visible!important;
+}
+#garage-dialog .garage-detail .part-inspect>div{
+ min-width:0!important;overflow:visible!important;
+}
+#garage-dialog .garage-detail .part-inspect p{
+ min-width:0!important;
+ white-space:normal!important;overflow:visible!important;
+ overflow-wrap:anywhere!important;word-break:keep-all!important;
+}
+#garage-dialog .garage-detail .garage-effect-stat,
+#garage-dialog .garage-detail .garage-effect-unique,
+#garage-dialog .garage-detail .garage-effect-next{
+ display:block!important;
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;
+ overflow-wrap:anywhere!important;word-break:keep-all!important;
+}
+#garage-dialog .garage-detail .part-actions{
+ align-self:center!important;
+ min-width:0!important;overflow:visible!important;
+}
+#garage-dialog .garage-detail .part-actions button{
+ width:100%!important;max-width:100%!important;
+ min-height:38px!important;height:auto!important;
+ white-space:normal!important;overflow:visible!important;
+ overflow-wrap:anywhere!important;line-height:1.15!important;
+ padding:5px 4px!important;
+}
+#garage-dialog .garage-detail .part-actions>small{
+ white-space:normal!important;overflow:visible!important;
+ line-height:1.25!important;
+}
+#garage-dialog #garage-note{
+ box-sizing:border-box!important;
+ min-height:12px!important;height:auto!important;
+ max-height:36px!important;overflow-y:auto!important;white-space:normal!important;
+}
+/* Now that the board scrolls, NEVER hide critical stat rows, effect labels,
+   details, or card art in short viewports. Only reduce decorative spacing. */
+@media(max-height:690px){
+ #garage-dialog .garage-shell>.garage-driver{height:158px!important;min-height:158px!important}
+ #garage-dialog .garage-shell .garage-reel-card{padding:18px 7px 6px!important}
+ #garage-dialog .garage-shell .garage-reel-copy p{display:block!important}
+ #garage-dialog .garage-shell>.garage-stat-panel{min-height:100px!important}
+ #garage-dialog .garage-shell .garage-stat-footnote{display:block!important}
+ #garage-dialog .garage-part-grid{min-height:198px!important;flex-basis:198px!important}
+ #garage-dialog .garage-part-grid .garage-slot button[data-part]{
+  min-height:76px!important;
+ }
+ #garage-dialog .garage-detail::before{display:block!important}
+ #garage-dialog .garage-detail .part-inspect>.garage-icon{display:block!important}
+}
+@media(max-height:540px){
+ #garage-dialog[open]{height:98dvh!important}
+ #garage-dialog .garage-shell>.garage-driver{height:154px!important;min-height:154px!important}
+ #garage-dialog .garage-shell .garage-reel-copy p{
+  display:block!important;font-size:9px!important;max-height:none!important;
+ }
+ #garage-dialog .garage-shell .garage-reel-copy h3{font-size:18px!important}
+ #garage-dialog .garage-shell .garage-reel-copy small{font-size:9px!important}
+ #garage-dialog .garage-reel-count{display:inline-block!important}
+ #garage-dialog .garage-shell .garage-stat-heading small{display:inline-flex!important}
+ #garage-dialog .garage-shell .hero-gear-traits{display:grid!important}
+ #garage-dialog .garage-shell .garage-stat-footnote{display:block!important}
+ #garage-dialog .garage-detail .part-inspect>.garage-icon{display:block!important}
+ #garage-dialog .garage-detail::before{display:block!important}
+ #garage-dialog .garage-detail .part-actions button{min-height:38px!important;font-size:10px!important}
+ #garage-dialog .garage-part-grid .garage-slot button[data-part]>.garage-icon{
+  width:34px!important;height:34px!important;
+ }
+ #garage-dialog .garage-part-grid .garage-slot button[data-part]>span:not(.garage-icon){font-size:10px!important}
+ #garage-dialog .garage-part-grid .garage-slot button[data-part] small{font-size:9px!important}
+}
+/* 320px and compact split-screen layouts still show all content. */
+@media(max-width:360px){
+ #garage-dialog[open]{width:calc(100vw - 10px)!important;padding:5px!important}
+ #garage-body>.garage-shell{gap:6px!important}
+ #garage-dialog .garage-shell>.garage-stat-panel{padding:6px 7px!important}
+ #garage-dialog .garage-shell .hero-mini-stats{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  gap:3px!important;
+ }
+ #garage-dialog .garage-shell .hero-mini-stat{
+  height:16px!important;min-height:16px!important;
+  grid-template-columns:13px 32px minmax(0,1fr) 33px 30px!important;
+ }
+ #garage-dialog .garage-part-grid{gap:4px!important}
+ #garage-dialog .garage-part-grid .garage-slot>div{gap:4px!important}
+ #garage-dialog .garage-part-grid .garage-slot>small{font-size:10px!important}
+ #garage-dialog .garage-part-grid .garage-slot button[data-part]{min-height:84px!important}
+ #garage-dialog .garage-part-grid .garage-slot button[data-part]>span:not(.garage-icon){font-size:9px!important}
+ #garage-dialog .garage-shell>.garage-detail{grid-template-columns:minmax(0,1fr) 96px!important}
+ #garage-dialog .garage-detail .part-inspect>.garage-icon{width:32px!important;height:32px!important}
+ #garage-dialog .garage-detail strong{font-size:11px!important}
+}
+/* Radio is a naturally flowing dialog: avoid edge cuts on narrow/short phones. */
+#radio-dialog[open]{
+ box-sizing:border-box!important;
+ width:min(96vw,470px)!important;
+ max-width:calc(100vw - 12px)!important;
+ max-height:calc(100dvh - 12px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))!important;
+ overflow-x:hidden!important;overflow-y:auto!important;
+ overscroll-behavior:contain!important;
+ padding:clamp(8px,1.4dvh,14px)!important;
+}
+#radio-dialog>header{
+ display:flex!important;justify-content:space-between!important;align-items:center!important;
+ min-width:0!important;gap:8px!important;
+}
+#radio-dialog>header h2{min-width:0!important;flex:1 1 auto!important;overflow-wrap:anywhere!important}
+#radio-dialog #radio-close{flex:0 0 auto!important;min-height:38px!important;white-space:nowrap!important}
+#radio-dialog #radio-body{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important}
+#radio-dialog .garage-wallet{display:flex!important;flex-wrap:wrap!important;gap:6px!important}
+#radio-dialog .rx-actions{display:flex!important;flex-wrap:wrap!important;min-width:0!important}
+#radio-dialog .rx-actions button,
+#radio-dialog [data-action="reveal"]{
+ box-sizing:border-box!important;flex:1 1 130px!important;
+ min-width:0!important;min-height:44px!important;
+ height:auto!important;white-space:normal!important;
+ overflow-wrap:anywhere!important;
+}
+#radio-dialog .rx-screen{max-width:100%!important;box-sizing:border-box!important}
+#radio-dialog .rx-art{max-width:100%!important}
+#radio-dialog .rx-list{grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))!important}
+#radio-dialog .rx-list li{min-width:0!important}
+#radio-dialog .rx-list li>div{min-width:0!important;overflow-wrap:anywhere!important}
