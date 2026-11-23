@@ -4,7 +4,7 @@
 // One MINI-sized half cell (11px) of clearance on either side.
 // Construction spans [38,412] with 17 whole 22px wall blocks; the original
 // 18-column grid spanned [27,423]. All zombie colliders use this same strip.
-const X=38,Y=82,T=22,COLS=17,ROWS=20,MAX_HP=30,MAX_WALLS=180,REPAIRS_PER_MATERIAL=5;
+const X=38,Y=82,T=22,COLS=17,ROWS=20,MAX_HP=30,MAX_WALLS=180;
 const FORTRESS_SIDE_INSET=4;
 const FIELD_LEFT=X+FORTRESS_SIDE_INSET,FIELD_RIGHT=X+COLS*T-FORTRESS_SIDE_INSET;
 const walls=new Map(),pending=new Map();
@@ -12,9 +12,9 @@ const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
  confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),stockLabel=$('fortress-stock'),helpLabel=$('fortress-tip'),
  buildCountLabel=$('fortress-build-count'),supplyLabel=$('fortress-supply'),
- previewLabel=$('fortress-preview-summary'),toolButton=$('fortress-tool');
+ previewLabel=$('fortress-preview-summary');
 let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1,onReady=null;
-let destroyedThisStage=0,lastRefund=0,lastBonus=0,repairMode=false;
+let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
 const valid=(col,row)=>col>=0&&col<COLS&&row>=0&&row<ROWS;
@@ -31,18 +31,14 @@ function pointerCell(e,canvas){
  return positionCell(p.x,p.y);
 }
 function totals(){
- let builds=0,removes=0,repairs=0;
+ let builds=0,removes=0;
  for(const p of pending.values()){
   if(p.action==='remove')removes++;
-  else if(p.action==='repair')repairs++;
   else builds++;
  }
- // One material fully restores up to five damaged cubes in a single
- // confirmed repair stroke; fractional groups round up once per action.
- const repairCost=Math.ceil(repairs/REPAIRS_PER_MATERIAL);
- const balance=stock+removes-builds-repairCost;
+ const balance=stock+removes-builds;
  const countAfter=walls.size-removes+builds;
- return {builds,removes,repairs,repairCost,balance,valid:balance>=0&&countAfter<=MAX_WALLS};
+ return {builds,removes,balance,valid:balance>=0&&countAfter<=MAX_WALLS};
 }
 function refresh(){
  if(!ui)return;
@@ -56,27 +52,22 @@ function refresh(){
   const freeAfter=MAX_WALLS-(walls.size-summary.removes+summary.builds);
   buildCountLabel.textContent='더 건설 '+Math.max(0,Math.min(summary.balance,freeAfter))+'개';
  }
- if(supplyLabel)supplyLabel.textContent=stage===1?'초기 건설 자재 +26':'이전 파괴 환급 +'+lastRefund+' · 스테이지 보급 +'+lastBonus;
+ if(supplyLabel)supplyLabel.textContent=stage===1?'초기 건설 자재 +26':'생존 방벽 '+lastHealed+'개 자동 수리(무료) · 파괴 환급 +'+lastRefund+' · 보급 +'+lastBonus;
  if(previewLabel)previewLabel.textContent=
   '설치 +'+summary.builds+' · 철거 -'+summary.removes+' (환급 +'+summary.removes+')'+
-  (summary.repairs?' · 수리 '+summary.repairs+'칸 (자재 -'+summary.repairCost+')':'')+
   ' · 확정 후 자재 '+summary.balance+
   (!summary.valid?' · 자재/공간 부족':'');
- if(helpLabel)helpLabel.textContent=repairMode
-  ?'수리 모드: 손상 방벽 최대 5칸에 자재 1개 · 전부 완전 복구'
-  :hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
+ if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
   :stock?'빈칸 드래그: 건설 · 기존 방벽: 빨간 철거(자재 환급)'
   :'자재 0 · 기존 방벽 철거로 자재 확보 가능';
- if(toolButton){toolButton.textContent=repairMode?'수리 ON · 5칸/자재1 · 건설로':'🛠 수리(5칸/자재1)';toolButton.setAttribute?.('aria-pressed',String(repairMode))}
 }
 function addCell(t){
  if(!t||pending.has(t.id))return;
  const current=walls.get(t.id);
- const action=repairMode?(current&&current.hp<MAX_HP?'repair':null):(current?'remove':'build');
+ const action=current?'remove':'build';
  if(!action)return;
- // Apply the budget BEFORE displaying each dragged tile. The red demolition
- // preview refunds one material per existing cube, so it must remain usable
- // at zero stock; new/repair previews can use refunds in this same stroke.
+ // Apply the budget BEFORE displaying each dragged tile. Demolition
+ // refunds one material per cube, even at zero stock. No manual repairs.
  const item={...t,action};
  pending.set(t.id,item);
  if(!totals().valid){
@@ -185,39 +176,34 @@ function confirm(){
  if(!active||dragging||!pending.size)return 0;
  const summary=totals();
  if(!summary.valid)return 0;
- // Refund dismantled blocks before spending on construction/repair. Neither
- // cancellation nor a preview changes resources or the actual collision map.
+ // Refund demolished blocks first, then use that material for building.
+ // Damaged survivors are restored automatically at the NEXT wave for free.
  for(const t of pending.values())if(t.action==='remove'&&walls.delete(t.id))stock++;
  let changed=0;
- // Reserve the batched repair cost before constructing new walls. Otherwise
- // a stroke that draws many cells could spend materials promised to repairs.
  for(const t of pending.values()){
   if(t.action!=='build'||walls.has(t.id)||walls.size>=MAX_WALLS)continue;
-  if(stock<=summary.repairCost)break;
+  if(stock<=0)break;
   walls.set(t.id,{...t,hp:MAX_HP,hit:.12});stock--;changed++;
  }
- let repaired=0;
- for(const t of pending.values()){
-  if(t.action!=='repair')continue;
-  const w=walls.get(t.id);
-  if(w&&w.hp<MAX_HP){w.hp=MAX_HP;w.hit=.15;repaired++}
- }
- if(repaired){stock-=Math.ceil(repaired/REPAIRS_PER_MATERIAL);changed+=repaired}
  pending.clear();refresh();return changed+summary.removes;
 }
 function reset(){
  walls.clear();pending.clear();queued=[];stock=0;stage=1;
  active=false;dragging=false;pointer=null;last=null;touchStroke=null;
- destroyedThisStage=0;lastRefund=0;lastBonus=0;repairMode=false;refresh();
+ destroyedThisStage=0;lastRefund=0;lastBonus=0;lastHealed=0;refresh();
 }
 function begin(enemies,wave){
  queued=enemies.splice(0,enemies.length);stage=wave;
- if(wave===1){stock=26;lastBonus=26;lastRefund=0;destroyedThisStage=0}
- else{
+ if(wave===1){
+  stock=26;lastBonus=26;lastRefund=0;lastHealed=0;destroyedThisStage=0;
+ }else{
+  // Stage survived: every remaining cube heals completely without consuming
+  // construction materials; already destroyed cubes stay absent and refund
+  // one material each on top of the regular per-wave supply.
+  lastHealed=walls.size;
+  for(const w of walls.values()){w.hp=MAX_HP;w.hit=0;w.biteShake=0}
   lastRefund=destroyedThisStage;
   lastBonus=Math.min(14,8+Math.floor(wave/5));
-  // Every cube eaten last stage is refunded at full value, PLUS the stage
-  // allowance. Preserve leftovers; do not silently clip refunds at 52.
   stock+=lastRefund+lastBonus;destroyedThisStage=0;
  }
  active=true;dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh();
@@ -512,7 +498,7 @@ function draw(g,building=false){
    g.moveTo(p.x+T-5,p.y+5);g.lineTo(p.x+5,p.y+T-5);g.stroke();
   }else{
    g.globalAlpha=.8;g.drawImage(tile,0,0,frame,frame,p.x,p.y,T,T);
-   g.globalAlpha=1;g.strokeStyle=p.action==='repair'?'#62e7ef':'#ffe78f';
+   g.globalAlpha=1;g.strokeStyle='#ffe78f';
    g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,T-2,T-2);
   }
  }
@@ -525,13 +511,10 @@ function tick(dt){for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
-if(toolButton)toolButton.addEventListener('click',()=>{
- if(!active||dragging)return;repairMode=!repairMode;pending.clear();refresh();
-});
 window.ZZFortress={reset,begin,deploy,resolve,isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
  bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
- getSupply:()=>({refund:lastRefund,bonus:lastBonus}),
+ getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),
  getPreview:()=>totals(),getWallHP:(col,row)=>walls.get(id(col,row))?.hp||0,
  bounds:()=>({left:X,right:X+COLS*T,enemyLeft:FIELD_LEFT,enemyRight:FIELD_RIGHT,columns:COLS,rows:ROWS,tile:T})};
 })();
