@@ -256,7 +256,9 @@ function drawWorldGroundShadows(){
  // Large trash-bag boss: approved 256px sprite has transparent space below
  // its visible feet. Only its cast-shadow foot pivot gets an upward trim.
  // Keep sprite positions, collider, ground contact and all other mobs intact.
- const zombieGroundShadowFoot=z=>z.y+z.h-3*(z.miniScale||1)-(z.boss&&z.bossForm===3?18*(z.miniScale||1):0);
+ const zombieGroundShadowFoot=z=>(z.miniScale||1)<1
+  ?z.y+z.h-3*(z.miniScale||1)-(z.boss&&z.bossForm===3?18*(z.miniScale||1):0)
+  :z.y+z.h-3-(z.boss&&z.bossForm===3?18:0);
  for(const actor of foes){
   // ObjectZombie and GreenWalk use bottom pivot z.y+z.h+2.
   // Knockback shadows follow their displayed sprites, not future colliders.
@@ -890,7 +892,7 @@ function insertEliteZombies(regulars,stage){
  const eligible=ELITE_FIRST_STAGES.map((unlock,i)=>({i,unlock})).filter(e=>stage>=e.unlock&&atlas.cache[e.i]?.ready);
  if(!eligible.length)return;
  const available=regulars.filter(z=>!z.boss&&z.form===0);
- const count=Math.min((stage<5?1:stage<9?2:stage<18?3:4)*(isMiniHorde()?3:1),Math.floor(regulars.length*.15),available.length);
+ const count=Math.min((stage<5?1:stage<9?2:stage<18?3:4)*(typeof isMiniHorde==='function'&&isMiniHorde()?3:1),Math.floor(regulars.length*.15),available.length);
  if(!count)return;
  const newest=eligible.find(e=>e.unlock===stage),picks=newest?[newest.i]:[];
  while(picks.length<count){
@@ -2599,16 +2601,29 @@ function drawEnemyDeaths(){
   const deathAlpha=progress<=.75?1:Math.max(0,(1-progress)*4);
   g.save();
   g.globalAlpha=(Number.isFinite(g.globalAlpha)?g.globalAlpha:1)*deathAlpha;
-  drawMiniEnemy(d.z,visual=>{
-   if(d.spriteMode&&window.ZZLargeBossSprites?.available(visual)===true)
-    window.ZZLargeBossSprites.drawDeath(g,visual,elapsed,duration);
-   else if(d.spriteMode&&window.ZZEliteSprites?.available(visual)===true)
-    window.ZZEliteSprites.drawDeath(g,visual,elapsed,duration);
-   else if(d.spriteMode&&window.ZZObjectSprite?.available(visual)===true)
-    window.ZZObjectSprite.drawDeath(g,visual,d.critical,elapsed,duration);
+  if((d.z.miniScale||1)<1){
+   // Only Mini Horde uses scaled virtual dimensions. Base modes keep the
+   // exact legacy death renderer and its approved atlas timing.
+   drawMiniEnemy(d.z,visual=>{
+    if(d.spriteMode&&window.ZZLargeBossSprites?.available(visual)===true)
+     window.ZZLargeBossSprites.drawDeath(g,visual,elapsed,duration);
+    else if(d.spriteMode&&window.ZZEliteSprites?.available(visual)===true)
+     window.ZZEliteSprites.drawDeath(g,visual,elapsed,duration);
+    else if(d.spriteMode&&window.ZZObjectSprite?.available(visual)===true)
+     window.ZZObjectSprite.drawDeath(g,visual,d.critical,elapsed,duration);
+    else if(d.spriteMode&&window.ZZGreenDeath?.ready===true)
+     window.ZZGreenDeath.draw(g,visual,d.critical,elapsed);
+   });
+  }else{
+   if(d.spriteMode&&window.ZZLargeBossSprites?.available(d.z)===true)
+    window.ZZLargeBossSprites.drawDeath(g,d.z,elapsed,duration);
+   else if(d.spriteMode&&window.ZZEliteSprites?.available(d.z)===true)
+    window.ZZEliteSprites.drawDeath(g,d.z,elapsed,duration);
+   else if(d.spriteMode&&window.ZZObjectSprite?.available(d.z)===true)
+    window.ZZObjectSprite.drawDeath(g,d.z,d.critical,elapsed,duration);
    else if(d.spriteMode&&window.ZZGreenDeath?.ready===true)
-    window.ZZGreenDeath.draw(g,visual,d.critical,elapsed);
-  });
+    window.ZZGreenDeath.draw(g,d.z,d.critical,elapsed);
+  }
   g.restore();
  }
 }
