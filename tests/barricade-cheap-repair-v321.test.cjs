@@ -1,85 +1,56 @@
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs');
-const moduleSource=fs.readFileSync('dist/fortress-mode.js','utf8');
-const index=fs.readFileSync('dist/index.html','utf8');
-const sw=fs.readFileSync('dist/sw.js','utf8');
+// Legacy v321 paid-repair scenario is now the free, automatic survivor-healing
+// contract. Keep the regression at its historical test path.
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const source=fs.readFileSync('dist/fortress-mode.js','utf8');
+const html=fs.readFileSync('dist/index.html','utf8');
 const guide=fs.readFileSync('dist/menu-pages.js','utf8');
 const ids=['fortress-builder','fortress-actions','fortress-confirm','fortress-cancel',
  'fortress-ready','fortress-stock','fortress-tip','fortress-build-count',
- 'fortress-supply','fortress-preview-summary','fortress-tool'];
+ 'fortress-supply','fortress-preview-summary'];
 const nodes={};
-for(const id of ids)nodes[id]={
- hidden:false,disabled:false,textContent:'',style:{},dataset:{},
- addEventListener(name,fn){this[name]=fn},
- setAttribute(name,val){this[name]=val},
- getBoundingClientRect(){return {left:0,top:0,width:450,height:710}}
-};
-const fakeDocument={getElementById:id=>nodes[id]||null,
+for(const id of ids)nodes[id]={hidden:false,disabled:false,style:{},dataset:{},
+ addEventListener(k,fn){this[k]=fn},
+ getBoundingClientRect(){return {left:0,top:0,width:450,height:710}}};
+const doc={getElementById:id=>nodes[id]||null,
  createElement:()=>({getContext:()=>null})};
-const fakeWindow={};
-new Function('window','document',moduleSource)(fakeWindow,fakeDocument);
-const fort=fakeWindow.ZZFortress;
-const canvas={
- getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
- setPointerCapture(){}
-};
-const point=(col,row=0)=>({pointerId:17,button:0,clientX:48+22*col,clientY:92+22*row});
-function drag(first,last,row=0){
- assert.equal(fort.down(point(first,row),canvas),true);
- fort.move(point(last,row),canvas);
- assert.equal(fort.up(point(last,row),canvas),true);
+const win={};new Function('window','document',source)(win,doc);
+const fort=win.ZZFortress;
+const canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
+ setPointerCapture(){}};
+const p=(col,row=0)=>({pointerId:17,button:0,clientX:48+22*col,clientY:92+22*row});
+function drag(a,b,row=0){
+ assert.equal(fort.down(p(a,row),canvas),true);
+ fort.move(p(b,row),canvas);assert.equal(fort.up(p(b,row),canvas),true);
 }
-function chip(col,row=0){
- const x=41+22*col,y=90+22*row,enemy={x,y,w:16,h:22};
- assert.equal(fort.resolve(enemy,x,y-35,.79,()=>{}),true);
+const confirm=()=>nodes['fortress-confirm'].click();
+function chip(col,row=0,count=1){
+ const x=41+col*22,y=90+row*22,z={x,y,w:16,h:22};
+ for(let i=0;i<count;i++){
+  z.x=x;z.y=y;fort.resolve(z,x,y-35,.79,()=>{});
+ }
 }
 fort.reset();fort.begin([],1);
-drag(0,5);nodes['fortress-confirm'].click();
+drag(0,5);confirm();
 assert.equal(fort.getWallCount(),6);
 assert.equal(fort.getStock(),20);
 for(let i=0;i<6;i++)chip(i);
-assert.equal(fort.getWallHP(0,0),29);
-nodes['fortress-tool'].click();
-drag(0,4);
-assert.equal(fort.getPreview().repairs,5);
-assert.equal(fort.getPreview().repairCost,1,'one material covers five full repairs');
-assert.equal(fort.getPreview().balance,19);
-assert.match(nodes['fortress-preview-summary'].textContent,/수리 5칸 \(자재 -1\)/);
-assert.match(nodes['fortress-tip'].textContent,/최대 5칸/);
-nodes['fortress-cancel'].click();
-assert.equal(fort.getStock(),20,'cancel costs nothing');
-assert.equal(fort.getWallHP(0,0),29,'cancel does not repair');
-drag(0,4);nodes['fortress-confirm'].click();
-assert.equal(fort.getStock(),19,'five damaged blocks consume one material');
-for(let i=0;i<5;i++)assert.equal(fort.getWallHP(i,0),30,'repaired block is fully restored');
-assert.equal(fort.getWallHP(5,0),29,'unselected block stays damaged');
-drag(5,5);
-assert.equal(fort.getPreview().repairCost,1,'one damaged block costs one material');
-nodes['fortress-confirm'].click();
-assert.equal(fort.getStock(),18);
-assert.equal(fort.getWallHP(5,0),30);
-for(let i=0;i<6;i++)chip(i);
-drag(0,5);
-assert.equal(fort.getPreview().repairCost,2,'six repaired cubes cost only two materials');
-assert.equal(fort.getPreview().balance,16);
-nodes['fortress-confirm'].click();
-assert.equal(fort.getStock(),16);
-for(let i=0;i<6;i++)assert.equal(fort.getWallHP(i,0),30);
-// No materials: cannot repair, but cancel does not mutate walls.
-fort.reset();fort.begin([],1);
-drag(0,15);nodes['fortress-confirm'].click();
-drag(0,9,1);nodes['fortress-confirm'].click();
-assert.equal(fort.getStock(),0);
-chip(0);
-nodes['fortress-tool'].click();drag(0,0);
-assert.equal(fort.getPreview().repairs,0,'no repair preview once the material budget is depleted');
-assert.equal(fort.getPreview().repairCost,0);
-assert.equal(fort.getPreview().balance,0);
-assert.equal(nodes['fortress-actions'].hidden,true,'no confirm buttons for blocked zero-stock repair');
-nodes['fortress-cancel'].click();
-assert.equal(fort.getWallHP(0,0),29);
-assert.match(guide,/최대 5칸마다 자재 1개/);
-assert(index.includes('src="fortress-mode.js?v='),'barricade module URL remains cache-versioned');
-assert(index.includes('v321-cheaper-group-repair'));
-assert(sw.includes('v321-cheaper-group-repair'));
-console.log('PASS v321: 5 fully repaired barricades per material, preview budget, 6-for-2 rounding, cancel and insufficient-funds safety.');
+assert.equal(fort.getWallHP(0,0),29,'survivor damaged during active wave');
+assert.equal(fort.getStock(),20,'being bitten consumes no material');
+const count=fort.getWallCount(),stock=fort.getStock();
+fort.begin([],2);
+assert.equal(fort.getWallCount(),count,'surviving cubes persist in place');
+for(let i=0;i<6;i++)assert.equal(fort.getWallHP(i,0),30,'ALL survivors fully healed');
+assert.equal(fort.getStock(),stock+8,'automatic repair is free on top of stage supply');
+assert.deepEqual(fort.getSupply(),{refund:0,bonus:8,healed:6});
+assert.match(nodes['fortress-supply'].textContent,/자동 수리\(무료\)/);
+assert(!html.includes('id="fortress-tool"'),'manual repair button is removed');
+assert(!source.includes('repairMode'),'manual repair mode removed');
+assert(!source.includes('repairCost'),'paid repair billing removed');
+assert.match(guide,/자동 수리/);
+// Every new stage heals again, even when all available construction material is gone.
+fort.begin([],3);
+assert.equal(fort.getStock(),stock+16);
+assert.equal(fort.getWallHP(0,0),30);
+console.log('PASS v321/v329: free automatic full healing of all surviving barricades, no repair button or charges.');
