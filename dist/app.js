@@ -31,14 +31,18 @@ if(typeof MutationObserver!=='undefined'&&optionsActions.querySelector){
    const el=button(id);if(!el||el.querySelector('.option-copy'))continue;
    const raw=el.textContent,off=/OFF|LIGHT/.test(raw),retry=raw.includes('재생');
    let state=descriptions[id]||'';
-   if(id==='sound'||id==='bgm'||id==='haptics-toggle')state=retry?'눌러서 재생':off?'꺼짐':'켜짐';
+   if(id==='sound'||id==='bgm')state=retry?'눌러서 재생':off?'꺼짐':'켜짐';
+   if(id==='haptics-toggle')state=el.dataset?.mode==='off'?'진동 없음':
+     el.dataset?.mode==='full'?'풀 진동':'플레이어 중심';
    if(id==='fx')state=off?'가벼운 효과':'전체 효과';
    if(id==='fullscreen')state=raw.includes('복귀')?'기본 화면으로':'화면 가득 보기';
    if(id==='install')state=/설치됨|실행 중/.test(raw)?'설치 완료':'홈 화면에 추가';
    el.classList.add('option-tile');
-   el.dataset.state=(id==='sound'||id==='bgm'||id==='fx'||id==='haptics-toggle')?(retry?'retry':off?'off':'on'):'action';
+   el.dataset.state=id==='haptics-toggle'?(el.dataset.mode==='off'?'off':'on'):
+     (id==='sound'||id==='bgm'||id==='fx')?(retry?'retry':off?'off':'on'):'action';
    el.setAttribute('aria-label',names[id]+' · '+state);
-   if(id==='sound'||id==='haptics-toggle')el.setAttribute('aria-pressed',String(!off));
+   if(id==='sound'||id==='haptics-toggle')
+    el.setAttribute('aria-pressed',String(id==='haptics-toggle'?el.dataset.mode!=='off':!off));
    el.innerHTML='<span class="option-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+paths[id]+'"/></svg></span><span class="option-copy"><span class="option-name">'+names[id]+'</span><span class="option-status">'+state+'</span></span>';
   }
  }
