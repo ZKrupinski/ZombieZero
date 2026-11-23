@@ -561,7 +561,7 @@ function drawEffectLightSpills(){
  // pierce and power colors override the natural hero trail color.
  for(const b of balls){
   if(!b.held){
-   const radius=has('power') ? 12 : 8;
+   const radius=heroBallRadius();
    drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius));
   }
  }
@@ -570,7 +570,7 @@ function drawEffectLightSpills(){
  // Preserve projection position and all trail/flame/lightning artwork.
  for(const b of balls){
   if(b.held)continue;
-  const r=has('power') ? 12 : 8,drop=ballProjectionDrop(r);
+  const r=heroBallRadius(),drop=ballProjectionDrop(r);
   if(has('pierce')){
    drawProjectedLightSpill(b.x,b.y,has('power')?24:20,
      [81,204,255],has('fire')?.10:.16,drop,.82,false,false);
@@ -724,6 +724,8 @@ let runMode='campaign',endlessUnlocked=false,lastStandUsed=false,resistFlash=0,f
 // and doubles the grid resolution without scaling hero, ball or citizens.
 const MINI_HORDE_SCALE=.5,MINI_HORDE_COLUMNS=18;
 const isMiniHorde=()=>runMode==='mini';
+const miniBallScale=()=>isMiniHorde()?.60:1;
+const heroBallRadius=()=> (has('power')?12:8)*miniBallScale();
 const foeColumns=()=>isMiniHorde()?MINI_HORDE_COLUMNS:ENEMY_COLUMNS;
 const foePitch=()=>isMiniHorde()?(ENEMY_PITCH*(ENEMY_COLUMNS-1)+33-33*MINI_HORDE_SCALE)/(MINI_HORDE_COLUMNS-1):ENEMY_PITCH;
 const foeRowPitch=()=>isMiniHorde()?ENEMY_ROW_PITCH*MINI_HORDE_SCALE:ENEMY_ROW_PITCH;
@@ -1517,7 +1519,7 @@ function reactiveThreat(z,b,radius){
 }
 function tryReactiveDodges(dt){
  if(!balls.length)return;
- const radius=has('power')?12:8;
+ const radius=heroBallRadius();
  for(const z of foes){
   const profile=dodgeProfile(z);
   if(!profile||z.hitHold>0||(z.recoil||0)>.02||
@@ -2317,7 +2319,7 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&standReady()){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
-for(const b of [...balls]){updateBallSpin(b,dt);const cruise=ensureBallCruiseSpeed(b);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=has('power')?12:8,steps=Math.max(1,Math.ceil(Math.max(cruise*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
+for(const b of [...balls]){updateBallSpin(b,dt);const cruise=ensureBallCruiseSpeed(b);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=heroBallRadius(),steps=Math.max(1,Math.ceil(Math.max(cruise*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Each ball can strike multiple enemies in a line without flipping its
  // velocity, but never repeatedly damage one enemy during a single overlap.
@@ -2472,7 +2474,7 @@ function player(){
    // The bounce has already occurred. Start at impact, then follow through.
    frame=Math.min(7,4+Math.floor((HERO_ATTACK_DURATION-heroAttackTime)/.055));
   }else{
-   const radius=has('power')?12:8;
+   const radius=heroBallRadius();
    const reach=hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.combatStats?.()?.guard||0)+(window.ZZGarage?.masteryDefense?.()||0);
    let soonest=.20;
    for(const ball of balls){
@@ -3004,7 +3006,7 @@ function buildBallTrailPath(b,r,points){
  if(b.held||!b.trail?.length)return [];
  // Reuse vertex storage per live ball; retain the exact spline and sampling.
  // Index zero is the current position (without a historical corner flag).
- const head={x:b.x,y:b.y},trail=b.trail,limit=r>8?BALL_TRAIL_POWER:BALL_TRAIL_NORMAL;
+ const head={x:b.x,y:b.y},trail=b.trail,limit=has('power')?BALL_TRAIL_POWER:BALL_TRAIL_NORMAL;
  let total=0;const path=[];
  const append=(x,y,s)=>{
   const i=path.length,p=points?(points[i]||(points[i]={x:0,y:0,s:0})):{};
@@ -3392,7 +3394,7 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
  sx=1+flight;sy=1-flight*.72;rotation=moveAngle;
  if((b.bounceTime||0)>0){
   const duration=b.bounceDuration||.17,phase=clamp(1-b.bounceTime/duration,0,1);
-  const strength=clamp(b.impactStrength||.7,.45,1.12)*material*(r>8?.86:1);
+  const strength=clamp(b.impactStrength||.7,.45,1.12)*material*(has('power')?.86:1);
   if(b.impactKind==='serve'){
    const stretch=Math.sin(phase*Math.PI)*.105*strength;
    sx=1+stretch;sy=1-stretch*.75;rotation=moveAngle;
@@ -3410,7 +3412,7 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
  }
  // Power-up is exactly 1.5x the regular 8px radius; rebound may squash
  // inward but never stretch past the powered silhouette's intended diameter.
- if(r>8){sx=clamp(sx,.94,1);sy=clamp(sy,.94,1)}
+ if(has('power')){sx=clamp(sx,.94,1);sy=clamp(sy,.94,1)}
  return {index,sx,sy,rotation,spin};
 }
 function drawHeroBallSprite(b,r,col){
@@ -3501,7 +3503,7 @@ drawKillCombo();drawBarrelBlasts();
  // Elemental shots own one broad body at every detail level.
  const elementalTrail=fxEnabled&&(has('fire')||has('pierce'));
  for(const b of balls){
-  const r=has('power')?12:8;
+  const r=heroBallRadius();
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
   const trailPath=getBallRenderTrailPath(b,r);
   if(!elementalTrail){
