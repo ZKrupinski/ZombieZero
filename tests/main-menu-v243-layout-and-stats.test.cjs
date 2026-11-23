@@ -28,13 +28,13 @@ data.levels.heavy=3;data.loads[0][1]='heavy';
 data.levels.wide=3;data.loads[0][0]='wide';
 rows=stats();
 assert.equal(rows[0].bonus,40,'base +8% car speed uses real gear level');
-assert(Math.abs(rows[1].bonus-.095)<.00001,'heavy adds +9.5% permanent damage; +38% first hit remains unique');
-assert.equal(rows[2].bonus,0,'heart health does not falsely improve from weapons');
+assert(Math.abs(rows[1].bonus-.121)<.00001,'heavy, wide and steer combine to +12.1% permanent attack; first-hit stays unique');
+assert.equal(rows[2].bonus,1,'wide Lv3 grants one real maximum heart');
 assert.equal(rows[3].bonus,22,'wide +10px, passive guard +5px, steering guard +3px and sweet +4px');
 let markup=system.heroStatMarkup(h,data,progression,0);
 assert(markup.includes('hero-stat-cell boost'),'equipped bonuses use golden segment color');
 assert(markup.includes('hero-mini-bonus active'),'equipped upgrades show numeric boost');
-assert(markup.includes('>+40<')&&markup.includes('>+0.10<')&&markup.includes('>+22<'),'permanent stat boosts and unique effects appear separately');
+assert(markup.includes('>+40<')&&markup.includes('>+0.12<')&&markup.includes('>+22<'),'permanent stat boosts and unique effects appear separately');
 data.levels.steer=5;
 assert.equal(stats()[0].bonus,90,'upgrading the same equipped car gear updates speed instantly');
 data.loads[0][2]='filter';
@@ -55,7 +55,7 @@ assert(files.css.includes('12-cell gauges')&&files.css.includes('.hero-stat-cell
  'base and upgrade segments are visually distinguishable');
 assert(/garage\.css\?v=(11-v243-compact-dock-stats|12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(files.html)&&
  files.html.includes('garage.js?v=4-v243-real-bonus-stats')&&
- /garage-ui\.js\?v=(9-v243-garage-stats|10-v244-five-portrait|11-v247-stable-border-focus|12-v248-complete-hero-cards|13-v254-gameover-reel)/.test(files.html),
+ /garage-ui\.js\?v=(9-v243-garage-stats|10-v244-five-portrait|11-v247-stable-border-focus|12-v248-complete-hero-cards|13-v254-gameover-reel|14-v310-scroll-stability)/.test(files.html),
  'all updated assets cache-busted');
 assert(/v24[3-5]-(layout-stats-dock|five-portrait-no-dock-box|clear-top-centered-icons)/.test(files.sw),'offline cache invalidated');
 console.log('PASS v243: 9:16 arcade hierarchy, 30% reel, tall dock, 12-cell true base+upgrade stats shared by garage/menu.');
