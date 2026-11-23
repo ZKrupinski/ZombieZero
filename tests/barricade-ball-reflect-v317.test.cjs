@@ -21,17 +21,17 @@ const canvas={
  setPointerCapture(){}
 };
 fort.reset();fort.begin([],1);
-const pointer={clientX:60,clientY:94,pointerId:1,button:0};
+const pointer={clientX:49,clientY:94,pointerId:1,button:0};
 assert.equal(fort.down(pointer,canvas),true);fort.up(pointer,canvas);
 elements['fortress-confirm'].click();fort.ready();
 assert.equal(fort.getWallCount(),1);
 const cases=[
- ['left',43,92,47,92,230,0,4,'x',-1],
- ['right',78,92,74,92,-230,0,4,'x',1],
- ['top',59,76,59,80,0,230,4,'y',-1],
- ['bottom',59,111,59,107,0,-230,4,'y',1],
- ['powered',59,74,59,78,0,230,6,'y',-1],
- ['piercing',43,92,47,92,230,0,4,'x',-1]
+ ['left',32,92,36,92,230,0,4,'x',-1],
+ ['right',67,92,63,92,-230,0,4,'x',1],
+ ['top',48,76,48,80,0,230,4,'y',-1],
+ ['bottom',48,111,48,107,0,-230,4,'y',1],
+ ['powered',48,74,48,78,0,230,6,'y',-1],
+ ['piercing',32,92,36,92,230,0,4,'x',-1]
 ];
 for(const [name,ox,oy,x,y,vx,vy,r,axis,expected] of cases){
  const ball={x,y,vx,vy,held:false,piercing:name==='piercing'};
@@ -44,20 +44,20 @@ const miss={x:210,y:350,vx:100,vy:0};
 assert.equal(fort.bounceBall(miss,206,350,4),null,'no phantom collisions');
 // 120 impacts must not chip a block, even under piercing or power.
 for(let i=0;i<120;i++){
- const ball={x:59,y:80,vx:0,vy:450,piercing:true};
- assert(fort.bounceBall(ball,59,76,4));
+ const ball={x:48,y:80,vx:0,vy:450,piercing:true};
+ assert(fort.bounceBall(ball,48,76,4));
 }
 assert.equal(fort.getWallCount(),1,'durability unaffected by repeated ball impacts');
-const attacker={x:52,y:90,w:16,h:22};
+const attacker={x:41,y:90,w:16,h:22};
 let bites=0;
 for(let i=0;i<9;i++){
- attacker.x=52;attacker.y=90;
- fort.resolve(attacker,52,57,.79,()=>bites++);
+ attacker.x=41;attacker.y=90;
+ fort.resolve(attacker,41,57,.79,()=>bites++);
 }
 assert.equal(bites,0,'zombie needs substantially more bites even after repeated ball hits');
 for(let i=0;i<23;i++){
- attacker.x=52;attacker.y=90;
- fort.resolve(attacker,52,57,.79,()=>bites++);
+ attacker.x=41;attacker.y=90;
+ fort.resolve(attacker,41,57,.79,()=>bites++);
 }
 assert.equal(bites,1,'zombie attacks do damage to wall');
 assert(game.includes('fortress.bounceBall(b,ox,oy,radius)'),'live ball substeps call cube collision');
