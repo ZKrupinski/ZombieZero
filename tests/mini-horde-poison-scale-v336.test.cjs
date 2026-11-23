@@ -42,7 +42,7 @@ assert.equal(ctx.poison,100,'six mini spit blocks reach the unchanged 100 thresh
 assert(ctx.groggyTime>1,'groggy status remains functional');
 clear();ctx.garageCombat=()=>({resist:20});
 block({type:'spit',enemyScale:.5});
-assert.equal(ctx.poison,13.6,'existing resistance still reduces the scaled payload');
+assert(Math.abs(ctx.poison-13.6)<1e-9,'existing resistance still reduces the scaled payload');
 ctx.garageCombat=()=>({resist:0});
 clear();ctx.has=skill=>skill==='shield';block({type:'spit',enemyScale:.5});
 assert.equal(ctx.poison,0,'shield still prevents toxin entirely');
