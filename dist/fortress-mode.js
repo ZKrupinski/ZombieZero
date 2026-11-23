@@ -18,10 +18,17 @@ let destroyedThisStage=0,lastRefund=0,lastBonus=0,repairMode=false;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
 const valid=(col,row)=>col>=0&&col<COLS&&row>=0&&row<ROWS;
-function pointerCell(e,canvas){
- const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*450/(r.width||450),y=(e.clientY-r.top)*710/(r.height||710);
+function pointerPosition(e,canvas){
+ const r=canvas.getBoundingClientRect();
+ return {x:(e.clientX-r.left)*450/(r.width||450),y:(e.clientY-r.top)*710/(r.height||710)};
+}
+function positionCell(x,y){
  const col=Math.floor((x-X)/T),row=Math.floor((y-Y)/T);
  return valid(col,row)?cell(col,row):null;
+}
+function pointerCell(e,canvas){
+ const p=pointerPosition(e,canvas);
+ return positionCell(p.x,p.y);
 }
 function totals(){
  let builds=0,removes=0,repairs=0;
@@ -88,16 +95,67 @@ function lineTo(to){
  }
  last=to;
 }
+// A fingertip can shift up/down by 10-20px while moving horizontally.
+// Resolve the stroke's main direction in game pixels and lock its minor axis,
+// so boundary noise never creates a second parallel row (or column).
+// Mouse/stylus input retains the precise uncorrected diagonal behavior.
+const TOUCH_DIRECTION_START=T*.82;
+const TOUCH_AXIS_RATIO=1.42;
+const TOUCH_CORNER_DEADZONE=T*1.35;
+let touchStroke=null;
+function touchLineTo(e,canvas,allowCorner=true){
+ if(!touchStroke){lineTo(pointerCell(e,canvas));return}
+ const p=pointerPosition(e,canvas);
+ const raw=positionCell(p.x,p.y);
+ if(!raw)return;
+ const stroke=touchStroke;
+ if(!stroke.axis){
+  const dx=p.x-stroke.originX,dy=p.y-stroke.originY;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<TOUCH_DIRECTION_START)return;
+  stroke.axis=Math.abs(dx)>Math.abs(dy)*TOUCH_AXIS_RATIO?'x':
+    Math.abs(dy)>Math.abs(dx)*TOUCH_AXIS_RATIO?'y':'diagonal';
+ }
+ if(stroke.axis==='diagonal'){
+  lineTo(raw);
+  return;
+ }
+ if(stroke.axis==='x'){
+  const along=positionCell(p.x,Y+stroke.anchor.row*T+T*.5);
+  if(along)lineTo(along);
+  // An intentional perpendicular turn needs >1.35 block widths of
+  // displacement, far beyond fingertip contact jitter.
+  if(allowCorner&&Math.abs(p.y-stroke.originY)>TOUCH_CORNER_DEADZONE&&last){
+   const corner=last;
+   stroke.axis='y';stroke.anchor=corner;
+   stroke.originX=p.x;stroke.originY=p.y;
+   const turn=positionCell(X+corner.col*T+T*.5,p.y);
+   if(turn)lineTo(turn);
+  }
+ }else{
+  const along=positionCell(X+stroke.anchor.col*T+T*.5,p.y);
+  if(along)lineTo(along);
+  if(allowCorner&&Math.abs(p.x-stroke.originX)>TOUCH_CORNER_DEADZONE&&last){
+   const corner=last;
+   stroke.axis='x';stroke.anchor=corner;
+   stroke.originX=p.x;stroke.originY=p.y;
+   const turn=positionCell(p.x,Y+corner.row*T+T*.5);
+   if(turn)lineTo(turn);
+  }
+ }
+}
 function down(e,canvas){
  if(!active||dragging)return false;
  if(e.button!==undefined&&e.button!==0)return false;
  const to=pointerCell(e,canvas);
  if(!to)return false;
- pending.clear();dragging=true;pointer=e.pointerId;last=null;lineTo(to);refresh();
+ pending.clear();dragging=true;pointer=e.pointerId;last=null;
+ const origin=pointerPosition(e,canvas);
+ touchStroke=e.pointerType==='touch'?{originX:origin.x,originY:origin.y,anchor:to,axis:null}:null;
+ lineTo(to);refresh();
  try{canvas.setPointerCapture(e.pointerId)}catch{}
  return true;
 }
-function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;lineTo(pointerCell(e,canvas));refresh();return true}
+function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;touchLineTo(e,canvas);refresh();return true}
 function showActionsAt(e,canvas){
  if(!ui||!actions||!actions.style)return;
  const rect=ui.getBoundingClientRect?.()||canvas.getBoundingClientRect?.();
@@ -112,10 +170,12 @@ function showActionsAt(e,canvas){
 }
 function up(e,canvas){
  if(!dragging||e.pointerId!==pointer)return false;
- lineTo(pointerCell(e,canvas));dragging=false;pointer=null;last=null;
+ // Finger-lift coordinates are noisy: keep the chosen axis and never
+ // reinterpret a tiny release movement as a new corner.
+ touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
  showActionsAt(e,canvas);refresh();return true;
 }
-function cancel(){dragging=false;pointer=null;last=null;pending.clear();refresh()}
+function cancel(){dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh()}
 function confirm(){
  if(!active||dragging||!pending.size)return 0;
  const summary=totals();
@@ -142,7 +202,7 @@ function confirm(){
 }
 function reset(){
  walls.clear();pending.clear();queued=[];stock=0;stage=1;
- active=false;dragging=false;pointer=null;last=null;
+ active=false;dragging=false;pointer=null;last=null;touchStroke=null;
  destroyedThisStage=0;lastRefund=0;lastBonus=0;repairMode=false;refresh();
 }
 function begin(enemies,wave){
@@ -155,7 +215,7 @@ function begin(enemies,wave){
   // allowance. Preserve leftovers; do not silently clip refunds at 52.
   stock+=lastRefund+lastBonus;destroyedThisStage=0;
  }
- active=true;dragging=false;pointer=null;last=null;pending.clear();refresh();
+ active=true;dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh();
 }
 function intersects(x,y,w,h,other,margin=0){
  return x<other.x+T+margin&&x+w>other.x-margin&&y<other.y+T+margin&&y+h>other.y-margin;
