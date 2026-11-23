@@ -69,10 +69,22 @@ for(const [width,height] of [[450,710],[360,640],[400,711],[450,800],[320,568]])
  assert(heights[2]>22,'main START remains tappable');
  assert(heights[4]>40&&heights[5]>40,'both secondary mode and dock rows stay visible');
 }
-assert(html.includes('selection-layout-v332.css?v=332-no-scroll-main-menu-grid'),
+assert(html.includes('selection-layout-v332.css?v=333-menu-vertical-spacing'),
  'new layout must load after existing badge art styles');
 assert(html.indexOf('mode-icons-v330.css')<html.indexOf('selection-layout-v332.css'));
 assert.equal(sw.split("'./selection-layout-v332.css'").length-1,2,
  'PWA precaches new layout in both resource lists');
-assert(sw.includes('v332-no-scroll-main-menu-grid'),'PWA cache invalidated');
+assert(sw.includes('v333-menu-vertical-spacing'),'PWA cache invalidated');
+assert(css.includes('transform:translateY(calc(-6px * var(--ui-scale,1)))!important'),
+ 'character selector moved slightly up, while retaining grid layout');
+assert(css.includes('transform:translateY(calc(-4px * var(--ui-scale,1)))!important'),
+ 'Game Start button also raised, opening space below it');
+assert(css.includes('align-items:flex-end!important;justify-content:center!important;gap:8px!important'),
+ 'EXTRA MODE heading lowered to the adjacent icon row');
+assert(css.includes('transform:translateY(calc(2px * var(--ui-scale,1)))!important'),
+ 'EXTRA MODE text hugs the three secondary mode badges');
+assert(css.includes('justify-self:center!important;align-self:start!important'),
+ 'secondary icon row aligns to its top instead of floating between rows');
+assert(css.includes('margin:calc(-2px * var(--ui-scale,1)) 0 0!important'),
+ 'secondary icons sit slightly closer to the EXTRA MODE label');
 console.log('PASS v332: Game Start label, integrated 9:16 grid, hero and all six mode/dock buttons accessible without scroll.');
