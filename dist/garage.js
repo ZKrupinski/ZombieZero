@@ -23,28 +23,44 @@ window.ZZGarage = (() => {
   }
  }
 
- // Every equipped module contributes to a permanent combat stat as well as
- // its own conditional / special mechanic. All values are per hero loadout.
+ // v311: every equipped module improves multiple real core stats. Only
+ // the three equipped slots count; unused inventory gives no passive buffs.
+ // Each extra life is one additional missed ball, not a damage-reduction bar.
  function statBoosts(gear){
+  const grip=gear('grip')||0,wide=gear('wide')||0;
+  const cushion=gear('cushion')||0,heavy=gear('heavy')||0;
+  const steer=gear('steer')||0,filter=gear('filter')||0;
   return {
-   attack:Math.round(((gear('grip')||0)*.4+(gear('heavy')||0)*.25)*10)/10,
-   guard:Math.ceil((gear('wide')||0)/2)+Math.round((gear('cushion')||0)/5)+Math.round((gear('steer')||0)/3),
-   resist:Math.round((gear('filter')||0)/3)
+   attack:Math.round((grip*.4+wide*.12+heavy*.25+steer*.18)*10)/10,
+   guard:Math.ceil(grip/6)+Math.ceil(wide/2)+Math.round(cushion/5)+Math.ceil(heavy/9)+Math.round(steer/3),
+   resist:Math.round(wide/4)+Math.round(cushion/4)+Math.round(filter/3),
+   speed:steer+Math.round(filter/10),
+   // Max hearts unlock at equipment level 3, except Heavy at level 4.
+   lives:Number(wide>=10)+Number(cushion>=30)+Number(heavy>=44)+Number(filter>=48)
   };
  }
  function combatStats(){return statBoosts(id=>equipped[id]||0)}
- // A clear two-part benefit label for each upgrade in the garage inspector.
+ // The same formula powers detail descriptions, stat bars, and battle.
  function partBenefits(part,level){
-  const n=value(part,level),pct=x=>(Math.round(x*10)/10).toString()+'%';
-  switch(part.id){
-   case 'grip':return {stat:'공격 +'+pct(n*.4),unique:'정타 판정 +'+n+'% · 정타 추가 타격'};
-   case 'wide':return {stat:'수비 +'+(n+Math.ceil(n/2))+'px',unique:'양쪽 방어 +'+n+'px · 코너 정타 보정'};
-   case 'cushion':return {stat:'수비 +'+Math.round(n/5)+'px',unique:'벽 반사 넉백 +'+n+'%'};
-   case 'heavy':return {stat:'공격 +'+pct(n*.25),unique:'첫 충돌 위력 +'+n+'%'};
-   case 'steer':return {stat:'속도 +'+n+'% · 수비 +'+Math.round(n/3)+'px',unique:'차량 반응 속도 +'+n+'%'};
-   case 'filter':return {stat:'내성 +'+Math.round(n/3)+'%',unique:'8초마다 독침 중독 -'+n+'%'};
-  }
-  return {stat:'',unique:''};
+  if(!part)return {stat:'',unique:''};
+  const n=value(part,level),b=statBoosts(id=>id===part.id?n:0);
+  const fmt=x=>String(Math.round(x*10)/10),stats=[];
+  if(b.attack)stats.push('공격 +'+fmt(b.attack)+'%');
+  if(b.guard||(part.id==='wide'&&n))stats.push('수비 +'+(b.guard+(part.id==='wide'?n:0))+'px');
+  if(b.speed)stats.push('속도 +'+fmt(b.speed)+'%');
+  if(b.resist)stats.push('내성 +'+b.resist+'%');
+  if(b.lives)stats.push('체력 +'+b.lives+'♥');
+  const uniques={
+   grip:'정타 판정 +'+n+'% · 정타 추가 타격',
+   wide:'양쪽 방어 +'+n+'px · 코너 정타 보정',
+   cushion:'벽 반사 넉백 +'+n+'%',
+   heavy:'첫 충돌 위력 +'+n+'%',
+   steer:'차량 반응 속도 +'+n+'%',
+   filter:'8초마다 독침 중독 -'+n+'%'
+  };
+  const unlock={wide:3,cushion:3,heavy:4,filter:3}[part.id];
+  const nextHeart=unlock!==undefined&&level<unlock?' · Lv.'+unlock+'부터 최대 하트 +1':'';
+  return {stat:stats.join(' · '),unique:(uniques[part.id]||part.label)+nextHeart};
  }
  function reward(data,mode,stage,hero){
   data.xp[hero]=(data.xp[hero]||0)+1;
@@ -141,9 +157,9 @@ window.ZZGarage = (() => {
   const baseLives=Number(hero?.lives)||3;
   const basePaddle=Number(hero?.paddle)||60;
   return [
-   {id:'speed',icon:'⚡',name:'속도',base:baseSpeed,bonus:Math.round(baseSpeed*gear('steer')/100),cap:950,unit:''},
+   {id:'speed',icon:'⚡',name:'속도',base:baseSpeed,bonus:Math.round(baseSpeed*boosted.speed/100),cap:950,unit:''},
    {id:'attack',icon:'✦',name:'공격',base:baseDamage,bonus:baseDamage*boosted.attack/100,cap:3.4,unit:'',precision:2},
-   {id:'hp',icon:'♥',name:'체력',base:baseLives,bonus:0,cap:6,unit:''},
+   {id:'hp',icon:'♥',name:'체력',base:baseLives,bonus:boosted.lives,cap:Math.max(8,baseLives+boosted.lives),unit:''},
    {id:'guard',icon:'↔',name:'수비',base:basePaddle,bonus:gear('wide')+boosted.guard+extraSweet+mastery(data?.xp?.[index]),cap:120,unit:'px'},
    {id:'resist',icon:'✚',name:'내성',base:0,bonus:boosted.resist,cap:50,unit:'%'}
   ];
@@ -169,7 +185,7 @@ window.ZZGarage = (() => {
    const bonusSegments=row.bonus>0?Math.max(1,Math.ceil(row.bonus/row.cap*segments)):0;
    const maxBonus=Math.min(segments-baseSegments,bonusSegments);
    const suffix=row.id==='resist'?'%':'';
-   const desc=row.name+' 기본 '+rounded(row.base)+suffix+(row.bonus>0?' 강화 +'+rounded(row.bonus)+suffix:'');
+   const desc=(row.id==='hp'?'체력(최대 하트)':row.name)+' 기본 '+rounded(row.base)+suffix+(row.bonus>0?' 강화 +'+rounded(row.bonus)+(row.id==='hp'?'♥':suffix):'');
    const blocks=Array.from({length:segments},(_,n)=>{
     const kind=n<baseSegments?'base':n<baseSegments+maxBonus?'boost':'empty';
     return '<i class="hero-stat-cell '+kind+'"></i>';
