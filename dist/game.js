@@ -2243,7 +2243,7 @@ updatePoisonStatus(dt);
 const previousCar=car;
 if(groggyTime>0){target=car;}
 else{
- const driveSpeed=hero().speed*(1+garageCombat().speed/100);
+ const driveSpeed=hero().speed*(1+(garageCombat().speed||0)/100);
  if(keys.ArrowLeft||keys.a)target-=driveSpeed*dt;
  if(keys.ArrowRight||keys.d)target+=driveSpeed*dt;
  target=clamp(target,72,W-72);
