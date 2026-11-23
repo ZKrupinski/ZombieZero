@@ -1039,6 +1039,7 @@ function nextBossArtLoading(nextWave){
    sprites.cache?.[form-2]?.loading===true;
 }
 function rack(){
+ clearWormParade();wormNextAt=clock+9+Math.random()*5;
  standRetreat.length=0;standDangerTime=0;resistFlash=0;
  if(window.ZZProgression){lastStandCount=0;lastStandUsed=false;lastStandLastAt=-1e9;}
  bossTrashShots.length=0;
@@ -1142,7 +1143,7 @@ function tryStartBreakouts(){
  for(let k=0;k<count;k++){
   const choices=[];
   for(const z of living){
-   if(Number.isInteger(z.eliteKind)||chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
+   if(z.wormParade||Number.isInteger(z.eliteKind)||chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
       !Number.isInteger(z.col)||!Number.isInteger(z.row)||
       z.row===0||z.y+z.h>=DEFENSE_Y-125||
       (z.breakoutCooldownUntil||0)>clock||
@@ -1540,7 +1541,7 @@ function tryReactiveDodges(dt){
  const radius=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1));
  for(const z of foes){
   const profile=dodgeProfile(z);
-  if(!profile||z.hitHold>0||(z.recoil||0)>.02||
+  if(!profile||z.wormParade||z.hitHold>0||(z.recoil||0)>.02||
      (z.knockTime||0)>0||Number.isFinite(z.breakoutTime)||
      Number.isFinite(z.arrivalTime)||z.eliteMotion?.tag==='evade'||
      clock<(z.dodgeReadyAt||0)||z.y+z.h>DEFENSE_Y-48)continue;
@@ -1575,11 +1576,135 @@ function tryReactiveDodges(dt){
   }
  }
 }
+// V337 — Occasional 7 / 10 / 20-zombie worm parades in both horde modes.
+// These are REAL colliders, not an overlay. All movement is swept and bounded.
+// The choreography only retreats UPWARD, never breaches the defense line.
+const WORM_GROUP_SIZES=[7,10,20],WORM_SAFE_MARGIN=90;
+let wormParade=null,wormNextAt=0;
+function clearWormParade(){
+ if(wormParade)for(const m of wormParade.members){
+  if(m.z.wormParade===wormParade)delete m.z.wormParade;
+  m.z.shortStepHomeX=m.z.x;
+ }
+ wormParade=null;
+}
+function wormEligible(z){
+ return z&&!z.boss&&!Number.isInteger(z.eliteKind)&&z.hp>0&&
+  Number.isInteger(z.row)&&z.row>=0&&Number.isInteger(z.col)&&
+  z.col>=0&&z.col<foeColumns()&&
+  z.y>=ENEMY_TOP_Y+8&&z.y+z.h<DEFENSE_Y-WORM_SAFE_MARGIN-22&&
+  Math.abs(z.x-(foeStartX()+z.col*foePitch()))<6&&
+  !Number.isFinite(z.breakoutTime)&&!z.eliteMotion&&
+  (z.knockTime||0)<=0&&(z.hitHold||0)<=0&&(z.recoil||0)<=.02&&
+  (z.trashStopUntil||0)<=clock&&(z.arrivalTime||0)<=0;
+}
+function startWormParade(){
+ if(!isMiniHorde()||mode!=='playing'||balls[0]?.held||
+    wormParade||clock<wormNextAt)return false;
+ wormNextAt=clock+3.5;
+ if(foes.length<7)return false;
+ const rows=new Map();
+ for(const z of foes)if(wormEligible(z)){
+  let cols=rows.get(z.row);
+  if(!cols){cols=new Map();rows.set(z.row,cols)}
+  cols.set(z.col,z);
+ }
+ const rand=Math.random(),preferred=rand<.38?7:rand<.79?10:20;
+ const sizes=[preferred,...WORM_GROUP_SIZES.filter(n=>n!==preferred)];
+ let chosen=null;
+ for(const size of sizes){
+  const options=[];
+  for(const [row,cols] of rows){
+   if(size===20){
+    // Ten upper zombies travel left-to-right; the next ten run in
+    // reverse order across the adjacent row, making a continuous S.
+    const next=rows.get(row+1);
+    if(!next)continue;
+    for(let c=0;c<=foeColumns()-10;c++){
+     const top=[],bottom=[];
+     for(let k=0;k<10;k++){
+      top.push(cols.get(c+k));bottom.push(next.get(c+k));
+     }
+     if(top.every(Boolean)&&bottom.every(Boolean))
+      options.push([...top,...bottom.reverse()]);
+    }
+   }else for(let c=0;c<=foeColumns()-size;c++){
+    const line=[];
+    for(let k=0;k<size;k++)line.push(cols.get(c+k));
+    if(line.every(Boolean))options.push(line);
+   }
+  }
+  if(options.length){
+   chosen=options[Math.floor(Math.random()*options.length)];
+   break;
+  }
+ }
+ if(!chosen)return false;
+ const room=Math.min(...chosen.map(z=>z.y-ENEMY_TOP_Y-1));
+ if(room<5)return false;
+ const members=chosen.map((z,index)=>({z,index,baseX:z.x,baseY:z.y}));
+ wormParade={members,elapsed:0,duration:4.4,
+  retreat:Math.min(18,room),seed:Math.random()*Math.PI*2};
+ for(const m of members){
+  m.z.wormParade=wormParade;
+  clearShortStep(m.z,4.9);
+ }
+ wormNextAt=clock+19+Math.random()*11;
+ return true;
+}
+function updateWormParade(dt){
+ if(!isMiniHorde()||mode!=='playing'){clearWormParade();return}
+ if(!wormParade){startWormParade();return}
+ const p=wormParade,step=Math.max(0,dt*enemySlowRate());
+ p.elapsed=Math.min(p.duration,p.elapsed+step);
+ const t=p.elapsed;
+ const fade=Math.max(0,Math.min(1,t/.45,(p.duration-t)/.50));
+ const retreatTime=clamp((t-2.05)/1.25,0,1);
+ const back=retreatTime*retreatTime*(3-2*retreatTime)*p.retreat;
+ let remaining=0;
+ for(const m of p.members){
+  const z=m.z;
+  if(z.wormParade!==p||!foes.includes(z)||z.hp<=0||
+     (z.knockTime||0)>0||(z.hitHold||0)>0||(z.recoil||0)>.02||
+     Number.isFinite(z.breakoutTime)||z.eliteMotion){
+   if(z.wormParade===p)delete z.wormParade;
+   continue;
+  }
+  remaining++;
+  const wave=(Math.sin(t*5.2-m.index*.64)*2.7+
+   Math.sin(t*2.35+p.seed)*6.5)*fade;
+  const ripple=Math.sin(t*5.2-m.index*.64)*1.5*fade;
+  const goalX=clamp(m.baseX+wave,zombieMinX(),zombieMaxX(z));
+  const goalY=clamp(m.baseY-Math.max(0,back+ripple),
+   ENEMY_TOP_Y,Math.min(m.baseY,DEFENSE_Y-z.h-WORM_SAFE_MARGIN));
+  const maxStep=72*step;
+  const nx=z.x+clamp(goalX-z.x,-maxStep,maxStep);
+  // Enforce NO forward Y travel even when this member falls behind the pack.
+  const ny=Math.min(z.y,z.y+clamp(goalY-z.y,-maxStep,maxStep));
+  // Swept wall & zombie checks, plus an independent 90px defense margin.
+  // The parade itself cannot possibly end the game.
+  if(ny+z.h>DEFENSE_Y-WORM_SAFE_MARGIN||
+     !canKnockback(z,nx,ny))continue;
+  const oldX=z.x;z.x=nx;z.y=ny;
+  z.moveDir=Math.abs(nx-oldX)>.02?Math.sign(nx-oldX):0;
+ }
+ if(remaining<4||t>=p.duration){
+  clearWormParade();
+  // Finish at the retreated position. Each survivor resumes its own AI.
+  for(const m of p.members){
+   m.z.shortStepHomeX=m.z.x;
+   clearShortStep(m.z,.35+Math.random()*.7);
+  }
+ }
+}
 function march(dt){
  if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
+ updateWormParade(dt);
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
  for(const z of sorted){
+  // Parade members already moved via the swept, safe group path.
+  if(z.wormParade===wormParade&&wormParade){done.push(z);continue}
   if(z.trashStopUntil>clock){done.push(z);continue}
   if(z.boss&&bossMercyStep(z,dt)){done.push(z);continue;}
   if((clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0))||
