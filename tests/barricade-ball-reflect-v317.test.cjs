@@ -54,8 +54,8 @@ for(let i=0;i<9;i++){
  attacker.x=30;attacker.y=90;
  fort.resolve(attacker,30,57,.79,()=>bites++);
 }
-assert.equal(bites,0,'zombie still needs full 12 bites after ball hits');
-for(let i=0;i<4;i++){
+assert.equal(bites,0,'zombie needs substantially more bites even after repeated ball hits');
+for(let i=0;i<23;i++){
  attacker.x=30;attacker.y=90;
  fort.resolve(attacker,30,57,.79,()=>bites++);
 }
