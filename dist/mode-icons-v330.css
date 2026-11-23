@@ -29,7 +29,7 @@ html:is(.portrait-play,.landscape-game,:root)
  border:0!important;
  border-radius:0!important;
  background-color:transparent!important;
- background-image:url("assets/ui/mode-icons-v330.webp")!important;
+ background-image:url("assets/ui/mode-icons-v330.avif")!important;
  background-size:300% 100%!important;
  background-repeat:no-repeat!important;
  color:transparent!important;
@@ -71,8 +71,4 @@ html:is(.portrait-play,.landscape-game,:root)
 #overlay:not([data-screen="selection"])>:is(#mini-horde,#fortress-horde){
  display:none!important;
 }
-/* Reserve mode-row room in the 9:16 selection stack while preserving
-   the 93px bottom equipment dock and the normal GAME OVER layout. */
-#overlay[data-screen="selection"]>#start{
- margin-bottom:calc(106px * var(--ui-scale,1))!important;
-}
+/* The selected character, START action and bottom equipment dock retain\n   their established layout; the mode badges float in the gap between. */\n
