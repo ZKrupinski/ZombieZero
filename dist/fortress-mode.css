@@ -1,0 +1,84 @@
+/* Barricade Horde: share the existing ENDLESS / MINI row, without a taller menu. */
+#overlay[data-screen="selection"]>#endless,
+#overlay[data-screen="selection"]>#mini-horde,
+#overlay[data-screen="selection"]>#fortress-horde{
+ box-sizing:border-box!important;width:calc(33.333% - 5px)!important;
+ min-width:0!important;max-width:none!important;
+ height:var(--zz-secondary-mode-height,40px)!important;
+ min-height:var(--zz-secondary-mode-height,40px)!important;
+ flex:0 0 var(--zz-secondary-mode-height,40px)!important;
+ padding:2px 3px!important;border-radius:5px!important;
+ font:900 clamp(9px,calc(11px * var(--ui-scale,1)),12px)/1.1 Arial,'Noto Sans KR',sans-serif!important;
+ letter-spacing:0!important;white-space:nowrap!important;
+}
+#overlay[data-screen="selection"]>#endless{align-self:flex-start!important}
+#overlay[data-screen="selection"]>#mini-horde{
+ align-self:center!important;
+ margin:calc(0px - var(--zz-secondary-mode-height,40px) - 2px) auto 2px!important;
+}
+#overlay[data-screen="selection"]>#fortress-horde{
+ display:flex!important;flex-direction:column!important;gap:1px!important;
+ justify-content:center!important;align-items:center!important;
+ align-self:flex-end!important;
+ margin:calc(0px - var(--zz-secondary-mode-height,40px) - 2px) 0 2px auto!important;
+ border:1px solid #93cde0!important;
+ background:linear-gradient(172deg,#2a5866,#172f3e)!important;
+ color:#dff8ff!important;
+ box-shadow:inset 0 1px #c4f3ff67,0 2px #07131d!important;
+ text-shadow:0 1px #15272e!important;touch-action:manipulation;
+}
+#overlay[data-screen="selection"]>#fortress-horde small{
+ display:block!important;font:800 9px/1 Arial,sans-serif!important;
+ letter-spacing:.07em;color:#b4f0d8!important
+}
+#overlay[data-screen="selection"]>#fortress-horde:focus-visible{outline:2px solid #fef7c3!important;outline-offset:2px!important}
+#overlay[data-screen="selection"]>#fortress-horde:active{filter:brightness(1.24)}
+#overlay[data-screen="selection"]>#fortress-horde[hidden],
+#overlay:not([data-screen="selection"])>#fortress-horde{display:none!important}
+/* Board-relative touch controls: the canvas is still exactly 450 × 710 logical pixels. */
+.zz-fortress-builder{
+ position:absolute;inset:0;z-index:10;
+ pointer-events:none;
+ font:900 11px/1.35 Arial,'Noto Sans KR',sans-serif;
+ color:#edf8e6;
+}
+.zz-fortress-builder[hidden]{display:none!important}
+.zz-fortress-top{
+ position:absolute;left:3%;right:3%;top:2.8%;
+ display:flex;flex-direction:column;gap:5px;
+ padding:10px 12px;background:#112b30e8;border:2px solid #8dd6cb;
+ box-shadow:0 3px 0 #061b24, inset 0 1px #efffc44d;
+ text-align:center;
+}
+#fortress-stock{font-family:'Press Start 2P',monospace;font-size:clamp(7px,1.7vw,10px);line-height:1.6;color:#e8f9a5}
+#fortress-tip{font-size:11px;letter-spacing:0;color:#c4e3df}
+#fortress-actions{
+ position:absolute;left:50%;bottom:19%;
+ transform:translateX(-50%);display:flex;gap:8px;
+ justify-content:center;min-width:220px;
+ pointer-events:auto;
+}
+#fortress-actions[hidden]{display:none!important}
+#fortress-actions button,#fortress-ready{
+ border-radius:5px;border:2px solid #22373b;
+ box-shadow:0 4px 0 #0a161e,0 6px 14px #07121b8c;
+ padding:10px 13px;min-height:46px;
+ font:900 14px/1.15 Arial,'Noto Sans KR',sans-serif;
+ touch-action:manipulation;pointer-events:auto;
+}
+#fortress-confirm{background:#e4fb96;color:#14291d}
+#fortress-cancel{background:#344350;color:#f0f3f4}
+#fortress-ready{
+ position:absolute;left:50%;top:74%;
+ transform:translate(-50%,-50%);min-width:150px;
+ background:#ffe1a0;color:#2c2732;border-color:#fff0b8;
+ animation:zz-fortress-ready 1.6s ease-in-out infinite alternate;
+}
+#fortress-ready[hidden]{display:none!important}
+@keyframes zz-fortress-ready{to{filter:brightness(1.18);box-shadow:0 4px 0 #0a161e,0 0 14px #f5dd97aa}}
+@media(max-width:380px){
+ #fortress-stock{font-size:8px}
+ #fortress-tip{font-size:10px}
+ #fortress-actions button,#fortress-ready{min-height:41px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){#fortress-ready{animation:none}}
