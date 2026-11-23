@@ -51,11 +51,11 @@ assert.equal(fort.getWallCount(),3,'surviving walls persist to next stage');
 assert.equal(fort.getStock(),31,'wave 2 material added to unused stock');
 const attacker={x:30,y:90,w:16,h:22};
 let broken=0;
-for(let i=0;i<14;i++){
+for(let i=0;i<32;i++){
  attacker.x=30;attacker.y=90;
  fort.resolve(attacker,30,57,.9,()=>broken++);
 }
-assert(broken>=1,'zombie bites eventually destroy individual cubes');
+assert(broken>=1,'stronger cubes still eventually break from repeated zombie bites');
 assert(fort.getWallCount()<3);
 assert(html.includes('id="fortress-horde"')&&html.includes('id="fortress-builder"'));
 assert(html.indexOf('src="fortress-mode.js')<html.indexOf('src="game.js'));
