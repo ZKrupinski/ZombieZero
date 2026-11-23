@@ -3802,6 +3802,7 @@ function feedback(kind){
 }
 // QA signal only: physical motor output cannot be measured from JavaScript.
 window.ZZHapticDebug={version:'v186',counts:feedbackDiagnostics};
+// Game options: persisted device vibration toggle; no test controls in settings.
 // One toggle cycles OFF -> PLAYER -> FULL -> OFF. It remains clickable
 // in OFF mode; only its visual status is marked inactive.
 const hapticsToggle=$('haptics-toggle');
