@@ -1722,7 +1722,7 @@ function updateWormParade(dt){
   // Downward movement is permitted ONLY inside the verified open pocket,
   // strictly above the 90px hard safety margin. The delayed forward/reverse
   // waves scatter the former straight row, and then retreat.
-  const goalY=clamp(m.baseY+Math.max(0,p.advance*push+ripple)-back,
+  const goalY=clamp(m.baseY+clamp(p.advance*push+ripple,0,p.advance)-back,
    ENEMY_TOP_Y,DEFENSE_Y-z.h-WORM_SAFE_MARGIN);
   const maxStep=76*step;
   const nx=z.x+clamp(goalX-z.x,-maxStep,maxStep);
