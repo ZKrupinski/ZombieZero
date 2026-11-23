@@ -215,8 +215,10 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
 // Keep the 33px colliders and 58px row spacing unchanged.
 const ROAD_LEFT=36,ROAD_RIGHT=414,ZOMBIE_WALL_MARGIN=6,ENEMY_TOP_Y=70;
 const ENEMY_COLUMNS=9,ENEMY_PITCH=40.875,ENEMY_LEFT_X=45,ENEMY_ROW_PITCH=58;
-const zombieMinX=()=>ROAD_LEFT+ZOMBIE_WALL_MARGIN;
-const zombieMaxX=z=>ROAD_RIGHT-ZOMBIE_WALL_MARGIN-z.w;
+// Fortress keeps every collider inside the same narrowed lane as its wall grid.
+// Standard, endless and MINI HORDE retain their previous road bounds.
+const zombieMinX=()=>isFortress()&&fortress?fortress.bounds().enemyLeft:ROAD_LEFT+ZOMBIE_WALL_MARGIN;
+const zombieMaxX=z=>isFortress()&&fortress?fortress.bounds().enemyRight-z.w:ROAD_RIGHT-ZOMBIE_WALL_MARGIN-z.w;
 const ZOMBIE_FORMS=[{name:'그린 좀비',unlock:1},{name:'드럼통 좀비 · 레드',unlock:6},{name:'드럼통 좀비 · 블랙',unlock:32},{name:'브레인 큐브 · 레드',unlock:9},{name:'일회용 포장 박스 좀비',unlock:24},{name:'나무 상자 좀비',unlock:28},{name:'브레인 큐브 · 블랙',unlock:16},{name:'브레인 큐브 · 옐로',unlock:4}];
 const BOSS_FORMS=['빅 좀비','쓰레기통 좀비','대형 생수통 좀비','큰 쓰레기 좀비'];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -733,7 +735,10 @@ const isMiniHorde=()=>runMode==='mini'||isFortress();
 const miniBallScale=()=>isMiniHorde()?.60:1;
 const heroBallRadius=()=> (has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1);
 const foeColumns=()=>isMiniHorde()?MINI_HORDE_COLUMNS:ENEMY_COLUMNS;
-const foePitch=()=>isMiniHorde()?(ENEMY_PITCH*(ENEMY_COLUMNS-1)+33-33*MINI_HORDE_SCALE)/(MINI_HORDE_COLUMNS-1):ENEMY_PITCH;
+const foeStartX=()=>isFortress()?zombieMinX():ENEMY_LEFT_X;
+const foePitch=()=>isFortress()
+ ?(fortress.bounds().enemyRight-foeW()-foeStartX())/(MINI_HORDE_COLUMNS-1)
+ :isMiniHorde()?(ENEMY_PITCH*(ENEMY_COLUMNS-1)+33-33*MINI_HORDE_SCALE)/(MINI_HORDE_COLUMNS-1):ENEMY_PITCH;
 const foeRowPitch=()=>isMiniHorde()?ENEMY_ROW_PITCH*MINI_HORDE_SCALE:ENEMY_ROW_PITCH;
 const foeW=()=>isMiniHorde()?33*MINI_HORDE_SCALE:33;
 const foeH=()=>isMiniHorde()?44*MINI_HORDE_SCALE:44;
@@ -743,7 +748,7 @@ function miniBossOverlapsSlot(row,col,bossForm){
  const bw=(bossForm===3?112:66)*MINI_HORDE_SCALE;
  const bh=(bossForm===3?124:88)*MINI_HORDE_SCALE;
  const bx=225-bw/2,by=74,clearance=2;
- const x=ENEMY_LEFT_X+col*foePitch(),y=70+row*foeRowPitch();
+ const x=foeStartX()+col*foePitch(),y=70+row*foeRowPitch();
  return x<bx+bw+clearance&&x+foeW()>bx-clearance&&
         y<by+bh+clearance&&y+foeH()>by-clearance;
 }
@@ -807,7 +812,7 @@ function triggerLastStand(){if(wave<20||!standReady()||standDangerTime<STAND_DAN
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
  let front=-Infinity,back=Infinity;
  for(const z of sorted){const edge=z.y+z.h;front=Math.max(front,edge);back=Math.min(back,edge);standRetreat.push({z,from:z.y,edge,to:0,delay:0,started:false});}
- for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(foeColumns()-1,Math.round((z.x-ENEMY_LEFT_X)/foePitch())));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-standDistance);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.knockTime=0;placed.push(z)}
+ for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(foeColumns()-1,Math.round((z.x-foeStartX())/foePitch())));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-standDistance);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.knockTime=0;placed.push(z)}
  // Crowded late-stage boss formations may hit the upper packing boundary and
  // leave a front enemy too close after the first push. Translate the entire
  // already-spaced formation to guarantee a visible 125px recovery window,
@@ -1063,7 +1068,7 @@ function rack(){
   const kind=Math.floor(Math.pow(Math.random(),Math.max(.45,1.7-stage*.12))*(maxKind+1));
   const hp=zombieHP(0,kind,stage);
   const hairRoll=Math.random(),faceRoll=Math.random();
-  foes.push({x:ENEMY_LEFT_X+col*foePitch(),y:70+r*foeRowPitch(),
+  foes.push({x:foeStartX()+col*foePitch(),y:70+r*foeRowPitch(),
    row:r,col,w:foeW(),h:foeH(),miniScale:isMiniHorde()?MINI_HORDE_SCALE:1,
    miniBaseW:33,miniBaseH:44,hp,max:hp,kind,form:0,flash:0,
    hairColor:hairRoll<.10?'blond':hairRoll<.20?'red':hairRoll<.45?'chestnut':null,
@@ -1149,7 +1154,7 @@ function tryStartBreakouts(){
      for(let step=1;step<=distance;step++)
       if(occupied.has(z.row+':'+(z.col+dir*step)))free=false;
      if(!free)continue;
-     const dest=ENEMY_LEFT_X+foePitch()*destCol;
+     const dest=foeStartX()+foePitch()*destCol;
      if(dest<zombieMinX()||dest>zombieMaxX(z))continue;
      if(foes.some(other=>other!==z&&(
        other.boss&&Math.abs(other.x+other.w/2-(dest+z.w/2))<70&&
@@ -1195,7 +1200,7 @@ function tryStartBreakouts(){
    if(z.boss||!Number.isInteger(z.row)||!Number.isInteger(z.col))return;
    if(z.shortStepCol!==z.col){
      z.shortStepCol=z.col;
-     z.shortStepHomeX=ENEMY_LEFT_X+z.col*foePitch();
+     z.shortStepHomeX=foeStartX()+z.col*foePitch();
      clearShortStep(z,.22+shortStepNoise(z,1)*.5);
    }
    // Recoil, chain knockback and rare long breakout own movement first.
@@ -1386,8 +1391,8 @@ function endEliteMotion(z,m){
  // Water bottle: one quick lateral dodge followed by an opposing zigzag.
  if(m.follow&&beginEliteMotion(z,m.follow.dx,m.follow.dy,
     m.follow.duration,m.follow.tag,m.follow.windup||0))return;
- const col=Math.round((z.x-ENEMY_LEFT_X)/foePitch());
- if(Math.abs(z.x-(ENEMY_LEFT_X+col*foePitch()))<(isMiniHorde()?4:8))
+ const col=Math.round((z.x-foeStartX())/foePitch());
+ if(Math.abs(z.x-(foeStartX()+col*foePitch()))<(isMiniHorde()?4:8))
   z.col=clamp(col,0,foeColumns()-1);
  z.shortStepHomeX=z.x;
  z.eliteNextMove=clock+(ELITE_COOLDOWN[z.eliteKind]??1.5)+Math.random()*.8;
