@@ -1094,7 +1094,7 @@ function rack(){
    miniBaseW:bossWidth,miniBaseH:bossHeight,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
   // Boss arrival keeps the shock burst, audio and device feedback, but no name caption.
-  if(!isFortress()){sfx('boss');feedback('bossSpawn');effect(225,130,'#ff687e',145)}
+  if(!isFortress()){sfx('boss');feedback('bossSpawn');effect(225,130,'#ff687e',145);}
  }
  $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():isFortress()?'BARRICADE '+wave:isMiniHorde()?'MINI HORDE '+wave:'STAGE '+wave)
   +' · '+(bossStage?'BOSS WAVE':stageRosterLabel(stage))
@@ -3504,7 +3504,7 @@ function drawStruckZombie(z){
  zombie(knockVisualPosition(z));g.restore();
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building');drawDodgeGhosts();
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building');drawCrowd();drawDodgeGhosts();
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
