@@ -86,6 +86,6 @@ assert(css.includes('width:min(94%,calc(360px * var(--ui-scale,1)))!important'),
 assert(css.includes('background:transparent!important')&&css.includes('border:0!important'),
  'dock has no rectangular button backing');
 assert(css.includes('assets/ui/main-dock.webp'),'approved original bitmap dock icons retained');
-assert(/garage\.css\?v=(12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(html)&&/garage-ui\.js\?v=(10-v244-five-portrait|11-v247-stable-border-focus|12-v248-complete-hero-cards|13-v254-gameover-reel)/.test(html));
+assert(/garage\.css\?v=(12-v244-five-portrait-dock|13-v245-clear-top-centered-icons|14-v248-complete-hero-cards|15-v254-gameover-reel)/.test(html)&&/garage-ui\.js\?v=(10-v244-five-portrait|11-v247-stable-border-focus|12-v248-complete-hero-cards|13-v254-gameover-reel|14-v310-scroll-stability)/.test(html));
 assert(/v24[4-7]-(five-portrait-no-dock-box|clear-top-centered-icons|stable-border-focus)/.test(sw),'mobile PWA cache refreshed');
 console.log('PASS v244: five mounted portrait windows, 3/4-owned wrap, arrows & second-card tap, unchanged game-over, larger top logo and boxless icon dock.');
