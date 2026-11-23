@@ -370,6 +370,33 @@ function deploy(target){
      if(clearPlacement(z,placed,nx,ny)){z.x=nx;z.y=ny;found=true;break}
     }
    }
+   if(!found){
+    // Search half-tiles too: the former fallback silently retained an
+    // overlapping original spawn when its coarse slot grid was full.
+    for(let row=0;row<Math.ceil((555-z.h-35)/(T/2))&&!found;row++){
+     const ny=35+row*(T/2);
+     for(let nx=FIELD_LEFT;nx<=FIELD_RIGHT-z.w&&!found;nx+=T/2){
+      if(clearPlacement(z,placed,nx,ny)){z.x=nx;z.y=ny;found=true;break}
+     }
+    }
+   }
+   if(!found){
+    // No free board slot: queue the zombie just ABOVE the board in a safe,
+    // non-overlapping reserve row. It will march into play naturally;
+    // NEVER force it onto an occupied barricade tile.
+    for(let row=0;row<80&&!found;row++){
+     const ny=35-z.h-4-row*(Math.max(24,z.h)+3);
+     for(let col=0;col<18;col++){
+      const nx=FIELD_LEFT+(FIELD_RIGHT-z.w-FIELD_LEFT)*col/17;
+      if(firstWall(nx,ny,z.w,z.h))continue;
+      if(placed.some(other=>nx<other.x+other.w+1&&
+         nx+z.w+1>other.x&&ny<other.y+other.h+1&&
+         ny+z.h+1>other.y))continue;
+      z.x=nx;z.y=ny;found=true;break;
+     }
+    }
+   }
+   if(!found)throw Error('Barricade enemy staging exhausted: unsafe spawn blocked');
   }
   z.arrivalTime=-Math.max(0,z.row||0)*.07-Math.random()*.05;
   placed.push(z);
