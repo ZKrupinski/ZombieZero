@@ -1,7 +1,7 @@
 /* BARRICADE HORDE: independent construction + persistent wall simulation. */
 (function(){
 'use strict';
-const X=27,Y=82,T=22,COLS=18,ROWS=20,MAX_HP=12,MAX_WALLS=180;
+const X=27,Y=82,T=22,COLS=18,ROWS=20,MAX_HP=30,MAX_WALLS=180;
 const walls=new Map(),pending=new Map();
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
