@@ -4,6 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const root='dist/';
 const png=fs.readFileSync(root+'assets/ui/mode-icons-v330.avif');
 const css=fs.readFileSync(root+'mode-icons-v330.css','utf8');
+const selection=fs.readFileSync(root+'selection-layout-v332.css','utf8');
 const html=fs.readFileSync(root+'index.html','utf8');
 const sw=fs.readFileSync(root+'sw.js','utf8');
 const game=fs.readFileSync(root+'game.js','utf8');
@@ -24,10 +25,17 @@ for(const [id,position] of [['endless','0%'],['mini-horde','50%'],['fortress-hor
 }
 assert(html.includes('<nav id="main-dock"'),'original Garage/Radio/Upgrade dock retained');
 for(const id of ['garage-open','radio-open','upgrade-open'])assert(html.includes('id="'+id+'"'));
-assert(css.includes('bottom:calc(158px * var(--ui-scale,1))'),'badge row anchored above dock');
-assert(css.includes('position:absolute!important'),'badge row does not enlarge or scroll 9:16 board');
-assert(!css.includes('margin-bottom:calc(106px'),'START stack is not displaced by mode badges');
+assert(selection.includes('grid-template-rows:'),'six-row layout now owns the actual 9:16 board');
+assert(selection.includes('grid-row:5!important'),'three modes are native fifth-row grid items');
+assert(selection.includes('grid-row:6!important'),'garage/radio/upgrade dock follows extra modes');
+assert(selection.includes('position:relative!important;inset:auto!important'),
+ 'floating mode buttons are overridden by in-flow placement');
+assert(selection.includes('overflow-x:hidden!important;overflow-y:hidden!important'),
+ 'every action must fit without scrolling');
+assert(!selection.includes('margin-bottom:calc(106px'),
+ 'START button does not artificially expand the menu');
 assert(html.includes('mode-icons-v330.css?v=330-approved-game-mode-badges'));
+assert(html.includes('selection-layout-v332.css?v=332-no-scroll-main-menu-grid'));
 assert(html.indexOf('fortress-mode.css')<html.indexOf('mode-icons-v330.css'),
  'mode artwork overrides former plain text button styles');
 assert(game.includes("const mini=$('mini-horde')")&&game.includes("start('mini')"));
@@ -36,5 +44,6 @@ assert(game.includes("start('endless')"),'endless gameplay route remains intact'
 assert.equal(sw.split("'./assets/ui/mode-icons-v330.avif'").length-1,2,
  'PWA precaches approved art in its two shell resource lists');
 assert.equal(sw.split("'./mode-icons-v330.css'").length-1,2);
+assert.equal(sw.split("'./selection-layout-v332.css'").length-1,2);
 assert(sw.includes('v330-approved-mode-icons'),'service worker cache invalidated');
-console.log('PASS v330: approved 3-mode AVIF atlas (384x128 alpha), selection layout above garage dock, accessible routing and PWA caches.');
+console.log('PASS v330/v332: approved mode art, native in-flow 9:16 menu, accessible routing and PWA caches.');
