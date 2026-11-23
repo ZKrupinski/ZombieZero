@@ -2077,7 +2077,7 @@ function knockVisualPosition(z){
        y=z.knockFromY+(z.y-z.knockFromY)*ease;
  // Final knockback colliders may be safe while a visual tween crosses an
  // intervening wall. Never paint a zombie on top of the barricade bitmap.
- if(isFortress()&&fortress&&
+ if(typeof isFortress==='function'&&isFortress()&&fortress&&
    (!fortress.isOpen(z,x,y)||
     !fortress.isPathClear(z,z.knockFromX,z.knockFromY,x,y)))return z;
  return {...z,x,y};
