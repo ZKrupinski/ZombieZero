@@ -140,9 +140,11 @@
   }).join('');
   const details=system.partBenefits?.(part,level||0)||{stat:'',unique:part.label};
   const nextBenefit=owned&&level<5?system.partBenefits?.(part,level+1):null;
-  const effect='<span class="garage-effect-stat">스탯 '+details.stat+'</span>'+
-   '<span class="garage-effect-unique">고유 '+details.unique+'</span>'+
-   (nextBenefit?'<small class="garage-effect-next">다음: '+nextBenefit.stat+'</small>':'');
+  // Separate the short semantic label from the actual benefit copy.
+  // This keeps "스탯 / 고유 / 다음" visually scannable at narrow mobile sizes.
+  const effect='<span class="garage-effect-stat"><b class="garage-effect-label" aria-label="기본 능력치">스탯</b><span class="garage-effect-body">'+details.stat+'</span></span>'+
+   '<span class="garage-effect-unique"><b class="garage-effect-label" aria-label="고유 효과">고유</b><span class="garage-effect-body">'+details.unique+'</span></span>'+
+   (nextBenefit?'<small class="garage-effect-next"><b class="garage-effect-label" aria-label="다음 강화 단계">다음</b><span class="garage-effect-body">'+nextBenefit.stat+'</span></small>':'');
   const stage=part.id==='cushion'?1:system.parts.indexOf(part)+1;
   const actions=owned?btn('equip',gear[part.slot]===part.id?'장착 중':'장착',gear[part.slot]===part.id)+btn('upgrade',price?icon('coin')+'강화 '+price:'최대 강화',price===undefined||price>progress.chips()):btn('craft',icon('nut')+'너트 2개로 제작',data.badges<2);
   const detail='<section class="garage-detail"><div class="part-inspect">'+icon(part.id)+'<div><strong>'+part.name+'</strong><p>'+effect+'</p></div></div><div class="part-actions">'+(owned?'':'<small>스테이지 '+stage+' 또는 웨이브 '+stage+' 첫 클리어 보상</small>')+actions+'</div></section>';
