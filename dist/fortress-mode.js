@@ -1,9 +1,10 @@
 /* BARRICADE HORDE: independent construction + persistent wall simulation. */
 (function(){
 'use strict';
-// One 22px column of clearance is reserved on each side of the artwork.
-// The actual build/AI corridor is [49,401], not the old [27,423].
-const X=49,Y=82,T=22,COLS=16,ROWS=20,MAX_HP=30,MAX_WALLS=180,REPAIRS_PER_MATERIAL=5;
+// One MINI-sized half cell (11px) of clearance on either side.
+// Construction spans [38,412] with 17 whole 22px wall blocks; the original
+// 18-column grid spanned [27,423]. All zombie colliders use this same strip.
+const X=38,Y=82,T=22,COLS=17,ROWS=20,MAX_HP=30,MAX_WALLS=180,REPAIRS_PER_MATERIAL=5;
 const FORTRESS_SIDE_INSET=4;
 const FIELD_LEFT=X+FORTRESS_SIDE_INSET,FIELD_RIGHT=X+COLS*T-FORTRESS_SIDE_INSET;
 const walls=new Map(),pending=new Map();
