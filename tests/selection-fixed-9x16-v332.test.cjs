@@ -40,7 +40,9 @@ for(const key of ['grid-template-columns:repeat(3,minmax(0,1fr))',
  'background-image:url("assets/ui/mode-icons-v330.avif")',
  'content:"BASIC MODE START"','content:"»"'
 ])assert(css.includes(key),'missing responsive layout property: '+key);
-assert(!css.includes('position:absolute!important;\n  z-index:5!important;'),
+assert(css.includes('#overlay[data-screen="selection"][hidden]'),
+ 'selection grid must remain hidden when playing a wave');
+assert(!css.includes('position:absolute!important;\\n  z-index:5!important;'),
  'mode buttons must not be a free-floating layer');
 assert(css.includes('grid-column:1!important;background-position:0% 50%'));
 assert(css.includes('grid-column:2!important;background-position:50% 50%'));
