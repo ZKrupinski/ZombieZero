@@ -3644,7 +3644,7 @@ function portrait(h){
 function heroMiniStats(h){
  return window.ZZGarage?.heroStatMarkup?.(h,window.ZZProgression?.garage?.(),window.ZZProgression,HEROES.indexOf(h))||'';
 }
-function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;if(i===4)el.hidden=false;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').innerHTML="LET'S ROLL, "+(['ACE','RUBY','RIA','WRENCH','SCARLET'][selectedHero]||'HERO')+'!';window.ZZRefreshHeroReel?.()}
+function renderHeroes(){for(let i=0;i<HEROES.length;i++){let h=HEROES[i],el=$('hero-'+i);if(!el)continue;if(i===3)el.hidden=!window.ZZProgression?.garage().mechanic;if(i===4)el.hidden=false;el.innerHTML=portrait(h)+'<b>'+h.name+'</b><small>'+h.role+'</small><span>'+h.desc+'</span>';if(mode==='menu'||mode==='over')el.innerHTML+=heroMiniStats(h);el.setAttribute('aria-pressed',String(i===selectedHero));el.onclick=()=>{if(mode!=='menu'&&mode!=='over')return;selectedHero=i;renderHeroes();draw()}}$('hero-stats').textContent=hero().stats;if(mode==='menu')$('start').textContent='Game Start!';window.ZZRefreshHeroReel?.()}
 
 // Kill streak is independent of the rally hit counter and uses active play time.
 let killCombo=0,killTimer=0,comboPop=0,comboDisplayTime=0;
