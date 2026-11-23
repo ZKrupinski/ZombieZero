@@ -785,7 +785,7 @@ function triggerLastStand(){if(wave<20||!standReady()||standDangerTime<STAND_DAN
  const sorted=[...foes].sort((a,b)=>a.y-b.y),placed=[];
  let front=-Infinity,back=Infinity;
  for(const z of sorted){const edge=z.y+z.h;front=Math.max(front,edge);back=Math.min(back,edge);standRetreat.push({z,from:z.y,edge,to:0,delay:0,started:false});}
- for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(ENEMY_COLUMNS-1,Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH)));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-standDistance);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.knockTime=0;placed.push(z)}
+ for(const z of sorted){if(Number.isFinite(z.breakoutTime)){delete z.breakoutTime;delete z.breakoutDuration;z.moveDir=0;z.col=Math.max(0,Math.min(foeColumns()-1,Math.round((z.x-ENEMY_LEFT_X)/foePitch())));z.breakoutCooldownUntil=clock+4}const old=z.y;let y=Math.max(ENEMY_TOP_Y,z.y-standDistance);for(const above of placed)if(!(Number.isInteger(z.row)&&z.row===above.row)&&z.x-8<above.x+above.w+8&&z.x+z.w+8>above.x-8)y=Math.max(y,above.y+above.h+(z.boss?25:10));z.y=Math.max(ENEMY_TOP_Y,Math.min(old,y));z.knockTime=0;placed.push(z)}
  // Crowded late-stage boss formations may hit the upper packing boundary and
  // leave a front enemy too close after the first push. Translate the entire
  // already-spaced formation to guarantee a visible 125px recovery window,
@@ -1120,13 +1120,13 @@ function tryStartBreakouts(){
     for(const distance of [1,2]){
      if(distance===2&&Math.random()<.32)continue;
      const destCol=z.col+distance*dir;
-     if(destCol<0||destCol>=ENEMY_COLUMNS)continue;
+     if(destCol<0||destCol>=foeColumns())continue;
      // The path must stay clear, not merely its destination.
      let free=true;
      for(let step=1;step<=distance;step++)
       if(occupied.has(z.row+':'+(z.col+dir*step)))free=false;
      if(!free)continue;
-     const dest=ENEMY_LEFT_X+ENEMY_PITCH*destCol;
+     const dest=ENEMY_LEFT_X+foePitch()*destCol;
      if(dest<zombieMinX()||dest>zombieMaxX(z))continue;
      if(foes.some(other=>other!==z&&(
        other.boss&&Math.abs(other.x+other.w/2-(dest+z.w/2))<70&&
@@ -1172,7 +1172,7 @@ function tryStartBreakouts(){
    if(z.boss||!Number.isInteger(z.row)||!Number.isInteger(z.col))return;
    if(z.shortStepCol!==z.col){
      z.shortStepCol=z.col;
-     z.shortStepHomeX=ENEMY_LEFT_X+z.col*ENEMY_PITCH;
+     z.shortStepHomeX=ENEMY_LEFT_X+z.col*foePitch();
      clearShortStep(z,.22+shortStepNoise(z,1)*.5);
    }
    // Recoil, chain knockback and rare long breakout own movement first.
@@ -1363,9 +1363,9 @@ function endEliteMotion(z,m){
  // Water bottle: one quick lateral dodge followed by an opposing zigzag.
  if(m.follow&&beginEliteMotion(z,m.follow.dx,m.follow.dy,
     m.follow.duration,m.follow.tag,m.follow.windup||0))return;
- const col=Math.round((z.x-ENEMY_LEFT_X)/ENEMY_PITCH);
- if(Math.abs(z.x-(ENEMY_LEFT_X+col*ENEMY_PITCH))<8)
-  z.col=clamp(col,0,ENEMY_COLUMNS-1);
+ const col=Math.round((z.x-ENEMY_LEFT_X)/foePitch());
+ if(Math.abs(z.x-(ENEMY_LEFT_X+col*foePitch()))<(isMiniHorde()?4:8))
+  z.col=clamp(col,0,foeColumns()-1);
  z.shortStepHomeX=z.x;
  z.eliteNextMove=clock+(ELITE_COOLDOWN[z.eliteKind]??1.5)+Math.random()*.8;
 }
@@ -1415,10 +1415,10 @@ function moveElite(z,dt){
  let began=false;
  if(z.eliteKind===0){
   // Black trash bag: impatient diagonal ambush into a missing slot.
-  for(const offset of [ENEMY_PITCH,ENEMY_PITCH*2,ENEMY_PITCH*.65]){
+  for(const offset of [foePitch(),foePitch()*2,foePitch()*.65]){
    for(const sign of [direction,-direction])
     if(beginEliteMotion(z,sign*offset,16+(z.seed||0)%9,
-      .29+offset/ENEMY_PITCH*.07,'dash',.14)){
+      .29+offset/foePitch()*.07,'dash',.14)){
      began=true;break;
     }
    if(began)break;
@@ -1431,7 +1431,7 @@ function moveElite(z,dt){
   if(!began){
    // Heavy shoulder shove sideways when rear lanes are sealed.
    for(const sign of [direction,-direction])
-    if(beginEliteMotion(z,sign*ENEMY_PITCH,3,.49,'charge',.22)){
+    if(beginEliteMotion(z,sign*foePitch(),3,.49,'charge',.22)){
      began=true;break;
     }
   }
@@ -1442,8 +1442,8 @@ function moveElite(z,dt){
     Math.abs(b.x-z.x-z.w/2)<58&&Math.abs(b.y-z.y-z.h/2)<95);
   if(threatened||Math.random()<.42){
    for(const sign of [direction,-direction])
-    if(beginEliteMotion(z,sign*ENEMY_PITCH,-10,.22,'dodge',.065,
-      {dx:-sign*ENEMY_PITCH*.42,dy:5,duration:.20,tag:'zigzag',windup:0})){
+    if(beginEliteMotion(z,sign*foePitch(),-10,.22,'dodge',.065,
+      {dx:-sign*foePitch()*.42,dy:5,duration:.20,tag:'zigzag',windup:0})){
      began=true;break;
     }
   }
@@ -1583,8 +1583,9 @@ function march(dt){
   let next=z.y+enemySpeed(z)*dt+extraY;
   for(const front of done){
    if(Number.isInteger(z.row)&&z.row===front.row)continue;
-   if(z.x-8<front.x+front.w+8&&z.x+z.w+8>front.x-8)
-    next=Math.min(next,front.y-z.h-(front.boss?25:10));
+   const gap=isMiniHorde()?2:8;
+   if(z.x-gap<front.x+front.w+gap&&z.x+z.w+gap>front.x-gap)
+    next=Math.min(next,front.y-z.h-(front.boss?(isMiniHorde()?12:25):(isMiniHorde()?5:10)));
   }
   z.y=Math.max(z.y,next);
   done.push(z);
