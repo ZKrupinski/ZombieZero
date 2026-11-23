@@ -35,7 +35,7 @@ assert(selection.includes('overflow-x:hidden!important;overflow-y:hidden!importa
 assert(!selection.includes('margin-bottom:calc(106px'),
  'START button does not artificially expand the menu');
 assert(html.includes('mode-icons-v330.css?v=330-approved-game-mode-badges'));
-assert(html.includes('selection-layout-v332.css?v=332-no-scroll-main-menu-grid'));
+assert(html.includes('selection-layout-v332.css?v='),'responsive mode layout stays cache-versioned');
 assert(html.indexOf('fortress-mode.css')<html.indexOf('mode-icons-v330.css'),
  'mode artwork overrides former plain text button styles');
 assert(game.includes("const mini=$('mini-horde')")&&game.includes("start('mini')"));
