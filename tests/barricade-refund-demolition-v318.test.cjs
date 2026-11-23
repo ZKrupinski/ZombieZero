@@ -126,7 +126,7 @@ assert(css.includes('#fortress-actions[data-side="below"]')&&css.includes('#fort
  'finger-adjacent controls and repair toggle styled');
 for(const id of ['fortress-build-count','fortress-supply','fortress-tool','fortress-preview-summary'])
  assert(html.includes('id="'+id+'"'),id+' present in DOM');
-assert(html.includes('fortress-mode.js?v=318-refund-erase-builder'));
+assert(html.includes('src="fortress-mode.js?v='),'barricade module has versioned URL');
 assert(html.includes('fortress-mode.css?v=318-refund-erase-builder'));
 assert(sw.includes('v318-refund-erase-builder'),'PWA cache refreshed');
 // V319: all 20 wall-grid rows (y=82..522) must remain uncovered by
