@@ -156,6 +156,10 @@ assert(source.includes('fortress.resolve(z,z.fortressPreviousX,z.fortressPreviou
  'all fortress wall collisions remain operational');
 assert(source.includes('if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y)'),
  'ordinary defense breach checks stay intact');
-assert(html.includes('-v337-horde-worm-parade'),'script cache refreshes on reload');
-assert(sw.includes('v337-horde-worm-parade'),'PWA cache is invalidated');
+assert(html.includes('-v338-front-open-parade'),'front-row gameplay cache refreshes on reload');
+assert(sw.includes('v338-front-open-parade'),'PWA front-row cache is invalidated');
+assert(source.includes('clamp(p.advance*push+ripple,0,p.advance)'),
+ 'sine crest never advances a member beyond its 28px reserved space');
+assert(source.includes('const WORM_FORWARD_GAP=42,WORM_FORWARD_MAX=28;'),
+ 'event requires real empty space and caps forward surge');
 console.log('PASS v337/v338: open-space frontmost 7/10/20 zombie zigzag surge and retreat, untouched 90px defense margin, original AI recovers.');
