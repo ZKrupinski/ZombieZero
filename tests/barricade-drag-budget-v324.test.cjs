@@ -67,8 +67,8 @@ stop(9,2);confirm();
 assert.equal(fort.getStock(),0);
 assert.equal(fort.getWallCount(),26);
 // Mixed stroke: first remove old cubes, then construct with their refunds.
-// Cells 3..5 on row 0 are existing, 0..2 are empty.
-start(3,0);move(0,0);
+// Cells 3..5 on row 0 are existing, 0..2 are empty; trace right-to-left.
+start(5,0);move(0,0);
 assert.equal(fort.getPreview().removes,3);
 assert.equal(fort.getPreview().builds,3);
 assert.equal(fort.getPreview().balance,0);
