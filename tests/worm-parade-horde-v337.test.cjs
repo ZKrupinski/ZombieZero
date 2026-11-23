@@ -53,23 +53,25 @@ for(const mode of ['mini','fortress']){
   assert.equal(new Set(group.members.map(m=>m.z)).size,size);
   assert(group.members.every(m=>m.z.wormParade===group),'group owns its motion');
   const members=group.members.map(m=>m.z);
-  let sidesteps=0,retreats=0;
+  let sidesteps=0,retreats=0,frontSurges=0;
   for(let i=0;i<320;i++){
    const old=new Map(ctx.foes.map(z=>[z,{x:z.x,y:z.y}]));
    ctx.updateWormParade(.0167);
    ctx.clock+=.0167;
    for(const z of ctx.foes){
-    assert(z.y<=old.get(z).y+1e-8,
-     'worm animation can NEVER add forward Y displacement');
-    assert(z.y+z.h<ctx.DEFENSE_Y-90,
-     'even mid-animation the full zombie hitbox stays >90px away from defense');
+    assert(z.y+z.h<=ctx.DEFENSE_Y-90+1e-8,
+     'even the forward worm surge MUST stay outside the 90px defense zone');
+    assert(z.y-initial.get(z).y<=28+1e-8,
+     'no member may advance farther than the reserved clear-space surge');
    }
    for(const z of members){
     if(Math.abs(z.x-initial.get(z).x)>.06)sidesteps++;
     if(initial.get(z).y-z.y>2)retreats++;
+    if(z.y-initial.get(z).y>3)frontSurges++;
    }
   }
   assert(sidesteps>0,mode+' group swings left and right in world space');
+  assert(frontSurges>0,mode+' front line surges into open space, scattering the formation');
   assert(retreats>0,mode+' group visibly retreats before releasing');
   assert.equal(state(ctx),null,'group cleans up after the fixed event duration');
   assert(members.every(z=>!z.wormParade),'all survivors regain normal AI');
@@ -100,6 +102,14 @@ for(const mode of ['mini','fortress']){
 // Production integration must not double-advance a worm member, spawn extra
 // zombies, interrupt knockback or skip fortress wall resolution.
 assert(source.includes('updateWormParade(dt);\n tryStartBreakouts();'));
+assert(source.includes('const WORM_FORWARD_GAP=42,WORM_FORWARD_MAX=28;'),
+ 'parade requires a genuine open pocket ahead and limits forward travel');
+assert(source.includes('function wormForwardClearance(group){'),
+ 'front pocket must be tested against actual surviving colliders');
+assert(source.includes('options.sort((a,b)=>b.score-a.score)'),
+ 'frontmost available zombie group gets priority');
+assert(source.includes('const ny=z.y+clamp(goalY-z.y,-maxStep,maxStep);'),
+ 'real colliders must follow the front surge and withdrawal');
 assert(source.includes('if(z.wormParade===wormParade&&wormParade){done.push(z);continue}'));
 assert(source.includes('if(z.wormParade||Number.isInteger(z.eliteKind)'),
  'breakouts cannot steal active group participants');
@@ -113,4 +123,4 @@ assert(source.includes('if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y)'),
  'ordinary defense breach checks stay intact');
 assert(html.includes('-v337-horde-worm-parade'),'script cache refreshes on reload');
 assert(sw.includes('v337-horde-worm-parade'),'PWA cache is invalidated');
-console.log('PASS v337: 7/10/20 zombie worm parades in MINI and BARRICADE, swept retreat, NO 90px defense-line breach, regular AI resumes, normal modes untouched.');
+console.log('PASS v337/v338: open-space frontmost 7/10/20 zombie zigzag surge and retreat, untouched 90px defense margin, original AI recovers.');
