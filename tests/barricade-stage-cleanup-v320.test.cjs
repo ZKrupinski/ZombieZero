@@ -55,15 +55,15 @@ const document={getElementById:k=>e[k],createElement:()=>({getContext:()=>null})
 new Function('window','document',mod)(w,document);
 const f=w.ZZFortress,c={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}};
-const p={clientX:38,clientY:94,pointerId:1,button:0};
+const p={clientX:60,clientY:94,pointerId:1,button:0};
 f.reset();f.begin([],1);f.down(p,c);f.up(p,c);e['fortress-confirm'].click();
 assert.equal(f.getWallHP(0,0),30);
-const z={x:30,y:90,w:16,h:22};
+const z={x:52,y:90,w:16,h:22};
 for(let i=0;i<29;i++){
- z.x=30;z.y=90;f.resolve(z,30,57,.79,()=>{});
+ z.x=52;z.y=90;f.resolve(z,52,57,.79,()=>{});
 }
 assert.equal(f.getWallHP(0,0),1,'normal zombie needs 30 bites to destroy');
-z.x=30;z.y=90;f.resolve(z,30,57,.79,()=>{});
+z.x=52;z.y=90;f.resolve(z,52,57,.79,()=>{});
 assert.equal(f.getWallCount(),0);
 assert.equal(f.getPendingRefund(),1,'destroyed cube still refunds exactly one material');
 f.begin([],2);assert.deepEqual(f.getSupply(),{refund:1,bonus:8});
