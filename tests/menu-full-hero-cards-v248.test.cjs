@@ -63,6 +63,6 @@ assert(body.includes('[data-reel-hero="3"]')&&body.includes('wrench-mid-v261.web
 assert(body.includes('#overlay[data-screen="selection"]')&&!body.includes('#overlay[data-screen="results"]'),
  'garage and death/result screens are untouched');
 assert(html.includes('garage.css?v=15-v254-gameover-reel')&&
- html.includes('garage-ui.js?v=13-v254-gameover-reel'),'mobile receives updated UI and styles');
+ /garage-ui\.js\?v=(13-v254-gameover-reel|14-v310-scroll-stability)/.test(html),'mobile receives updated UI and styles');
 assert(sw.includes('v248-complete-hero-cards'),'PWA cache refreshed');
 console.log('PASS v248: fullscreen-safe large intact car art, lower-right overlaid name and stats box on ALL 5 cards, real upgraded stats and mechanic sprite.');
