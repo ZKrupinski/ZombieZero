@@ -270,10 +270,30 @@ function resolve(z,oldX,oldY,dt,onBreak){
  z.fortressBite=(z.fortressBite||0)+dt*(z.boss?2.25:Number.isInteger(z.eliteKind)?1.5:1);
  if(z.fortressBite>=.78){
   const damage=Math.floor(z.fortressBite/.78);
-  z.fortressBite%=.78;hit.hp-=damage;hit.hit=.14;
+  z.fortressBite%=.78;hit.hp-=damage;hit.hit=.18;hit.biteShake=.18;
   if(hit.hp<=0){walls.delete(hit.id);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T/2,hit.y+T/2)}
  }
  return true;
+}
+// Five transparent hand-painted bitmap damage stages (56x56 each).
+// A 5x1 atlas is cached once; procedural cubes remain only a loading fallback.
+const BARRICADE_BITMAP_URL='assets/ip/v2/barricades/barricade-damage-v322.png';
+const BARRICADE_FRAME=56;
+let barricadeSprite=null,barricadeSpriteRequested=false;
+function bitmapTiles(){
+ if(barricadeSprite&&barricadeSprite.complete&&
+    barricadeSprite.naturalWidth===BARRICADE_FRAME*5&&
+    barricadeSprite.naturalHeight===BARRICADE_FRAME)return barricadeSprite;
+ if(!barricadeSpriteRequested&&typeof Image==='function'){
+  barricadeSpriteRequested=true;
+  const im=new Image();im.decoding='async';
+  im.onload=()=>{
+   if(im.naturalWidth===BARRICADE_FRAME*5&&im.naturalHeight===BARRICADE_FRAME)barricadeSprite=im;
+  };
+  im.onerror=()=>{}; // never repaint an absent asset every frame
+  im.src=BARRICADE_BITMAP_URL;
+ }
+ return null;
 }
 let atlas=null;
 function tiles(){
@@ -302,11 +322,24 @@ function tiles(){
  return atlas;
 }
 function draw(g,building=false){
- const tile=tiles();if(!tile)return;
+ const bitmap=bitmapTiles();
+ const tile=bitmap||tiles();if(!tile)return;
+ const frame=bitmap?BARRICADE_FRAME:T;
  for(const w of walls.values()){
-  const variant=w.hp>MAX_HP*.72?0:w.hp>MAX_HP*.45?1:w.hp>MAX_HP*.2?2:3;
-  g.drawImage(tile,variant*T,0,T,T,w.x,w.y,T,T);
-  if(w.hit>0){g.save();g.globalAlpha=Math.min(.52,w.hit*3);g.fillStyle='#ffe5a0';g.fillRect(w.x+2,w.y+4,T-5,T-7);g.restore()}
+  // The five authored PNG states are switched by actual remaining HP.
+  const variant=w.hp>MAX_HP*.8?0:w.hp>MAX_HP*.6?1:
+    w.hp>MAX_HP*.4?2:w.hp>MAX_HP*.2?3:4;
+  const index=bitmap?variant:Math.min(3,variant);
+  // Bite impact only affects the one cube being chewed. No global camera
+  // shake and no collision/HP displacement; the PNG itself is jittered.
+  const bite=Math.min(1,Math.max(0,(w.biteShake||0)/.18));
+  const elapsed=.18-Math.min(.18,w.biteShake||0);
+  const shakeX=bite?Math.sin(elapsed*124+w.id*.31)*1.5*bite:0;
+  const shakeY=bite?Math.cos(elapsed*105+w.id*.19)*.7*bite:0;
+  g.save();
+  if(bite>0)g.filter='brightness('+String((1+1.2*bite).toFixed(2))+') saturate(.85)';
+  g.drawImage(tile,index*frame,0,frame,frame,w.x+shakeX,w.y+shakeY,T,T);
+  g.restore();
  }
  if(!building)return;
  g.save();g.globalAlpha=.22;g.fillStyle='#a3d1b0';
@@ -322,14 +355,17 @@ function draw(g,building=false){
    g.beginPath();g.moveTo(p.x+5,p.y+5);g.lineTo(p.x+T-5,p.y+T-5);
    g.moveTo(p.x+T-5,p.y+5);g.lineTo(p.x+5,p.y+T-5);g.stroke();
   }else{
-   g.globalAlpha=.8;g.drawImage(tile,0,0,T,T,p.x,p.y,T,T);
+   g.globalAlpha=.8;g.drawImage(tile,0,0,frame,frame,p.x,p.y,T,T);
    g.globalAlpha=1;g.strokeStyle=p.action==='repair'?'#62e7ef':'#ffe78f';
    g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,T-2,T-2);
   }
  }
  g.restore();
 }
-function tick(dt){for(const w of walls.values())w.hit=Math.max(0,(w.hit||0)-dt)}
+function tick(dt){for(const w of walls.values()){
+ w.hit=Math.max(0,(w.hit||0)-dt);
+ w.biteShake=Math.max(0,(w.biteShake||0)-dt);
+}}
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
