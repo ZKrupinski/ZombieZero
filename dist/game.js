@@ -1612,6 +1612,13 @@ function wormForwardClearance(group){
   if(other.x>=right||other.x+other.w<=left)continue;
   room=Math.min(room,other.y-bottom);
  }
+ // Barricade blocks count as occupied space: do not schedule a front surge
+ // with a wall directly underneath the chosen leading zombies.
+ if(typeof isFortress==='function'&&isFortress()&&fortress){
+  const travel=Math.min(24,Math.max(0,room-10));
+  if(group.some(z=>z.y+z.h>=bottom-3&&
+     !fortress.isPathClear(z,z.x,z.y,z.x,z.y+travel)))return 0;
+ }
  return Math.max(0,room);
 }
 function startWormParade(){
