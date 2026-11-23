@@ -2979,6 +2979,37 @@ html.landscape-game #overlay[data-screen="pause"]>#pause-main-menu{
 }
 
 
+/* v315: Three-stage motor control. Only OFF looks disabled; the tile stays
+   clickable so a second tap can restore PLAYER and then FULL vibration. */
+#options-dialog #haptics-toggle[data-mode="off"]{
+ position:relative!important;
+ border-color:#60736a!important;
+ background:#1d2b2c!important;
+ color:#9aa9a2!important;
+ filter:saturate(.45);
+}
+#options-dialog #haptics-toggle[data-mode="off"] .option-icon,
+#options-dialog #haptics-toggle[data-mode="off"] .option-status{
+ color:#92a59b!important;
+}
+#options-dialog #haptics-toggle[data-mode="off"]::after{
+ content:"OFF";
+ position:absolute;top:5px;right:6px;
+ color:#d0d8d1;border:1px solid #708078;
+ border-radius:3px;padding:2px 3px;
+ font:800 8px/1 Arial,sans-serif;
+ letter-spacing:.04em;
+ pointer-events:none;
+}
+#options-dialog #haptics-toggle[data-mode="player"],
+#options-dialog #haptics-toggle[data-mode="full"]{
+ filter:none!important;
+ opacity:1!important;
+}
+#options-dialog #haptics-toggle[data-mode="off"]:focus-visible{
+ outline:2px solid #c4f88b!important;outline-offset:2px!important;
+}
+
 /* v249 — remove the PLAY HUD's dark gradient from the TITLE only.
    The HUD is stacked above the title subtitle even when gameplay
    heart/stage/score controls are hidden. Keep its menu button accessible.
@@ -3025,33 +3056,3 @@ html.landscape-game #overlay[data-screen="pause"]>#pause-main-menu{
  outline-offset:2px!important;
 }
 
-/* v315: Three-stage motor control. Only OFF looks disabled; the tile stays
-   clickable so a second tap can restore PLAYER and then FULL vibration. */
-#options-dialog #haptics-toggle[data-mode="off"]{
- position:relative!important;
- border-color:#60736a!important;
- background:#1d2b2c!important;
- color:#9aa9a2!important;
- filter:saturate(.45);
-}
-#options-dialog #haptics-toggle[data-mode="off"] .option-icon,
-#options-dialog #haptics-toggle[data-mode="off"] .option-status{
- color:#92a59b!important;
-}
-#options-dialog #haptics-toggle[data-mode="off"]::after{
- content:"OFF";
- position:absolute;top:5px;right:6px;
- color:#d0d8d1;border:1px solid #708078;
- border-radius:3px;padding:2px 3px;
- font:800 8px/1 Arial,sans-serif;
- letter-spacing:.04em;
- pointer-events:none;
-}
-#options-dialog #haptics-toggle[data-mode="player"],
-#options-dialog #haptics-toggle[data-mode="full"]{
- filter:none!important;
- opacity:1!important;
-}
-#options-dialog #haptics-toggle[data-mode="off"]:focus-visible{
- outline:2px solid #c4f88b!important;outline-offset:2px!important;
-}
