@@ -2642,6 +2642,25 @@ const LOOT_DROP_CHANCE=.19,LOOT_MAX_VISIBLE=2,LOOT_MAX_STAGE=3,LOOT_SPACING=72;
 const FIRE_DROP_CHANCE=.20,FIRE_DROP_COOLDOWN=24,FIRE_DROP_STAGE_GAP=2,FIRE_PITY_STAGES=3;
 let fireDropsThisWave=0,lastFireDropAt=-1e6,lastFireDropWave=0;
 let stageLootCount=0,recentLootKinds=[],stageLootKinds=[];
+// V350: ordinary pickup type weights, before eligibility and variety rules.
+// Order of profiles matches HEROES. Emergency bazooka stays risk-gated.
+const HERO_LOOT_PROFILES=[
+ {dual:14,triple:14,power:15,fire:15,slow:14,pierce:14,shield:14,support:1,pity:3},
+ {dual:22,triple:30,power:8,fire:6,slow:24,pierce:5,shield:5,support:.75,pity:5},
+ {dual:6,triple:5,power:37,fire:38,slow:4,pierce:7,shield:3,support:1.25,pity:2},
+ {dual:25,triple:16,power:10,fire:5,slow:14,pierce:8,shield:22,support:1.5,pity:5},
+ {dual:5,triple:5,power:15,fire:2,slow:4,pierce:66,shield:3,support:.5,pity:0}
+];
+function heroLootProfile(index=selectedHero){return HERO_LOOT_PROFILES[index]||HERO_LOOT_PROFILES[0]}
+function weightedLoot(pool,profile,stageKinds=[],recentKinds=[],balanced=false,roll=Math.random()){
+ if(!pool.length)return null;
+ const weights=pool.map(k=>profile[k]*(balanced?1:
+  (stageKinds.includes(k)?.85:1)*(recentKinds.includes(k)?.85:1)));
+ let pick=roll*weights.reduce((a,b)=>a+b,0);
+ for(let i=0;i<pool.length;i++){pick-=weights[i];if(pick<0)return pool[i]}
+ return pool[pool.length-1];
+}
+
 function stageLootLimit(){
  // Stage 1–3 retain the original cap; later stages get more opportunities.
  return LOOT_MAX_STAGE+(wave>=5)+(wave>=12)+(wave>=24)+(wave>=40);
@@ -2661,9 +2680,10 @@ function lootDropChance(){
  return Math.min(.64,LOOT_DROP_CHANCE+.26*stage+.19*lootStageProgress());
 }
 function lootVisibleLimit(){return wave>=15?3:LOOT_MAX_VISIBLE}
-function fireDropChance(){return Math.min(.36,FIRE_DROP_CHANCE+.15*clamp((wave-3)/32,0,1))}
+function fireDropChance(){return heroLootProfile().fire/100}
 function fireCanDrop(){
- const gap=wave>=12?1:FIRE_DROP_STAGE_GAP,cooldown=wave>=12?16:FIRE_DROP_COOLDOWN;
+ const fastFire=selectedHero===2;
+ const gap=wave>=12||fastFire?1:FIRE_DROP_STAGE_GAP,cooldown=wave>=12||fastFire?16:FIRE_DROP_COOLDOWN;
  return fireDropsThisWave===0&&wave-lastFireDropWave>=gap&&
    clock-lastFireDropAt>=cooldown&&!has('fire')&&
    !items.some(item=>item.k==='fire');
@@ -2681,8 +2701,9 @@ function pickupLocation(x,y){
 }
 function drop(z){
  if(z.max<2&&!z.boss)return;
- const boss=!!z.boss,fireReady=fireCanDrop();
- const pity=fireReady&&wave>=3&&wave-lastFireDropWave>=(wave>=12?2:FIRE_PITY_STAGES);
+ const boss=!!z.boss,fireReady=fireCanDrop(),profile=heroLootProfile();
+ const pityStages=selectedHero===0&&wave>=12?2:profile.pity;
+ const pity=fireReady&&pityStages>0&&wave>=pityStages&&wave-lastFireDropWave>=pityStages;
  // Hard cap is stage-scaled; soft quota reserves part of the loot for late kills.
  if(!boss&&stageLootCount>=stageLootLimit())return;
  if(!boss&&!pity&&stageLootCount>=stageLootQuota())return;
@@ -2697,19 +2718,23 @@ function drop(z){
  let k=null;
  if(fireReady&&(pity||Math.random()<fireDropChance())){
   k='fire';
- }else if(supportAvailable()&&Math.random()<supportChance()){
+ }else if(supportAvailable()&&Math.random()<Math.min(.42,supportChance()*profile.support)){
   k='bazooka';
  }else{
   const choices=Object.keys(SKILLS).filter(key=>key!=='fire'&&key!=='bazooka'&&
    !has(key)&&!items.some(item=>item.k===key));
-  // Prefer a skill not yet seen in THIS stage, then avoid recent-stage repeats.
-  const neverThisStage=choices.filter(key=>!stageLootKinds.includes(key));
-  const candidatePool=neverThisStage.length?neverThisStage:choices;
-  const fresh=candidatePool.filter(key=>!recentLootKinds.includes(key));
-  const oldest=Math.min(...candidatePool.map(key=>recentLootKinds.lastIndexOf(key)));
-  const pool=fresh.length?fresh:candidatePool.filter(key=>recentLootKinds.lastIndexOf(key)===oldest);
+  // Ace keeps strict rotation; specialists use soft repetition penalties,
+  // so their signature item stays likely after it expires or is collected.
+  let pool=choices;
+  if(selectedHero===0){
+   const neverThisStage=choices.filter(key=>!stageLootKinds.includes(key));
+   const candidatePool=neverThisStage.length?neverThisStage:choices;
+   const fresh=candidatePool.filter(key=>!recentLootKinds.includes(key));
+   const oldest=Math.min(...candidatePool.map(key=>recentLootKinds.lastIndexOf(key)));
+   pool=fresh.length?fresh:candidatePool.filter(key=>recentLootKinds.lastIndexOf(key)===oldest);
+  }
   if(!pool.length)return;
-  k=pool[Math.floor(Math.random()*pool.length)];
+  k=weightedLoot(pool,profile,stageLootKinds,recentLootKinds,selectedHero===0);
  }
  if(items.some(item=>item.k===k))return;
  const pos=pickupLocation(z.x+z.w/2,z.y+z.h/2);
