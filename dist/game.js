@@ -2418,7 +2418,7 @@ function showCampaignComic(){
   panel.appendChild(title);
   session.numberTimer=setTimeout(finish,1000);
  }
- panel.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation()});
+ panel.addEventListener('pointerdown',e=>{e.stopPropagation()});
  panel.addEventListener('click',continueStage);
  panel.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'||e.code==='Space')continueStage(e)});
  img.onload=()=>{
@@ -2435,7 +2435,7 @@ function showCampaignComic(){
  session.timer=setTimeout(finish,5000);
  document.body.appendChild(panel);
  try{panel.focus({preventScroll:true})}catch{}
- img.src='assets/stages/comics/stage-'+String(stage).padStart(2,'0')+'.png';
+ img.src='assets/stages/comics/stage-'+String(stage).padStart(2,'0')+'.jpg';
 }
 
 function advanceStage(){
