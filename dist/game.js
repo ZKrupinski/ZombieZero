@@ -2386,6 +2386,58 @@ function clearFortressStageVisuals(){
  poisonFlash=0;resistFlash=0;failureScene=null;
  for(const citizen of citizens)citizen.shooting=0;
 }
+// Approved campaign comics. Load only the current stage, never the whole set.
+const CAMPAIGN_COMIC_STAGES=new Set([1,2,3,4,5,6,7,8,9,12]);
+let campaignComicSession=null;
+function showCampaignComic(){
+ if(runMode!=='campaign'||!CAMPAIGN_COMIC_STAGES.has(wave)||mode!=='playing'||typeof document.createElement!=='function'||!document.body)return;
+ const stage=wave;
+ const panel=document.createElement('div'),img=document.createElement('img');
+ panel.style.cssText='position:fixed;inset:0;z-index:2147483646;background:#000;display:flex;align-items:center;justify-content:center;touch-action:manipulation;user-select:none;overflow:hidden';
+ panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Stage '+stage+' introduction');
+ panel.tabIndex=0;
+ img.style.cssText='display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;visibility:hidden';
+ img.alt='STAGE '+String(stage).padStart(2,'0');
+ panel.appendChild(img);
+ const session={panel,readyAt:Infinity,timer:0,numberTimer:0};
+ campaignComicSession=session;mode='stageComic';releaseInput();keys={};
+ function finish(){
+  if(campaignComicSession!==session)return;
+  clearTimeout(session.timer);clearTimeout(session.numberTimer);
+  panel.remove();campaignComicSession=null;
+  if(mode==='stageComic'||mode==='stageNumber'){keys={};releaseInput();mode='playing';hud()}
+ }
+ function continueStage(e){
+  e.preventDefault();e.stopPropagation();
+  if(campaignComicSession!==session||mode!=='stageComic'||performance.now()<session.readyAt)return;
+  mode='stageNumber';
+  panel.replaceChildren();
+  const title=document.createElement('div');
+  title.textContent='STAGE '+String(stage).padStart(2,'0');
+  title.style.cssText='color:#eff39e;font:400 clamp(20px,5vw,48px) "Press Start 2P",monospace;text-align:center;text-shadow:0 0 12px #eff39e66';
+  panel.appendChild(title);
+  session.numberTimer=setTimeout(finish,1000);
+ }
+ panel.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation()});
+ panel.addEventListener('click',continueStage);
+ panel.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'||e.code==='Space')continueStage(e)});
+ img.onload=()=>{
+  if(campaignComicSession!==session)return;
+  clearTimeout(session.timer);
+  img.style.visibility='visible';
+  // Begin the three-second lock only after the image has been displayed.
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+   if(campaignComicSession===session)session.readyAt=performance.now()+3000;
+  }));
+ };
+ img.onerror=finish;
+ // A missing/broken asset must not prevent a run from starting.
+ session.timer=setTimeout(finish,5000);
+ document.body.appendChild(panel);
+ try{panel.focus({preventScroll:true})}catch{}
+ img.src='assets/stages/comics/stage-'+String(stage).padStart(2,'0')+'.png';
+}
+
 function advanceStage(){
  resetCitizenSpeech();
  if(runMode==='endless'){beginEndlessShift();return}
@@ -2399,6 +2451,7 @@ function advanceStage(){
   fortress.begin(foes,wave);mode='building';
  }
  toast(isFortress()?'방벽 보강 · STAGE '+wave:isBossWave()?'WARNING':'STAGE '+String(wave).padStart(2,'0')+' · '+stageRosterLabel(combatStage()));
+ showCampaignComic();
 }
 // Switch the background and entire enemy formation during the intermission.
 // Original assets and the 9x4 formation are preserved, with staggered fade-in.
@@ -2448,7 +2501,7 @@ function ensureBallCruiseSpeed(b){
 function resetBalls(){if(typeof heroStrikeVisual!=='undefined')heroStrikeVisual=null;killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;fireWaves.length=0;skillUI()}
 let menuRunChipsAtStart=0;
-function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();fortress?.reset();rack();resetBalls();mode='playing';if(isFortress()&&fortress){fortress.begin(foes,wave);mode='building'}$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':isFortress()?'BARRICADE HORDE · 드래그로 방벽을 건설하세요!':isMiniHorde()?'MINI HORDE · 작은 좀비들의 대군!':'STAGE 01 · 준비!')}
+function start(selectedMode='campaign'){if(campaignComicSession)return;window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();fortress?.reset();rack();resetBalls();mode='playing';if(isFortress()&&fortress){fortress.begin(foes,wave);mode='building'}$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':isFortress()?'BARRICADE HORDE · 드래그로 방벽을 건설하세요!':isMiniHorde()?'MINI HORDE · 작은 좀비들의 대군!':'STAGE 01 · 준비!');showCampaignComic()}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
@@ -3072,6 +3125,7 @@ function advanceVisualQueue(queue,dt){
  return compactVisualQueue(queue,visualAlive);
 }
 function update(dt){
+ if(mode==='stageComic'||mode==='stageNumber')return;
  // Visual FX can finish even while a final-ball loss freezes the game scene.
  if(mode!=='paused'){
   for(const f of ballVanish)f.t+=dt;
@@ -4492,6 +4546,7 @@ function frame(t){
  const rawElapsed=last?Math.max(0,(t-last)/1000):0;
  const elapsed=Math.min(.10,rawElapsed);
  last=t;
+ if(mode==='stageComic'||mode==='stageNumber'){requestAnimationFrame(frame);return}
  const steps=Math.max(1,Math.ceil(elapsed*30-1e-9));
  const begin=feedbackNow();frameUpdating=true;
  try{for(let i=0;i<steps;i++)update(elapsed/steps)}finally{frameUpdating=false}
