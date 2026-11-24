@@ -640,14 +640,70 @@ if(name==='boss'){tone(82,.32,'triangle',.16,0,false,41);noise(.13,.055)}
 if(name==='bosshit'){tone(95,.11,'triangle',.18,0,false,35);noise(.045,.065)}if(name==='powerhit')tone(165,.09,'triangle',.18,0,false,50);
 if(name==='miss')tone(250,.18,'triangle',.12,0,false,70);}
 const THEMES=[{name:'SUNNY RALLY',root:60,chords:[0,5,7,0],mel:[12,19,16,19,24,19,16,14,12,16,19,21,19,16,14,7]}, {name:'TURBO PARADE',root:57,chords:[0,5,7,5],mel:[12,16,19,21,24,21,19,16,14,17,21,24,23,19,16,14]}, {name:'VICTORY DRIVE',root:62,chords:[0,7,5,0],mel:[19,19,21,19,16,12,14,16,24,23,21,19,16,14,11,12]}, {name:'BOSS RUSH',root:50,chords:[0,5,7,0],mel:[24,19,24,27,24,19,22,19,24,27,31,27,26,22,19,15]}];
-function music(){if(!audioRunning())return;musicBus.gain.value=mode==='playing'&&sound&&musicEnabled?.6:0;if(mode!=='playing'||!sound||!musicEnabled)return;const boss=foes.some(z=>z.boss),theme=THEMES[boss?3:(wave-1-Math.floor(wave/3))%3],tempo=boss?172:146+((wave-1)%3)*4,step=60/tempo/4;if(musicTheme!==theme.name){musicTheme=theme.name;beat=0;nextBeat=audio.currentTime;$('track').textContent='♫ '+theme.name}if(nextBeat<audio.currentTime-.2)nextBeat=audio.currentTime;
-let guard=0;while(nextBeat<audio.currentTime+.09&&guard++<4){let i=beat%64,bar=Math.floor(i/16),sub=i%16,root=theme.root+theme.chords[bar],delay=Math.max(0,nextBeat-audio.currentTime),arp=boss?[0,7,12,15,19,15,12,7]:[0,7,12,16,19,16,12,7];
-if([0,2,4,6,7,10,12,14].includes(sub)){let phrase=Math.floor(beat/64)%4,melody=root+theme.mel[(Math.floor(i/2)+(phrase%2)*4)%16]+(phrase===3&&sub>=12?12:0);tone(hz(melody),step*1.45,'square',.046,delay,true);if(bar===3||Math.floor(beat/64)%4===2)tone(hz(melody-12),step*1.6,'triangle',.065,delay,true)}
-tone(hz(root+12+arp[sub%8]),step*.72,'square',.024,delay,true);
-if(sub%2===0)tone(hz(root-12+([0,0,7,12][Math.floor(sub/4)])),step*1.7,'triangle',.23,delay,true);
-if(sub===0||sub===6||sub===8||boss&&sub===10)tone(130,.13,'sine',.31,delay,true,32);
-if(sub===4||sub===12){noise(.065,.105,delay,true);tone(200,.055,'triangle',.1,delay,true,85)}else noise(sub===14?.06:.018,sub%2===0?.028:.014,delay,true);if(bar===3&&sub>=13){noise(.035,.06,delay,true);tone(hz(root+12+(sub-13)*3),.055,'triangle',.055,delay,true)}
-if(sub===0&&bar%2===0){[0,boss?3:4,7,12].forEach(n=>tone(hz(root+n),step*7,'triangle',.036,delay,true))}beat++;nextBeat+=step;}}
+// V344: hand-authored original chip-arcade songs, no downloaded audio.
+// Four 8-bar sections: hook, answer, lighter bridge, final hook.
+const MUSIC_NEW=[["NEON BOUNCE",60,[0,5,9,7],[5,7,0,0],[12,16,19,24,21,19,16,14],[19,21,24,28,24,21,19,16],0],["STREET DISCO",57,[0,9,5,7],[5,0,7,9],[12,12,19,16,21,19,24,21],[16,19,16,14,12,19,21,24],1],["MIDNIGHT ARCADE",62,[0,7,9,5],[5,7,0,7],[19,24,23,19,16,19,21,24],[24,21,19,14,16,19,24,28],2],["ROOFTOP SPRINT",59,[0,5,7,9],[5,7,0,0],[12,14,16,19,21,24,21,19],[24,28,26,24,19,21,16,14],3],["PIXEL PARTY",65,[0,5,0,7],[9,5,7,0],[24,19,24,16,19,14,16,12],[19,19,21,24,21,19,16,19],1],["POWER RALLY",58,[0,7,5,9],[9,5,0,7],[12,19,24,19,16,19,21,19],[24,21,24,28,26,24,19,16],0],["GUMBALL GROOVE",61,[0,9,5,7],[0,5,7,0],[16,14,12,19,21,16,19,24],[19,24,19,21,16,14,19,12],2],["TURBO TAXI",55,[0,5,7,5],[9,7,5,0],[12,19,19,21,19,16,14,16],[24,24,21,19,16,19,21,24],3],["SUNSET BOOST",63,[0,9,5,7],[5,0,7,0],[12,16,21,19,24,23,21,19],[16,19,24,26,24,19,21,16],2],["BOUNCE EXPRESS",60,[0,7,0,5],[5,9,7,0],[19,16,19,24,19,16,21,24],[24,19,16,12,14,16,19,24],1],["COIN FEVER",64,[0,5,9,7],[5,7,9,0],[12,16,19,16,24,21,19,24],[24,28,24,21,19,16,14,12],3],["ZOMBIE JAM",57,[0,5,7,0],[9,5,7,5],[19,19,16,12,16,21,19,16],[12,16,19,24,21,24,19,14],0],["HIGH SCORE HERO",62,[0,9,5,7],[0,7,5,0],[12,19,21,24,28,24,21,19],[24,23,24,19,21,16,19,24],2],["FUNKY DEFENSE",56,[0,5,7,0],[5,9,7,0],[12,16,12,19,16,21,19,24],[19,16,14,19,21,24,21,19],1],["LAST BALL PARTY",60,[0,7,9,5],[5,7,0,0],[16,19,24,28,24,21,19,16],[12,19,24,21,19,24,26,24],3],["RED ALERT",50,[0,8,10,7],[0,5,8,7],[12,19,24,22,19,15,19,24],[24,27,24,19,22,19,15,12],0],["MEGA SIEGE",52,[0,5,8,7],[8,10,0,7],[19,24,19,27,24,22,19,15],[12,15,19,24,22,24,27,24],1],["TOXIC RUSH",48,[0,10,8,5],[0,8,5,7],[12,12,19,15,22,19,24,22],[24,22,19,15,19,24,27,24],2],["IRON HORDE",53,[0,5,8,10],[8,5,7,0],[12,19,24,19,27,24,22,19],[15,19,22,24,27,24,19,15],3],["BREAK THE WALL",51,[0,8,5,7],[0,10,8,7],[24,19,15,19,22,24,19,24],[27,24,22,19,15,19,24,27],0],["PANIC PARADE",49,[0,5,10,8],[5,8,7,0],[19,22,24,22,19,24,27,24],[12,19,15,19,24,27,24,22],1],["FINAL OVERDRIVE",54,[0,8,10,7],[5,8,7,0],[12,19,22,24,27,31,27,24],[24,27,31,29,27,24,22,19],3]].map(([name,root,chords,answer,mel,hook,groove],index)=>({name,root,chords,answer,mel,hook,groove,boss:index>=15,bars:32}));
+const MUSIC_NORMAL=[...THEMES.slice(0,3),...MUSIC_NEW.filter(t=>!t.boss)];
+const MUSIC_BOSS=[THEMES[3],...MUSIC_NEW.filter(t=>t.boss)];
+const MUSIC_RHYTHMS=[[0,2,4,6,7,10,12,14],[0,3,4,7,8,10,13,14],[0,2,5,6,8,11,12,15],[0,2,4,7,8,9,12,14]];
+const MUSIC_ARPS=[[0,7,12,16,19,16,12,7],[0,12,7,16,12,19,7,16],[0,7,16,12,19,12,16,7],[0,12,16,19,12,7,16,19]];
+let musicTrack=null,musicBoss=null,musicTempo=146;
+const musicDecks=[[],[]],musicLast=[null,null];
+function pickMusic(boss){
+ const k=boss?1:0,deck=musicDecks[k],pool=boss?MUSIC_BOSS:MUSIC_NORMAL;
+ if(!deck.length){
+  deck.push(...pool);
+  for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}
+  if(musicLast[k]===deck[0]&&deck.length>1)[deck[0],deck[1]]=[deck[1],deck[0]];
+ }
+ const track=deck.shift();musicLast[k]=track;return track;
+}
+function beginMusic(boss,when){
+ musicTrack=pickMusic(boss);musicBoss=boss;musicTheme=musicTrack.name;beat=0;nextBeat=when;
+ musicTempo=boss?172:146+((Math.max(1,wave)-1)%3)*4;
+ $('track').textContent='♫ '+musicTheme;
+}
+function music(){
+ if(!audioRunning())return;
+ musicBus.gain.value=mode==='playing'&&sound&&musicEnabled?.6:0;
+ if(mode!=='playing'||!sound||!musicEnabled)return;
+ const boss=foes.some(z=>z.boss);
+ // Keep the song through wave changes; change category only when a boss arrives/leaves.
+ if(!musicTrack||musicBoss!==boss||!musicTheme)beginMusic(boss,audio.currentTime);
+ if(nextBeat<audio.currentTime-.2)nextBeat=audio.currentTime;
+ let guard=0;
+ while(nextBeat<audio.currentTime+.09&&guard++<4){
+  if(beat>=(musicTrack.bars||16)*16)beginMusic(boss,nextBeat);
+  const theme=musicTrack,step=60/musicTempo/4,i=beat%64,bar=Math.floor(i/16),sub=i%16;
+  const phrase=Math.floor(beat/64)%4,section=Math.floor(beat/128)%4,modern=!!theme.hook;
+  const progression=modern&&(section===1||section===2)?theme.answer:theme.chords;
+  const chord=progression[bar],root=theme.root+chord,delay=Math.max(0,nextBeat-audio.currentTime);
+  // A minor vi chord in bright songs; boss themes use minor i/iv/v and major bVI/bVII.
+  const minor=modern?(boss?chord!==8&&chord!==10:chord===9):boss;
+  const color=n=>minor?(n%12===4?n-1:n%12===9?n-1:n%12===11?n-1:n):n;
+  const rhythm=modern?MUSIC_RHYTHMS[theme.groove]:MUSIC_RHYTHMS[0];
+  const note=rhythm.indexOf(sub);
+  if(note!==-1&&(!modern||section!==2||note%2===0||bar===3)){
+   let melody;
+   if(modern){
+    const motif=section===1||section===3?theme.hook:theme.mel;
+    const offset=section===3&&bar===3?12:0;
+    melody=root+color(motif[(note+(bar%2)*2)%8])+offset;
+   }else melody=root+theme.mel[(Math.floor(i/2)+(phrase%2)*4)%16]+(phrase===3&&sub>=12?12:0);
+   tone(hz(melody),step*(modern&&section===2?2.6:1.45),'square',.046,delay,true);
+   if(modern?(section===3&&note%2===0):bar===3||phrase===2)tone(hz(melody-12),step*1.6,'triangle',.065,delay,true);
+  }
+  const arp=modern?MUSIC_ARPS[theme.groove]:boss?[0,7,12,15,19,15,12,7]:MUSIC_ARPS[0];
+  if(!modern||section!==2||sub%2===0)tone(hz(root+12+(modern?color(arp[sub%8]):arp[sub%8])),step*.72,'square',.024,delay,true);
+  if(sub%2===0)tone(hz(root-12+([0,0,7,12][Math.floor(sub/4)])),step*1.7,'triangle',.23,delay,true);
+  if(sub===0||sub===6||sub===8||boss&&sub===10)tone(130,.13,'sine',.31,delay,true,32);
+  if(sub===4||sub===12){noise(.065,.105,delay,true);tone(200,.055,'triangle',.1,delay,true,85)}
+  else noise(sub===14?.06:.018,sub%2===0?.028:.014,delay,true);
+  if(bar===3&&sub>=13&&(!modern||section!==2)){noise(.035,.06,delay,true);tone(hz(root+12+(sub-13)*3),.055,'triangle',.055,delay,true)}
+  if(sub===0&&bar%2===0){[0,minor?3:4,7,12].forEach(n=>tone(hz(root+n),step*7,'triangle',.036,delay,true))}
+  beat++;nextBeat+=step;
+ }
+}
 // V60 cube FX: short explosive square fragments. No circular markers, wedges or spikes.
 function effect(x,y,color,size=45,text='',standardHit=false,shakeCamera=true){
  if(!fxEnabled)return;
