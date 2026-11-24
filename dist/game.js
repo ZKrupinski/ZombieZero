@@ -632,6 +632,7 @@ if(name==='block'){tone(650,.07,'triangle',.07,0,false,215);return;}
 const sounds={launch:[55,67,79],blast:[36,48,55],serve:[72,79,84],wall:[67],racket:[79,86,91],car:[76,83,88],citizen:[84,79,67],return:[72,76,79,84,91],bosshit:[43,55,62],powerhit:[55,67,79],hit:[60,67],kill:[72,76,79],item:[72,76,79,84,88],expire:[72,67],miss:[64,60,55],start:[60,64,67,72,76,79],wave:[60,64,67,72,79,84],boss:[43,50,55,62],bosskill:[60,67,72,76,79,84,88],fire:[55,62],shield:[79,84,91],pause:[72,67],over:[67,64,60,55]};const notes=sounds[name]||[72],rise=['kill','hit','powerhit'].includes(name)?Math.min(7,Math.floor(combo/2)):0,comboGain=1+Math.min(combo,10)*.025,spacing=Math.max(.024,.045-Math.min(combo,10)*.002),accent=['item','return','wave','bosskill','start'].includes(name);
 notes.forEach((n,i)=>{tone(hz(n+rise),accent?.16:.085,'triangle',name==='wall'?.035:.1*comboGain,i*spacing);if(name!=='wall')tone(hz(n+rise),.055,'square',.023*comboGain,i*spacing)});
 if(['racket','car','citizen'].includes(name))tone(500,.065,'square',.045,0,false,1250);
+if(name==='racket'||name==='serve'){tone(155,.085,'triangle',.17,0,false,48);noise(.042,.085);}
 if(['hit','kill','powerhit','bosshit'].includes(name)){tone(name==='kill'?160:110,.07,'triangle',.15,0,false,45);noise(.035,.04)}
 if(name==='launch'){tone(180,.14,'sawtooth',.07,0,false,650);noise(.06,.08)}if(name==='blast'){tone(110,.22,'sine',.2,0,false,30);noise(.18,.1)}if(name==='fire'){noise(.07,.055);tone(160,.08,'triangle',.07,0,false,420)}
 if(accent){[0,4,7].forEach(n=>tone(hz(60+n),.35,'triangle',.045,.07));tone(145,.19,'sine',.18,0,false,42);if(name==='wave'||name==='bosskill')noise(.16,.06,.12)}
@@ -2281,7 +2282,7 @@ function ensureBallCruiseSpeed(b){
  }
  return speed;
 }
-function resetBalls(){killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
+function resetBalls(){if(typeof heroStrikeVisual!=='undefined')heroStrikeVisual=null;killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
 let menuRunChipsAtStart=0;
 function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();fortress?.reset();rack();resetBalls();mode='playing';if(isFortress()&&fortress){fortress.begin(foes,wave);mode='building'}$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':isFortress()?'BARRICADE HORDE · 드래그로 방벽을 건설하세요!':isMiniHorde()?'MINI HORDE · 작은 좀비들의 대군!':'STAGE 01 · 준비!')}
@@ -2329,6 +2330,7 @@ function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  // V150: first serve is a real weapon strike. Reuse the approved 8-frame
  // hero ATTACK bitmap already played on ball return; never delay ball physics.
  swing=.22;heroAttackTime=HERO_ATTACK_DURATION;
+ if(typeof triggerHeroStrike==='function')triggerHeroStrike(balls[0].x,false);
  syncMulti();sfx('serve');feedback('serve');hud();
 }}
 function overlay(title,message,button,label){$('overlay').setAttribute('data-title','false');$('overlay').setAttribute('data-screen',['GAME OVER','VICTORY'].includes(label)?'results':'pause');$('overlay').setAttribute('data-outcome',label);$('results').hidden=!['GAME OVER','VICTORY'].includes(label);$('heroes').hidden=!['GAME OVER','VICTORY'].includes(label);$('title').innerHTML=title;$('message').innerHTML=message;$('start').innerHTML=button+(['PAUSED','GAME OVER'].includes(label)?'':' <span>↗</span>');$('label').textContent=label;$('pause-main-menu').hidden=label!=='PAUSED';if(['GAME OVER','VICTORY'].includes(label)){const earned=Math.max(0,(window.ZZProgression?.chips?.()??menuRunChipsAtStart)-menuRunChipsAtStart);if($('result-earned-chip'))$('result-earned-chip').textContent='+'+String(earned);}$('overlay').hidden=false;
@@ -2400,7 +2402,7 @@ function syncMulti(fromHero=false){if(!balls.length||balls[0].held)return;const 
      extra.cruiseFloor=BASE_BALL_CRUISE_SPEED;
      balls.push(extra);
    }
-   swing=.22;heroAttackTime=HERO_ATTACK_DURATION;sfx('serve');feedback('serve');
+   swing=.22;heroAttackTime=HERO_ATTACK_DURATION;if(typeof triggerHeroStrike==='function')triggerHeroStrike(car,false);sfx('serve');feedback('serve');
  }
  while(balls.length<n){const angles=[-1.1,...balls.map(b=>clamp(Math.atan2(b.vx,Math.abs(b.vy)),-1.1,1.1)),1.1].sort((a,b)=>a-b);let gap=0,a=0;for(let i=1;i<angles.length;i++)if(angles[i]-angles[i-1]>gap){gap=angles[i]-angles[i-1];a=(angles[i]+angles[i-1])/2}const sp=Math.max(350,Math.hypot(src.vx,src.vy));const split=newBall(src.x,src.y,Math.sin(a)*sp,-Math.cos(a)*sp,false);split.cruiseFloor=BASE_BALL_CRUISE_SPEED;balls.push(split)}if(balls.length>n){for(const b of balls.slice(n))retireBall(b);balls=balls.slice(0,n)}hud()}
 function activate(k,x=car,y=PY-24){
@@ -2936,7 +2938,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    break;
   }
  }
-if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.combatStats?.()?.guard||0)+(window.ZZGarage?.masteryDefense?.()||0)){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(selectedHero===1?650:600,Math.hypot(b.vx,b.vy)+(selectedHero===1?35:7)),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;combo=0;effect(b.x,PY,'#e8ff93',30);burst(b.x,PY,'#e4ff9c',8);sfx('racket');feedback('racket')}
+if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.combatStats?.()?.guard||0)+(window.ZZGarage?.masteryDefense?.()||0)){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(selectedHero===1?650:600,Math.hypot(b.vx,b.vy)+(selectedHero===1?35:7)),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;if(typeof triggerHeroStrike==='function')triggerHeroStrike(b.x);combo=0;effect(b.x,PY,'#e8ff93',46);burst(b.x,PY,'#e4ff9c',13);sfx('racket');feedback('racket')}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1,'shield');sfx('shield');feedback('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
@@ -3034,8 +3036,56 @@ function drawHeroBitmap(image,...args){
 // v280: approved attack atlas has correctly authored per-frame transparency.
 // Draw its native bitmap directly; no runtime RGB/alpha substitution or cutouts.
 
+// V342: Hero-only impact presentation. The established paddle, car and ball
+// collision/angle/velocity are untouched. Only the bitmap lunges sideways.
+let heroStrikeVisual=null,heroStrikeGhostPass=false;
+const HERO_STRIKE_IN=.032,HERO_STRIKE_HOLD=.055,HERO_STRIKE_OUT=.13;
+const HERO_STRIKE_LIFE=HERO_STRIKE_IN+HERO_STRIKE_HOLD+HERO_STRIKE_OUT;
+// Approximate visible body/weapon width, excluding transparent sprite padding.
+const HERO_STRIKE_VISIBLE_HALF=[40,38,38,35,32];
+function heroStrikePose(age,offset){
+ const t=Math.max(0,age);
+ const ease=v=>{const u=clamp(v,0,1);return 1-Math.pow(1-u,3)};
+ const slide=t<HERO_STRIKE_IN?ease(t/HERO_STRIKE_IN):
+  t<HERO_STRIKE_IN+HERO_STRIKE_HOLD?1:
+  1-ease((t-HERO_STRIKE_IN-HERO_STRIKE_HOLD)/HERO_STRIKE_OUT);
+ const hit=Math.max(0,1-t/.105);
+ // Two quick decaying axes, independent of the camera and device vibration.
+ return {shift:offset*slide,jx:Math.sin(t*185+1.1)*4.5*hit,
+  jy:Math.cos(t*149)*2.8*hit,flash:Math.max(0,1-t/.075)};
+}
+function triggerHeroStrike(hitX,allowDash=true){
+ const delta=hitX-car,edge=HERO_STRIKE_VISIBLE_HALF[selectedHero]??38;
+ const offset=allowDash&&Math.abs(delta)>edge?
+  clamp(car+Math.sign(delta)*Math.min(56,Math.max(20,Math.abs(delta)-17)),45,W-45)-car:0;
+ heroStrikeVisual={at:clock,offset,origin:car};
+}
+function drawHeroStrikePresentation(){
+ const p=heroStrikeVisual,age=p?Math.max(0,clock-p.at):Infinity;
+ if(!p||age>=HERO_STRIKE_LIFE||mode!=='playing'){
+  drawCarGroundShadow();player();drawPoisonGauge();drawGroggyFeedback();return;
+ }
+ const pose=heroStrikePose(age,p.offset);
+ // Three short, fading copies of the actual authored hero sprite, left
+ // behind along the lunge. No extra actors, physics or persistent trails.
+ if(Math.abs(p.offset)>1&&age<.145){
+  const alpha=Math.max(0,1-age/.145);
+  for(const [part,opacity] of [[0,.24],[.33,.18],[.66,.12]]){
+   g.save();g.translate(p.origin-car+pose.shift*part,0);
+   g.globalAlpha*=opacity*alpha;g.filter='brightness(1.45) saturate(.65)';
+   heroStrikeGhostPass=true;
+   try{player()}finally{heroStrikeGhostPass=false;g.restore()}
+  }
+ }
+ g.save();g.translate(pose.shift,0);
+ drawCarGroundShadow();
+ g.save();g.translate(pose.jx,pose.jy);
+ if(pose.flash>0)g.filter='brightness('+(1+pose.flash*1.8).toFixed(3)+') saturate('+(1-pose.flash*.55).toFixed(3)+')';
+ player();g.restore();
+ drawPoisonGauge();drawGroggyFeedback();g.restore();
+}
 function player(){
- drawTrashContact("hero");
+ if(typeof heroStrikeGhostPass==='undefined'||!heroStrikeGhostPass)drawTrashContact("hero");
  if(selectedHero===4){
   // Same elevated front/side presentation and wheel baseline as the existing cast.
   const attacking=heroAttackTime>0;
@@ -4097,7 +4147,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawCarGroundShadow();player();drawPoisonGauge();drawGroggyFeedback();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
@@ -4436,7 +4486,7 @@ if(hapticsToggle){
 }
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
 function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
-function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car');return true}
+function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;if(typeof triggerHeroStrike==='function')triggerHeroStrike(b.x);effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car');return true}
 function citizenCollision(b,r){if(b.vy<=0)return false;for(const p of citizens){if(!p.alive)continue;const box={x:p.x-10,y:p.y-13,w:20,h:34};if(!circleRect(b.x,b.y,r,box))continue;if(tryCitizenGuard(p)){upwardBounce(b,p.x,16,box.y,r);return true}p.alive=false;p.dying=.8;p.returning=0;p.absent=0;bubbles=bubbles.filter(q=>q.citizen!==p);upwardBounce(b,p.x,16,box.y,r);citizenCue(p,false);effect(p.x,box.y,'#ffb16f',65);burst(p.x,p.y-10,'#ffda86',22);sfx('citizen');feedback('citizen');return true}return false}
 // V124: Short arcade crowd reactions with dynamic speech width.
 // A measured approximation avoids per-frame canvas text measurement.
