@@ -24,7 +24,7 @@ assert(icons.includes('g.arc(x,y,12.2'),'remaining duration ring retained');
 const iconBottom=652-15+12.2+.7;
 assert(iconBottom<652-2,'the 12.2px arc plus stroke does not touch shield Y=652');
 const draw=between('function draw(){','function frame(');
-const player=draw.indexOf('player();');
+const player=draw.indexOf('drawHeroStrikePresentation();');
 const bloom=draw.indexOf('fxRenderer.composite(g);');
 const iconDraw=draw.indexOf('drawActiveItemIcons();');
 assert(player>=0&&bloom>player&&iconDraw>bloom,'icons render last, above shield and bloom FX');

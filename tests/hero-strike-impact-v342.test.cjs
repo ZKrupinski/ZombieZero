@@ -19,3 +19,16 @@ assert(source.includes('drawHeroStrikePresentation();drawBazooka();'));
 assert(fs.readFileSync('dist/index.html','utf8').includes('v342-hero-strike-impact'));
 assert(fs.readFileSync('dist/sw.js','utf8').includes('v342-hero-strike-impact'));
 console.log('PASS v342: center strike, quick side lunge, return, flash and unchanged collision center.');
+
+
+// Exercise actual presentation in both paths. Shadow and status must render
+// exactly once; afterimages can draw only the hero, never a second gauge.
+const events=[];
+Object.assign(ctx,{mode:'playing',g:{globalAlpha:1,save(){},restore(){},translate(){},filter:''},
+ drawCarGroundShadow:()=>events.push('shadow'),player:()=>events.push('hero'),
+ drawPoisonGauge:()=>events.push('poison'),drawGroggyFeedback:()=>events.push('groggy')});
+ctx.clock=20;ctx.triggerHeroStrike(302);ctx.clock+=.05;
+ctx.drawHeroStrikePresentation();
+assert.deepEqual(events,['hero','hero','hero','shadow','hero','poison','groggy']);
+events.length=0;ctx.clock+=.3;ctx.drawHeroStrikePresentation();
+assert.deepEqual(events,['shadow','hero','poison','groggy']);
