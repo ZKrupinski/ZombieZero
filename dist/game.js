@@ -2387,7 +2387,7 @@ function clearFortressStageVisuals(){
  for(const citizen of citizens)citizen.shooting=0;
 }
 // Approved campaign comics. Load only the current stage, never the whole set.
-const CAMPAIGN_COMIC_STAGES=new Set([1,2,3,4,5,6,7,8,9,12]);
+const CAMPAIGN_COMIC_STAGES=new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
 let campaignComicSession=null;
 function showCampaignComic(){
  if(runMode!=='campaign'||!CAMPAIGN_COMIC_STAGES.has(wave)||mode!=='playing'||typeof document.createElement!=='function'||!document.body)return;
@@ -2435,7 +2435,7 @@ function showCampaignComic(){
  session.timer=setTimeout(finish,5000);
  document.body.appendChild(panel);
  try{panel.focus({preventScroll:true})}catch{}
- img.src='assets/stages/comics/stage-'+String(stage).padStart(2,'0')+'.jpg';
+ img.src='assets/stages/comics/stage-'+String(stage).padStart(2,'0')+(stage===10||stage===11?'.png':'.jpg');
 }
 
 function advanceStage(){
