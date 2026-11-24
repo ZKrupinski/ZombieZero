@@ -1772,7 +1772,12 @@ function startGalagaOrbit(){
   }
  }
  if(!options.length)return false;
- options.sort((a,b)=>b.front-a.front||b.size-a.size);
+ // All three sizes should appear across runs. Preserve the front-most
+ // priority, then favor a size on this roll rather than always selecting 20.
+ const sizeRoll=Math.random();
+ const preferred=sizeRoll<.40?7:sizeRoll<.80?10:20;
+ options.sort((a,b)=>b.front-a.front||
+  Number(b.size===preferred)-Number(a.size===preferred)||b.size-a.size);
  // The first 18 real front-line candidates are enough. Check the entire
  // loop for all live colliders and avoid expensive per-frame route searches.
  for(const option of options.slice(0,18)){
