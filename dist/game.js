@@ -3657,7 +3657,9 @@ function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.stro
 // Fire stays attached to each burning enemy and sits on top of its sprite.
 function drawBurningOverlays(){
  if(!fxEnabled)return;
- const dense=burningCount()>5;
+ const count=burningCount(),tier=typeof perfTier!=='undefined'?perfTier:0;
+ const dense=count>5||(tier>0&&count>2)||tier===2;
+ if(!count)return;
  const paint=()=>{for(const actor of foes){
   const z=knockVisualPosition(actor);
   if(!(z.burn>0)||actor.burnVisualDelay>0)continue;
@@ -3679,7 +3681,9 @@ function drawBurningOverlays(){
   }
   g.restore();
  }};
- if(dense)paint();else luminous(paint);
+ // V351: both detail levels contribute to the additive/Bloom source.
+ // Dense flames retain fewer unblurred pixels, not a missing glow pass.
+ luminous(paint);
 }
 
 function drawBallVanish(){
