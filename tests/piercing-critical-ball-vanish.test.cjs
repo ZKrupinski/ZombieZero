@@ -33,7 +33,7 @@ const ball=balls[0],beforeV=ball.vy;
 for(let i=0;i<45;i++)update(.016);
 check(ball.vy===beforeV,'piercing ball retains its direction through multiple zombies');
 check(targets.every(z=>z.hp===18),'3 separate enemies receive exactly 2x critical damage on one pass');
-check(criticalPopups.length>=3,'3 unique piercing critical announcements are created');
+check(criticalPopups.filter(f=>f.pierce).length===1,'at most one live piercing critical announcement across the combo');
 check(targets.every(z=>foes.includes(z)),'piercing is not unintended instant one-shot kill');
 check(ball.pierceContacts.size<=1,'collision contacts are removed when the ball leaves a target');
 check(has('pierce'),'piercing remains active for its full timed window');

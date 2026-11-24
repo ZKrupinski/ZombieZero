@@ -77,6 +77,8 @@ function ballImpact(b,axis,dir=1,kind='wall'){
 // V114: Reusable tiny 48px transparent impact bitmaps (no per-frame gradients).
 const trashContactFX=[];
 let ballContactFX=[];const contactStampCache=new Map();
+const particlePool=[],contactPool=[],flashPool=[];
+function recycleVisual(pool,v){if(pool.length<320)pool.push(v)}
 // V123: 12 asymmetric hand-inked impact shapes with tapered variable-weight lines.
 // No skill tint, directional spirals, glow or smoke. A monochrome fallback
 // stays available until this 6KB sprite atlas has loaded.
@@ -148,9 +150,10 @@ function spawnContact(b,x,y,nx,ny,kind){
  queueContact(ballContactFX,x,y,nx,ny,kind,null,(typeof miniBallScale==='function'?miniBallScale():1));
 }
 function queueContact(queue,x,y,nx,ny,kind,target,sizeMultiplier=1){
- queue.push({x,y,nx,ny,kind,target,sizeMultiplier,tone:0,
-  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:queue===trashContactFX?.42:kind==='enemy'?.30:kind==='ceiling'?.25:.27});
- if(queue.length>20)queue.splice(0,queue.length-20);
+ const entry=typeof contactPool!=='undefined'?(contactPool.pop()||{}):{};
+ Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,
+  variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:queue===trashContactFX?.42:kind==='enemy'?.30:kind==='ceiling'?.25:.27});queue.push(entry);
+ if(queue.length>20){const removed=queue.splice(0,queue.length-20);if(typeof contactPool!=='undefined')for(const v of removed){v.target=null;recycleVisual(contactPool,v)}}
 }
 function contactFace(b,z,r,ox,oy){
  const x=clamp(b.x,z.x+2,z.x+z.w-2),y=clamp(b.y,z.y+2,z.y+z.h-2);
@@ -343,8 +346,10 @@ function ballProjectionDrop(r){return BALL_PROJECTION_GAP+r*1.25}
 // renders use scaled additive stamps instead of rebuilding radial gradients.
 const TRAIL_LIGHT_STAMP_SIZE=192;
 const trailLightStamps=new WeakMap();
+const lightColorStamps=new Map();
 function trailLightStamp(rgb){
- const cached=trailLightStamps.get(rgb);if(cached)return cached;
+ const key=rgb.join(',');
+ const cached=trailLightStamps.get(rgb)||(typeof lightColorStamps!=='undefined'&&lightColorStamps.get(key));if(cached)return cached;
  if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
  const stamp=document.createElement('canvas');
  stamp.width=stamp.height=TRAIL_LIGHT_STAMP_SIZE;
@@ -357,7 +362,9 @@ function trailLightStamp(rgb){
  for(const [p,k] of [[0,.9],[.29,.69],[.61,.30],[.84,.085],[1,0]])
   grad.addColorStop(p,prefix+(k*.8).toFixed(3)+')');
  ctx.fillStyle=grad;ctx.fillRect(0,0,TRAIL_LIGHT_STAMP_SIZE,TRAIL_LIGHT_STAMP_SIZE);
- trailLightStamps.set(rgb,stamp);return stamp;
+ trailLightStamps.set(rgb,stamp);
+ if(typeof lightColorStamps!=='undefined'){if(lightColorStamps.size>=64)lightColorStamps.delete(lightColorStamps.keys().next().value);lightColorStamps.set(key,stamp)}
+ return stamp;
 }
 function drawSoftLightSpill(x,y,r,rgb,alpha=.35,useTrailStamp=false){
  if(!fxEnabled||!Number.isFinite(x)||!Number.isFinite(y)||alpha<=0)return;
@@ -406,7 +413,7 @@ function getBallRenderTrailPath(b,r){
 // Projected reflections sit below the effect, while the original flame
 // filaments, electric arcs and hit flashes stay attached to their sources.
 // Transforming BOTH the gradient and its path gives a soft elliptical pool.
-function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=false,drawCore=true){
+function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=true,drawCore=true){
  if(!fxEnabled||alpha<=0)return;
  g.save();
  g.translate(x+4,y+drop);
@@ -439,7 +446,8 @@ const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[2
  const PICKUP_LIGHT_COLORS=Object.fromEntries(Object.entries(typeof SKILLS!=='undefined'?SKILLS:{}).map(([k,v])=>[k,typeof effectLightRGB==='function'?effectLightRGB(v.color):[255,210,112]]));
  const TRAIL_WARM_COLORS=[...TRAIL_GROUND_HERO_COLORS,SCARLET_DIAMOND_GROUND_ACCENT,
   ...TRAIL_GROUND_FIRE_PIERCE,...TRAIL_GROUND_FIRE,...TRAIL_GROUND_PIERCE,...TRAIL_GROUND_POWER,
-  TRAIL_HEAD_PIERCE,TRAIL_HEAD_FIRE,TRAIL_HEAD_POWER,...Object.values(PICKUP_LIGHT_COLORS)];
+  TRAIL_HEAD_PIERCE,TRAIL_HEAD_FIRE,TRAIL_HEAD_POWER,...Object.values(PICKUP_LIGHT_COLORS),
+   [87,213,255],[255,226,142],[255,194,105],[169,239,255],[255,248,197],[255,231,169],[255,125,39],[255,174,70],[255,210,112]];
  let trailWarmIndex=0;
  function warmTrailLighting(){
   if(trailWarmIndex>=TRAIL_WARM_COLORS.length||!fxEnabled)return;
@@ -459,7 +467,8 @@ function drawTrailGroundReflections(b,r,path){
    // Use up to sixteen overlapping cached pools (near-standard 12px spacing).
    // One layer per sample, no live blur and no duplicate inner light pool.
    const length=path[path.length-1].s;
-   const samples=Math.min(16,Math.max(2,Math.ceil(length/12)+1));
+   const limit=typeof perfTier!=='undefined'?(perfTier===2?9:perfTier===1?12:16):16;
+    const samples=Math.min(limit,Math.max(2,Math.ceil(length/12)+1));
    for(let i=0;i<samples;i++){
     const u=i/(samples-1),p=sampleBallTrail(path,length*u);
     const fade=1-.78*u;
@@ -643,7 +652,11 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&audio&&so
 
 function tone(f,d=.1,type='square',vol=.08,delay=0,music=false,endFreq=0){if(!audioRunning()||!sound)return;let t=audio.currentTime+delay,o=audio.createOscillator(),v=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(15,endFreq),t+d);o.connect(v);v.connect(music?musicBus:master);v.gain.setValueAtTime(vol,t);v.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d+.01)}
 function noise(d=.09,vol=.08,delay=0,mus=false){if(!audioRunning()||!sound||!audio.createBuffer)return;if(!noiseBuffer){noiseBuffer=audio.createBuffer(1,audio.sampleRate*.5,audio.sampleRate);let a=noiseBuffer.getChannelData(0),hold=0;for(let i=0;i<a.length;i++){if(i%5===0)hold=Math.random()*2-1;a[i]=hold}}let o=audio.createBufferSource(),v=audio.createGain(),t=audio.currentTime+delay;o.buffer=noiseBuffer;o.connect(v);v.connect(mus?musicBus:master);v.gain.setValueAtTime(vol,t);v.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d)}
-function sfx(name){if(!audioRunning()||!sound)return;let now=audio.currentTime;if(now-(lastSfx[name]??-10)<({wall:.085,hit:.065,kill:.065,fire:.15,evade:.14}[name]||0))return;lastSfx[name]=now;
+function sfx(name){if(!audioRunning()||!sound)return;let now=audio.currentTime;if(now-(lastSfx[name]??-10)<({wall:.085,hit:.065,kill:.065,fire:.15,evade:.14,powerhit:.045,bosshit:.05}[name]||0))return;lastSfx[name]=now;
+ if(typeof playCachedCombatSfx==='function'&&playCachedCombatSfx(name))return;
+ synthSfx(name,combo,tone,noise);
+}
+function synthSfx(name,combo,tone,noise){
 if(name==='evade'){tone(980,.035,'triangle',.052,0,false,550);noise(.028,.018);return;}
 if(name==='spit'){tone(460,.11,'sawtooth',.052,0,false,135);noise(.07,.032);return;}
 if(name==='poison'){tone(190,.24,'triangle',.14,0,false,54);noise(.12,.04);return;}
@@ -658,6 +671,51 @@ if(accent){[0,4,7].forEach(n=>tone(hz(60+n),.35,'triangle',.045,.07));tone(145,.
 if(name==='boss'){tone(82,.32,'triangle',.16,0,false,41);noise(.13,.055)}
 if(name==='bosshit'){tone(95,.11,'triangle',.18,0,false,35);noise(.045,.065)}if(name==='powerhit')tone(165,.09,'triangle',.18,0,false,50);
 if(name==='miss')tone(250,.18,'triangle',.12,0,false,70);}
+// V349: cache the original synthesized combat sounds, including combo variants.
+const combatSfxNames=['powerhit','kill','hit','bosshit'],combatSfxCache=new Map();
+let combatSfxWarmBusy=false,combatSfxWarmFailed=false;
+function playCachedCombatSfx(name){
+ if(!combatSfxNames.includes(name))return false;
+ const buffer=combatSfxCache.get(name+':'+Math.min(14,Math.max(0,combo|0)));
+ if(!buffer)return false;
+ try{const src=audio.createBufferSource();src.buffer=buffer;src.connect(master);src.onended=()=>src.disconnect?.();src.start(audio.currentTime);return true}catch{return false}
+}
+function warmCombatSfx(){
+ if(combatSfxWarmBusy||combatSfxWarmFailed||!audioRunning()||!sound)return;
+ if(mode==='playing'&&!balls[0]?.held)return;
+ const Ctor=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!Ctor)return;
+ let name,level;
+ for(const c of [0,5,10,14,1,2,3,4,6,7,8,9,11,12,13]){
+  for(const n of combatSfxNames){if(!combatSfxCache.has(n+':'+c)){name=n;level=c;break}}
+  if(name)break;
+ }
+ if(!name)return;
+ const key=name+':'+level;
+ try{
+  const rate=audio.sampleRate||44100,ctx=new Ctor(1,Math.ceil(rate*.4),rate);
+  const schedule=(o,d,vol,delay,tail=0)=>{
+   const v=ctx.createGain();o.connect(v);v.connect(ctx.destination);
+   v.gain.setValueAtTime(vol,delay);v.gain.exponentialRampToValueAtTime(.001,delay+d);
+   o.start(delay);o.stop(delay+d+tail);
+  };
+  const note=(f,d=.1,type='square',vol=.08,delay=0,music=false,endFreq=0)=>{
+   const o=ctx.createOscillator();o.type=type;o.frequency.setValueAtTime(f,delay);
+   if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(15,endFreq),delay+d);
+   schedule(o,d,vol,delay,.01);
+  };
+  const hiss=(d=.09,vol=.08,delay=0)=>{
+   if(!noiseBuffer){
+    noiseBuffer=audio.createBuffer(1,Math.ceil(rate*.5),rate);
+    const a=noiseBuffer.getChannelData(0);let hold=0;
+    for(let i=0;i<a.length;i++){if(i%5===0)hold=Math.random()*2-1;a[i]=hold}
+   }
+   const o=ctx.createBufferSource();o.buffer=noiseBuffer;schedule(o,d,vol,delay);
+  };
+  synthSfx(name,level,note,hiss);combatSfxWarmBusy=true;
+  Promise.resolve(ctx.startRendering()).then(buffer=>combatSfxCache.set(key,buffer))
+   .catch(()=>{combatSfxWarmFailed=true}).finally(()=>{combatSfxWarmBusy=false});
+ }catch{combatSfxWarmBusy=false;combatSfxWarmFailed=true}
+}
 const THEMES=[{name:'SUNNY RALLY',root:60,chords:[0,5,7,0],mel:[12,19,16,19,24,19,16,14,12,16,19,21,19,16,14,7]}, {name:'TURBO PARADE',root:57,chords:[0,5,7,5],mel:[12,16,19,21,24,21,19,16,14,17,21,24,23,19,16,14]}, {name:'VICTORY DRIVE',root:62,chords:[0,7,5,0],mel:[19,19,21,19,16,12,14,16,24,23,21,19,16,14,11,12]}, {name:'BOSS RUSH',root:50,chords:[0,5,7,0],mel:[24,19,24,27,24,19,22,19,24,27,31,27,26,22,19,15]}];
 // V344: hand-authored original chip-arcade songs, no downloaded audio.
 // Four 8-bar sections: hook, answer, lighter bridge, final hook.
@@ -945,28 +1003,30 @@ function drawOutcome(){if(resistFlash>0){
  if(!failureScene)return;const f=failureScene;g.save();rect(20,16,410,H-20,'#160d2444');g.strokeStyle='#ff6278';g.lineWidth=4;
  if(f.type==='breach'){rect(20,DEFENSE_Y-3,410,6,'#ff546c');g.beginPath();g.arc(f.x,f.y,42+Math.sin(f.t*15)*4,0,Math.PI*2);g.stroke();g.fillStyle='#ffd8ce';g.font='bold 14px Arial, sans-serif';g.textAlign='center';g.fillText('이 적이 방어선을 돌파했습니다',225,DEFENSE_Y+26)}else{g.beginPath();g.moveTo(f.x,H-95);g.lineTo(f.x,H-11);g.stroke();poly([[f.x-12,H-28],[f.x,H-8],[f.x+12,H-28]],'#ff7182');g.textAlign='center';g.font='bold 25px Arial, sans-serif';g.fillStyle='#ff9b9b';g.fillText('♡  0',225,H-55)}
  rect(38,264,374,142,'#251827ed');g.fillStyle='#ffad9f';g.font='bold 25px Arial, sans-serif';g.textAlign='center';g.fillText(f.type==='breach'?'방어선 돌파!':'마지막 공을 놓쳤습니다!',225,299);g.font='bold 14px Arial, sans-serif';g.fillStyle='#fff0d4';g.fillText(f.type==='breach'?'하트가 남아 있어도':'남은 하트가 0이 되어',225,329);g.fillText(f.type==='breach'?'방어선이 뚫리면 패배합니다.':'게임이 종료됩니다.',225,350);g.fillText((runMode==='endless'?'생존 '+survivalClock(endlessSurvival):'STAGE '+wave)+' · SCORE '+String(score),225,382);g.restore()}
+let frameUpdating=false,hudDirty=false;
 function hud(){
+ if(typeof frameUpdating!=='undefined'&&frameUpdating){hudDirty=true;return}
  document.documentElement?.classList?.toggle?.('zz-endless-hud',runMode==='endless');
  $('survival-metric').hidden=runMode!=='endless';
- $('survival-time').textContent=survivalClock(endlessSurvival);
- $('wave-label').textContent=runMode==='endless'?'WAVE':isFortress()?'BARRICADE':isMiniHorde()?'MINI HORDE':'현재 스테이지';
- $('score').textContent=String(score);
+ {const el=$('survival-time'),value=survivalClock(endlessSurvival);if(el.textContent!==value)el.textContent=value;}
+ {const el=$('wave-label'),value=runMode==='endless'?'WAVE':isFortress()?'BARRICADE':isMiniHorde()?'MINI HORDE':'현재 스테이지';if(el.textContent!==value)el.textContent=value;}
+ {const el=$('score'),value=String(score);if(el.textContent!==value)el.textContent=value;}
   // Long scores scale gently within their fixed HUD column, never ellipsize.
   $('score').style?.setProperty?.('--zz-score-shrink',String(Math.min(1,6/Math.max(6,score.toString().length))));
- $('wave-number').textContent=runMode==='endless'?String(wave-50):String(wave).padStart(2,'0');
- $('progress').textContent=runMode==='endless'?'':(wave-1)+'/50 스테이지 클리어';
+ {const el=$('wave-number'),value=runMode==='endless'?String(wave-50):String(wave).padStart(2,'0');if(el.textContent!==value)el.textContent=value;}
+ {const el=$('progress'),value=runMode==='endless'?'':(wave-1)+'/50 스테이지 클리어';if(el.textContent!==value)el.textContent=value;}
  // Only one prominent 3D voxel heart in the upper-left; a high-contrast
  // number tells the player exactly how many lives remain.
  const heart=$('hud-hearts');
- $('hud-heart-count').textContent='×'+Math.max(0,lives);
+ {const el=$('hud-heart-count'),value='×'+Math.max(0,lives);if(el.textContent!==value)el.textContent=value;}
  heart.setAttribute('aria-label','남은 생명 '+Math.max(0,lives)+'개');
  heart.style.opacity=lives>0?'1':'.42';
  // Keep the historical node for script/test compatibility, but it is hidden
  // so lives never render twice in the footer.
- $('lives').textContent='';
+ {const el=$('lives'),value='';if(el.textContent!==value)el.textContent=value;}
  // The on-board service hint and ball text are both removed: the touch input
  // still launches the held ball and the top heart HUD still shows lives.
- $('status').textContent='';
+ {const el=$('status'),value='';if(el.textContent!==value)el.textContent=value;}
  skillUI();
 }
 // No bottom-left situational text overlays: the game already communicates
@@ -2171,6 +2231,27 @@ function updateWormParade(dt){
   }
  }
 }
+// V349: conservative broad phase, preserves original foe order.
+function makeFoeGrid(actors){
+ const cell=48,buckets=new Map(),seen=new Set();
+ const key=(x,y)=>y*4096+x;
+ for(let i=0;i<actors.length;i++){
+  const z=actors[i];
+  for(let y=Math.floor(z.y/cell);y<=Math.floor((z.y+z.h)/cell);y++)
+   for(let x=Math.floor(z.x/cell);x<=Math.floor((z.x+z.w)/cell);x++){
+    const k=key(x,y);let list=buckets.get(k);if(!list)buckets.set(k,list=[]);list.push(i);
+   }
+ }
+ return {query(x,y,w,h,min=-1){
+  seen.clear();const result=[];
+  for(let cy=Math.floor(y/cell);cy<=Math.floor((y+h)/cell);cy++)
+   for(let cx=Math.floor(x/cell);cx<=Math.floor((x+w)/cell);cx++){
+    const list=buckets.get(key(cx,cy));if(!list)continue;
+    for(const i of list)if(i>min&&!seen.has(i)){seen.add(i);result.push(i)}
+   }
+  return result.sort((a,b)=>a-b);
+ }};
+}
 function march(dt){
  if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
  updateWormParade(dt);
@@ -2228,8 +2309,11 @@ function march(dt){
  for(let pass=0;pass<2;pass++){
   let corrected=0;
   const compact=isMiniHorde();
-  for(let i=0;i<foes.length;i++)for(let j=i+1;j<foes.length;j++){
-   const a=foes[i],b=foes[j];
+  let grid=foes.length>=32&&typeof makeFoeGrid==='function'?makeFoeGrid(foes):null;
+  for(let i=0;i<foes.length;i++){
+   const a=foes[i];let nearby=grid?grid.query(a.x,a.y,a.w,a.h,i):null,k=0;
+   for(let j=nearby?nearby[k++]:i+1;j!==undefined&&j<foes.length;j=nearby?nearby[k++]:j+1){
+   const b=foes[j];
    // 18x8 mobs make 10k pairs: reject distant rectangles before allocating
    // any temporary position objects. Base mode keeps the original code path.
    if(compact&&(a.x>=b.x+b.w||b.x>=a.x+a.w||
@@ -2241,8 +2325,12 @@ function march(dt){
      overlapY=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
    const horizontal=overlapX<overlapY||a.row===b.row,
      push=horizontal?{x:dx>=0?1:-1,y:0}:{x:0,y:dy>=0?1:-1};
-   if(applyKnockback(a,push,3)||applyKnockback(b,{x:-push.x,y:-push.y},3))
+   if(applyKnockback(a,push,3)||applyKnockback(b,{x:-push.x,y:-push.y},3)){
     corrected++;
+    // A chain can move other actors; refresh before continuing in original order.
+    if(grid){grid=makeFoeGrid(foes);nearby=grid.query(a.x,a.y,a.w,a.h,j);k=0}
+   }
+   }
   }
   if(!corrected)break;
  }
@@ -2455,10 +2543,11 @@ function burst(x,y,color,n=12){
   const angle=(i+(Math.random()-.5)*.55)*Math.PI*2/count;
   const velocity=340+Math.random()*340;
   const life=.14+Math.random()*.15;
-  particles.push({x,y,vx:Math.cos(angle)*velocity,vy:Math.sin(angle)*velocity-30,
-    t:life,life,color,size:4+Math.random()*4});
+  const p=typeof particlePool!=='undefined'?(particlePool.pop()||{}):{};
+  p.x=x;p.y=y;p.vx=Math.cos(angle)*velocity;p.vy=Math.sin(angle)*velocity-30;
+  p.t=p.life=life;p.color=color;p.size=4+Math.random()*4;particles.push(p);
  }
- if(particles.length>260)particles.splice(0,particles.length-260);
+ if(particles.length>260){const removed=particles.splice(0,particles.length-260);if(typeof particlePool!=='undefined')for(const p of removed)recycleVisual(particlePool,p)}
 }
 
 function multiCount(){return (has('dual')?2:1)*(has('triple')?3:1)}
@@ -2803,11 +2892,12 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  z.flash=burning?.12:.22;
  enemyReaction(z,amount,impact,!burning);
  if(!burning){
-  hitFlashes.push({x:z.x+z.w/2,y:z.y+z.h/2,groundY:z.y+z.h,
-   t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),
+  const flash=typeof flashPool!=='undefined'?(flashPool.pop()||{}):{};
+ Object.assign(flash,{x:z.x+z.w/2,y:z.y+z.h/2,groundY:z.y+z.h,
+   t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),delay:0,
    miniFxScale:isMiniHorde()?MINI_HORDE_SCALE:1,
-   piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});
-  if(hitFlashes.length>36)hitFlashes.shift();
+   piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});hitFlashes.push(flash);
+  if(hitFlashes.length>36){const old=hitFlashes.shift();if(typeof flashPool!=='undefined')recycleVisual(flashPool,old)}
   // Scarlett's third handbag return earns a prismatic hit without floating text.
   if(impact?.sparkle)burst(z.x+z.w/2,z.y+z.h/2,'#c9dfff',12);
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
@@ -2943,6 +3033,11 @@ function compactVisualQueue(queue,keep){
  let write=0;
  for(let read=0;read<queue.length;read++){
   const value=queue[read];if(keep(value))queue[write++]=value;
+  else if(typeof particlePool!=='undefined'){
+   if(queue===particles)recycleVisual(particlePool,value);
+   else if(queue===ballContactFX||queue===trashContactFX){value.target=null;recycleVisual(contactPool,value)}
+   else if(queue===hitFlashes)recycleVisual(flashPool,value);
+  }
  }
  queue.length=write;return queue;
 }
@@ -3027,6 +3122,7 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
 }if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&standReady()){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
+let ballGrid=foes.length>=32&&typeof makeFoeGrid==='function'?makeFoeGrid(foes):null;
 for(const b of [...balls]){updateBallSpin(b,dt);const cruise=ensureBallCruiseSpeed(b);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1)),steps=Math.max(1,Math.ceil(Math.max(cruise*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Barricades reflect ALL balls, even pierce shots; only zombie bites
@@ -3050,7 +3146,8 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
   if(!foes.includes(z)||b.x+radius<=z.x||b.x-radius>=z.x+z.w||
      b.y+radius<=z.y||b.y-radius>=z.y+z.h)b.pierceContacts.delete(z);
  }
- for(const z of foes){
+ const ballCandidates=ballGrid?ballGrid.query(b.x-radius,b.y-radius,radius*2,radius*2).map(i=>foes[i]):foes;
+ for(const z of ballCandidates){
   if(b.pierceContacts.has(z)||(!piercing&&b.lastHit===z&&b.hitLock>0))continue;
   if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&b.y+radius>z.y&&b.y-radius<z.y+z.h){
    const impact={x:b.vx,y:b.vy};
@@ -3061,6 +3158,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    else{b.vy*=-1;b.y=oy;ballImpact(b,'y',b.vy,'enemy')}
    b.lastHit=z;b.hitLock=.1;window.ZZGarage?.contact(b,selectedHero,impact);hit(z,impact,piercing);
    if(mode!=='playing')return;
+   if(ballGrid)ballGrid=foes.length>=32?makeFoeGrid(foes):null;
    break;
   }
  }
@@ -3611,11 +3709,12 @@ function drawImpactFlashes(){
   const t=clamp((f.t-(f.delay||0))/Math.max(.01,f.life-(f.delay||0)),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  const drawHit=()=>drawPixelBurst(f.x,f.y,t,(f.critical?55:(f.spread||44))*(f.miniFxScale||1),(f.critical?32:16)*(f.miniFxScale||1),
+  const tier=typeof perfTier!=='undefined'?perfTier:0;
+  const drawHit=()=>drawPixelBurst(f.x,f.y,t,(f.critical?55:(f.spread||44))*(f.miniFxScale||1),Math.max(4,Math.ceil((f.critical?32:16)*(f.miniFxScale||1)*(tier===2?.50:tier===1?.75:1))),
     (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.75,
-    f.critical?.56:1.45,f.critical?1.3:.78,f.critical?1:.35);
+    f.critical?.56:1.45,f.critical?1.3:.78,tier>0?0:f.critical?1:.35);
   // Critical hits retain full shader; ordinary hits get only subtle local glow.
-  if(f.critical)luminous(drawHit);else drawHit();
+  if(f.critical&&!(tier===2&&f.piercing))luminous(drawHit);else drawHit();
  }
 }
 function drawBarrelBlasts(){
@@ -4276,7 +4375,7 @@ function drawStruckZombie(z){
  zombie(knockVisualPosition(z));g.restore();
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled)fxRenderer.begin();g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building');
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){if(fxRenderer.settings)fxRenderer.settings.quality=typeof perfTier!=='undefined'?perfTier:0;fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building');
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.
@@ -4325,7 +4424,7 @@ drawKillCombo();drawBarrelBlasts();
    const fade=clamp(p.t/(p.life||.25),0,1);
    const size=Math.max(2,Math.round(p.size*(.6+.4*fade)));
    g.globalAlpha=fade;
-   g.fillStyle=p.color;g.shadowColor=p.color;g.shadowBlur=6*fade;
+   g.fillStyle=p.color;g.shadowColor=p.color;g.shadowBlur=typeof perfTier!=='undefined'&&perfTier>0?0:6*fade;
    g.fillRect(Math.round(p.x-size/2),Math.round(p.y-size/2),size,size);
    if(fade>.65){g.fillStyle='#fffce7';g.fillRect(Math.round(p.x),Math.round(p.y),Math.max(1,size*.35),Math.max(1,size*.35));}
   }
@@ -4336,13 +4435,44 @@ drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ball
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  if(mode==='endlessShift'||mode==='paused'&&resumeMode==='endlessShift')drawEndlessShift();
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}
+// V349: measure real RAF and CPU work. Adapt secondary effects only.
+let perfTier=0,perfSlow=0,perfFast=0,perfWorkEMA=0,perfRafEMA=16.7,perfTag=null,perfDebugAt=0;
+const PERF_DEBUG=typeof location!=='undefined'&&typeof URLSearchParams!=='undefined'&&new URLSearchParams(location.search).get('perfDebug')==='1';
+const perfStats={tier:0,fps:60,updateMs:0,drawMs:0,workMs:0,frameMs:16.7,peakMs:0,slowFrames:0};
+function updatePerfBudget(t,elapsed,updateMs,drawMs,workMs){
+ if(elapsed>0&&elapsed<.2){
+  const ms=elapsed*1000;perfRafEMA+=(ms-perfRafEMA)*.08;perfWorkEMA+=(workMs-perfWorkEMA)*.12;
+  const busy=perfWorkEMA>14.5||perfRafEMA>21.5,severe=perfWorkEMA>21||perfRafEMA>29;
+  const healthy=perfWorkEMA<10.5&&perfRafEMA<18.5;
+  if(busy){perfSlow++;perfFast=0}else{perfSlow=0;perfFast=healthy?perfFast+1:0}
+  if(perfSlow>=8&&perfTier<(severe?2:1)){perfTier++;perfSlow=0}
+  if(perfFast>=100&&perfTier>0){perfTier--;perfFast=0}
+  perfStats.frameMs=ms;perfStats.fps=1000/perfRafEMA;
+  perfStats.peakMs=Math.max(perfStats.peakMs,ms);if(ms>22)perfStats.slowFrames++;
+ }
+ Object.assign(perfStats,{tier:perfTier,updateMs,drawMs,workMs});
+ if(PERF_DEBUG&&t-perfDebugAt>500&&typeof document.createElement==='function'){
+  perfDebugAt=t;
+  if(!perfTag){perfTag=document.createElement('div');perfTag.style.cssText='position:fixed;top:4px;left:4px;z-index:2147483647;pointer-events:none;background:#000c;color:#d5ffc4;font:11px monospace;padding:5px';document.body?.appendChild(perfTag)}
+  perfTag.textContent='FPS '+perfStats.fps.toFixed(0)+' | update '+updateMs.toFixed(1)+'ms | draw '+drawMs.toFixed(1)+'ms | FX '+perfTier+' | slow '+perfStats.slowFrames;
+ }
+}
+window.ZZPerf=perfStats;
 function frame(t){
  // Keep game time at real pace on busy frames, with bounded collision steps.
- const elapsed=last?Math.min(.10,Math.max(0,(t-last)/1000)):0;
+ const rawElapsed=last?Math.max(0,(t-last)/1000):0;
+ const elapsed=Math.min(.10,rawElapsed);
  last=t;
  const steps=Math.max(1,Math.ceil(elapsed*30-1e-9));
- for(let i=0;i<steps;i++)update(elapsed/steps);
- warmTrailLighting();draw();music();requestAnimationFrame(frame);
+ const begin=feedbackNow();frameUpdating=true;
+ try{for(let i=0;i<steps;i++)update(elapsed/steps)}finally{frameUpdating=false}
+ if(hudDirty){hudDirty=false;hud()}
+ const updated=feedbackNow();
+ warmTrailLighting();draw();
+ const rendered=feedbackNow();
+ music();warmCombatSfx();
+ updatePerfBudget(t,rawElapsed,updated-begin,rendered-updated,feedbackNow()-begin);
+ requestAnimationFrame(frame);
 }
 function heroSprite(x,y,scale=1,win=false){let h=hero();
  const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null,ix=cast&&cast.heroIndex[selectedHero];
