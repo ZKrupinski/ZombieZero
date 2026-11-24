@@ -150,8 +150,8 @@ assert(source.includes('if(z.wormParade||Number.isInteger(z.eliteKind)'),
  'breakouts cannot steal active group participants');
 assert(source.includes('if(!profile||z.wormParade||z.hitHold>0'),
  'dodge AI resumes only when the event ends');
-assert(source.includes('clearWormParade();wormNextAt=clock+9+Math.random()*5;'),
- 'new wave resets parade and schedules a fresh occasional event');
+assert(source.includes('clearWormParade();wormNextAt=clock+4+Math.random()*2.5;'),
+ 'new wave resets parade and schedules a faster first event');
 assert(source.includes('fortress.resolve(z,z.fortressPreviousX,z.fortressPreviousY,dt,'),
  'all fortress wall collisions remain operational');
 assert(source.includes('if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y)'),
