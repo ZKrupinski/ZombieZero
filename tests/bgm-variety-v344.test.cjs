@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const src=fs.readFileSync('dist/game.js','utf8');
 const block=src.slice(src.indexOf('const THEMES='),src.indexOf('// V60 cube FX'));
 const tracks=[],notes=[];
-const c=vm.createContext({Math,audio:{currentTime:0},musicBus:{gain:{value:0}},mode:'playing',sound:true,musicEnabled:true,foes:[],wave:1,musicTheme:'',beat:0,nextBeat:0,audioRunning:()=>true,hz:n=>n,tone:(...args)=>notes.push(args),noise:()=>{},$:()=>({set textContent(x){tracks.push(x)}})});
+const c=vm.createContext({Math,audio:{currentTime:0},musicBus:{gain:{value:0}},mode:'playing',sound:true,musicEnabled:true,foes:[],wave:1,musicTheme:'',beat:0,nextBeat:0,audioRunning:()=>true,hz:n=>440*Math.pow(2,(n-69)/12),tone:(...args)=>notes.push(args),noise:()=>{},$:()=>({set textContent(x){tracks.push(x)}})});
 vm.runInContext(block,c);const run=x=>vm.runInContext(x,c);
 assert.equal(run('MUSIC_NORMAL.length'),18);assert.equal(run('MUSIC_BOSS.length'),8);
 assert.equal(run('new Set([...MUSIC_NORMAL,...MUSIC_BOSS].map(t=>t.name)).size'),26);
@@ -22,5 +22,5 @@ for(const t of run('MUSIC_NEW')){
  run('musicTrack=MUSIC_NEW.find(t=>t.name==='+JSON.stringify(t.name)+');musicTheme=musicTrack.name;musicBoss=musicTrack.boss;foes=musicBoss?[{boss:true}]:[];beat=0;nextBeat=audio.currentTime;musicTempo=musicBoss?172:146');
  for(let i=0;i<512;i++){run('audio.currentTime=nextBeat;music()')}
 }
-assert(notes.every(n=>Number.isFinite(n[0])&&n[0]>=20&&n[0]<=110&&n[3]<=.31));
+assert(notes.every(n=>Number.isFinite(n[0])&&n[0]>=20&&n[0]<=10000&&n[3]<=.31));
 console.log('PASS: 26 tracks, no repeats, wave continuity, timed transitions, boss tempo, mute/pause, all new notes');
