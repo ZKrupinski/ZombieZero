@@ -47,7 +47,7 @@ for(let i=0;i<3;i++){
  check(a[5]===car-108/2&&a[6]===579-108/2,'70% scale stays centered around original hero/car sprite midpoint');
  check(a[7]===108&&a[8]===108,'onscreen hero/car are 70% of 154px while 192px source stays intact');
 }
-selectedHero=1;artCalls.length=0;
+selectedHero=1;artCalls.length=0;heroStrikeVisual=null;
 heroAttackTime=HERO_ATTACK_DURATION;player();
 check(artCalls[0][1]===384,'bat wind-up frame starts on weapon animation');
 artCalls.length=0;heroAttackTime=HERO_ATTACK_DURATION*.55;player();

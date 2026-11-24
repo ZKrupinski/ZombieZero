@@ -7,7 +7,7 @@ function run(count,active,key,held=false,random=.4){
  const math=Object.create(Math);math.random=()=>random;
  const env={Math:math,active:{...active},car:270,PY:600,heldBallOffset:()=>({x:-12,y:-45}),
   SKILLS:{dual:{duration:16,color:'blue'},triple:{duration:16,color:'purple'}},hero:()=>({duration:1}),
-  has:k=>env.active[k]>0,clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),hud(){},retireBall(){},
+  has:k=>env.active[k]>0,clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),hud(){},skillUI(){},retireBall(){},
   HERO_ATTACK_DURATION:.42,heroAttackTime:0,swing:0,sounds:[],sfx(k){this;env.sounds.push(k)},
   itemPickupFX:[],effect(){},burst(){},feedback(){},growth(){return 0}};
  vm.createContext(env);vm.runInContext(newBall+functions,env);

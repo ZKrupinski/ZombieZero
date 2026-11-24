@@ -38,11 +38,13 @@ assert.equal(g.globalAlpha,1,'globalAlpha restored after each stamp');
 context.balls=[{}];draws=0;
 for(let i=0;i<20;i++)
  vm.runInContext('drawProjectedLightSpill(110,165,24,rgb,.28,30,.82,true)',context);
-assert.equal(liveGradients,40,'single ball retains original dual gradient draws');
-assert.equal(draws,0,'single ball does not use cached stamps');
+assert.equal(liveGradients,0,'single ball also avoids live gradients');
+assert.equal(draws,40,'single ball retains both cached light pools');
+assert.equal(created,1,'single ball reuses existing color stamp');
+draws=0;
 context.balls=[{},{}];context.fxEnabled=false;
 vm.runInContext('drawProjectedLightSpill(110,165,24,rgb,.28,30,.82,true)',context);
 assert.equal(draws,0,'FX-off draws no stamps');
 assert(code.includes('drawTrailEdgeHalo(b,r,trailPath,.72)'),'trail bloom unchanged');
 assert(fs.readFileSync('dist/fx-renderer.js','utf8').includes('bloom:1,radius:12'),'shader strength unchanged');
-console.log('PASS: single-ball gradient parity, 1 cached color mask for multiball, 2 light pools, glow/bloom unchanged.');
+console.log('PASS: single and multi-ball share a cached color mask, both light pools and glow/bloom preserved.');

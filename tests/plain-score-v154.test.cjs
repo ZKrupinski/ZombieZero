@@ -9,7 +9,7 @@ const score=(game.match(/String\(score\)/g)||[]).length;
 const best=(game.match(/String\(best\)/g)||[]).length;
 assert.equal(score,4,'score is ungrouped in four display paths');
 assert.equal(best,3,'best score is ungrouped in results and victory');
-assert.match(game,/\$\('score'\)\.textContent=String\(score\)/,'live score renders no commas');
+assert.match(game,/\$\('score'\),value=String\(score\);if\(el\.textContent!==value\)el\.textContent=value/,'live score renders ungrouped digits and skips unchanged writes');
 assert.match(game,/\$\('result-score'\)\.textContent=String\(score\)/,'results display no commas');
 assert.match(game,/\$\('result-best'\)\.textContent=String\(best\)/,'best score displays no commas');
 assert.match(game,/SCORE '\+String\(score\)/,'failure scene shows ungrouped score');
