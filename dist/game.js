@@ -1039,7 +1039,7 @@ function nextBossArtLoading(nextWave){
    sprites.cache?.[form-2]?.loading===true;
 }
 function rack(){
- clearWormParade();wormNextAt=clock+9+Math.random()*5;
+ clearWormParade();wormNextAt=clock+4+Math.random()*2.5;
  standRetreat.length=0;standDangerTime=0;resistFlash=0;
  if(window.ZZProgression){lastStandCount=0;lastStandUsed=false;lastStandLastAt=-1e9;}
  bossTrashShots.length=0;
@@ -1688,12 +1688,178 @@ function startWormParade(){
   m.z.wormParade=wormParade;
   clearShortStep(m.z,5.4);
  }
- wormNextAt=clock+19+Math.random()*11;
+ wormNextAt=clock+10+Math.random()*4;
  return true;
+}
+// V339: Additional Galaga-like pattern. A living 7/10/20-zombie row
+// detaches into a free lane, makes two clearly visible circular orbits,
+// then returns. A shared rigid translation keeps the formation's original
+// collider spacing; only outside zombies/walls are obstacles.
+// No overlay, fake sprites, animation allocations or scripted breach.
+const WORM_ORBIT_EXIT=.90,WORM_ORBIT_LAP=2.20,WORM_ORBIT_DURATION=6.10;
+const WORM_ORBIT_DETACH=32,WORM_ORBIT_RX=32,WORM_ORBIT_RY=19;
+const WORM_ORBIT_GAP=84;
+function wormOrbitOffset(t,side=1){
+ const ease=u=>{const v=clamp(u,0,1);return v*v*(3-2*v)};
+ if(t<=WORM_ORBIT_EXIT)
+  return {dx:0,dy:WORM_ORBIT_DETACH*ease(t/WORM_ORBIT_EXIT)};
+ const spinFinish=WORM_ORBIT_EXIT+WORM_ORBIT_LAP*2;
+ if(t<=spinFinish){
+  const angle=((t-WORM_ORBIT_EXIT)/WORM_ORBIT_LAP)*Math.PI*2;
+  return {dx:side*WORM_ORBIT_RX*Math.sin(angle),
+    dy:WORM_ORBIT_DETACH+WORM_ORBIT_RY*(1-Math.cos(angle))};
+ }
+ return {dx:0,dy:WORM_ORBIT_DETACH*
+   (1-ease((t-spinFinish)/(WORM_ORBIT_DURATION-spinFinish)))};
+}
+function wormOrbitClear(group,dx,dy,fromCurrent=false){
+ const selected=new Set(group);
+ for(const z of group){
+  const x=(fromCurrent?z.x:z.orbitBaseX??z.x)+dx;
+  const y=(fromCurrent?z.y:z.orbitBaseY??z.y)+dy;
+  if(x<zombieMinX()||x>zombieMaxX(z)||y<ENEMY_TOP_Y||
+     y+z.h>DEFENSE_Y-WORM_SAFE_MARGIN)return false;
+  // The entire route and its projected source are checked against wall
+  // tiles, including during construction-persistent BARRICADE waves.
+  if(typeof isFortress==='function'&&isFortress()&&fortress&&
+     (!fortress.isOpen(z,x,y)||
+      !fortress.isPathClear(z,z.x,z.y,x,y)))return false;
+  for(const other of foes){
+   if(selected.has(other)||other.hp<=0)continue;
+   if(x<other.x+other.w+.6&&x+z.w+.6>other.x&&
+      y<other.y+other.h+.6&&y+z.h+.6>other.y)return false;
+  }
+ }
+ return true;
+}
+function startGalagaOrbit(){
+ if(!isMiniHorde()||mode!=='playing'||balls[0]?.held||
+    wormParade||clock<wormNextAt)return false;
+ // Orbiting needs space for the excursion and the full 90px safety fence.
+ // Prefer the lowest intact, non-elite row: the display is most readable
+ // after shots have cleared the area below the leading survivors.
+ const rows=new Map();
+ for(const z of foes)if(wormEligible(z)){
+  let cols=rows.get(z.row);
+  if(!cols){cols=new Map();rows.set(z.row,cols)}
+  cols.set(z.col,z);
+ }
+ const options=[];
+ for(const [row,cols] of rows){
+  for(const size of WORM_GROUP_SIZES){
+   if(size===20){
+    const next=rows.get(row+1);
+    if(!next)continue;
+    for(let c=0;c<=foeColumns()-10;c++){
+     const upper=[],lower=[];
+     for(let k=0;k<10;k++){
+      upper.push(cols.get(c+k));lower.push(next.get(c+k));
+     }
+     if(!upper.every(Boolean)||!lower.every(Boolean))continue;
+     const group=[...upper,...lower.reverse()];
+     const gap=wormForwardClearance(group);
+     if(gap>=WORM_ORBIT_GAP)
+      options.push({group,front:Math.max(...group.map(z=>z.y+z.h)),size,gap});
+    }
+   }else for(let c=0;c<=foeColumns()-size;c++){
+    const group=[];
+    for(let k=0;k<size;k++)group.push(cols.get(c+k));
+    if(!group.every(Boolean))continue;
+    const gap=wormForwardClearance(group);
+    if(gap>=WORM_ORBIT_GAP)
+     options.push({group,front:Math.max(...group.map(z=>z.y+z.h)),size,gap});
+   }
+  }
+ }
+ if(!options.length)return false;
+ options.sort((a,b)=>b.front-a.front||b.size-a.size);
+ // The first 18 real front-line candidates are enough. Check the entire
+ // loop for all live colliders and avoid expensive per-frame route searches.
+ for(const option of options.slice(0,18)){
+  const group=option.group;
+  for(const z of group){z.orbitBaseX=z.x;z.orbitBaseY=z.y}
+  const sideOrder=Math.random()<.5?[1,-1]:[-1,1];
+  for(const side of sideOrder){
+   let clear=true;
+   // The takeoff, both rotations and the return must all fit in the
+   // lower pocket. Our trajectory never moves nearer than 90px to danger.
+   for(let i=0;i<=40&&clear;i++){
+    const at=WORM_ORBIT_DURATION*i/40;
+    const off=wormOrbitOffset(at,side);
+    if(!wormOrbitClear(group,off.dx,off.dy)){clear=false;break}
+   }
+   if(!clear)continue;
+   const members=group.map((z,index)=>({
+    z,index,baseX:z.orbitBaseX,baseY:z.orbitBaseY
+   }));
+   wormParade={kind:'orbit',members,elapsed:0,
+    duration:WORM_ORBIT_DURATION,side};
+   for(const m of members){
+    m.z.wormParade=wormParade;
+    clearShortStep(m.z,WORM_ORBIT_DURATION+.7);
+   }
+   wormNextAt=clock+10+Math.random()*4;
+   return true;
+  }
+ }
+ return false;
+}
+function updateGalagaOrbit(dt){
+ const p=wormParade,step=Math.max(0,dt*enemySlowRate());
+ p.elapsed=Math.min(p.duration,p.elapsed+step);
+ const t=p.elapsed,offset=wormOrbitOffset(t,p.side);
+ const live=p.members.filter(m=>foes.includes(m.z)&&m.z.wormParade===p&&
+   m.z.hp>0&&(m.z.knockTime||0)<=0&&(m.z.hitHold||0)<=0&&
+   (m.z.recoil||0)<=.02&&!m.z.eliteMotion);
+ for(const m of p.members)if(!live.includes(m)&&m.z.wormParade===p)
+  delete m.z.wormParade;
+ if(live.length<4){
+  clearWormParade();return;
+ }
+ const group=live.map(m=>m.z),selected=new Set(group);
+ // Validate ALL targets as one group; individual sequential collision
+ // checks would prevent adjacent line members from taking the orbit.
+ const moves=[],maxStep=145*step;
+ for(const m of live){
+  const z=m.z;
+  const x=z.x+clamp(m.baseX+offset.dx-z.x,-maxStep,maxStep);
+  const y=z.y+clamp(m.baseY+offset.dy-z.y,-maxStep,maxStep);
+  if(x<zombieMinX()||x>zombieMaxX(z)||y<ENEMY_TOP_Y||
+     y+z.h>DEFENSE_Y-WORM_SAFE_MARGIN||
+     typeof isFortress==='function'&&isFortress()&&fortress&&
+     (!fortress.isOpen(z,x,y)||!fortress.isPathClear(z,z.x,z.y,x,y))){
+   // The active orbit is cancelled rather than stranding a circling pack
+   // at the line or letting any zombie cross a new wall.
+   clearWormParade();return;
+  }
+  for(const other of foes){
+   if(selected.has(other)||other.hp<=0)continue;
+   if(x<other.x+other.w+.6&&x+z.w+.6>other.x&&
+      y<other.y+other.h+.6&&y+z.h+.6>other.y){
+    clearWormParade();return;
+   }
+  }
+  moves.push({z,x,y});
+ }
+ for(const m of moves){
+  const oldX=m.z.x;
+  m.z.x=m.x;m.z.y=m.y;
+  m.z.moveDir=Math.abs(m.x-oldX)>.02?Math.sign(m.x-oldX):0;
+ }
+ if(t>=p.duration){
+  clearWormParade();
+  for(const m of p.members)clearShortStep(m.z,.4+Math.random()*.6);
+ }
 }
 function updateWormParade(dt){
  if(!isMiniHorde()||mode!=='playing'){clearWormParade();return}
- if(!wormParade){startWormParade();return}
+ if(!wormParade){
+  // Much more frequent than v338: the clear-front row attempts a real
+  // Galaga double-orbit most of the time, otherwise the original snake.
+  if(clock>=wormNextAt&&Math.random()<.68&&startGalagaOrbit())return;
+  startWormParade();return;
+ }
+ if(wormParade.kind==='orbit'){updateGalagaOrbit(dt);return}
  const p=wormParade,step=Math.max(0,dt*enemySlowRate());
  p.elapsed=Math.min(p.duration,p.elapsed+step);
  const t=p.elapsed;
