@@ -1976,6 +1976,38 @@ function finishLooseHordeParade(p){
   clearShortStep(m.z,.25+Math.random()*.55);
  wormNextAt=clock+1.6+Math.random()*2.1;
 }
+// V341: Stabilize the displayed walk direction independently of collision
+// movement. Tiny side slips and axis fallback must not swap atlas rows every
+// frame. Keep the original continuous 6.4fps per-enemy walk phase.
+function updateLooseHordeFacing(m,dx,dy,dt){
+ if(dt<=0)return;
+ const z=m.z;
+ if(!Number.isFinite(m.facing)){
+  m.facing=Math.sign(z.moveDir||0);m.faceAge=.24;
+  m.faceCandidate=m.facing;m.faceCandidateAge=0;
+  m.faceVX=0;m.faceVY=0;m.faceStill=0;
+ }
+ const a=1-Math.exp(-dt/.10);
+ const vx=dx/dt,vy=dy/dt;
+ m.faceVX+=(vx-m.faceVX)*a;m.faceVY+=(vy-m.faceVY)*a;
+ m.faceAge+=dt;
+ const stopped=Math.hypot(vx,vy)<3;
+ m.faceStill=stopped?m.faceStill+dt:0;
+ let wanted=m.facing;
+ const ax=Math.abs(m.faceVX),ay=Math.abs(m.faceVY);
+ // Hysteresis: need a clear lateral component to enter a side clip,
+ // and a persistent predominantly vertical motion to return to front.
+ if(m.faceStill>=.28)wanted=0;
+ else if(ax>=11&&ax>=ay*.50)wanted=Math.sign(m.faceVX);
+ else if(!stopped&&ax<6&&ay>=9)wanted=0;
+ if(wanted!==m.faceCandidate){
+  m.faceCandidate=wanted;m.faceCandidateAge=0;
+ }else m.faceCandidateAge+=dt;
+ if(wanted!==m.facing&&m.faceAge>=.24&&m.faceCandidateAge>=.12){
+  m.facing=wanted;m.faceAge=0;
+ }
+ z.moveDir=m.facing;
+}
 function updateLooseHordeParade(dt){
  const p=wormParade,step=Math.max(0,Math.min(.05,dt*enemySlowRate()));
  if(!step)return;
@@ -1992,20 +2024,20 @@ function updateLooseHordeParade(dt){
   }
   alive++;
   const local=p.elapsed-m.delay;
-  if(local<=0){z.moveDir=0;continue}
+  if(local<=0){updateLooseHordeFacing(m,0,0,step);continue}
   const off=looseHordeOffset(m,p.motif,local);
   const gx=clamp(m.baseX+off.x,zombieMinX(),zombieMaxX(z));
   const gy=clamp(m.baseY+off.y,ENEMY_TOP_Y,DEFENSE_Y-z.h-WORM_SAFE_MARGIN);
   const vx=gx-z.x,vy=gy-z.y,d=Math.hypot(vx,vy);
-  if(d<.015){z.moveDir=0;continue}
+  if(d<.015){updateLooseHordeFacing(m,0,0,step);continue}
   const factor=Math.min(1,112*step/d);
-  const x=z.x+vx*factor,y=z.y+vy*factor,oldX=z.x;
+  const x=z.x+vx*factor,y=z.y+vy*factor,oldX=z.x,oldY=z.y;
   // Never cancel an entire pack because one follower meets a wall or
   // another zombie. Slide on a free axis, or wait at the safe position.
   if(looseHordeSafe(z,x,y)){z.x=x;z.y=y}
   else if(Math.abs(vy)>.015&&looseHordeSafe(z,z.x,y))z.y=y;
   else if(Math.abs(vx)>.015&&looseHordeSafe(z,x,z.y))z.x=x;
-  z.moveDir=Math.abs(z.x-oldX)>.015?Math.sign(z.x-oldX):0;
+  updateLooseHordeFacing(m,z.x-oldX,z.y-oldY,step);
  }
  if(alive<2||p.elapsed>=p.duration)finishLooseHordeParade(p);
 }
