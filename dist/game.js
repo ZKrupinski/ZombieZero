@@ -345,6 +345,7 @@ const TRAIL_LIGHT_STAMP_SIZE=192;
 const trailLightStamps=new WeakMap();
 function trailLightStamp(rgb){
  const cached=trailLightStamps.get(rgb);if(cached)return cached;
+ if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
  const stamp=document.createElement('canvas');
  stamp.width=stamp.height=TRAIL_LIGHT_STAMP_SIZE;
  const ctx=stamp.getContext('2d');
@@ -361,9 +362,9 @@ function trailLightStamp(rgb){
 function drawSoftLightSpill(x,y,r,rgb,alpha=.35,useTrailStamp=false){
  if(!fxEnabled||!Number.isFinite(x)||!Number.isFinite(y)||alpha<=0)return;
  const radius=Math.min(100,Math.max(12,r));
- // Only the multi-ball trail wake takes this faster path. Positions, 5-stop
+ // Every trail wake can use the prebuilt mask, including the first skill pickup. Positions, 5-stop
  // falloff, additive alpha and BOTH outer/core radii stay unchanged.
- if(useTrailStamp&&(balls.length>1||(typeof has==='function'&&has('pierce')))&&typeof document!=='undefined'&&typeof document.createElement==='function'){
+ if(useTrailStamp&&typeof document!=='undefined'&&typeof document.createElement==='function'){
   const stamp=trailLightStamp(rgb);
   if(stamp){
    g.save();g.globalCompositeOperation='lighter';
@@ -433,6 +434,24 @@ const TRAIL_GROUND_HERO_COLORS=[
 const SCARLET_DIAMOND_GROUND_ACCENT=[245,187,237]; // subtle violet-pink facet
 // Stable source arrays allow the color stamps to remain cached between frames.
 const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[255,139,51]],TRAIL_GROUND_PIERCE=[[89,213,255]],TRAIL_GROUND_POWER=[[255,214,110]];
+ // V345: stable color identities, pre-rasterized before the first pickup.
+ const TRAIL_HEAD_PIERCE=[81,204,255],TRAIL_HEAD_FIRE=[255,133,47],TRAIL_HEAD_POWER=[255,219,111];
+ const PICKUP_LIGHT_COLORS=Object.fromEntries(Object.entries(typeof SKILLS!=='undefined'?SKILLS:{}).map(([k,v])=>[k,typeof effectLightRGB==='function'?effectLightRGB(v.color):[255,210,112]]));
+ const TRAIL_WARM_COLORS=[...TRAIL_GROUND_HERO_COLORS,SCARLET_DIAMOND_GROUND_ACCENT,
+  ...TRAIL_GROUND_FIRE_PIERCE,...TRAIL_GROUND_FIRE,...TRAIL_GROUND_PIERCE,...TRAIL_GROUND_POWER,
+  TRAIL_HEAD_PIERCE,TRAIL_HEAD_FIRE,TRAIL_HEAD_POWER,...Object.values(PICKUP_LIGHT_COLORS)];
+ let trailWarmIndex=0;
+ function warmTrailLighting(){
+  if(trailWarmIndex>=TRAIL_WARM_COLORS.length||!fxEnabled)return;
+  // At most one tiny canvas per frame, only while there is no active rally.
+  if(mode!=='menu'&&mode!=='building'&&mode!=='over'&&!(balls[0]?.held))return;
+  if(typeof document==='undefined'||typeof document.createElement!=='function')return;
+  const rgb=TRAIL_WARM_COLORS[trailWarmIndex++];
+  const stamp=trailLightStamp(rgb);
+  // Touch the texture on the live canvas at zero opacity, before action.
+  if(stamp&&g?.drawImage){g.save();g.globalAlpha=0;g.drawImage(stamp,0,0,1,1);g.restore()}
+ }
+
 function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  if(typeof compactBallFX==='function'&&compactBallFX()){
@@ -553,8 +572,8 @@ function drawEffectLightSpills(){
  for(const f of itemPickupFX){
   const u=f.t/Math.max(.01,f.life||.62);
   if(u>=1)continue;
-  drawProjectedLightSpill(f.x,f.y-18*u,34,effectLightRGB(SKILLS[f.k]?.color),
-    .29*(1-u),27);
+  drawProjectedLightSpill(f.x,f.y-18*u,34,PICKUP_LIGHT_COLORS[f.k]||effectLightRGB(SKILLS[f.k]?.color),
+    .29*(1-u),27,.82,true);
  }
  // Exception: burning zombies keep their light attached to their flames.
  for(const actor of foes){
@@ -579,14 +598,14 @@ function drawEffectLightSpills(){
   const r=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1)),drop=ballProjectionDrop(r);
   if(has('pierce')){
    drawProjectedLightSpill(b.x,b.y,(has('power')?24:20)*(typeof miniBallScale==='function'?miniBallScale():1),
-     [81,204,255],has('fire')?.10:.16,drop,.82,false,false);
+     TRAIL_HEAD_PIERCE,has('fire')?.10:.16,drop,.82,true,false);
   }
   if(has('fire')){
    drawProjectedLightSpill(b.x,b.y,(has('power')?28:24)*(typeof miniBallScale==='function'?miniBallScale():1),
-     [255,133,47],has('pierce')?.12:.20,drop,.82,false,false);
+     TRAIL_HEAD_FIRE,has('pierce')?.12:.20,drop,.82,true,false);
   }
   if(has('power')&&!has('fire')&&!has('pierce'))
-   drawProjectedLightSpill(b.x,b.y,26*(typeof miniBallScale==='function'?miniBallScale():1),[255,219,111],.17,drop,.82,false,false);
+   drawProjectedLightSpill(b.x,b.y,26*(typeof miniBallScale==='function'?miniBallScale():1),TRAIL_HEAD_POWER,.17,drop,.82,true,false);
  }
 }
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
@@ -2473,7 +2492,8 @@ function activate(k,x=car,y=PY-24){
  if(itemPickupFX.length>12)itemPickupFX.shift();
  effect(x,y,SKILLS[k].color,50);
  burst(x,y,SKILLS[k].color,10);
- hud();
+ // No score, life or wave changes here. Multiball already updates HUD in syncMulti.
+ skillUI();
 }
 // Support is rare while safe, weighted toward danger, and rate-limited per run.
 let lastSupportAt=-60,supportDangerTime=0,supportDropsThisWave=0,endlessEmergencyUsed=false;
@@ -4269,7 +4289,7 @@ function frame(t){
  last=t;
  const steps=Math.max(1,Math.ceil(elapsed*30-1e-9));
  for(let i=0;i<steps;i++)update(elapsed/steps);
- draw();music();requestAnimationFrame(frame);
+ warmTrailLighting();draw();music();requestAnimationFrame(frame);
 }
 function heroSprite(x,y,scale=1,win=false){let h=hero();
  const cast=window.ZZObjectCast,atlas=cast&&cast.gameplayCompatible===true?cast.gameplayAtlas:null,ix=cast&&cast.heroIndex[selectedHero];
