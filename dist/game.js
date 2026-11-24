@@ -2367,7 +2367,7 @@ function beginClear(){
  for(const b of balls)retireBall(b,'clear');
  balls=[];junk=[];bossTrashShots.length=0;rockets=[];for(const p of citizens)p.shooting=0;
  active={};score+=500;cheerTime=3;sfx('wave');feedback('wave');
- effect(225,340,'#edfc8d',130,'STAGE CLEAR');
+ effect(225,340,'#edfc8d',130);
  $('toast').style.opacity=0;hud();$('status').textContent='';
 }
 // BARRICADE HORDE returns to a frozen construction view after each clear.
@@ -2410,12 +2410,12 @@ function showCampaignComic(){
  function continueStage(e){
   e.preventDefault();e.stopPropagation();
   if(campaignComicSession!==session||mode!=='stageComic'||performance.now()<session.readyAt)return;
+  // Reveal the newly prepared arena, not a second black title screen.
   mode='stageNumber';
-  panel.replaceChildren();
-  const title=document.createElement('div');
-  title.textContent='STAGE '+String(stage).padStart(2,'0');
-  title.style.cssText='color:#eff39e;font:400 clamp(20px,5vw,48px) "Press Start 2P",monospace;text-align:center;text-shadow:0 0 12px #eff39e66';
-  panel.appendChild(title);
+  setStageBackground(true);
+  cameraKick=0;screenShake.until=0;screenShake.power=0;
+  draw();
+  panel.remove();
   session.numberTimer=setTimeout(finish,1000);
  }
  panel.addEventListener('pointerdown',e=>{e.stopPropagation()});
@@ -4517,6 +4517,7 @@ drawKillCombo();drawBarrelBlasts();
 drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  if(mode==='endlessShift'||mode==='paused'&&resumeMode==='endlessShift')drawEndlessShift();
+ if(mode==='stageNumber')drawStageAnnouncement('STAGE '+String(wave).padStart(2,'0'),'#ffffff',36);
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}
 // V349: measure real RAF and CPU work. Adapt secondary effects only.
 let perfTier=0,perfSlow=0,perfFast=0,perfWorkEMA=0,perfRafEMA=16.7,perfTag=null,perfDebugAt=0;
@@ -4546,7 +4547,8 @@ function frame(t){
  const rawElapsed=last?Math.max(0,(t-last)/1000):0;
  const elapsed=Math.min(.10,rawElapsed);
  last=t;
- if(mode==='stageComic'||mode==='stageNumber'){requestAnimationFrame(frame);return}
+ if(mode==='stageComic'){requestAnimationFrame(frame);return}
+ if(mode==='stageNumber'){draw();requestAnimationFrame(frame);return}
  const steps=Math.max(1,Math.ceil(elapsed*30-1e-9));
  const begin=feedbackNow();frameUpdating=true;
  try{for(let i=0;i<steps;i++)update(elapsed/steps)}finally{frameUpdating=false}
@@ -5509,7 +5511,28 @@ function drawEndlessShift(){
  g.fillText('READY · 다음 공을 준비하세요',225,338);
  g.restore();
 }
-function drawClear(){g.fillStyle='#101a36df';g.fillRect(48,290,354,124);g.strokeStyle='#eff39e';g.lineWidth=2;g.strokeRect(48,290,354,124);g.textAlign='center';g.fillStyle='#eaf98a';g.font='400 17px "Press Start 2P",monospace';arcadeGlowText((runMode==='endless'?'WAVE '+(wave-50):'STAGE '+String(wave).padStart(2,'0'))+' CLEAR',225,330,10);g.fillStyle='#faf1d1';g.font='bold 13px monospace';g.fillText('시민들을 지켜냈습니다!',225,357);g.fillStyle='#96e3cd';g.font='400 10px "Press Start 2P",Arial,sans-serif';arcadeGlowText('+500 BONUS  ·  '+hero().name+' WIN!',225,385,5)}
+// Screen-space announcement: crisp black outline, bright face and a soft local bloom.
+function drawStageAnnouncement(word,color,size){
+ const x=W/2,y=H/2;
+ g.save();g.textAlign='center';g.textBaseline='middle';
+ g.font='400 '+size+'px "Press Start 2P",monospace';
+ g.lineJoin='round';g.lineCap='round';
+ // Keep the outline legible even when bright combat effects are behind the title.
+ if(fxEnabled){
+  g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.7;
+  g.fillStyle=color;g.shadowColor=color;g.shadowBlur=20;
+  g.fillText(word,x,y,W-36);g.restore();
+ }
+ g.strokeStyle='#000000';g.lineWidth=6;g.strokeText(word,x,y,W-36);
+ g.fillStyle=color;g.fillText(word,x,y,W-36);
+ if(fxEnabled){
+  g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.23;
+  g.fillStyle=color;g.shadowColor=color;g.shadowBlur=9;
+  g.fillText(word,x,y,W-36);g.restore();
+ }
+ g.restore();
+}
+function drawClear(){drawStageAnnouncement('STAGE CLEAR!','#ffe32b',32)}
 let inputPointer=null,inputX=0;
 function releaseInput(){inputPointer=null}
 function blocksInput(e){return !!e.target?.closest?.('button,a,input,select,textarea,summary,[role="button"],.overlay,.guide')}
