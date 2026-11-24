@@ -39,7 +39,7 @@
    dual:'공이 하나 더! 사장님, 인원 충원 대신 공을 뽑았습니다.',
    triple:'공이 세 개! 좀비보다 공들이 더 정신없이 출근합니다.',
    power:'한 방이 묵직! 이 공은 헬스장 3개월치를 끊었습니다.',
-   fire:'좀비 구이! 주문하지 않아도 불맛 서비스가 나갑니다.',
+   fire:'강화할수록 점화·전염 범위와 동시에 불붙는 좀비 수 증가!',
    slow:'좀비도 침도 모조리 느릿느릿! 적들만 출근길 교통체증에 갇혔습니다. 공은 혼자 쌩쌩 질주 중!',
    pierce:'줄줄이 뻥! 앞줄 뒤줄 구분 없이 일괄 배송합니다.',
    shield:'잠깐 무적! 놓친 공도 바닥에서 반품 처리됩니다.',
@@ -144,6 +144,12 @@
   const base=baseDuration[skill];
   return (base===undefined?0:base*(1+level(skill)*.06))*(Number.isFinite(hero)?hero:1);
  }
+ // V347: [direct radius, spread radius, direct targets, simultaneous burns].
+ const FIRE_GROWTH=[[82,52,2,5],[104,65,3,7],[128,80,4,9],[152,95,5,12],[176,110,6,16],[200,130,8,20]];
+ function fireProfile(l=level('fire')){
+  const [directRadius,spreadRadius,directTargets,maxActive]=FIRE_GROWTH[int(l,0,MAX_LEVEL)];
+  return {directRadius,spreadRadius,directTargets,maxActive};
+ }
  function rescueKills(){return level('rescue')>=3?4:5}
  function rescueAbsent(){return 8-level('rescue')*.5}
  function citizenGuardChance(){return level('citizenArmor')*.2}
@@ -163,6 +169,7 @@
  function pickupWidth(){return 65+level('itemMagnet')*4}
  function paddleBonus(){return level('sweetSpot')*2}
  function example(id,l){
+  if(id==='fire'){const f=fireProfile(l);return (10*(1+l*.06)).toFixed(1).replace(/\.0$/,'')+'초 · 반경 '+f.directRadius+'px · 최대 '+f.maxActive+'마리'}
   if(baseDuration[id]!==undefined)return (baseDuration[id]*(1+l*.06)).toFixed(1).replace(/\.0$/,'')+'초 지속';
   switch(id){
    case 'rescue':return (l>=3?4:5)+'킬 복귀 · 대기 '+(8-l*.5).toFixed(1)+'초';
@@ -375,7 +382,7 @@
  if(typeof document!=='undefined')initUI();
  window.ZZProgression={
   version:1,garage,garageAction,defs,level,chips,cost,purchase,startRun,grant,refresh,open,
-  duration,rescueKills,rescueAbsent,citizenGuardChance,citizenCriticalChance,citizenDamage,
+  duration,fireProfile,rescueKills,rescueAbsent,citizenGuardChance,citizenCriticalChance,citizenDamage,
   bazookaDamage,bazookaRadiusBonus,bazookaInterval,lastStandDistance,lastStandUses,
   poisonFactor,detoxRate,poisonGrace,groggySeconds,comboSeconds,pickupWidth,paddleBonus,
   debug:()=>({chips:state.chips,levels:{...state.levels},runKey,claims:Object.keys(state.claims).length})

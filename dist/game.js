@@ -20,7 +20,7 @@ const hostileShotSlowRate=()=>has('slow')?SLOW_HOSTILE_SHOT_RATE:1;
 // v232: Independent continuous sprite timeline. Enemy animation frames slow
 // with the enemy's movement, while the ball, hero, UI and combat clocks don't.
 let enemyAnimationClock=0;
-const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:10,color:'#ff9763',desc:'점화 최대 2명 · 전염 1회',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:14,color:'#86f2e0',desc:'좀비와 적 투사체는 질질~ 공은 쌩쌩!',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},pierce:{name:'관통샷',duration:10,color:'#ffe88a',desc:'10초간 적을 관통 · 충돌당 크리티컬 피해 ×2',icon:'<circle cx="7" cy="16" r="4"/><path d="M12 16h17M22 8l7 8-7 8M17 11h7"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
+const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:10,color:'#ff9763',desc:'강화할수록 점화·전염 범위 및 연소 대상 증가',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:14,color:'#86f2e0',desc:'좀비와 적 투사체는 질질~ 공은 쌩쌩!',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},pierce:{name:'관통샷',duration:10,color:'#ffe88a',desc:'10초간 적을 관통 · 충돌당 크리티컬 피해 ×2',icon:'<circle cx="7" cy="16" r="4"/><path d="M12 16h17M22 8l7 8-7 8M17 11h7"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,ballVanish=[],criticalPopups=[],itemPickupFX=[],clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
 const HEROES=[
@@ -577,10 +577,10 @@ function drawEffectLightSpills(){
  }
  // Exception: burning zombies keep their light attached to their flames.
  for(const actor of foes){
-  if(!(actor.burn>0))continue;
+  if(!(actor.burn>0)||actor.burnVisualDelay>0)continue;
   const z=knockVisualPosition(actor);
-  drawSoftLightSpill(z.x+z.w*.5,z.y+z.h-20,z.boss?48:29,
-    [255,130,41],.23*Math.min(1,actor.burn/.3));
+  drawSoftLightSpill(z.x+z.w*.5,z.y+z.h-20*(z.miniScale||1),(z.boss?48:29)*(z.miniScale||1),
+    TRAIL_GROUND_FIRE[0],.23*Math.min(1,actor.burn/.3),true);
  }
  // Every ball trail gets a floor wake, even without a skill. Active fire,
  // pierce and power colors override the natural hero trail color.
@@ -2358,7 +2358,7 @@ function ensureBallCruiseSpeed(b){
  return speed;
 }
 function resetBalls(){if(typeof heroStrikeVisual!=='undefined')heroStrikeVisual=null;killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
-function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;skillUI()}
+function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;fireWaves.length=0;skillUI()}
 let menuRunChipsAtStart=0;
 function start(selectedMode='campaign'){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();fortress?.reset();rack();resetBalls();mode='playing';if(isFortress()&&fortress){fortress.begin(foes,wave);mode='building'}$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':isFortress()?'BARRICADE HORDE · 드래그로 방벽을 건설하세요!':isMiniHorde()?'MINI HORDE · 작은 좀비들의 대군!':'STAGE 01 · 준비!')}
 // Random signed upward launch angle on every serve; retain original ball speed.
@@ -2851,12 +2851,61 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
 // directly ignited zombie. Propagated flames cannot propagate again.
 const FIRE_MAX_ACTIVE=5,FIRE_DURATION=2.4,FIRE_TICK_INTERVAL=1.05,FIRE_TICK_DAMAGE=.75;
 const FIRE_SPREAD_RADIUS=52,FIRE_SPREAD_DEPTH=1,FIRE_DIRECT_TARGETS=2,FIRE_BARREL_TARGETS=3;
-function ignite(z,depth=0){
- if(!foes.includes(z)||z.burn>0||foes.filter(other=>other.burn>0).length>=FIRE_MAX_ACTIVE)
+const FIRE_BASE_PROFILE={directRadius:82,spreadRadius:FIRE_SPREAD_RADIUS,directTargets:FIRE_DIRECT_TARGETS,maxActive:FIRE_MAX_ACTIVE};
+const fireWaves=[];
+function fireProfile(level=0){
+ return window.ZZProgression?.fireProfile?.(level)||FIRE_BASE_PROFILE;
+}
+function fireRangeScale(){return typeof isMiniHorde==='function'&&isMiniHorde()?.60:1}
+function burningCount(){let n=0;for(const z of foes)if(z.burn>0)n++;return n}
+function ignite(z,depth=0,level=0,visualDelay=0,knownCount=null){
+ if(!foes.includes(z)||z.burn>0||(knownCount??burningCount())>=fireProfile(level).maxActive)
   return false;
  z.burn=FIRE_DURATION;z.burnTick=0;z.spreadTick=0;
- z.burnDepth=depth;z.spreadDone=false;
+ z.burnDepth=depth;z.spreadDone=false;z.burnGrowthLevel=level;
+ z.burnVisualDelay=visualDelay;
  return true;
+}
+function fireImpactTargets(x,y,radius,primary){
+ const candidates=[],r2=radius*radius;
+ for(const z of foes){
+  if(z.burn>0||z===primary)continue;
+  const dx=z.x+z.w/2-x,dy=z.y+z.h/2-y,d=dx*dx+dy*dy;
+  if(d<=r2)candidates.push({z,d});
+ }
+ candidates.sort((a,b)=>a.d-b.d);
+ return (foes.includes(primary)&&!(primary.burn>0)?[primary]:[]).concat(candidates.map(v=>v.z));
+}
+function applyFireImpact(z,x,y,level){
+ const profile=fireProfile(level),radius=profile.directRadius*fireRangeScale();
+ let activeCount=burningCount(),count=0;
+ if(activeCount>=profile.maxActive)return 0;
+ for(const other of fireImpactTargets(x,y,radius,z)){
+  if(ignite(other,0,level,Math.min(.14,count*.022),activeCount)){
+   activeCount++;count++;
+   if(count>=profile.directTargets||activeCount>=profile.maxActive)break;
+  }
+ }
+ if(count&&fxEnabled){
+  fireWaves.push({x,y,radius,t:0,life:.28,seed:clock*2.4});
+  if(fireWaves.length>4)fireWaves.shift();
+ }
+ return count;
+}
+function drawFireWaves(){
+ if(!fxEnabled||!fireWaves.length)return;
+ g.save();g.globalCompositeOperation='lighter';g.shadowBlur=0;
+ for(const f of fireWaves){
+  const u=Math.min(1,f.t/f.life),r=f.radius*(.16+.84*Math.sin(u*Math.PI/2)),fade=1-u;
+  g.strokeStyle='#ff9c42';g.lineWidth=2.4*fade+.5;g.globalAlpha=.25*fade;
+  g.beginPath();g.arc(f.x,f.y,r,0,Math.PI*2);g.stroke();
+  for(let i=0;i<12;i++){
+   const a=f.seed+i*Math.PI/6,sz=1.5+2.5*fade;
+   g.fillStyle=i%3?'#ff9a3d':'#fff0a0';g.globalAlpha=.62*fade;
+   g.fillRect(f.x+Math.cos(a)*r-sz/2,f.y+Math.sin(a)*r-sz/2,sz,sz);
+  }
+ }
+ g.restore();
 }
 function fireTargetsNear(z,radius){
  return foes.filter(other=>other!==z&&other.burn<=0&&
@@ -2865,6 +2914,7 @@ function fireTargetsNear(z,radius){
   .sort((a,b)=>Math.hypot(a.x-z.x,a.y-z.y)-Math.hypot(b.x-z.x,b.y-z.y));
 }
 function hit(z,impact=null,piercing=false){
+ const fireX=z.x+z.w/2,fireY=z.y+z.h/2;
  combo++;
  const critical=!piercing&&criticalEligible(z)&&Math.random()<(z.form===0&&!Number.isInteger(z.eliteKind)?CRITICAL_GREEN_CHANCE:CRITICAL_SPECIAL_CHANCE);
  // Piercing deals two times the normal damage to ALL enemies, including
@@ -2883,11 +2933,7 @@ function hit(z,impact=null,piercing=false){
   }
  }
  if(has('fire')){
-  const targets=foes.includes(z)?[z,...fireTargetsNear(z,82)]:foes.filter(other=>
-   Math.hypot(other.x+other.w/2-z.x-z.w/2,other.y+other.h/2-z.y-z.h/2)<82);
-  let count=0;
-  for(const other of targets)if(ignite(other,0)&&++count>=FIRE_DIRECT_TARGETS)break;
-  if(count)sfx('fire');
+  if(applyFireImpact(z,fireX,fireY,growth('fire')))sfx('fire');
  }
 }
 // Stable in-place removal avoids allocating short-lived effect arrays each tick.
@@ -2910,6 +2956,7 @@ function update(dt){
   compactVisualQueue(ballVanish,visualAlive);
   for(const f of criticalPopups)f.t+=dt;
   compactVisualQueue(criticalPopups,visualAlive);
+  advanceVisualQueue(fireWaves,dt);
   for(const f of itemPickupFX)f.t+=dt;
   compactVisualQueue(itemPickupFX,visualAlive);for(const q of ballContactFX)q.t+=dt;compactVisualQueue(ballContactFX,visualAlive);
   if(trashContactFX.length)advanceVisualQueue(trashContactFX,dt);
@@ -2961,12 +3008,13 @@ if(balls[0]?.held){
  return;
 }
 for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
- z.burn=Math.max(0,z.burn-dt);z.burnTick+=dt;z.spreadTick+=dt;
+ z.burn=Math.max(0,z.burn-dt);z.burnTick+=dt;z.spreadTick+=dt;z.burnVisualDelay=Math.max(0,(z.burnVisualDelay||0)-dt);
  if(z.spreadTick>=.95&&!z.spreadDone){
   z.spreadDone=true;
   if((z.burnDepth||0)<FIRE_SPREAD_DEPTH){
-   const neighbour=fireTargetsNear(z,FIRE_SPREAD_RADIUS)[0];
-   if(neighbour)ignite(neighbour,(z.burnDepth||0)+1);
+   const level=z.burnGrowthLevel||0;
+   const neighbour=fireTargetsNear(z,fireProfile(level).spreadRadius*fireRangeScale())[0];
+   if(neighbour)ignite(neighbour,(z.burnDepth||0)+1,level);
   }
  }
  if(z.burnTick>=FIRE_TICK_INTERVAL){
@@ -3484,18 +3532,20 @@ function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.stro
 // Fire stays attached to each burning enemy and sits on top of its sprite.
 function drawBurningOverlays(){
  if(!fxEnabled)return;
- luminous(()=>{for(const actor of foes){
+ const dense=burningCount()>5;
+ const paint=()=>{for(const actor of foes){
   const z=knockVisualPosition(actor);
-  if(!(z.burn>0))continue;
-  const cx=z.x+z.w/2,base=z.y+z.h-4,lifeFade=Math.min(1,z.burn/.25);
+  if(!(z.burn>0)||actor.burnVisualDelay>0)continue;
+  const scale=z.miniScale||1,cx=z.x+z.w/2,base=z.y+z.h-4*scale,lifeFade=Math.min(1,z.burn/.25);
   g.save();g.globalAlpha=.92*lifeFade;
-  g.shadowColor='#ff822d';g.shadowBlur=9;
+  g.translate(cx,base);g.scale(scale,scale);g.translate(-cx,-base);
+  g.shadowColor='#ff822d';g.shadowBlur=dense?0:9;
   // Pixel flames grow in staggered, stepped square stacks without a flat glowing border.
-  for(let column=-3;column<=3;column++){
+  for(let column=-3;column<=3;column+=dense?1.5:1){
    const x=cx+column*(z.boss?10:6);
    const wave=.5+.5*Math.sin(clock*24+column*3.7+(z.seed||0));
    const height=(z.boss?41:24)*(.65+.35*wave)*(1-.09*Math.abs(column));
-   for(let step=0;step<5;step++){
+   for(let step=0;step<5;step+=dense?2:1){
     const frac=step/5,y=base-height*frac,span=Math.max(2,(z.boss?7:5)-step*.65);
     g.fillStyle=step>3?'#fff4a4':step>1?'#ffb641':'#f35a26';
     g.globalAlpha=lifeFade*(1-step*.11);
@@ -3503,7 +3553,8 @@ function drawBurningOverlays(){
    }
   }
   g.restore();
- }});
+ }};
+ if(dense)paint();else luminous(paint);
 }
 
 function drawBallVanish(){
@@ -4238,7 +4289,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawFireWaves();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
