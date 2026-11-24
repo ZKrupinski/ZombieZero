@@ -1856,14 +1856,163 @@ function updateGalagaOrbit(dt){
   for(const m of p.members)clearShortStep(m.z,.4+Math.random()*.6);
  }
 }
+// V340 — Loose, staggered horde choreography. Use live collider positions,
+// not intact rows or original column homes. Every member has its own clock.
+const HORDE_MOTIFS=['snake','orbit','figure8','zigzag','fan','ripple'];
+let lastHordeMotif='';
+function looseHordeEligible(z){
+ return z&&!z.boss&&!Number.isInteger(z.eliteKind)&&z.hp>0&&
+  z.y>=ENEMY_TOP_Y&&z.y+z.h<DEFENSE_Y-WORM_SAFE_MARGIN-8&&
+  !z.wormParade&&!Number.isFinite(z.breakoutTime)&&!z.eliteMotion&&
+  (z.knockTime||0)<=0&&(z.hitHold||0)<=0&&(z.recoil||0)<=.02&&
+  (z.trashStopUntil||0)<=clock&&(z.arrivalTime||0)<=0;
+}
+function looseHordeSafe(z,x,y){
+ return x>=zombieMinX()&&x<=zombieMaxX(z)&&y>=ENEMY_TOP_Y&&
+  y+z.h<=DEFENSE_Y-WORM_SAFE_MARGIN&&canKnockback(z,x,y);
+}
+function looseHordeRoom(z,dx,dy){
+ let room=0;
+ for(const d of [8,16,24,32,40,48,56]){
+  if(!looseHordeSafe(z,z.x+dx*d,z.y+dy*d))break;
+  room=d;
+ }
+ return room;
+}
+function startLooseHordeParade(){
+ if(!isMiniHorde()||mode!=='playing'||!balls.length||balls[0]?.held||
+    wormParade||clock<wormNextAt)return false;
+ // Retry even in a fragmented late wave. No requirement for contiguous
+ // columns, a flat row, a shared rectangular pocket, or exact home X.
+ wormNextAt=clock+.85+Math.random()*.65;
+ const pool=[];
+ for(const z of foes){
+  if(!looseHordeEligible(z))continue;
+  const directions=[[0,1],[1,0],[-1,0],[0,-1]].map(([dx,dy])=>
+    ({dx,dy,room:looseHordeRoom(z,dx,dy)}));
+  directions.sort((a,b)=>(b.room+(b.dy===1?9:0))-(a.room+(a.dy===1?9:0)));
+  const best=directions.find(d=>d.room>=16);
+  if(!best)continue;
+  const recent=clock-(z.lastHordeParadeAt??-100);
+  pool.push({z,dir:best,score:z.y+z.h+best.room*.45+
+    Math.min(22,recent*2)+(best.dy===1?12:0)});
+ }
+ if(pool.length<3)return false;
+ pool.sort((a,b)=>b.score-a.score);
+ const roll=Math.random(),wanted=roll<.40?7:roll<.80?10:20;
+ const size=[wanted,10,7].find(n=>n<=pool.length)??Math.min(6,pool.length);
+ const chain=[pool.shift()];
+ // Follow nearby living zombies one at a time, spanning holes and rows.
+ // Prefer front-line neighbors, but allow dispersed survivors to join.
+ while(chain.length<size&&pool.length){
+  const prev=chain[chain.length-1].z;
+  let bestIndex=0,bestCost=Infinity;
+  for(let i=0;i<pool.length;i++){
+   const p=pool[i],z=p.z;
+   const cost=Math.hypot(z.x-prev.x,(z.y-prev.y)*1.25)-
+      p.score*.15;
+   if(cost<bestCost){bestCost=cost;bestIndex=i}
+  }
+  chain.push(pool.splice(bestIndex,1)[0]);
+ }
+ const motifs=HORDE_MOTIFS.filter(k=>k!==lastHordeMotif);
+ const kind=motifs[Math.floor(Math.random()*motifs.length)];
+ lastHordeMotif=kind;
+ let delay=0;
+ const side=Math.random()<.5?-1:1;
+ const members=chain.map((p,index)=>{
+  const z=p.z,m={z,index,baseX:z.x,baseY:z.y,delay,
+   dx:p.dir.dx,dy:p.dir.dy,room:p.dir.room,
+   side:kind==='fan'&&index%2?-side:side,
+   span:Math.min(50,Math.max(22,p.dir.room)),speed:.92+Math.random()*.16};
+  delay+=.105+Math.random()*.075;
+  return m;
+ });
+ const duration=members[members.length-1].delay+5.85;
+ wormParade={kind:'loose',motif:kind,members,elapsed:0,duration};
+ for(const m of members){
+  m.z.wormParade=wormParade;
+  m.z.lastHordeParadeAt=clock;
+  clearShortStep(m.z,duration+.2);
+ }
+ return true;
+}
+// Each member traces its own phase of the motif. All paths have a smooth
+// takeoff/withdrawal; local clearance, not rigid formation, limits travel.
+function looseHordeOffset(m,kind,t){
+ const ease=u=>{const q=clamp(u,0,1);return q*q*(3-2*q)};
+ const u=clamp(t*m.speed/5.1,0,1),a=u*Math.PI*2;
+ const e=ease(u/.15)*(1-ease((u-.80)/.20));
+ const span=m.span,side=m.side;
+ let f=0,s=0;
+ switch(kind){
+  case 'snake':
+   f=span*(.50+.40*Math.sin(a-.5))*e;
+   s=side*26*Math.sin(a*2)*e;break;
+  case 'orbit':
+   f=span*(.50-.50*Math.cos(a*2))*e;
+   s=side*34*Math.sin(a*2)*e;break;
+  case 'figure8':
+   f=span*(.52+.44*Math.sin(a))*e;
+   s=side*36*Math.sin(a*2)*e;break;
+  case 'zigzag':
+   f=span*(.55+.35*Math.sin(a*1.5))*e;
+   s=side*34*(2/Math.PI)*Math.asin(Math.sin(a*3))*e;break;
+  case 'fan':
+   f=span*(.55+.40*Math.sin(a))*e;
+   s=side*(32+Math.min(12,m.index))*Math.sin(a)*e;break;
+  default:
+   f=span*(.50-.50*Math.cos(a*3))*e;
+   s=side*23*Math.sin(a*1.5)*e;
+ }
+ // On completion retreat slightly away from the defense, rather than
+ // snapping back into the old rigid formation.
+ const retreat=12*ease((u-.76)/.24);
+ return {x:m.dx*f+m.dy*s,y:m.dy*f-m.dx*s-retreat};
+}
+function finishLooseHordeParade(p){
+ clearWormParade();
+ for(const m of p.members)if(foes.includes(m.z)&&!m.z.wormParade)
+  clearShortStep(m.z,.25+Math.random()*.55);
+ wormNextAt=clock+1.6+Math.random()*2.1;
+}
+function updateLooseHordeParade(dt){
+ const p=wormParade,step=Math.max(0,Math.min(.05,dt*enemySlowRate()));
+ if(!step)return;
+ p.elapsed=Math.min(p.duration,p.elapsed+step);
+ let alive=0;
+ for(const m of p.members){
+  const z=m.z;
+  if(z.wormParade!==p||!foes.includes(z)||z.hp<=0||
+    (z.knockTime||0)>0||(z.hitHold||0)>0||(z.recoil||0)>.02||
+    Number.isFinite(z.breakoutTime)||z.eliteMotion||
+    (z.trashStopUntil||0)>clock||z.y+z.h>DEFENSE_Y-WORM_SAFE_MARGIN){
+   if(z.wormParade===p)delete z.wormParade;
+   continue;
+  }
+  alive++;
+  const local=p.elapsed-m.delay;
+  if(local<=0){z.moveDir=0;continue}
+  const off=looseHordeOffset(m,p.motif,local);
+  const gx=clamp(m.baseX+off.x,zombieMinX(),zombieMaxX(z));
+  const gy=clamp(m.baseY+off.y,ENEMY_TOP_Y,DEFENSE_Y-z.h-WORM_SAFE_MARGIN);
+  const vx=gx-z.x,vy=gy-z.y,d=Math.hypot(vx,vy);
+  if(d<.015){z.moveDir=0;continue}
+  const factor=Math.min(1,112*step/d);
+  const x=z.x+vx*factor,y=z.y+vy*factor,oldX=z.x;
+  // Never cancel an entire pack because one follower meets a wall or
+  // another zombie. Slide on a free axis, or wait at the safe position.
+  if(looseHordeSafe(z,x,y)){z.x=x;z.y=y}
+  else if(Math.abs(vy)>.015&&looseHordeSafe(z,z.x,y))z.y=y;
+  else if(Math.abs(vx)>.015&&looseHordeSafe(z,x,z.y))z.x=x;
+  z.moveDir=Math.abs(z.x-oldX)>.015?Math.sign(z.x-oldX):0;
+ }
+ if(alive<2||p.elapsed>=p.duration)finishLooseHordeParade(p);
+}
 function updateWormParade(dt){
  if(!isMiniHorde()||mode!=='playing'){clearWormParade();return}
- if(!wormParade){
-  // Much more frequent than v338: the clear-front row attempts a real
-  // Galaga double-orbit most of the time, otherwise the original snake.
-  if(clock>=wormNextAt&&Math.random()<.68&&startGalagaOrbit())return;
-  startWormParade();return;
- }
+ if(!wormParade){startLooseHordeParade();return}
+ if(wormParade.kind==='loose'){updateLooseHordeParade(dt);return}
  if(wormParade.kind==='orbit'){updateGalagaOrbit(dt);return}
  const p=wormParade,step=Math.max(0,dt*enemySlowRate());
  p.elapsed=Math.min(p.duration,p.elapsed+step);
