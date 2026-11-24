@@ -2814,19 +2814,21 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  }
  const hitPosition=knockVisualPosition(z);
  if(critical){citizenReaction('critical');
-  // Sample once, at the hit. A piercing combo uses varied, slightly smaller
-  // CRITICAL! titles to avoid stacking giant identical words across the lane.
+  // V348: at most one live piercing label across all balls. Do not throttle
+  // damage, death, local hit flash, citizen reactions or regular criticals.
   const textScale=piercingCritical?.75+Math.random()*.28:.90+Math.random()*.15;
-  criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,
-    t:0,life:.72,pierce:piercingCritical,textScale});
-  if(criticalPopups.length>12)criticalPopups.shift();
+  if(!piercingCritical||!criticalPopups.some(f=>f.pierce&&f.t<f.life)){
+   criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,
+     t:0,life:.72,pierce:piercingCritical,textScale});
+   if(criticalPopups.length>12)criticalPopups.shift();
+  }
  }
  if(burning){if(z.hp<=0)feedback('fireKill')}
  else feedback(critical?'critical':z.boss?(z.hp<=0?'bossKill':'bossHit'):(z.hp<=0?'kill':amount>=2?'powerHit':'hit'));
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   // Hit and kill values belong to the score calculation, not floating text.
-  z.hp<=0?(z.boss?'BOSS BREAK!':critical?'CRITICAL!':''):'',
+  z.hp<=0?(z.boss?'BOSS BREAK!':critical&&!piercingCritical?'CRITICAL!':''):'',
   !burning&&z.hp>0&&!critical,false);
  score+=z.hp<=0?(z.boss?1500:100*z.max)+Math.min(combo,10)*10:25;
  if(z.hp<=0||critical||burning)burst(hitPosition.x+z.w/2,hitPosition.y+z.h/2,
