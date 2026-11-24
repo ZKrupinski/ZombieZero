@@ -124,7 +124,7 @@ assert(code.includes('function startWormParade(){'));
 assert(code.includes('function startGalagaOrbit(){'));
 assert(code.includes('function wormOrbitOffset(t,side=1){'));
 assert(code.includes('if(wormParade.kind===\'orbit\'){updateGalagaOrbit(dt);return}'));
-assert(code.includes('Math.random()<.68&&startGalagaOrbit()'));
+assert(code.includes('if(!wormParade){startLooseHordeParade();return}'));
 assert(code.includes('wormNextAt=clock+10+Math.random()*4;'));
 assert(source.includes('clearWormParade();wormNextAt=clock+4+Math.random()*2.5;'));
 assert(source.includes('if(z.wormParade===wormParade&&wormParade){done.push(z);continue}'),
