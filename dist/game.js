@@ -4448,13 +4448,19 @@ const screenShake={power:0,started:0,until:0,phase:0};
 // Browser and VM regression tests use the same clock-safe fallback.
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 let screenShakeFrame=0;
-function cameraFeedback(strength){
+// V346: slightly shorter/lighter zombie impacts, with a brief recovery
+// gap during a rapid chain. Hero feedback and device vibration are unchanged.
+let lastZombieShakeAt=-Infinity,lastZombieShakePower=0;
+function cameraFeedback(strength,zombieImpact=false){
  if(!(strength>0))return;
  const now=feedbackNow();
- const power=strength<.5?.8:Math.min(8,1.7+2.4*strength);
- // Only one envelope. Never sum multiball hits; upgrade for stronger impacts.
+ const power=(strength<.5?.8:Math.min(8,1.7+2.4*strength))*(zombieImpact?.82:1);
+ const life=(strength>=4?150:strength>=2?120:100)*(zombieImpact?.80:1);
+ // A weaker/equal zombie hit cannot restart the envelope continuously.
+ // A genuinely stronger hit can still take over immediately.
+ if(zombieImpact&&now-lastZombieShakeAt<life+25&&power<=lastZombieShakePower)return;
  if(now<screenShake.until&&power<=screenShake.power&&now-screenShake.started<90)return;
- const life=strength>=4?150:strength>=2?120:100;
+ if(zombieImpact){lastZombieShakeAt=now;lastZombieShakePower=power;}
  screenShake.power=power;screenShake.started=now;screenShake.until=now+life;
  screenShake.phase=(screenShake.phase+1.41)%6.283;
  cameraKick=power;lastCameraFeedback=now;
@@ -4493,7 +4499,7 @@ function updateFeedbackDiagnostics(){
 }
 function feedback(kind){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
- cameraFeedback(cfg.s);
+ cameraFeedback(cfg.s,COMBAT_FEEDBACK_KINDS.has(kind));
  const d=feedbackDiagnostics,combat=COMBAT_FEEDBACK_KINDS.has(kind);
  d.last=kind;
  if(combat){d.hits++;d.lastHit=kind}
