@@ -3039,7 +3039,7 @@ function drawHeroBitmap(image,...args){
 // V342: Hero-only impact presentation. The established paddle, car and ball
 // collision/angle/velocity are untouched. Only the bitmap lunges sideways.
 let heroStrikeVisual=null,heroStrikeGhostPass=false;
-const HERO_STRIKE_IN=.032,HERO_STRIKE_HOLD=.055,HERO_STRIKE_OUT=.13;
+const HERO_STRIKE_IN=.032,HERO_STRIKE_HOLD=.115,HERO_STRIKE_OUT=.13;
 const HERO_STRIKE_LIFE=HERO_STRIKE_IN+HERO_STRIKE_HOLD+HERO_STRIKE_OUT;
 // Approximate visible body/weapon width, excluding transparent sprite padding.
 const HERO_STRIKE_VISIBLE_HALF=[40,38,38,35,32];
@@ -3049,16 +3049,29 @@ function heroStrikePose(age,offset){
  const slide=t<HERO_STRIKE_IN?ease(t/HERO_STRIKE_IN):
   t<HERO_STRIKE_IN+HERO_STRIKE_HOLD?1:
   1-ease((t-HERO_STRIKE_IN-HERO_STRIKE_HOLD)/HERO_STRIKE_OUT);
- const hit=Math.max(0,1-t/.105);
- // Two quick decaying axes, independent of the camera and device vibration.
- return {shift:offset*slide,jx:Math.sin(t*185+1.1)*4.5*hit,
-  jy:Math.cos(t*149)*2.8*hit,flash:Math.max(0,1-t/.075)};
+ const arrival=Math.abs(offset)>1?HERO_STRIKE_IN:0;
+ const impactAge=t-arrival;
+ const hit=impactAge<0?0:Math.max(0,1-impactAge/.105);
+ // Begin the localized shake and flash at the reached position, not in flight.
+ return {shift:offset*slide,jx:Math.sin(impactAge*185+1.1)*4.5*hit,
+  jy:Math.cos(impactAge*149)*2.8*hit,flash:impactAge<0?0:Math.max(0,1-impactAge/.075)};
 }
 function triggerHeroStrike(hitX,allowDash=true){
  const delta=hitX-car,edge=HERO_STRIKE_VISIBLE_HALF[selectedHero]??38;
  const offset=allowDash&&Math.abs(delta)>edge?
   clamp(car+Math.sign(delta)*Math.min(56,Math.max(20,Math.abs(delta)-17)),45,W-45)-car:0;
  heroStrikeVisual={at:clock,offset,origin:car};
+}
+// V343: freeze the actual impact cel while the visual offset is held.
+// The live car center is still read on every draw; controls never stop.
+function heroStrikeFrame(fallback,impactFrame=4){
+ if(!heroStrikeVisual||heroAttackTime<=0)return fallback;
+ const p=heroStrikeVisual,age=Math.max(0,clock-p.at);
+ const arrival=Math.abs(p.offset)>1?HERO_STRIKE_IN:0;
+ const release=arrival+HERO_STRIKE_HOLD;
+ if(age<arrival)return Math.min(impactFrame-1,Math.floor(age/Math.max(.001,arrival)*impactFrame));
+ if(age<=release)return impactFrame;
+ return Math.min(7,impactFrame+Math.floor((age-release)/.055));
 }
 function drawHeroStrikePresentation(){
  const p=heroStrikeVisual,age=p?Math.max(0,clock-p.at):Infinity;
@@ -3091,6 +3104,7 @@ function player(){
   const attacking=heroAttackTime>0;
   const t=attacking?Math.max(0,1-heroAttackTime/HERO_ATTACK_DURATION):0;
   const frame=attacking?Math.min(7,Math.floor(t*8)):(Math.floor(clock*8)%8);
+  const shownFrame=attacking?heroStrikeFrame(frame):frame;
   const sheet=$(attacking?'scarlet-attack':'scarlet-idle');
   const renderSheet=sheet;
   // v281: Scarlet's authored car + rider is 80% of the previous displayed
@@ -3100,7 +3114,7 @@ function player(){
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
   if((renderSheet?.naturalWidth||renderSheet?.width)===768&&(renderSheet?.naturalHeight||renderSheet?.height)===384){
-   drawHeroBitmap(renderSheet,(frame%4)*192,Math.floor(frame/4)*192,192,192,
+   drawHeroBitmap(renderSheet,(shownFrame%4)*192,Math.floor(shownFrame/4)*192,192,192,
     car-size/2,carSpriteBottom-size,size,size);
   }else{
    const portrait=$('scarlet-portrait');
@@ -3114,6 +3128,7 @@ function player(){
   if(swinging){
    // The bounce has already occurred. Start at impact, then follow through.
    frame=Math.min(7,4+Math.floor((HERO_ATTACK_DURATION-heroAttackTime)/.055));
+   frame=heroStrikeFrame(frame);
   }else{
    const radius=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1));
    const reach=hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.combatStats?.()?.guard||0)+(window.ZZGarage?.masteryDefense?.()||0);
@@ -3153,7 +3168,7 @@ function player(){
   const win=mode==='clearing'||mode==='paused'&&resumeMode==='clearing';
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
-  drawHeroBitmap(atlas,n*192,selectedHero*192,192,192,car-w/2,579-h/2,w,h);
+  drawHeroBitmap(atlas,(attacking?heroStrikeFrame(n):n)*192,selectedHero*192,192,192,car-w/2,579-h/2,w,h);
   g.restore();
   return;
  }
@@ -3172,7 +3187,7 @@ function player(){
   g.save();g.translate(0,VIEW_DELTA);
   if(win)g.translate(0,-Math.abs(Math.sin(clearTime*7))*4);
   // The racket strike range is physics-only; hide the former horizontal guide.
-  drawHeroBitmap(sprite.image,n*192,selectedHero*192,192,192,
+  drawHeroBitmap(sprite.image,(heroAttackTime>0?heroStrikeFrame(n):n)*192,selectedHero*192,192,192,
     car-w/2,579-h/2,w,h);
   g.restore();
   return;
