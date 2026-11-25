@@ -8,6 +8,16 @@ const X=38,Y=82,T=22,COLS=17,ROWS=20,MAX_HP=30,MAX_WALLS=180;
 const FORTRESS_SIDE_INSET=4;
 const FIELD_LEFT=X+FORTRESS_SIDE_INSET,FIELD_RIGHT=X+COLS*T-FORTRESS_SIDE_INSET;
 const walls=new Map(),pending=new Map();
+// V366: one tile per device; original barricade remains the cheapest option.
+const BUILD_TYPES={
+ wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
+ lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:70,cycle:4.5,desc:'좀비를 옆으로 유인 → 위쪽으로 밀어냄'},
+ saw:{name:'빙글 톱날',cost:5,hp:24,range:34,cycle:.85,desc:'주변 좀비 최대 3마리에 반복 피해'},
+ ice:{name:'꽁꽁 포획기',cost:6,hp:24,range:57,cycle:7,desc:'주변 최대 4마리를 2.2초 결빙'}
+};
+let selectedBuild='wall',deviceTime=0;
+const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
+const buildButtons=['wall','lure','saw','ice'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
  confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),stockLabel=$('fortress-stock'),helpLabel=$('fortress-tip'),
@@ -31,14 +41,14 @@ function pointerCell(e,canvas){
  return positionCell(p.x,p.y);
 }
 function totals(){
- let builds=0,removes=0;
+ let builds=0,removes=0,cost=0,refund=0;
  for(const p of pending.values()){
-  if(p.action==='remove')removes++;
-  else builds++;
+  if(p.action==='remove'){removes++;refund+=spec(walls.get(p.id)).cost;}
+  else{builds++;cost+=spec(p).cost;}
  }
- const balance=stock+removes-builds;
+ const balance=stock+refund-cost;
  const countAfter=walls.size-removes+builds;
- return {builds,removes,balance,valid:balance>=0&&countAfter<=MAX_WALLS};
+ return {builds,removes,cost,refund,balance,valid:balance>=0&&countAfter<=MAX_WALLS};
 }
 function refresh(){
  if(!ui)return;
@@ -47,19 +57,24 @@ function refresh(){
  actions.hidden=!active||!hasPreview||dragging;
  readyButton.hidden=!active||hasPreview||dragging;
  if(confirmButton)confirmButton.disabled=!summary.valid;
- if(stockLabel)stockLabel.textContent='STAGE '+String(stage).padStart(2,'0')+' · 자재 '+stock+' · 방벽 '+walls.size+'/'+MAX_WALLS;
+ if(stockLabel)stockLabel.textContent='STAGE '+String(stage).padStart(2,'0')+' · 자재 '+stock+' · 구조물 '+walls.size+'/'+MAX_WALLS;
  if(buildCountLabel){
   const freeAfter=MAX_WALLS-(walls.size-summary.removes+summary.builds);
-  buildCountLabel.textContent='더 건설 '+Math.max(0,Math.min(summary.balance,freeAfter))+'개';
+  buildCountLabel.textContent='더 건설 '+Math.max(0,Math.min(Math.floor(summary.balance/BUILD_TYPES[selectedBuild].cost),freeAfter))+'개';
  }
  if(supplyLabel)supplyLabel.textContent=stage===1?'초기 건설 자재 +26':'생존 방벽 '+lastHealed+'개 자동 수리(무료) · 파괴 환급 +'+lastRefund+' · 보급 +'+lastBonus;
  if(previewLabel)previewLabel.textContent=
-  '설치 +'+summary.builds+' · 철거 -'+summary.removes+' (환급 +'+summary.removes+')'+
+  '설치 +'+summary.builds+' (자재 -'+summary.cost+') · 철거 -'+summary.removes+' (환급 +'+summary.refund+')'+
   ' · 확정 후 자재 '+summary.balance+
   (!summary.valid?' · 자재/공간 부족':'');
+ for(const {kind,el} of buildButtons)if(el){
+  el.setAttribute?.('aria-pressed',String(kind===selectedBuild));
+  el.disabled=hasPreview||dragging;
+  if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
+ }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
-  :stock?'빈칸 드래그: 건설 · 기존 방벽: 빨간 철거(자재 환급)'
-  :'자재 0 · 기존 방벽 철거로 자재 확보 가능';
+  :stock?BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
+  :'자재 0 · 기존 구조물 철거로 자재 확보 가능';
 }
 function addCell(t){
  if(!t||pending.has(t.id))return;
@@ -68,7 +83,7 @@ function addCell(t){
  if(!action)return;
  // Apply the budget BEFORE displaying each dragged tile. Demolition
  // refunds one material per cube, even at zero stock. No manual repairs.
- const item={...t,action};
+ const item={...t,action,kind:current?.kind||selectedBuild};
  pending.set(t.id,item);
  if(!totals().valid){
   pending.delete(t.id);
@@ -147,11 +162,11 @@ function down(e,canvas){
  pending.clear();dragging=true;pointer=e.pointerId;last=null;
  const origin=pointerPosition(e,canvas);
  touchStroke=e.pointerType==='touch'?{originX:origin.x,originY:origin.y,anchor:to,axis:null}:null;
- lineTo(to);refresh();
+ if(selectedBuild==='wall')lineTo(to);else addCell(to);refresh();
  try{canvas.setPointerCapture(e.pointerId)}catch{}
  return true;
 }
-function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;touchLineTo(e,canvas);refresh();return true}
+function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;if(selectedBuild==='wall')touchLineTo(e,canvas);refresh();return true}
 function showActionsAt(e,canvas){
  if(!ui||!actions||!actions.style)return;
  const rect=ui.getBoundingClientRect?.()||canvas.getBoundingClientRect?.();
@@ -168,7 +183,7 @@ function up(e,canvas){
  if(!dragging||e.pointerId!==pointer)return false;
  // Finger-lift coordinates are noisy: keep the chosen axis and never
  // reinterpret a tiny release movement as a new corner.
- touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
+ if(selectedBuild==='wall')touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
  showActionsAt(e,canvas);refresh();return true;
 }
 function cancel(){dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh()}
@@ -178,17 +193,18 @@ function confirm(){
  if(!summary.valid)return 0;
  // Refund demolished blocks first, then use that material for building.
  // Damaged survivors are restored automatically at the NEXT wave for free.
- for(const t of pending.values())if(t.action==='remove'&&walls.delete(t.id))stock++;
+ for(const t of pending.values())if(t.action==='remove'){const old=walls.get(t.id);if(old&&walls.delete(t.id))stock+=spec(old).cost;}
  let changed=0;
  for(const t of pending.values()){
   if(t.action!=='build'||walls.has(t.id)||walls.size>=MAX_WALLS)continue;
-  if(stock<=0)break;
-  walls.set(t.id,{...t,hp:MAX_HP,hit:.12});stock--;changed++;
+  const type=spec(t);
+  if(stock<type.cost)break;
+  walls.set(t.id,{...t,hp:type.hp,hit:.12,cooldown:0,pulse:0});stock-=type.cost;changed++;
  }
  pending.clear();refresh();return changed+summary.removes;
 }
 function reset(){
- walls.clear();pending.clear();queued=[];stock=0;stage=1;
+ walls.clear();pending.clear();queued=[];stock=0;stage=1;selectedBuild='wall';deviceTime=0;
  active=false;dragging=false;pointer=null;last=null;touchStroke=null;
  destroyedThisStage=0;lastRefund=0;lastBonus=0;lastHealed=0;refresh();
 }
@@ -201,7 +217,7 @@ function begin(enemies,wave){
   // construction materials; already destroyed cubes stay absent and refund
   // one material each on top of the regular per-wave supply.
   lastHealed=walls.size;
-  for(const w of walls.values()){w.hp=MAX_HP;w.hit=0;w.biteShake=0}
+  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.pulse=0}
   lastRefund=destroyedThisStage;
   lastBonus=Math.min(14,8+Math.floor(wave/5));
   stock+=lastRefund+lastBonus;destroyedThisStage=0;
@@ -463,11 +479,176 @@ function tiles(){
  }
  return atlas;
 }
+
+// Cached raster art: use the same blocky top/side shading as the barricade.
+// The tiny animated accents are separate; the icon and board share the art.
+const deviceArt=new Map();
+function deviceBitmap(kind){
+ if(deviceArt.has(kind))return deviceArt.get(kind);
+ if(typeof document.createElement!=='function')return null;
+ const im=document.createElement('canvas');im.width=im.height=64;
+ const c=im.getContext?.('2d');if(!c||typeof c.fillRect!=='function')return null;
+ const box=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h)};
+ box(7,37,50,20,'#222e35');box(7,32,43,19,'#60717b');box(50,34,7,17,'#374d55');
+ box(9,29,42,10,'#b4c4bf');box(10,48,37,4,'#3a5058');
+ for(let i=0;i<4;i++)box(12+i*10,43,5,4,'#f2bf59');
+ if(kind==='lure'){
+  // Rubber duck on a spring-loaded loudspeaker.
+  box(23,28,20,8,'#94672e');box(29,22,7,10,'#6b5030');
+  box(13,19,34,12,'#b87826');box(14,15,30,13,'#f5c341');box(16,12,26,8,'#ffdf72');
+  box(31,4,16,18,'#ffc537');box(33,4,10,4,'#ffed8c');
+  box(42,11,4,5,'#202c34');box(47,14,12,6,'#f18b3c');box(47,19,8,3,'#b85528');
+ }else if(kind==='saw'){
+  box(24,15,16,25,'#364d56');box(27,12,10,25,'#a7b8c1');
+  // Blade is rendered separately so its teeth genuinely rotate.
+  box(20,33,24,7,'#d79a39');
+ }else if(kind==='ice'){
+  box(13,12,37,28,'#277b98');box(12,10,34,25,'#80c9d9');box(14,9,30,7,'#c5f9ef');
+  box(19,16,22,13,'#235466');box(22,19,16,7,'#80f7ff');
+  box(25,14,3,17,'#e2ffff');box(18,21,20,3,'#e2ffff');
+  box(45,14,5,23,'#397789');box(8,29,43,5,'#d5af64');
+  box(15,36,8,5,'#604c38');box(41,36,8,5,'#604c38');
+ }else if(kind==='wall'){
+  box(8,13,46,34,'#64737b');box(8,11,41,9,'#c4d0c9');
+  box(49,15,7,29,'#46555d');box(14,24,34,3,'#364951');
+  box(25,18,3,15,'#46565b');box(16,37,34,3,'#405258');
+ }
+ deviceArt.set(kind,im);return im;
+}
+function sawBitmap(){
+ if(deviceArt.has('blade'))return deviceArt.get('blade');
+ const im=document.createElement?.('canvas');if(!im)return null;
+ im.width=im.height=64;const c=im.getContext?.('2d');
+ if(!c||typeof c.beginPath!=='function')return null;
+ c.beginPath();
+ for(let i=0;i<32;i++){const a=i*Math.PI/16,r=i%2===0?30:23;
+  const x=32+Math.cos(a)*r,y=32+Math.sin(a)*r;
+  if(!i)c.moveTo(x,y);else c.lineTo(x,y);
+ }
+ c.closePath();c.fillStyle='#4b5c65';c.fill();
+ c.beginPath();c.arc(32,32,22,0,Math.PI*2);c.fillStyle='#d0dfe0';c.fill();
+ c.beginPath();c.arc(32,32,15,0,Math.PI*2);c.fillStyle='#a1b6bd';c.fill();
+ c.fillStyle='#e5ae52';c.fillRect(26,26,12,12);
+ c.fillStyle='#354952';c.fillRect(29,29,6,6);
+ deviceArt.set('blade',im);return im;
+}
+function makeDeviceIcons(){
+ for(const {kind,el} of buildButtons){
+  if(!el)continue;
+  const icon=el.querySelector?.('canvas'),art=deviceBitmap(kind);
+  const q=icon?.getContext?.('2d');if(!q||!art)continue;
+  q.clearRect(0,0,64,64);q.drawImage(art,0,0);
+  if(kind==='saw'){const blade=sawBitmap();if(blade)q.drawImage(blade,12,0,40,40)}
+ }
+}
+function selectBuild(kind){
+ if(!active||dragging||pending.size||!BUILD_TYPES[kind])return false;
+ selectedBuild=kind;refresh();return true;
+}
+function drawDevice(g,w,building=false){
+ const art=deviceBitmap(w.kind);if(!art)return;
+ const size=29,x=w.x+T/2,y=w.y+T/2;
+ g.save();
+ g.globalAlpha*=Math.max(.5,w.hp===undefined?1:w.hp/spec(w).hp*.65+.35);
+ const bounce=!building&&w.kind==='lure'&&w.pulse>0?-Math.sin(w.pulse*15)*2:0;
+ g.drawImage(art,x-size/2,y-size/2+bounce,size,size);
+ if(w.kind==='saw'){
+  const blade=sawBitmap();if(blade){g.translate(x,y-5);g.rotate(building?.3:deviceTime*9);
+   g.drawImage(blade,-11,-11,22,22);}
+ }
+ g.restore();
+ if(!building&&w.pulse>0&&typeof g.arc==='function'){
+  const f=Math.min(1,w.pulse/.45);
+  g.save();g.globalAlpha=.7*f;g.strokeStyle=w.kind==='ice'?'#9eeeff':w.kind==='lure'?'#ffda75':'#ffd299';
+  g.lineWidth=2;g.beginPath();g.arc(x,y,8+(1-f)*spec(w).range,0,Math.PI*2);g.stroke();g.restore();
+ }
+ if(!building&&w.hp<spec(w).hp){
+  g.fillStyle='#263039';g.fillRect(x-9,w.y+T-2,18,2);
+  g.fillStyle='#f2b968';g.fillRect(x-9,w.y+T-2,18*Math.max(0,w.hp/spec(w).hp),2);
+ }
+}
+// Devices act only when the real wave is moving. Cooldowns advance on the
+// same dt, not while the player is building, paused, or holding a serve.
+function tickDevices(dt,enemies,now,ops){
+ deviceTime+=dt;
+ if(!walls.size)return;
+ for(const w of walls.values()){
+  if(!w.kind||w.kind==='wall')continue;
+  const type=spec(w),cx=w.x+T/2,cy=w.y+T/2;
+  w.cooldown=Math.max(0,(w.cooldown||0)-dt);w.pulse=Math.max(0,(w.pulse||0)-dt);
+  const candidates=[];
+  for(const z of enemies){
+   if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550)continue;
+   const dx=cx-(z.x+z.w/2),dy=cy-(z.y+z.h/2),d2=dx*dx+dy*dy;
+   if(d2<=type.range*type.range)candidates.push({z,dx,dy,d2});
+  }
+  candidates.sort((a,b)=>a.d2-b.d2);
+  if(w.kind==='lure'){
+   // Sideways attraction cannot advance zombies toward the defence line.
+   for(const {z,dx} of candidates.slice(0,6)){
+    if(z.boss||z.fortressFrozenUntil>now||z.knockTime>0||z.trashStopUntil>now)continue;
+    if(Math.abs(dx)<13)continue;
+    const nx=Math.max(FIELD_LEFT,Math.min(FIELD_RIGHT-z.w,z.x+Math.sign(dx)*Math.min(Math.abs(dx)-12,dt*17)));
+    if(ops.canMove?.(z,nx,z.y)){z.x=nx;delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;z.moveDir=Math.sign(dx)}
+   }
+  }
+  if(w.cooldown>0||!candidates.length)continue;
+  let hit=0;
+  if(w.kind==='lure'){
+   for(const {z} of candidates.slice(0,6)){
+    if(z.boss||z.fortressFrozenUntil>now)continue;
+    if(ops.push?.(z))hit++;
+   }
+  }else if(w.kind==='saw'){
+   for(const {z} of candidates.slice(0,3)){
+    if(z.hp<=0||!enemies.includes(z))continue;
+    ops.damage?.(z,z.boss?1:2);hit++;
+   }
+  }else if(w.kind==='ice'){
+   for(const {z} of candidates){
+    if(hit>=4)break;
+    if((z.fortressIceReady||0)>now)continue;
+    const duration=z.boss?.65:2.2;
+    z.fortressFrozenUntil=now+duration;
+    z.fortressIceReady=now+duration+2;
+    z.trashStopUntil=Math.max(z.trashStopUntil||0,now+duration);
+    delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
+    z.hitHold=Math.max(z.hitHold||0,.12);
+    z.recoil=Math.max(z.recoil||0,.035);
+    hit++;
+   }
+  }
+  if(hit){w.cooldown=type.cycle;w.pulse=.45;ops.pulse?.(w.kind,cx,cy,hit);}
+  else w.cooldown=.35; // avoid a fruitless full scan of blocked knockbacks
+ }
+ // Keep freshly frozen enemies out of the normal march/parade selectors.
+ for(const z of enemies)if(z.fortressFrozenUntil>now){
+  z.trashStopUntil=Math.max(z.trashStopUntil||0,z.fortressFrozenUntil);
+  z.hitHold=Math.max(z.hitHold||0,.11);z.recoil=Math.max(z.recoil||0,.031);
+  delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
+ }
+}
+function drawStatuses(g,enemies,now,position){
+ for(const actor of enemies){
+  if(!(actor.fortressFrozenUntil>now))continue;
+  const z=position(actor),x=z.x-2,y=z.y-2,w=z.w+4,h=z.h+4;
+  g.save();g.globalAlpha=.32;g.fillStyle='#8fe9ff';g.fillRect(x,y,w,h);
+  g.globalAlpha=.9;g.strokeStyle='#cafaff';g.lineWidth=1.5;g.strokeRect(x,y,w,h);
+  g.fillStyle='#d4ffff';g.fillRect(x+2,y+2,3,8);g.fillRect(x+6,y+2,6,2);
+  // The comic rope remains readable on the transparent ice shell.
+  g.fillStyle='#c99c52';g.fillRect(x,y+h*.65,w,3);g.fillStyle='#ffdb86';g.fillRect(x+w*.45,y+h*.65-2,5,6);
+  g.restore();
+ }
+}
+for(const {kind,el} of buildButtons)el?.addEventListener?.('click',()=>selectBuild(kind));
+makeDeviceIcons();
+
 function draw(g,building=false){
  const bitmap=bitmapTiles();
  const tile=bitmap||tiles();if(!tile)return;
  const frame=bitmap?BARRICADE_FRAME:T;
  for(const w of walls.values()){
+  if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building);continue}
   // The five authored PNG states are switched by actual remaining HP.
   const variant=w.hp>MAX_HP*.8?0:w.hp>MAX_HP*.6?1:
     w.hp>MAX_HP*.4?2:w.hp>MAX_HP*.2?3:4;
@@ -497,7 +678,7 @@ function draw(g,building=false){
    g.beginPath();g.moveTo(p.x+5,p.y+5);g.lineTo(p.x+T-5,p.y+T-5);
    g.moveTo(p.x+T-5,p.y+5);g.lineTo(p.x+5,p.y+T-5);g.stroke();
   }else{
-   g.globalAlpha=.8;g.drawImage(tile,0,0,frame,frame,p.x,p.y,T,T);
+   g.globalAlpha=.8;if(p.kind&&p.kind!=='wall')drawDevice(g,p,true);else g.drawImage(tile,0,0,frame,frame,p.x,p.y,T,T);
    g.globalAlpha=1;g.strokeStyle='#ffe78f';
    g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,T-2,T-2);
   }
@@ -511,7 +692,7 @@ function tick(dt){for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
-window.ZZFortress={reset,begin,deploy,resolve,isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
+window.ZZFortress={reset,begin,deploy,resolve,selectBuild,tickDevices,drawStatuses,getBuildType:()=>selectedBuild,getStructure:(col,row)=>walls.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
  bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),

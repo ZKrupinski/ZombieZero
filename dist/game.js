@@ -2264,6 +2264,12 @@ function makeFoeGrid(actors){
  }};
 }
 function march(dt){
+ if(isFortress()&&fortress)fortress.tickDevices?.(dt,foes,clock,{
+  canMove:(z,x,y)=>canKnockback(z,x,y),
+  push:z=>applyKnockback(z,{x:0,y:-1,push:1.4},2),
+  damage:(z,n)=>damage(z,n,false,{x:0,y:-1,push:.25}),
+  pulse:(kind,x,y)=>{effect(x,y,kind==='ice'?'#91efff':kind==='lure'?'#ffd15c':'#ffc99a',22);sfx(kind==='lure'?'wall':kind==='ice'?'item':'hit')}
+ });
  if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
  updateWormParade(dt);
  tryStartBreakouts();
@@ -4532,7 +4538,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawFireWaves();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);if(isFortress())fortress?.drawStatuses?.(g,foes,clock,knockVisualPosition);drawBurningOverlays();drawFireWaves();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
