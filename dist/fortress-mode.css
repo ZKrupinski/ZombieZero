@@ -151,11 +151,11 @@
 .zz-build-picker canvas{image-rendering:auto;max-width:100%;max-height:100%}
 
 /* v380: one clearly legible material counter, outside the tool tray. */
-.zz-fortress-top{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;height:14.8%;bottom:1%}
+.zz-fortress-top{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;height:13.8%;bottom:1%}
 .zz-fortress-top .zz-build-picker{grid-column:1;grid-row:1}
 .zz-fortress-top #fortress-tip{grid-column:1;grid-row:2;text-align:center;align-self:center}
-.zz-fortress-builder>#fortress-ready{top:79.5%}
-#fortress-material{position:absolute;left:50%;top:75.2%;transform:translate(-50%,-50%);display:flex;align-items:baseline;justify-content:center;gap:clamp(3px,1.4cqw,7px);white-space:nowrap;pointer-events:none;color:#f5ffb1;text-shadow:0 2px 2px #07141a,0 0 6px #c1ff5c,0 0 12px #8acf44;font-family:'Press Start 2P','Courier New',monospace;font-variant-numeric:tabular-nums;line-height:1.2}
+.zz-fortress-builder>#fortress-ready{top:79.2%}
+#fortress-material{position:absolute;left:50%;top:75.5%;transform:translate(-50%,-50%);display:flex;align-items:baseline;justify-content:center;gap:clamp(3px,1.4cqw,7px);white-space:nowrap;pointer-events:none;color:#f5ffb1;text-shadow:0 2px 2px #07141a,0 0 6px #c1ff5c,0 0 12px #8acf44;font-family:'Press Start 2P','Courier New',monospace;font-variant-numeric:tabular-nums;line-height:1.2}
 #fortress-material strong{font-size:clamp(15px,3.3cqh,25px);font-weight:400}
 #fortress-material .zz-material-slash{font-size:clamp(10px,2.1cqh,16px)}
 #fortress-material .zz-material-label{font:900 clamp(10px,1.9cqh,15px)/1.2 Arial,'Noto Sans KR',sans-serif;color:#f5ffd6}

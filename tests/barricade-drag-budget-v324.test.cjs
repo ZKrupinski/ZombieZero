@@ -6,12 +6,13 @@ const src=fs.readFileSync('dist/fortress-mode.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const ids=['fortress-builder','fortress-actions','fortress-confirm','fortress-cancel',
- 'fortress-ready','fortress-stock','fortress-tip','fortress-build-count',
- 'fortress-supply','fortress-preview-summary'];
+ 'fortress-ready','fortress-material','fortress-tip','fortress-preview-summary'];
 const nodes={};
 for(const id of ids)nodes[id]={hidden:false,disabled:false,textContent:'',style:{},dataset:{},
  addEventListener(name,fn){this[name]=fn},setAttribute(){},
  getBoundingClientRect(){return {left:0,top:0,width:450,height:710}}};
+const materialNumber={textContent:''};
+nodes['fortress-material'].querySelector=selector=>selector==='strong'?materialNumber:null;
 const doc={getElementById:id=>nodes[id]||null,createElement:()=>({getContext:()=>null})};
 const w={};new Function('window','document',src)(w,doc);
 const fort=w.ZZFortress,canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
@@ -37,11 +38,11 @@ assert.equal(fort.getWallCount(),17);
 start(0,1);move(4,1);
 assert.equal(fort.getPreview().builds,5);
 assert.equal(fort.getPreview().balance,4);
-assert.match(nodes['fortress-build-count'].textContent,/4개/);
+assert.equal(materialNumber.textContent,'04');
 move(16,1);
 assert.equal(fort.getPreview().builds,9,'the preview stops at 9 cubes');
 assert.equal(fort.getPreview().balance,0);
-assert.match(nodes['fortress-build-count'].textContent,/0개/);
+assert.equal(materialNumber.textContent,'00');
 assert.equal(fort.getPreview().valid,true,'drawn preview always affordable');
 stop(16,1);
 assert.match(nodes['fortress-preview-summary'].textContent,/설치 \+9/);

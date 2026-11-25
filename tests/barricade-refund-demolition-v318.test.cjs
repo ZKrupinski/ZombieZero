@@ -8,8 +8,7 @@ const css=fs.readFileSync('dist/fortress-mode.css','utf8');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const ids=['fortress-builder','fortress-actions','fortress-confirm','fortress-cancel',
- 'fortress-ready','fortress-stock','fortress-tip','fortress-build-count',
- 'fortress-supply','fortress-preview-summary'];
+ 'fortress-ready','fortress-material','fortress-tip','fortress-preview-summary'];
 const nodes={};
 for(const id of ids)nodes[id]={
  hidden:false,disabled:false,textContent:'',style:{},dataset:{},
@@ -17,6 +16,8 @@ for(const id of ids)nodes[id]={
  setAttribute(name,value){this[name]=value},
  getBoundingClientRect(){return {left:0,top:0,width:450,height:710}}
 };
+const materialNumber={textContent:''};
+nodes['fortress-material'].querySelector=selector=>selector==='strong'?materialNumber:null;
 const doc={getElementById:id=>nodes[id]||null,
  createElement:()=>({getContext:()=>null})};
 const win={};new Function('window','document',mod)(win,doc);
@@ -42,12 +43,12 @@ const enemies=Array.from({length:12},(_,i)=>({x:50+i*22,y:42,w:16,h:18}));
 fort.begin(enemies,1);
 assert.equal(enemies.length,0,'empty building phase');
 assert.equal(fort.getStock(),26);
-assert.match(nodes['fortress-build-count'].textContent,/26개/);
+assert.equal(materialNumber.textContent,'26');
 drag(0,3,0);
 assert.equal(fort.getPreview().builds,4);
 assert.equal(fort.getPreview().balance,22);
-assert.match(nodes['fortress-build-count'].textContent,/22개/,'live remaining build capacity');
-assert.match(nodes['fortress-preview-summary'].textContent,/확정 후 자재 22/);
+assert.equal(materialNumber.textContent,'22');
+assert(!nodes['fortress-preview-summary'].textContent.includes('확정 후 자재'),'remaining materials shown only in the unified HUD');
 assert.equal(nodes['fortress-actions'].dataset.side,'below');
 assert.match(nodes['fortress-actions'].style.left,/px/,'actions follow finger X');
 assert.match(nodes['fortress-actions'].style.top,/px/,'actions follow finger Y');
@@ -87,9 +88,8 @@ assert.equal(fort.getStock(),22,'material only refunded on the next stage');
 fort.begin([],2);
 assert.equal(fort.getStock(),32,'22 leftover + 2 destroyed refunded + 8 new');
 assert.deepEqual(fort.getSupply(),{refund:2,bonus:8,healed:2});
-assert.match(nodes['fortress-supply'].textContent,/파괴 환급 \+2/);
-assert.match(nodes['fortress-supply'].textContent,/보급 \+8/);
-assert.match(nodes['fortress-build-count'].textContent,/32개/);
+
+assert.equal(materialNumber.textContent,'32');
 assert.equal(fort.getPendingRefund(),0,'stage refund counter resets');
 bite(2,3,3);assert.equal(fort.getWallHP(2,3),27);
 assert.equal(fort.getStock(),32,'no material is spent by zombie hits');
@@ -102,7 +102,7 @@ fort.reset();fort.begin([],1);
 drag(0,15,0);nodes['fortress-confirm'].click();
 drag(0,9,1);nodes['fortress-confirm'].click();
 assert.equal(fort.getStock(),0);
-assert.match(nodes['fortress-build-count'].textContent,/0개/);
+assert.equal(materialNumber.textContent,'00');
 drag(0,0,2);
 assert.equal(fort.getPreview().builds,0,'zero-stock construction is not previewed while dragging');
 assert.equal(fort.getPreview().balance,0,'budget never drops below zero');
@@ -117,8 +117,9 @@ assert.equal(fort.getStock(),0);
 assert.equal(fort.getWallCount(),26);
 assert(css.includes('#fortress-actions[data-side="below"]')&&!css.includes('#fortress-tool'),
  'finger-adjacent controls remain; obsolete repair CSS removed');
-for(const id of ['fortress-build-count','fortress-supply','fortress-preview-summary'])
+for(const id of ['fortress-material','fortress-preview-summary'])
  assert(html.includes('id="'+id+'"'),id+' present in DOM');
+for(const id of ['fortress-stock','fortress-build-count','fortress-supply'])assert(!html.includes('id="'+id+'"'),'obsolete HUD absent');
 assert(!html.includes('id="fortress-tool"'),'repair button no longer exists');
 assert(html.includes('src="fortress-mode.js?v='),'barricade module has versioned URL');
 assert(html.includes('fortress-mode.css?v=329-free-auto-wall-repair'));
