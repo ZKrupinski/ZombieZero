@@ -545,7 +545,7 @@ function paintMachine(g,kind,time,pulse,offset=null){
   part(g,7,-22,-22,44,44);g.restore();
  }else if(kind==='ice'){
   const spread=Math.sin(Math.PI*pulse)*5;
-  for(const side of [-1,1]){
+  if(!offset?.deployed)for(const side of [-1,1]){
    g.save();g.translate(32+side*(18+spread),17);g.rotate(side<0?-2.1:-1.04);
    part(g,9,-10,-15,21,20);g.restore();
   }
@@ -575,38 +575,41 @@ function armReach(w,dx,dy){
 const ICE_LATCH=.32,ICE_FREEZE=.62;
 function drawIceArms(g,w){
  const run=w.run,progress=run.time/spec(w).duration;
- const reach=Math.min(1,progress/ICE_LATCH,(1-progress)/(1-ICE_FREEZE));
+ const ease=t=>1-(1-Math.max(0,Math.min(1,t)))**2;
+ const cx=w.x+T,cy=w.y+T;
  for(const z of run.targets){
   const grip=run.grabbed.get(z);
   if(z.hp<=0||(progress>=ICE_LATCH&&!grip))continue;
-  const dx=z.x+z.w/2-w.x-T,dy=z.y+z.h/2-w.y-T;
-  const length=Math.hypot(dx,dy)*reach;
-  g.save();g.translate(w.x+T,w.y+T);g.rotate(Math.atan2(dy,dx));
-  linkage(g,11,0,0,length,0,4);
-  if(grip&&progress<ICE_FREEZE){
-   // Leave tapered speed marks in the space the captured zombie just crossed.
-   const pulled=Math.min(36,Math.max(0,grip.distance-length));
-   g.strokeStyle='#a3ebff';g.lineWidth=2;g.beginPath();
-   for(const side of [-1,1]){
-    g.moveTo(length+6,side*7);g.lineTo(length+6+pulled,side*10);
-   }
-   g.stroke();
-   // Directional highlights travel down the taut cable toward the winch.
-   const shift=(run.time*190)%18;
-   g.strokeStyle='#e0ffff';g.lineWidth=2.3;g.beginPath();
-   for(let pos=length-shift;pos>15;pos-=18){
-    g.moveTo(pos+4,-3);g.lineTo(pos,0);g.lineTo(pos+4,3);
-   }
+  const dx=z.x+z.w/2-cx,dy=z.y+z.h*.48-cy;
+  const retract=progress>=ICE_FREEZE;
+  const ax=retract?(grip.releaseX??dx):dx,ay=retract?(grip.releaseY??dy):dy;
+  const angle=Math.atan2(ay,ax),distance=Math.hypot(ax,ay);
+  // Dock to the actual near side of the target rather than its centre.
+  const edge=Math.min(distance*.55,Math.max(3,Math.min(z.w,z.h)*.32));
+  const end=Math.max(0,distance-edge);
+  const length=end*(retract?1-ease((progress-ICE_FREEZE)/(1-ICE_FREEZE)):progress<ICE_LATCH?ease(progress/ICE_LATCH):1);
+  if(length<8)continue;
+  g.save();g.translate(cx,cy);g.rotate(angle);
+  // A compact dark cable with a narrow cold highlight; no oversized arrows.
+  linkage(g,11,0,0,length,0,3.4);
+  g.globalAlpha=.75;g.strokeStyle='#b5e5f5';g.lineWidth=.9;
+  g.beginPath();g.moveTo(5,-.7);g.lineTo(length,-.7);g.stroke();
+  if(grip&&!retract&&grip.moved>0.4){
+   const shift=(run.time*120)%16;
+   g.strokeStyle='#e2f9ff';g.lineWidth=1.5;g.globalAlpha=.85;
+   g.beginPath();
+   for(let pos=length-shift;pos>12;pos-=16){g.moveTo(pos-3,-1);g.lineTo(pos+1,-1)}
    g.stroke();
   }
-  part(g,9,length-10,-7,16,14);g.restore();
+  g.globalAlpha=1;
+  part(g,9,length-7,-6,14,12);g.restore();
  }
 }
 function drawDevice(g,w,building=false){
  if(!parts)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
- let offset=null;
+ let offset=run&&w.kind==='ice'?{deployed:true}:null;
  if(run&&w.kind==='lure'){
   const travel=duckTravel(progress)*64/size;offset={x:run.dx*travel,y:run.dy*travel};
  }
@@ -645,7 +648,7 @@ function eligible(z,w,now){
 function reelIceTarget(w,z,prev,progress,now,ops){
  const run=w.run;
  if(prev<ICE_LATCH&&progress>=ICE_LATCH&&eligible(z,w,now)){
-  run.grabbed.set(z,{distance:Math.hypot(w.x+T-z.x-z.w/2,w.y+T-z.y-z.h/2)});
+  run.grabbed.set(z,{distance:Math.hypot(w.x+T-z.x-z.w/2,w.y+T-z.y-z.h/2),moved:0});
   const remaining=(ICE_FREEZE-ICE_LATCH)*spec(w).duration;
   z.fortressIceReady=now+remaining;
   z.trashStopUntil=Math.max(z.trashStopUntil||0,now+remaining);
@@ -658,13 +661,16 @@ function reelIceTarget(w,z,prev,progress,now,ops){
  const travel=Math.min(distance,elapsed*760);
  // Test short steps along the line so neither compact enemies nor a wall
  // can be skipped, even when an entire pull is processed in one update.
+ const grip=run.grabbed.get(z),startX=z.x,startY=z.y;
  const steps=Math.ceil(travel/3);
- for(let step=0;step<steps;step++){
+ for(let step=0;step<steps;step++){ 
   const x=z.x+dx/distance*travel/steps,y=z.y+dy/distance*travel/steps;
   if(y+z.h>550||!ops.canMove?.(z,x,y))break;
   z.x=x;z.y=y;
  }
+ grip.moved=Math.hypot(z.x-startX,z.y-startY);
  if(progress<ICE_FREEZE)return false;
+ grip.releaseX=z.x+z.w/2-w.x-T;grip.releaseY=z.y+z.h*.48-w.y-T;
  const duration=z.boss?.85:2.8;
  z.fortressFrozenUntil=now+duration;z.fortressIceReady=now+duration+2;
  z.trashStopUntil=Math.max(z.trashStopUntil||0,z.fortressFrozenUntil);
