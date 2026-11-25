@@ -3000,9 +3000,18 @@ function fortressContact(z,kind,x=0,y=-1,freeze=null){
  enemyReaction(z,1,{x,y},true);
  if(freeze!==null&&!z.boss){z.hitAt=clock;z.hitHold=freeze;z.hitShakeFrom=clock;z.hitShakeUntil=clock+freeze}
  z.fortressContactCel=enemyAnimationClock;
- // Duck is a harmless shove: only the actor flash, local freeze and shake.
- // Do not emit the ball's explosive pixel debris on each domino contact.
- if(kind==='lure'){feedback(z.boss?'bossHit':'hit');sfx('hit');return}
+ // Reuse the approved monochrome comic impact atlas at the real contact
+ // face. Duck and ice capture never emit explosive/death-like debris.
+ if(kind==='lure'||kind==='ice'){
+  const length=Math.hypot(x,y)||1,dx=x/length,dy=y/length;
+  // The duck pushes away from itself; the ice claw pulls towards itself.
+  const side=kind==='ice'?1:-1;
+  const px=position.x+z.w/2+side*dx*z.w*.38;
+  const py=position.y+z.h/2+side*dy*z.h*.32;
+  const scale=Math.max(.28,Math.min(.72,Math.max(z.w,z.h)/52))*(kind==='ice'?.85:1);
+  queueContact(ballContactFX,px,py,side*dx,side*dy,'enemy',null,scale);
+  feedback(z.boss?'bossHit':'hit');sfx(z.boss?'bosshit':'hit');return;
+ }
  const flash=typeof flashPool!=='undefined'?(flashPool.pop()||{}):{};
  Object.assign(flash,{x:position.x+z.w/2,y:position.y+z.h/2,groundY:position.y+z.h,
   t:0,life:.48,critical:false,spread:Math.max(z.w,z.h),delay:0,
