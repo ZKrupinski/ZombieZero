@@ -20,7 +20,23 @@ assert(game.includes("g.font='bold 15px Arial, sans-serif';g.textAlign='center';
  'Korean citizen bubble font is unchanged');
 assert(game.includes("g.font='400 16px \"Press Start 2P\",monospace'"),'critical font switched');
 assert(game.includes("g.font='400 19px \"Press Start 2P\",monospace'"),'endless wave font switched');
-assert(game.includes("g.font='400 17px \"Press Start 2P\",monospace'"),'stage-clear font switched');
+// V354/V355: test the shared screen-space renderer instead of the retired boxed result.
+const stageStart=game.indexOf('function drawStageAnnouncement(');
+const clearStart=game.indexOf('function drawClear(){');
+const stageSource=game.slice(stageStart,game.indexOf('}',clearStart)+1);
+assert(stageSource.startsWith('function drawStageAnnouncement('));
+const stageCalls=[];
+const stageG={save(){},restore(){},fillText(word,x,y,maxWidth){stageCalls.push({kind:'fill',word,x,y,maxWidth,font:this.font,color:this.fillStyle,blend:this.globalCompositeOperation,blur:this.shadowBlur})},strokeText(word,x,y,maxWidth){stageCalls.push({kind:'stroke',word,x,y,maxWidth,color:this.strokeStyle,width:this.lineWidth})}};
+vm.runInNewContext(stageSource+";drawStageAnnouncement('STAGE 01','#ffffff',36);drawClear()",{g:stageG,W:450,H:710,fxEnabled:true},{timeout:1000});
+for(const [word,color,size] of [['STAGE 01','#ffffff',36],['STAGE CLEAR !','#ffe32b',32]]){
+ const calls=stageCalls.filter(c=>c.word===word);
+ assert(calls.some(c=>c.kind==='stroke'&&c.color==='#000000'&&c.width>=6),'stage title has black outline');
+ assert(calls.some(c=>c.kind==='fill'&&c.color===color&&c.font==='400 '+size+'px "Press Start 2P",monospace'),'stage title uses correct arcade font and color');
+ assert(calls.some(c=>c.kind==='fill'&&c.blend==='lighter'&&c.blur>0),'stage title has additive glow');
+ assert(calls.every(c=>c.x===225&&c.y===355&&c.maxWidth===414),'stage title centered with safe margins');
+}
+assert(game.includes("if(mode==='stageNumber')drawStageAnnouncement("),'stage intro drawn above arena');
+assert(game.includes("if(mode==='stageNumber'){draw();requestAnimationFrame(frame);return}"),'arena renders during title without advancing combat');
 assert(game.includes("g.globalCompositeOperation='lighter'"),'canvas text glow uses ADD');
 assert(html.includes('-v153-arcade-font-glow')&&sw.includes('-v153-arcade-font-glow'),
  'PWA and both scripts/stylesheets use fresh versions');

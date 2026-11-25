@@ -5532,7 +5532,7 @@ function drawStageAnnouncement(word,color,size){
  }
  g.restore();
 }
-function drawClear(){drawStageAnnouncement('STAGE CLEAR!','#ffe32b',32)}
+function drawClear(){drawStageAnnouncement('STAGE CLEAR !','#ffe32b',32)}
 let inputPointer=null,inputX=0;
 function releaseInput(){inputPointer=null}
 function blocksInput(e){return !!e.target?.closest?.('button,a,input,select,textarea,summary,[role="button"],.overlay,.guide')}
