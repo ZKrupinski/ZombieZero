@@ -69,7 +69,13 @@ function refresh(){
  if(materialLabel){
   materialLabel.hidden=!active;
   const amount=materialLabel.querySelector?.('strong');
-  if(amount)amount.textContent=String(summary.balance).padStart(2,'0');
+  // Total includes all standing structures plus unspent stock; pending
+  // construction/demolition changes the used portion, not the total.
+  let installedCost=0;
+  for(const w of walls.values())installedCost+=spec(w).cost;
+  const used=installedCost+summary.cost-summary.refund;
+  const total=installedCost+stock;
+  if(amount)amount.textContent=String(used)+'/'+String(total);
   if(materialLabel.dataset)materialLabel.dataset.empty=String(summary.balance===0);
  }
  if(previewLabel)previewLabel.textContent=
