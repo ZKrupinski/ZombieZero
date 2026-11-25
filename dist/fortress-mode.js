@@ -26,6 +26,7 @@ const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fort
  previewLabel=$('fortress-preview-summary');
 let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1,onReady=null;
 let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
+let starting=false,startToken=0,onStartFeedback=null;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
 const span=w=>w.kind&&w.kind!=='wall'&&w.kind!=='bollard'?2:1;
@@ -65,6 +66,8 @@ function refresh(){
  const hasPreview=pending.size>0,summary=totals();
  actions.hidden=!active||!hasPreview||dragging;
  readyButton.hidden=!active||hasPreview||dragging;
+ readyButton.disabled=starting;
+ if(readyButton.dataset)readyButton.dataset.starting=String(starting);
  if(confirmButton)confirmButton.disabled=!summary.valid;
  if(materialLabel){
   materialLabel.hidden=!active;
@@ -83,7 +86,7 @@ function refresh(){
   (!summary.valid?' · 자재/공간 부족':'');
  for(const {kind,el} of buildButtons)if(el){
   el.setAttribute?.('aria-pressed',String(kind===selectedBuild));
-  el.disabled=hasPreview||dragging;
+  el.disabled=hasPreview||dragging||starting;
   if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
  }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
@@ -177,7 +180,7 @@ function touchLineTo(e,canvas,allowCorner=true){
  }
 }
 function down(e,canvas){
- if(!active||dragging)return false;
+ if(!active||dragging||starting)return false;
  if(e.button!==undefined&&e.button!==0)return false;
  const to=pointerCell(e,canvas);
  if(!to)return false;
@@ -227,11 +230,13 @@ function confirm(){
  pending.clear();refresh();return changed+summary.removes;
 }
 function reset(){
+ starting=false;startToken++;
  occupied.clear();walls.clear();pending.clear();queued=[];stock=0;stage=1;selectedBuild='wall';
  active=false;dragging=false;pointer=null;last=null;touchStroke=null;
  destroyedThisStage=0;lastRefund=0;lastBonus=0;lastHealed=0;refresh();
 }
 function begin(enemies,wave){
+ starting=false;startToken++;
  placementTip='';queued=enemies.splice(0,enemies.length);stage=wave;
  if(wave===1){
   stock=26;lastBonus=26;lastRefund=0;lastHealed=0;destroyedThisStage=0;
@@ -433,7 +438,21 @@ function deploy(target){
  target.push(...queued);queued=[];active=false;cancel();refresh();
  return true;
 }
-function ready(){if(!active||dragging||pending.size)return false;if(typeof onReady==='function')onReady();return true}
+function ready(){if(!active||dragging||pending.size||starting)return false;if(typeof onReady==='function')onReady();return true}
+function startWithFeedback(){
+ if(!active||dragging||pending.size||starting)return false;
+ // Preserve direct ready semantics for non-browser simulation environments.
+ if(typeof window.setTimeout!=='function')return ready();
+ starting=true;const token=++startToken;refresh();
+ if(typeof onStartFeedback==='function')onStartFeedback();
+ const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+ window.setTimeout(()=>{
+  if(token!==startToken||!starting)return;
+  starting=false;refresh();
+  ready();
+ },reduced?80:340);
+ return true;
+}
 function resolve(z,oldX,oldY,dt,onBreak){
  const trace=firstWallOnPath(oldX,oldY,z.x,z.y,z.w,z.h);
  if(!trace){
@@ -652,7 +671,7 @@ if(typeof Image==='function'){
  };image.src=partsURL;
 }
 function selectBuild(kind){
- if(!active||dragging||pending.size||!BUILD_TYPES[kind])return false;
+ if(!active||dragging||starting||pending.size||!BUILD_TYPES[kind])return false;
  placementTip='';selectedBuild=kind;refresh();return true;
 }
 function armReach(w,dx,dy){
@@ -955,9 +974,9 @@ function tick(dt){for(const w of walls.values()){
 }}
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
-if(readyButton)readyButton.addEventListener('click',ready);
-window.ZZFortress={duckKnockPlan,reset,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
- bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
+if(readyButton)readyButton.addEventListener('click',startWithFeedback);
+window.ZZFortress={duckKnockPlan,reset,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,startWithFeedback,
+ bind(fn,feedback){onReady=fn;onStartFeedback=feedback},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),
  getPreview:()=>totals(),getWallHP:(col,row)=>occupied.get(id(col,row))?.hp||0,

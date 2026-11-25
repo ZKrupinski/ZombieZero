@@ -159,3 +159,32 @@
 #fortress-material strong{font-size:clamp(15px,3.3cqh,25px);font-weight:400}
 #fortress-material[data-empty="true"]{color:#ffc288;text-shadow:0 2px 2px #07141a,0 0 7px #ff9259}
 #fortress-material[hidden]{display:none!important}
+
+/* v383: approved bitmap arcade start button and click-only sprite effects. */
+.zz-fortress-builder>#fortress-ready{
+ width:42%;max-width:none;min-width:0;height:auto;aspect-ratio:3.2;
+ padding:0;border:0;border-radius:0;background:transparent url('assets/ui/fortress-start-v383.webp') no-repeat 0 0/100% 320%;
+ box-shadow:none;color:transparent;overflow:visible;isolation:isolate;
+ animation:zz-start-idle-v383 1.05s steps(2,end) infinite;
+}
+#fortress-ready span{display:block;font-size:0}
+#fortress-ready:focus-visible{outline:2px solid #fff7bc;outline-offset:2px}
+#fortress-ready:active,#fortress-ready[data-starting="true"]{
+ background-position:0 45.4545%;animation:none;
+ transform:translate(-50%,-50%) scale(.94);filter:brightness(1.16);
+}
+#fortress-ready[data-starting="true"]{pointer-events:none;animation:zz-start-press-v383 .34s ease-out both}
+#fortress-ready::before,#fortress-ready::after{
+ content:'';position:absolute;pointer-events:none;left:50%;top:50%;width:102%;aspect-ratio:4/3;
+ background:url('assets/ui/fortress-start-v383.webp') no-repeat 0 100%/200% 266.6667%;
+ opacity:0;transform:translate(-50%,-50%) scale(.4);z-index:1;
+}
+#fortress-ready::after{background-position:100% 100%}
+#fortress-ready[data-starting="true"]::before{animation:zz-start-burst-v383 .34s ease-out both}
+#fortress-ready[data-starting="true"]::after{animation:zz-start-ring-v383 .34s ease-out both}
+@keyframes zz-start-idle-v383{0%,100%{filter:brightness(1)}50%{filter:brightness(1.28)}}
+@keyframes zz-start-press-v383{0%{transform:translate(-50%,-50%) scale(.91);filter:brightness(1.35)}40%{transform:translate(-50%,-50%) scale(1.04);filter:brightness(1.2)}100%{transform:translate(-50%,-50%) scale(1);filter:brightness(1)}}
+@keyframes zz-start-burst-v383{0%{opacity:0;transform:translate(-50%,-50%) scale(.45)}18%{opacity:1}65%{opacity:.65;transform:translate(-50%,-50%) scale(1.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}}
+@keyframes zz-start-ring-v383{0%{opacity:0;transform:translate(-50%,-50%) scale(.35)}23%{opacity:.95}100%{opacity:0;transform:translate(-50%,-50%) scale(1.65)}}
+#fortress-material{top:72.6%;z-index:2}
+@media(prefers-reduced-motion:reduce){.zz-fortress-builder>#fortress-ready,#fortress-ready[data-starting="true"]{animation:none}#fortress-ready[data-starting="true"]::before,#fortress-ready[data-starting="true"]::after{animation:none}}
