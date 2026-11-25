@@ -1290,7 +1290,8 @@ function tryStartBreakouts(){
  for(let k=0;k<count;k++){
   const choices=[];
   for(const z of living){
-   if(z.moleHop||z.wormParade||Number.isInteger(z.eliteKind)||chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
+   if(z.moleHop)continue;
+   if(z.wormParade||Number.isInteger(z.eliteKind)||chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
       !Number.isInteger(z.col)||!Number.isInteger(z.row)||
       z.row===0||z.y+z.h>=DEFENSE_Y-125||
       (z.breakoutCooldownUntil||0)>clock||
@@ -1688,8 +1689,8 @@ function tryReactiveDodges(dt){
  const radius=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1));
  for(const z of foes){
   const profile=dodgeProfile(z);
-  if(!profile||z.moleHop||z.wormParade||z.hitHold>0||(z.recoil||0)>.02||
-     (z.knockTime||0)>0||Number.isFinite(z.breakoutTime)||
+  if(!profile||z.wormParade||z.hitHold>0||(z.recoil||0)>.02||
+     (z.knockTime||0)>0||z.moleHop||Number.isFinite(z.breakoutTime)||
      Number.isFinite(z.arrivalTime)||z.eliteMotion?.tag==='evade'||
      clock<(z.dodgeReadyAt||0)||z.y+z.h>DEFENSE_Y-48)continue;
   for(const b of balls){
