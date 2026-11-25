@@ -8,14 +8,14 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 const scale=+(game.match(/if\(selectedHero===3\)g\.scale\((\d+\.\d+),\1\)/)||[])[1];
 assert(Number.isFinite(scale),'Wrench must have a fixed bitmap correction scale');
-const aceSize=+(game.match(/const size=r\*(3\.\d+);\s*g\.drawImage\(img,0,0,frameW,frameH,-size\/2,-size\/2,size,size\)/)||[])[1];
+const aceSize=+(game.match(/const size=r\*(3\.\d+);\s*(?:if\(!drawSkillTintedFrame\([^\n]+?\)\))?g\.drawImage\(img,0,0,frameW,frameH,-size\/2,-size\/2,size,size\)/)||[])[1];
 assert(Number.isFinite(aceSize),'read actual Ace tennis bitmap draw diameter');
 const wrenchDiameter=scale*2;
 assert(wrenchDiameter>aceSize*1.05,'steel ball should now be noticeably larger than Ace');
 assert(wrenchDiameter<aceSize*1.15,'steel ball should only be slightly larger than Ace');
 assert.equal(scale,1.85);
 assert.equal(aceSize,3.40);
-assert(game.includes("if(selectedHero===3 && $('wrench-ball-art')?.naturalWidth){g.drawImage($('wrench-ball-art'),-r,-r,r*2,r*2)}"),
+assert(game.includes("if(selectedHero===3 && $('wrench-ball-art')?.naturalWidth)")&&game.includes("g.drawImage($('wrench-ball-art'),-r,-r,r*2,r*2)"),
  'same Wrench bitmap keeps its visual design and frame-free rotation');
 assert(html.includes('id="wrench-ball-art" src="assets/ip/wrench-steel-ball-v265.webp"'),
  'reuse the approved steel sphere source art');

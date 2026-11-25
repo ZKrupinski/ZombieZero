@@ -35,7 +35,7 @@ vm.runInContext("spawnContact(b,200,16,0,1,'ceiling')",env);
 assert.equal(vm.runInContext('ballContactFX.length',env),2,'cooldown suppresses duplicate immediate hit');
 const additional={held:false};env.other=additional;
 for(let i=0;i<32;i++){env.clock+=.1;vm.runInContext("spawnContact(other,414,200,-1,0,'wall')",env)}
-assert.equal(vm.runInContext('ballContactFX.length',env),20,'active hit effects remain bounded');
+assert.equal(vm.runInContext('ballContactFX.length',env),34,'all accepted contacts retained until natural expiry');
 assert(src.includes("spawnContact(b,b.x,b.y,1,0,'wall')"),'left wall collision feeds FX');
 assert(src.includes("spawnContact(b,b.x,b.y,-1,0,'wall')"),'right wall collision feeds FX');
 assert(src.includes("spawnContact(b,b.x,b.y,0,1,'ceiling')"),'ceiling uses vertical face');

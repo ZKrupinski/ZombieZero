@@ -69,10 +69,10 @@ skills=new Set(['fire','pierce','power']);
 vm.runInContext('drawTrailGroundReflections('+JSON.stringify(ball)+',12,'+JSON.stringify(path)+')',context);
 const combined=gradients.slice(defaultCount);
 assert(combined.length===expectedPools,'combined skills stay bounded over the full trail');
-assert(combined.some(x=>x.stops[0][1].startsWith('rgba(255,155,62,')),
- 'flame trail lights the ground in warm orange');
-assert(combined.some(x=>x.stops[0][1].startsWith('rgba(95,217,255,')),
- 'pierce trail lights the ground in electric blue');
+assert(combined.some(x=>x.stops[0][1].startsWith('rgba(250,76,201,')),
+ 'mixed trail lights the ground pink near the head');
+assert(combined.some(x=>x.stops[0][1].startsWith('rgba(164,125,255,')),
+ 'mixed trail lights the ground violet near the tail');
 const beforeDisabled=gradients.length;
 context.fxEnabled=false;
 vm.runInContext('drawTrailGroundReflections('+JSON.stringify(ball)+',8,'+JSON.stringify(path)+')',context);

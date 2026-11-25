@@ -453,13 +453,14 @@ const TRAIL_GROUND_HERO_COLORS=[
 ];
 const SCARLET_DIAMOND_GROUND_ACCENT=[245,187,237]; // subtle violet-pink facet
 // Stable source arrays allow the color stamps to remain cached between frames.
-const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[255,139,51]],TRAIL_GROUND_PIERCE=[[89,213,255]],TRAIL_GROUND_POWER=[[255,214,110]];
+// Tail-to-head ramps, stable RGB arrays for the cached floor stamps.
+const TRAIL_GROUND_FIRE_PIERCE=[[164,125,255],[179,105,255],[198,91,249],[218,83,239],[237,76,225],[250,76,201]],TRAIL_GROUND_FIRE=[[255,139,51],[255,120,48],[255,100,46],[255,82,45],[255,64,48],[255,47,53]],TRAIL_GROUND_PIERCE=[[89,213,255],[77,192,255],[68,172,255],[57,152,255],[50,129,255],[47,105,255]],TRAIL_GROUND_POWER=[[255,214,110]];
  // V345: stable color identities, pre-rasterized before the first pickup.
- const TRAIL_HEAD_PIERCE=[81,204,255],TRAIL_HEAD_FIRE=[255,133,47],TRAIL_HEAD_POWER=[255,219,111];
+ const TRAIL_HEAD_PIERCE=[47,105,255],TRAIL_HEAD_FIRE=[255,47,53],TRAIL_HEAD_MIXED=[250,76,201],TRAIL_HEAD_POWER=[255,219,111];
  const PICKUP_LIGHT_COLORS=Object.fromEntries(Object.entries(typeof SKILLS!=='undefined'?SKILLS:{}).map(([k,v])=>[k,typeof effectLightRGB==='function'?effectLightRGB(v.color):[255,210,112]]));
  const TRAIL_WARM_COLORS=[...TRAIL_GROUND_HERO_COLORS,SCARLET_DIAMOND_GROUND_ACCENT,
   ...TRAIL_GROUND_FIRE_PIERCE,...TRAIL_GROUND_FIRE,...TRAIL_GROUND_PIERCE,...TRAIL_GROUND_POWER,
-  TRAIL_HEAD_PIERCE,TRAIL_HEAD_FIRE,TRAIL_HEAD_POWER,...Object.values(PICKUP_LIGHT_COLORS),
+  TRAIL_HEAD_PIERCE,TRAIL_HEAD_FIRE,TRAIL_HEAD_MIXED,TRAIL_HEAD_POWER,...Object.values(PICKUP_LIGHT_COLORS),
    [87,213,255],[255,226,142],[255,194,105],[169,239,255],[255,248,197],[255,231,169],[255,125,39],[255,174,70],[255,210,112]];
  let trailWarmIndex=0;
  function warmTrailLighting(){
@@ -500,7 +501,7 @@ function drawTrailGroundReflections(b,r,path){
   const normal=!fire&&!pierce&&!power;
   const rgb=normal&&selectedHero===4&&i%5===3?
     SCARLET_DIAMOND_GROUND_ACCENT:
-    normal?(defaultColors[selectedHero]||defaultColors[0]):colors[i%colors.length];
+    normal?(defaultColors[selectedHero]||defaultColors[0]):colors[Math.round((1-d/length)*(colors.length-1))];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
      baseAlpha*.68*fade*variation,30,.82,true);
@@ -578,13 +579,15 @@ function drawEffectLightSpills(){
  for(const b of balls){
   if(b.held)continue;
   const r=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1)),drop=ballProjectionDrop(r);
-  if(has('pierce')){
-   drawProjectedLightSpill(b.x,b.y,(has('power')?24:20)*(typeof miniBallScale==='function'?miniBallScale():1),
-     TRAIL_HEAD_PIERCE,has('fire')?.10:.16,drop,.82,true,false);
-  }
-  if(has('fire')){
+  if(has('fire')&&has('pierce')){
    drawProjectedLightSpill(b.x,b.y,(has('power')?28:24)*(typeof miniBallScale==='function'?miniBallScale():1),
-     TRAIL_HEAD_FIRE,has('pierce')?.10:.16,drop,.82,true,false);
+     TRAIL_HEAD_MIXED,.19,drop,.82,true,false);
+  }else if(has('pierce')){
+   drawProjectedLightSpill(b.x,b.y,(has('power')?24:20)*(typeof miniBallScale==='function'?miniBallScale():1),
+     TRAIL_HEAD_PIERCE,.16,drop,.82,true,false);
+  }else if(has('fire')){
+   drawProjectedLightSpill(b.x,b.y,(has('power')?28:24)*(typeof miniBallScale==='function'?miniBallScale():1),
+     TRAIL_HEAD_FIRE,.16,drop,.82,true,false);
   }
   if(has('power')&&!has('fire')&&!has('pierce'))
    drawProjectedLightSpill(b.x,b.y,26*(typeof miniBallScale==='function'?miniBallScale():1),TRAIL_HEAD_POWER,.17,drop,.82,true,false);
@@ -3979,16 +3982,17 @@ function drawBallStateAura(b,r){
  const shell=r*1.62,glowLimit=r*1.72;
  const layers=Number(fire)+Number(pierce)+Number(power);
  const balance=layers>1?.7:1;
- const hue=fire&&pierce?'#d7e8df':fire?'#ff8c45':pierce?'#67dfff':'#f0d775';
+ const hue=fire&&pierce?'#ef56d8':fire?'#ff4043':pierce?'#397bff':'#f0d775';
+ const outerHue=fire&&pierce?'#ae85ff':fire?'#ff9a42':pierce?'#80ddff':hue;
  g.save();g.translate(b.x,b.y);
  g.globalCompositeOperation='lighter';g.shadowBlur=0;g.lineCap='round';
  // A feathered *internal* light falloff replaces hard square coronas.
  const gradient=g.createRadialGradient?.(0,0,r*.72,0,0,glowLimit);
  if(gradient&&typeof gradient.addColorStop==='function'){
   gradient.addColorStop(0,'#ffffff00');
-  gradient.addColorStop(.50,hue+'12');
-  gradient.addColorStop(.79,hue+'42');
-  gradient.addColorStop(1,hue+'00');
+  gradient.addColorStop(.50,hue+'26');
+  gradient.addColorStop(.79,outerHue+'42');
+  gradient.addColorStop(1,outerHue+'00');
   g.globalAlpha=balance*(b.held?.57:.85);
   g.fillStyle=gradient;g.beginPath();g.arc(0,0,glowLimit,0,Math.PI*2);g.fill();
  }
@@ -4170,8 +4174,8 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  const col=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
- const glow=fire&&pierce?'#bce6e8':pierce?'#7bdcff':
-   fire?'#ffa354':power?'#ffe0a3':col.main;
+ const glow=fire&&pierce?'#ed58df':pierce?'#468bff':
+   fire?'#ff5543':power?'#ffe0a3':col.main;
  const end=path[path.length-1],head=path[0];
  const grad=g.createLinearGradient?.(end.x,end.y,head.x,head.y);
  if(grad&&typeof grad.addColorStop==='function'){
@@ -4200,7 +4204,9 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
 // A coincident head/tail falls back to solid color instead of disappearing.
 function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
  const head=path[0],tail=path[path.length-1];
- const color=fire&&pierce?'#ffbf80':fire?'#ffb060':'#a0e9ff';
+ const color=fire&&pierce?'#f747ce':fire?'#ff3943':'#326fff';
+ const middle=fire&&pierce?'#cc67f4':fire?'#ff7742':'#409eff';
+ const tailColor=fire&&pierce?'#aa9aff':fire?'#ffb060':'#a0e9ff';
  g.save();g.lineCap='round';g.lineJoin='round';g.shadowBlur=0;
  g.globalCompositeOperation='lighter';g.globalAlpha=.90*bloomScale;
  // One stroke composites overlapping joins only once: no bright dotted seams.
@@ -4212,8 +4218,8 @@ function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
  const useGradient=displacement>Math.min(24,path[path.length-1].s*.33);
  const gradient=useGradient&&g.createLinearGradient?.(tail.x,tail.y,head.x,head.y);
  if(gradient&&typeof gradient.addColorStop==='function'){
-  gradient.addColorStop(0,color+'00');gradient.addColorStop(.35,color+'95');
-  gradient.addColorStop(1,color+'ff');
+  gradient.addColorStop(0,tailColor+'00');gradient.addColorStop(.35,tailColor+'95');
+  gradient.addColorStop(.68,middle+'dc');gradient.addColorStop(1,color+'ff');
  }
  g.strokeStyle=gradient||color;g.lineWidth=r*1.52;
  g.beginPath();g.moveTo(head.x,head.y);
@@ -4465,6 +4471,29 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
  else if(typeof has==='function'&&has('power')){sx=clamp(sx,.94,1);sy=clamp(sy,.94,1)}
  return {index,sx,sy,rotation,spin};
 }
+const skillBallTintCache=new WeakMap();
+function drawSkillTintedFrame(img,sx,sy,sw,sh,dx,dy,dw,dh){
+ if(typeof has!=='function'||typeof fxEnabled!=='undefined'&&!fxEnabled||!img)return false;
+ const fire=has('fire'),pierce=has('pierce');
+ if(!fire&&!pierce||typeof document==='undefined'||!document.createElement)return false;
+ const tint=fire&&pierce?'#ed52db':fire?'#ff3943':'#327aff';
+ const rim=fire&&pierce?'#b17bff':fire?'#ff9b46':'#78c9ff';
+ const key=[sx,sy,sw,sh,tint].join(',');
+ let frames=skillBallTintCache.get(img);if(!frames){frames=new Map();skillBallTintCache.set(img,frames)}
+ let canvas=frames.get(key);
+ if(!canvas){
+  canvas=document.createElement('canvas');canvas.width=Math.ceil(sw);canvas.height=Math.ceil(sh);
+  const ctx=canvas.getContext('2d');if(!ctx||typeof ctx.drawImage!=='function'||typeof ctx.createRadialGradient!=='function')return false;
+  const w=canvas.width,h=canvas.height;
+  ctx.drawImage(img,sx,sy,sw,sh,0,0,w,h);
+  const grad=ctx.createRadialGradient(w*.5,h*.48,0,w*.5,h*.48,Math.min(w,h)*.48);
+  if(!grad||typeof grad.addColorStop!=='function')return false;
+  grad.addColorStop(0,tint+'a0');grad.addColorStop(.55,tint+'75');grad.addColorStop(1,rim+'35');
+  ctx.globalCompositeOperation='source-atop';ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+  frames.set(key,canvas);
+ }
+ g.drawImage(canvas,dx,dy,dw,dh);return true;
+}
 function drawHeroBallSprite(b,r,col){
  if(selectedHero===4){
   // Fixed round silhouette; only the eight internal refraction/glint frames animate.
@@ -4476,7 +4505,7 @@ function drawHeroBallSprite(b,r,col){
   g.scale(pose.sx,pose.sy); // elastic hit response without rotating the facet art
   const size=r*3.25;
   if(gem?.naturalWidth===384&&gem.naturalHeight===192){
-   g.drawImage(gem,(frame%4)*96,Math.floor(frame/4)*96,96,96,-size/2,-size/2,size,size);
+   if(!drawSkillTintedFrame(gem,(frame%4)*96,Math.floor(frame/4)*96,96,96,-size/2,-size/2,size,size))g.drawImage(gem,(frame%4)*96,Math.floor(frame/4)*96,96,96,-size/2,-size/2,size,size);
   }else{
    g.fillStyle='#b3e7ff';g.beginPath();g.arc(0,0,r*1.18,0,Math.PI*2);g.fill();
    g.fillStyle='#ffffff';g.fillRect(-r*.3,-r*.6,r*.6,r*.6);
@@ -4499,10 +4528,10 @@ function drawHeroBallSprite(b,r,col){
  // This visual correction applies equally to held and airborne steel balls.
  if(selectedHero===3)g.scale(1.85,1.85);
  else if(selectedHero===1)g.scale(1.08,1.08);
- if(selectedHero===3 && $('wrench-ball-art')?.naturalWidth){g.drawImage($('wrench-ball-art'),-r,-r,r*2,r*2)}else if(ready){
+ if(selectedHero===3 && $('wrench-ball-art')?.naturalWidth){const steel=$('wrench-ball-art');if(!drawSkillTintedFrame(steel,0,0,steel.naturalWidth,steel.naturalHeight,-r,-r,r*2,r*2))g.drawImage($('wrench-ball-art'),-r,-r,r*2,r*2)}else if(ready){
   const frameW=img.naturalWidth/4,frameH=img.naturalHeight/2;
   const size=r*3.40;
-  g.drawImage(img,0,0,frameW,frameH,-size/2,-size/2,size,size);
+  if(!drawSkillTintedFrame(img,0,0,frameW,frameH,-size/2,-size/2,size,size))g.drawImage(img,0,0,frameW,frameH,-size/2,-size/2,size,size);
  }else{
   g.fillStyle=col;g.beginPath();g.arc(0,0,r*1.11,0,Math.PI*2);g.fill();
   g.strokeStyle='#ffffcf';g.lineWidth=1.5;
