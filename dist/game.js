@@ -2967,8 +2967,9 @@ function applyKnockback(z,impact,n=1){
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockChain=actor!==z;
-   actor.knockDelay=duckRipple?depth*DUCK_CHAIN_STEP:(pos.chainDepth||0)>0
+   actor.knockDelay=(pos.chainDepth||0)>0
      ?HIT_FREEZE_NORMAL+((pos.chainDepth||0)-1)*CHAIN_KNOCK_STEP:0;
+   if(duckRipple)actor.knockDelay=depth*DUCK_CHAIN_STEP;
    // Duck contacts stagger individually before each reserved collider tween.
    actor.knockFreeze=actor===z?Math.max(0,(actor.hitShakeUntil||0)-clock):duckRipple?DUCK_CHAIN_FREEZE:0;
    actor.knockDuration=actor.knockDelay+actor.knockFreeze+KNOCK_TWEEN_LIFE;
@@ -2998,6 +2999,9 @@ function fortressContact(z,kind,x=0,y=-1,freeze=null){
  enemyReaction(z,1,{x,y},true);
  if(freeze!==null&&!z.boss){z.hitAt=clock;z.hitHold=freeze;z.hitShakeFrom=clock;z.hitShakeUntil=clock+freeze}
  z.fortressContactCel=enemyAnimationClock;
+ // Duck is a harmless shove: only the actor flash, local freeze and shake.
+ // Do not emit the ball's explosive pixel debris on each domino contact.
+ if(kind==='lure'){feedback(z.boss?'bossHit':'hit');sfx('hit');return}
  const flash=typeof flashPool!=='undefined'?(flashPool.pop()||{}):{};
  Object.assign(flash,{x:position.x+z.w/2,y:position.y+z.h/2,groundY:position.y+z.h,
   t:0,life:.48,critical:false,spread:Math.max(z.w,z.h),delay:0,
