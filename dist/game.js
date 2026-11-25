@@ -2444,7 +2444,7 @@ function showCampaignComic(){
  session.timer=setTimeout(finish,5000);
  document.body.appendChild(panel);
  try{panel.focus({preventScroll:true})}catch{}
- img.src='assets/stages/comics/stage-'+String(stage).padStart(2,'0')+(stage>=10&&stage<=12?'.png':'.jpg');
+ img.src='assets/stages/comics/stage-'+String(stage).padStart(2,'0')+(stage===10||stage===11?'.png':'.jpg')+(stage===12?'?v=359':'');
 }
 
 function advanceStage(){
