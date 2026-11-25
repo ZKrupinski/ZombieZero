@@ -43,6 +43,9 @@ const gap=bang.x-bang.maxWidth/2-(clear.x+clear.maxWidth/2);
 assert(gap>0&&gap<28*.65,'exclamation gap smaller than a full glyph, not touching');
 assert(Math.abs((clear.x-clear.maxWidth/2+bang.x+bang.maxWidth/2)/2-225)<.001,'clear group centered');
 assert(game.includes("drawStageAnnouncement('STAGE '+String(wave).padStart(2,'0'),'#ffffff',32)"),'intro uses reduced size');
+// A limited canvas context must never crash the clearing transition.
+const noMetrics={save(){},restore(){},measureText(){},fillText(word,x,y,width){assert(Number.isFinite(x+y+width))},strokeText(word,x,y,width){assert(Number.isFinite(x+y+width))}};
+vm.runInNewContext(stageSource+';drawClear()',{g:noMetrics,W:450,H:710,fxEnabled:true},{timeout:1000});
 assert(game.includes("if(mode==='stageNumber')drawStageAnnouncement("),'stage intro drawn above arena');
 assert(game.includes("if(mode==='stageNumber'){draw();requestAnimationFrame(frame);return}"),'arena renders during title without advancing combat');
 assert(game.includes("g.globalCompositeOperation='lighter'"),'canvas text glow uses ADD');

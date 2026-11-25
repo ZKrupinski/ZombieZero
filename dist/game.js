@@ -5527,7 +5527,10 @@ function drawStageAnnouncement(word,color,size){
  g.font='400 '+size+'px "Press Start 2P",monospace';
  g.lineJoin='round';g.lineCap='round';
  const parts=word.endsWith(' !')?[word.slice(0,-2),'!']:[word];
- const widths=parts.map(p=>g.measureText(p).width);
+ const widths=parts.map(p=>{
+  const width=g.measureText?.(p)?.width;
+  return Number.isFinite(width)&&width>0?width:p.length*size;
+ });
  const gap=parts.length>1?size*.42:0;
  const natural=widths.reduce((a,b)=>a+b,0)+gap;
  const fit=Math.min(1,(W-36)/Math.max(1,natural));
