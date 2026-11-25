@@ -552,10 +552,22 @@ function paintMachine(g,kind,time,pulse,offset=null){
   part(g,8,3,9,58,54);
  }
 }
+// Dedicated high-DPI picker artwork: render the original bitmap parts
+// directly into a 256px UI canvas, never enlarge the old 64px composite.
+// Gameplay sprites and their animation geometry are deliberately untouched.
 function makeDeviceIcons(){
+ const resolution=256;
  for(const {kind,el} of buildButtons){
-  const q=el?.querySelector?.('canvas')?.getContext?.('2d');if(!q)continue;
-  q.clearRect(0,0,64,64);paintMachine(q,kind,0,kind==='bollard'?1:0);
+  const icon=el?.querySelector?.('canvas');if(!icon)continue;
+  if(icon.width!==resolution)icon.width=resolution;
+  if(icon.height!==resolution)icon.height=resolution;
+  const q=icon.getContext?.('2d');if(!q)continue;
+  q.clearRect(0,0,resolution,resolution);
+  q.save();q.scale(resolution/64,resolution/64);
+  q.imageSmoothingEnabled=true;q.imageSmoothingQuality='high';
+  // Same exact source parts, colors, angle and assembled idle silhouette.
+  paintMachine(q,kind,0,kind==='bollard'?1:0);
+  q.restore();
  }
 }
 if(typeof Image==='function'){
