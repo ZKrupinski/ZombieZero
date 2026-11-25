@@ -7,15 +7,16 @@
 const X=38,Y=82,T=22,COLS=17,ROWS=20,MAX_HP=30,MAX_WALLS=180;
 const FORTRESS_SIDE_INSET=4;
 const FIELD_LEFT=X+FORTRESS_SIDE_INSET,FIELD_RIGHT=X+COLS*T-FORTRESS_SIDE_INSET;
+const occupied=new Map(); // Each occupied tile points to its single structure.
 const walls=new Map(),pending=new Map();
-// V366: one tile per device; original barricade remains the cheapest option.
+// Special devices occupy a four-by-four footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:70,cycle:4.5,desc:'좀비를 옆으로 유인 → 위쪽으로 밀어냄'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,cycle:.85,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:6,hp:24,range:57,cycle:7,desc:'주변 최대 4마리를 2.2초 결빙'}
 };
-let selectedBuild='wall',deviceTime=0;
+let selectedBuild='wall',deviceTime=0,placementTip='';
 const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
 const buildButtons=['wall','lure','saw','ice'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
 const $=id=>document.getElementById(id);
@@ -27,6 +28,14 @@ let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1
 let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
+const span=w=>w.kind&&w.kind!=='wall'?4:1;
+function footprint(w,visit){
+ for(let row=w.row;row<w.row+span(w);row++)for(let col=w.col;col<w.col+span(w);col++)visit(id(col,row));
+}
+function removeStructure(w){
+ walls.delete(w.id);
+ footprint(w,key=>occupied.delete(key));
+}
 const valid=(col,row)=>col>=0&&col<COLS&&row>=0&&row<ROWS;
 function pointerPosition(e,canvas){
  const r=canvas.getBoundingClientRect();
@@ -73,12 +82,20 @@ function refresh(){
   if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
  }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
-  :stock?BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
+  :placementTip?placementTip:stock?(selectedBuild==='wall'?'':'4×4칸 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
   :'자재 0 · 기존 구조물 철거로 자재 확보 가능';
 }
 function addCell(t){
- if(!t||pending.has(t.id))return;
- const current=walls.get(t.id);
+ if(!t)return;
+ const current=occupied.get(t.id);
+ if(current)t=cell(current.col,current.row);
+ else if(selectedBuild!=='wall'){
+  t=cell(Math.min(t.col,COLS-4),Math.min(t.row,ROWS-4));
+  let blocked=false;
+  footprint({...t,kind:selectedBuild},key=>{if(occupied.has(key))blocked=true});
+  if(blocked){placementTip='설치하려면 빈 4×4칸이 필요합니다';return}
+ }
+ if(pending.has(t.id))return;
  const action=current?'remove':'build';
  if(!action)return;
  // Apply the budget BEFORE displaying each dragged tile. Demolition
@@ -159,7 +176,7 @@ function down(e,canvas){
  if(e.button!==undefined&&e.button!==0)return false;
  const to=pointerCell(e,canvas);
  if(!to)return false;
- pending.clear();dragging=true;pointer=e.pointerId;last=null;
+ placementTip='';pending.clear();dragging=true;pointer=e.pointerId;last=null;
  const origin=pointerPosition(e,canvas);
  touchStroke=e.pointerType==='touch'?{originX:origin.x,originY:origin.y,anchor:to,axis:null}:null;
  if(selectedBuild==='wall')lineTo(to);else addCell(to);refresh();
@@ -193,23 +210,24 @@ function confirm(){
  if(!summary.valid)return 0;
  // Refund demolished blocks first, then use that material for building.
  // Damaged survivors are restored automatically at the NEXT wave for free.
- for(const t of pending.values())if(t.action==='remove'){const old=walls.get(t.id);if(old&&walls.delete(t.id))stock+=spec(old).cost;}
+ for(const t of pending.values())if(t.action==='remove'){const old=walls.get(t.id);if(old){removeStructure(old);stock+=spec(old).cost}}
  let changed=0;
  for(const t of pending.values()){
   if(t.action!=='build'||walls.has(t.id)||walls.size>=MAX_WALLS)continue;
   const type=spec(t);
   if(stock<type.cost)break;
-  walls.set(t.id,{...t,hp:type.hp,hit:.12,cooldown:0,pulse:0});stock-=type.cost;changed++;
+  const structure={...t,hp:type.hp,hit:.12,cooldown:0,pulse:0};
+  walls.set(t.id,structure);footprint(structure,key=>occupied.set(key,structure));stock-=type.cost;changed++;
  }
  pending.clear();refresh();return changed+summary.removes;
 }
 function reset(){
- walls.clear();pending.clear();queued=[];stock=0;stage=1;selectedBuild='wall';deviceTime=0;
+ occupied.clear();walls.clear();pending.clear();queued=[];stock=0;stage=1;selectedBuild='wall';deviceTime=0;
  active=false;dragging=false;pointer=null;last=null;touchStroke=null;
  destroyedThisStage=0;lastRefund=0;lastBonus=0;lastHealed=0;refresh();
 }
 function begin(enemies,wave){
- queued=enemies.splice(0,enemies.length);stage=wave;
+ placementTip='';queued=enemies.splice(0,enemies.length);stage=wave;
  if(wave===1){
   stock=26;lastBonus=26;lastRefund=0;lastHealed=0;destroyedThisStage=0;
  }else{
@@ -225,13 +243,13 @@ function begin(enemies,wave){
  active=true;dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh();
 }
 function intersects(x,y,w,h,other,margin=0){
- return x<other.x+T+margin&&x+w>other.x-margin&&y<other.y+T+margin&&y+h>other.y-margin;
+ return x<other.x+T*span(other)+margin&&x+w>other.x-margin&&y<other.y+T*span(other)+margin&&y+h>other.y-margin;
 }
 function firstWall(x,y,w,h){
  const c0=Math.max(0,Math.floor((x-X)/T)-1),c1=Math.min(COLS-1,Math.floor((x+w-X)/T)+1);
  const r0=Math.max(0,Math.floor((y-Y)/T)-1),r1=Math.min(ROWS-1,Math.floor((y+h-Y)/T)+1);
  for(let row=r0;row<=r1;row++)for(let col=c0;col<=c1;col++){
-  const wall=walls.get(id(col,row));if(wall&&intersects(x,y,w,h,wall))return wall;
+  const wall=occupied.get(id(col,row));if(wall&&intersects(x,y,w,h,wall))return wall;
  }
  return null;
 }
@@ -290,9 +308,9 @@ function bounceBall(ball,oldX,oldY,radius){
  const r0=Math.max(0,Math.floor((by-r-Y)/T)),r1=Math.min(ROWS-1,Math.floor((by+r-Y)/T));
  let best=null;
  for(let row=r0;row<=r1;row++)for(let col=c0;col<=c1;col++){
-  const wall=walls.get(id(col,row));if(!wall)continue;
-  const nearX=Math.max(wall.x,Math.min(wall.x+T,bx));
-  const nearY=Math.max(wall.y,Math.min(wall.y+T,by));
+  const wall=occupied.get(id(col,row));if(!wall)continue;
+  const nearX=Math.max(wall.x,Math.min(wall.x+T*span(wall),bx));
+  const nearY=Math.max(wall.y,Math.min(wall.y+T*span(wall),by));
   const dx=bx-nearX,dy=by-nearY;
   if(dx*dx+dy*dy>r*r)continue;
   // Sweep the previous and current ball centers against expanded sides.
@@ -305,18 +323,18 @@ function bounceBall(ball,oldX,oldY,radius){
    if(t>=-1e-6&&t<=1+1e-6)candidates.push({axis,nx,ny,t:Math.max(0,t)});
   };
   if(sweepX>0)test('x',-1,0,wall.x-r,oldX,sweepX);
-  if(sweepX<0)test('x',1,0,wall.x+T+r,oldX,sweepX);
+  if(sweepX<0)test('x',1,0,wall.x+T*span(wall)+r,oldX,sweepX);
   if(sweepY>0)test('y',0,-1,wall.y-r,oldY,sweepY);
-  if(sweepY<0)test('y',0,1,wall.y+T+r,oldY,sweepY);
+  if(sweepY<0)test('y',0,1,wall.y+T*span(wall)+r,oldY,sweepY);
   candidates.sort((a,b)=>a.t-b.t);
   let face=candidates.find(f=>f.nx*ball.vx+f.ny*ball.vy<0);
   if(!face){
    // Handles an initially overlapping center without repeated flip-flops.
    const sides=[
     {axis:'x',nx:-1,ny:0,depth:Math.abs(bx-(wall.x-r))},
-    {axis:'x',nx:1,ny:0,depth:Math.abs(bx-(wall.x+T+r))},
+    {axis:'x',nx:1,ny:0,depth:Math.abs(bx-(wall.x+T*span(wall)+r))},
     {axis:'y',nx:0,ny:-1,depth:Math.abs(by-(wall.y-r))},
-    {axis:'y',nx:0,ny:1,depth:Math.abs(by-(wall.y+T+r))}
+    {axis:'y',nx:0,ny:1,depth:Math.abs(by-(wall.y+T*span(wall)+r))}
    ];
    sides.sort((a,b)=>a.depth-b.depth);
    face=sides.find(f=>f.nx*ball.vx+f.ny*ball.vy<0);
@@ -329,17 +347,17 @@ function bounceBall(ball,oldX,oldY,radius){
  const {wall,axis,nx,ny}=best;
  const pad=.15;
  if(axis==='x'){
-  ball.x=nx<0?wall.x-r-pad:wall.x+T+r+pad;
+  ball.x=nx<0?wall.x-r-pad:wall.x+T*span(wall)+r+pad;
   ball.vx=nx<0?-Math.abs(ball.vx):Math.abs(ball.vx);
  }else{
-  ball.y=ny<0?wall.y-r-pad:wall.y+T+r+pad;
+  ball.y=ny<0?wall.y-r-pad:wall.y+T*span(wall)+r+pad;
   ball.vy=ny<0?-Math.abs(ball.vy):Math.abs(ball.vy);
  }
  wall.hit=Math.max(wall.hit||0,.075); // cosmetic flash only, no HP mutation
- return {axis,nx,ny,x:axis==='x'?(nx<0?wall.x:wall.x+T):
-   Math.max(wall.x,Math.min(wall.x+T,bx)),
-  y:axis==='y'?(ny<0?wall.y:wall.y+T):
-   Math.max(wall.y,Math.min(wall.y+T,by))};
+ return {axis,nx,ny,x:axis==='x'?(nx<0?wall.x:wall.x+T*span(wall)):
+   Math.max(wall.x,Math.min(wall.x+T*span(wall),bx)),
+  y:axis==='y'?(ny<0?wall.y:wall.y+T*span(wall)):
+   Math.max(wall.y,Math.min(wall.y+T*span(wall),by))};
 }
 function clearPlacement(z,placed,x,y){
  if(x<FIELD_LEFT||x+z.w>FIELD_RIGHT||y<35||y+z.h>555||firstWall(x,y,z.w,z.h))return false;
@@ -429,7 +447,7 @@ function resolve(z,oldX,oldY,dt,onBreak){
  if(z.fortressBite>=.78){
   const damage=Math.floor(z.fortressBite/.78);
   z.fortressBite%=.78;hit.hp-=damage;hit.hit=.18;hit.biteShake=.18;
-  if(hit.hp<=0){walls.delete(hit.id);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T/2,hit.y+T/2)}
+  if(hit.hp<=0){removeStructure(hit);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T*span(hit)/2,hit.y+T*span(hit)/2)}
  }
  return true;
 }
@@ -492,12 +510,20 @@ function deviceBitmap(kind){
  box(7,37,50,20,'#222e35');box(7,32,43,19,'#60717b');box(50,34,7,17,'#374d55');
  box(9,29,42,10,'#b4c4bf');box(10,48,37,4,'#3a5058');
  for(let i=0;i<4;i++)box(12+i*10,43,5,4,'#f2bf59');
- if(kind==='lure'){
+ if(kind==='duck'){
+  c.clearRect(0,0,64,64);
   // Rubber duck on a spring-loaded loudspeaker.
-  box(23,28,20,8,'#94672e');box(29,22,7,10,'#6b5030');
+
   box(13,19,34,12,'#b87826');box(14,15,30,13,'#f5c341');box(16,12,26,8,'#ffdf72');
   box(31,4,16,18,'#ffc537');box(33,4,10,4,'#ffed8c');
   box(42,11,4,5,'#202c34');box(47,14,12,6,'#f18b3c');box(47,19,8,3,'#b85528');
+ }else if(kind==='lure'){
+  // Twin bass speakers on the striped cabinet.
+  for(const x of [17,45]){
+   for(const [radius,color] of [[10,'#26323e'],[8,'#cb8032'],[6,'#54414b'],[3,'#efb055']]){
+    c.fillStyle=color;c.beginPath();c.arc(x,44,radius,0,Math.PI*2);c.fill();
+   }
+  }
  }else if(kind==='saw'){
   box(24,15,16,25,'#364d56');box(27,12,10,25,'#a7b8c1');
   // Blade is rendered separately so its teeth genuinely rotate.
@@ -528,43 +554,79 @@ function sawBitmap(){
  c.closePath();c.fillStyle='#4b5c65';c.fill();
  c.beginPath();c.arc(32,32,22,0,Math.PI*2);c.fillStyle='#d0dfe0';c.fill();
  c.beginPath();c.arc(32,32,15,0,Math.PI*2);c.fillStyle='#a1b6bd';c.fill();
+ for(const a of [0,2.1,4.2]){
+  c.fillStyle='#465b62';c.beginPath();c.arc(32+12*Math.cos(a),32+12*Math.sin(a),3,0,Math.PI*2);c.fill();
+ }
  c.fillStyle='#e5ae52';c.fillRect(26,26,12,12);
  c.fillStyle='#354952';c.fillRect(29,29,6,6);
  deviceArt.set('blade',im);return im;
+}
+// All coordinates are local to the 64px machine. Only moving parts are transformed.
+function paintMachine(g,kind,time,pulse){
+ const art=deviceBitmap(kind);if(!art)return;
+ g.drawImage(art,0,0);
+ if(kind==='wall')return;
+ const beat=Math.sin(time*5),kick=Math.sin(Math.PI*pulse);
+ if(kind==='lure'){
+  const lift=beat*2-kick*5;
+  g.strokeStyle='#43505b';g.lineWidth=3;g.beginPath();
+  for(let i=0;i<=6;i++){
+   const y=37-(10-lift)*i/6,x=32+(i%2?6:-6);
+   if(i)g.lineTo(x,y);else g.moveTo(x,y);
+  }
+  g.stroke();
+  g.drawImage(deviceBitmap('duck'),0,lift);
+  if(pulse>0){
+   g.strokeStyle='#ffdf70';g.lineWidth=2;
+   for(const x of [16,48]){g.beginPath();g.arc(x,44,6+kick*5,0,Math.PI*2);g.stroke()}
+  }
+ }else if(kind==='saw'){
+  const travel=Math.sin(time*3)*6-kick*3;
+  g.fillStyle='#48545a';g.fillRect(10,29,44,6);
+  g.fillStyle='#ed9f39';g.fillRect(22+travel,27,20,10);
+  const blade=sawBitmap();if(!blade)return;
+  g.save();g.translate(32+travel,22);g.rotate(time*8+.3);g.drawImage(blade,-22,-22,44,44);g.restore();
+ }else{
+  // Opposed toothed jaws close over the chilled core when the trap fires.
+  const close=1+beat+kick*9;
+  for(const side of [-1,1]){
+   g.save();g.translate(32,0);g.scale(side,1);g.translate(-close,0);
+   g.fillStyle='#244855';g.fillRect(19,14,6,27);
+   g.fillStyle='#6ac9dc';g.fillRect(18,11,6,24);
+   g.fillStyle='#d8ffff';g.fillRect(12,9,12,6);g.fillRect(12,14,4,5);
+   g.fillStyle='#c08c4c';g.fillRect(17,30,10,6);g.restore();
+  }
+  g.fillStyle='#204453';g.fillRect(19,41,26,8);
+  g.fillStyle='#94fcff';
+  for(let i=0;i<4;i++)g.fillRect(21+i*6,43,3,i<2+beat||pulse>0?4:1);
+ }
 }
 function makeDeviceIcons(){
  for(const {kind,el} of buildButtons){
   if(!el)continue;
   const icon=el.querySelector?.('canvas'),art=deviceBitmap(kind);
   const q=icon?.getContext?.('2d');if(!q||!art)continue;
-  q.clearRect(0,0,64,64);q.drawImage(art,0,0);
-  if(kind==='saw'){const blade=sawBitmap();if(blade)q.drawImage(blade,12,0,40,40)}
+  q.clearRect(0,0,64,64);paintMachine(q,kind,0,0);
  }
 }
 function selectBuild(kind){
  if(!active||dragging||pending.size||!BUILD_TYPES[kind])return false;
- selectedBuild=kind;refresh();return true;
+ placementTip='';selectedBuild=kind;refresh();return true;
 }
 function drawDevice(g,w,building=false){
  const art=deviceBitmap(w.kind);if(!art)return;
- const size=29,x=w.x+T/2,y=w.y+T/2;
- g.save();
- g.globalAlpha*=Math.max(.5,w.hp===undefined?1:w.hp/spec(w).hp*.65+.35);
- const bounce=!building&&w.kind==='lure'&&w.pulse>0?-Math.sin(w.pulse*15)*2:0;
- g.drawImage(art,x-size/2,y-size/2+bounce,size,size);
- if(w.kind==='saw'){
-  const blade=sawBitmap();if(blade){g.translate(x,y-5);g.rotate(building?.3:deviceTime*9);
-   g.drawImage(blade,-11,-11,22,22);}
- }
+ const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
+ g.save();g.translate(w.x,w.y);g.scale(size/64,size/64);
+ paintMachine(g,w.kind,building?0:deviceTime+w.id*.13,building?0:(w.pulse||0)/.45);
  g.restore();
  if(!building&&w.pulse>0&&typeof g.arc==='function'){
   const f=Math.min(1,w.pulse/.45);
   g.save();g.globalAlpha=.7*f;g.strokeStyle=w.kind==='ice'?'#9eeeff':w.kind==='lure'?'#ffda75':'#ffd299';
-  g.lineWidth=2;g.beginPath();g.arc(x,y,8+(1-f)*spec(w).range,0,Math.PI*2);g.stroke();g.restore();
+  g.lineWidth=2;g.beginPath();g.arc(x,y,size*.36+(1-f)*spec(w).range,0,Math.PI*2);g.stroke();g.restore();
  }
  if(!building&&w.hp<spec(w).hp){
-  g.fillStyle='#263039';g.fillRect(x-9,w.y+T-2,18,2);
-  g.fillStyle='#f2b968';g.fillRect(x-9,w.y+T-2,18*Math.max(0,w.hp/spec(w).hp),2);
+  g.fillStyle='#263039';g.fillRect(x-9,w.y+size-4,18,2);
+  g.fillStyle='#f2b968';g.fillRect(x-9,w.y+size-4,18*Math.max(0,w.hp/spec(w).hp),2);
  }
 }
 // Devices act only when the real wave is moving. Cooldowns advance on the
@@ -574,13 +636,14 @@ function tickDevices(dt,enemies,now,ops){
  if(!walls.size)return;
  for(const w of walls.values()){
   if(!w.kind||w.kind==='wall')continue;
-  const type=spec(w),cx=w.x+T/2,cy=w.y+T/2;
+  const type=spec(w),cx=w.x+2*T,cy=w.y+2*T;
   w.cooldown=Math.max(0,(w.cooldown||0)-dt);w.pulse=Math.max(0,(w.pulse||0)-dt);
   const candidates=[];
   for(const z of enemies){
    if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550)continue;
    const dx=cx-(z.x+z.w/2),dy=cy-(z.y+z.h/2),d2=dx*dx+dy*dy;
-   if(d2<=type.range*type.range)candidates.push({z,dx,dy,d2});
+   const edgeX=Math.max(0,Math.abs(dx)-1.5*T),edgeY=Math.max(0,Math.abs(dy)-1.5*T);
+   if(edgeX*edgeX+edgeY*edgeY<=type.range*type.range)candidates.push({z,dx,dy,d2});
   }
   candidates.sort((a,b)=>a.d2-b.d2);
   if(w.kind==='lure'){
@@ -669,18 +732,19 @@ function draw(g,building=false){
  for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++)g.fillRect(X+col*T+10,Y+row*T+10,2,2);
  g.globalAlpha=.8;
  for(const p of pending.values()){
+  const size=T*span(p);
   if(p.action==='remove'){
    // Demolition must be unmistakably red without deleting real walls until
    // Confirm. Keep the underlying cube visible through the overlay.
-   g.globalAlpha=.63;g.fillStyle='#fc334c';g.fillRect(p.x+1,p.y+1,T-2,T-2);
+   g.globalAlpha=.63;g.fillStyle='#fc334c';g.fillRect(p.x+1,p.y+1,size-2,size-2);
    g.globalAlpha=1;g.strokeStyle='#ff3f5c';g.lineWidth=2.4;
-   g.strokeRect(p.x+1,p.y+1,T-2,T-2);
-   g.beginPath();g.moveTo(p.x+5,p.y+5);g.lineTo(p.x+T-5,p.y+T-5);
-   g.moveTo(p.x+T-5,p.y+5);g.lineTo(p.x+5,p.y+T-5);g.stroke();
+   g.strokeRect(p.x+1,p.y+1,size-2,size-2);
+   g.beginPath();g.moveTo(p.x+5,p.y+5);g.lineTo(p.x+size-5,p.y+size-5);
+   g.moveTo(p.x+size-5,p.y+5);g.lineTo(p.x+5,p.y+size-5);g.stroke();
   }else{
    g.globalAlpha=.8;if(p.kind&&p.kind!=='wall')drawDevice(g,p,true);else g.drawImage(tile,0,0,frame,frame,p.x,p.y,T,T);
    g.globalAlpha=1;g.strokeStyle='#ffe78f';
-   g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,T-2,T-2);
+   g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,size-2,size-2);
   }
  }
  g.restore();
@@ -692,10 +756,10 @@ function tick(dt){for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
-window.ZZFortress={reset,begin,deploy,resolve,selectBuild,tickDevices,drawStatuses,getBuildType:()=>selectedBuild,getStructure:(col,row)=>walls.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
+window.ZZFortress={reset,begin,deploy,resolve,selectBuild,tickDevices,drawStatuses,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
  bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),
- getPreview:()=>totals(),getWallHP:(col,row)=>walls.get(id(col,row))?.hp||0,
+ getPreview:()=>totals(),getWallHP:(col,row)=>occupied.get(id(col,row))?.hp||0,
  bounds:()=>({left:X,right:X+COLS*T,enemyLeft:FIELD_LEFT,enemyRight:FIELD_RIGHT,columns:COLS,rows:ROWS,tile:T})};
 })();

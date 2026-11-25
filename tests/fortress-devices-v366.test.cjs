@@ -30,3 +30,28 @@ assert(f.selectBuild('ice'));let before=f.getStock();
 f.down(p(12,5),canvas);f.up(p(12,5),canvas);
 assert.equal(f.getPreview().refund,6);nodes['fortress-confirm'].click();assert.equal(f.getStock(),before+6);
 console.log('PASS V366: individual placement, material costs, full demolition refund, lure, damage, freeze, cooldown, persistence');
+// Every tile belongs to one shared machine, including the far corner.
+f.reset();f.begin([],1);place('saw',4,6,5);
+const machine=f.getStructure(4,6);
+for(let row=6;row<10;row++)for(let col=4;col<8;col++){
+ assert.equal(f.getStructure(col,row),machine);
+}
+const right=machine.x+88,bottom=machine.y+88;
+const ball={x:right+1,y:bottom-3,vx:-100,vy:0};
+assert.equal(f.bounceBall(ball,right+8,ball.y,3).nx,1);
+assert(ball.x>=right+3);
+assert(!f.isOpen({w:3,h:3},right-3,bottom-3));
+assert(f.selectBuild('ice'));
+f.down(p(2,4),canvas);f.up(p(2,4),canvas);
+assert.equal(f.getPreview().builds,0);
+f.down(p(7,9),canvas);f.up(p(7,9),canvas);
+assert.equal(f.getPreview().refund,5);
+nodes['fortress-confirm'].click();
+assert.equal(f.getWallCount(),0);
+assert.equal(f.getStructure(4,6),undefined);
+assert(f.isOpen({w:3,h:3},right-3,bottom-3));
+f.down(p(16,19),canvas);f.up(p(16,19),canvas);
+nodes['fortress-confirm'].click();
+assert.equal(f.getStructure(16,19),f.getStructure(13,16));
+assert.equal(f.getStructure(13,16).kind,'ice');
+console.log('PASS 4×4 occupancy, edge placement, shared demolition, overlap and outer-face collisions');
