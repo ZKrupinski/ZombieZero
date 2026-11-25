@@ -879,18 +879,68 @@ function duckKnockPlan(root,dx,dy,enemies,inside,alreadyStruck=null){
  }
  return positions;
 }
-function tickBollard(w,dt,enemies,ops){
+// Advance only one checked crossing per actor per frame. The hole is
+// passable while retracted, but all other colliders remain solid.
+function advanceMoleHops(dt,enemies,now,ops){
+ for(const z of enemies){
+  const hop=z.moleHop;if(!hop)continue;
+  const w=walls.get(hop.id);
+  if(!w||w.raised||z.hp<=0||z.knockTime>0||z.hitShakeUntil>now||z.trashStopUntil>now){delete z.moleHop;continue}
+  const step=Math.min(hop.end-z.y,hop.speed*dt);
+  if(step<=0){delete z.moleHop;continue}
+  const n=Math.max(1,Math.ceil(step/3));
+  let moved=false;
+  for(let i=0;i<n;i++){
+   const y=z.y+step/n;
+   if(y+z.h>549||!ops.canMove?.(z,z.x,y)){delete z.moleHop;break}
+   z.y=y;moved=true;
+  }
+  if(moved){hop.travel+=step;z.moleHopMovedAt=now}
+  if(z.y>=hop.end-.01)delete z.moleHop;
+ }
+}
+function tryMoleHop(w,dt,enemies,now,ops){
+ if(!ops.canMove||w.raised||(w.lift||0)>.15||w.cooldown<=0)return;
+ w.hopCheck=Math.max(0,(w.hopCheck||0)-dt);
+ if(w.hopCheck>0)return;
+ w.hopCheck=.32+Math.random()*.48;
+ // Favor a risky late crossing but also allow lucky early escapes.
+ const late=w.cooldown<.55;
+ const candidates=enemies.filter(z=>{
+  const gap=w.y-z.y-z.h;
+  return !z.boss&&z.hp>0&&(z.arrivalTime||0)>=0&&!z.moleHop&&
+    !(z.knockTime>0)&&!(z.hitShakeUntil>now)&&!(z.trashStopUntil>now)&&
+    !(z.fortressFrozenUntil>now)&&!(z.moleHopReady>now)&&
+    gap>=-3&&gap<=20&&Math.abs(z.x+z.w/2-w.x-T/2)<T*.65;
+ }).sort((a,b)=>b.y-a.y);
+ const z=candidates[0];if(!z||Math.random()>(late?.94:.48))return;
+ const end=w.y+T+3+Math.random()*8;
+ if(end+z.h>549||!ops.canMove(z,z.x,end))return;
+ z.moleHop={id:w.id,end,speed:100+Math.random()*75,travel:0,total:end-z.y};
+ z.moleHopReady=now+1.5;
+ delete z.wormParade;delete z.breakoutTime;delete z.breakoutDuration;delete z.eliteMotion;
+ z.moleHopMovedAt=now;
+}
+function tickBollard(w,dt,enemies,ops,now=0){
  w.cooldown=Math.max(0,w.cooldown-dt);
  if(w.cooldown===0){
   if(w.raised){
    w.raised=false;w.cooldown=randomRest(w);
   }else{
    const cx=w.x+T/2,cy=w.y+T/2;
-   const nearby=enemies.filter(z=>z.hp>0&&(z.arrivalTime||0)>=0&&intersects(z.x,z.y,z.w,z.h,w,T));
+   const nearby=enemies.filter(z=>z.hp>0&&(z.arrivalTime||0)>=0&&intersects(z.x,z.y,z.w,z.h,w,ops.molePush?9:T))
+    .sort((a,b)=>Number(intersects(b.x,b.y,b.w,b.h,w))-Number(intersects(a.x,a.y,a.w,a.h,w)));
    // Clear the hatch before solidifying. Shove away from its centre, favouring
    // sideways escape on the player-facing side to respect the defence line.
    for(const z of nearby){
     const dx=z.x+z.w/2-cx,dy=z.y+z.h/2-cy;
+    if(ops.molePush){
+     if(z.fortressFrozenUntil>now||z.trashStopUntil>now)continue;
+     const crossing=intersects(z.x,z.y,z.w,z.h,w);
+     const forward=crossing?Math.random()<.5:dy>0;
+     if(ops.molePush(z,w,forward?1:-1)){delete z.moleHop;z.moleHopReady=now+1.5}
+     continue;
+    }
     const vx=dy>0?(dx<0?-1:1):dx,vy=dy>0?0:Math.min(-1,dy);
     const length=Math.hypot(vx,vy);
     if(!ops.push?.(z,vx/length,vy/length,'bollard')&&intersects(z.x,z.y,z.w,z.h,w)){
@@ -914,14 +964,16 @@ function tickBollard(w,dt,enemies,ops){
    if(!nearby.length)ops.pulse?.('bollard',cx,cy,0);
   }
  }
+ if(!w.raised)tryMoleHop(w,dt,enemies,now,ops);
  if(w.raised)w.moleTime=(w.moleTime||0)+dt;
  w.lift=w.raised?Math.min(1,(w.lift||0)+dt*14):Math.max(0,(w.lift||0)-dt*7);
 }
 function tickDevices(dt,enemies,now,ops){
  if(active||!walls.size)return;
+ advanceMoleHops(dt,enemies,now,ops);
  for(const w of walls.values()){
   if(!w.kind||w.kind==='wall')continue;
-  if(w.kind==='bollard'){tickBollard(w,dt,enemies,ops);continue}
+  if(w.kind==='bollard'){tickBollard(w,dt,enemies,ops,now);continue}
   const type=spec(w),cx=w.x+T,cy=w.y+T;
   if(!w.run){
    w.cooldown=Math.max(0,w.cooldown-dt);

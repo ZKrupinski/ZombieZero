@@ -1290,7 +1290,7 @@ function tryStartBreakouts(){
  for(let k=0;k<count;k++){
   const choices=[];
   for(const z of living){
-   if(z.wormParade||Number.isInteger(z.eliteKind)||chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
+   if(z.moleHop||z.wormParade||Number.isInteger(z.eliteKind)||chosen.some(c=>c.z===z||c.z.row===z.row)||Number.isFinite(z.breakoutTime)||
       !Number.isInteger(z.col)||!Number.isInteger(z.row)||
       z.row===0||z.y+z.h>=DEFENSE_Y-125||
       (z.breakoutCooldownUntil||0)>clock||
@@ -1688,7 +1688,7 @@ function tryReactiveDodges(dt){
  const radius=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1));
  for(const z of foes){
   const profile=dodgeProfile(z);
-  if(!profile||z.wormParade||z.hitHold>0||(z.recoil||0)>.02||
+  if(!profile||z.moleHop||z.wormParade||z.hitHold>0||(z.recoil||0)>.02||
      (z.knockTime||0)>0||Number.isFinite(z.breakoutTime)||
      Number.isFinite(z.arrivalTime)||z.eliteMotion?.tag==='evade'||
      clock<(z.dodgeReadyAt||0)||z.y+z.h>DEFENSE_Y-48)continue;
@@ -1739,7 +1739,7 @@ function clearWormParade(){
  wormParade=null;
 }
 function wormEligible(z){
- return z&&!z.boss&&!Number.isInteger(z.eliteKind)&&z.hp>0&&
+ return z&&!z.boss&&!z.moleHop&&!Number.isInteger(z.eliteKind)&&z.hp>0&&
   Number.isInteger(z.row)&&z.row>=0&&Number.isInteger(z.col)&&
   z.col>=0&&z.col<foeColumns()&&
   z.y>=ENEMY_TOP_Y+8&&z.y+z.h<DEFENSE_Y-WORM_SAFE_MARGIN-22&&
@@ -2008,7 +2008,7 @@ function updateGalagaOrbit(dt){
 const HORDE_MOTIFS=['snake','orbit','figure8','zigzag','fan','ripple'];
 let lastHordeMotif='';
 function looseHordeEligible(z){
- return z&&!z.boss&&!Number.isInteger(z.eliteKind)&&z.hp>0&&
+ return z&&!z.boss&&!z.moleHop&&!Number.isInteger(z.eliteKind)&&z.hp>0&&
   z.y>=ENEMY_TOP_Y&&z.y+z.h<DEFENSE_Y-WORM_SAFE_MARGIN-8&&
   !z.wormParade&&!Number.isFinite(z.breakoutTime)&&!z.eliteMotion&&
   (z.knockTime||0)<=0&&(z.hitHold||0)<=0&&(z.recoil||0)<=.02&&
@@ -2266,6 +2266,7 @@ function makeFoeGrid(actors){
 function march(dt){
  if(isFortress()&&fortress)fortress.tickDevices?.(dt,foes,clock,{
   canMove:(z,x,y)=>canKnockback(z,x,y),
+  molePush:pushMoleZombie,
   push:(z,x,y,kind,struck)=>{fortressContact(z,kind,x,y);if(z.boss)return pushFortressBoss(z,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind,struck},2)},
   contact:fortressContact,
   damage:(z,n,kind,cx,cy)=>{
@@ -2284,6 +2285,7 @@ function march(dt){
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
  for(const z of sorted){
   // Parade members already moved via the swept, safe group path.
+  if(z.moleHop||z.moleHopMovedAt===clock){done.push(z);continue}
   if(z.wormParade===wormParade&&wormParade){done.push(z);continue}
   if(z.trashStopUntil>clock){done.push(z);continue}
   if(z.boss&&bossMercyStep(z,dt)){done.push(z);continue;}
@@ -2875,7 +2877,7 @@ function knockVisualPosition(z){
        y=z.knockFromY+(z.y-z.knockFromY)*ease;
  // Final knockback colliders may be safe while a visual tween crosses an
  // intervening wall. Never paint a zombie on top of the barricade bitmap.
- if(typeof isFortress==='function'&&isFortress()&&fortress&&
+ if(!z.moleLaunch&&typeof isFortress==='function'&&isFortress()&&fortress&&
    (!fortress.isOpen(z,x,y)||
     !fortress.isPathClear(z,z.knockFromX,z.knockFromY,x,y)))return z;
  return {...z,x,y};
@@ -2971,6 +2973,7 @@ function applyKnockback(z,impact,n=1){
    }else if(impact.structure&&actor!==z&&typeof fortressContact==='function')fortressContact(actor,impact.structure,dirX,dirY);
    const before=knockVisualPosition(actor);
    const beforeX=before.x,beforeY=before.y; // snapshot values before actor mutates
+   delete actor.moleLaunch;delete actor.moleHop;
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockChain=actor!==z;
@@ -2999,6 +3002,42 @@ function applyKnockback(z,impact,n=1){
 }
 // Non-damaging structure contacts use the same pooled impact sprite,
  // local stagger and feedback as ball hits without awarding damage or score.
+// Only mole launches may propel a zombie toward the player. Reserve a
+// legal landing before the hatch becomes solid and animate the short arc.
+function pushMoleZombie(z,w,dir){
+ const top=w.y-z.h-3,bottom=w.y+22+3;
+ const before=knockVisualPosition(z),bx=before.x,by=before.y;
+ for(const sy of [dir,-dir]){
+  const edge=sy>0?bottom:top;
+  for(const extra of [15,8,0]){
+   const ny=sy>0?Math.max(z.y+8,edge+extra):Math.min(z.y-8,edge-extra);
+   if(!canKnockback(z,z.x,ny))continue;
+   fortressContact(z,'bollard',0,sy);
+   z.knockFromX=bx;z.knockFromY=by;z.y=ny;
+   z.knockChain=false;z.knockDelay=0;z.knockFreeze=.06;
+   z.knockDuration=.06+KNOCK_TWEEN_LIFE;z.knockTime=z.knockDuration;
+   z.moleLaunch=true;delete z.moleHop;delete z.duckContact;delete z.wormParade;
+   delete z.breakoutTime;delete z.breakoutDuration;delete z.eliteMotion;
+   clearShortStep(z,.7);z.shortStepHomeX=z.x;
+   if(z.boss){delete z.bossGoalX;delete z.bossGoalY;z.bossHomeY=z.y;z.bossNextMove=clock+.5}
+   return true;
+  }
+ }
+ // Crowded vertical lanes: choose a checked sideways exit, or leave the
+ // mole submerged rather than pinning a zombie inside a solid structure.
+ for(const sx of [-1,1]){
+  const nx=sx<0?w.x-z.w-3:w.x+22+3;
+  if(!canKnockback(z,nx,z.y))continue;
+  fortressContact(z,'bollard',sx,0);
+  z.knockFromX=bx;z.knockFromY=by;z.x=nx;
+  z.knockChain=false;z.knockDelay=0;z.knockFreeze=.06;
+  z.knockDuration=.06+KNOCK_TWEEN_LIFE;z.knockTime=z.knockDuration;
+  z.moleLaunch=true;delete z.moleHop;delete z.duckContact;delete z.wormParade;
+  delete z.breakoutTime;delete z.breakoutDuration;delete z.eliteMotion;
+  clearShortStep(z,.7);z.shortStepHomeX=z.x;return true;
+ }
+ return false;
+}
 function pushFortressBoss(z,x,y){
  const length=Math.hypot(x,Math.min(0,y))||1,dx=x/length,dy=Math.min(0,y)/length;
  const before=knockVisualPosition(z),beforeX=before.x,beforeY=before.y;
@@ -3024,7 +3063,7 @@ function fortressContact(z,kind,x=0,y=-1,freeze=null){
  if(z.boss)z.fortressBossFlashUntil=clock+.19;
  // Reuse the approved monochrome comic impact atlas at the real contact
  // face. Duck and ice capture never emit explosive/death-like debris.
- if(kind==='lure'||kind==='ice'){
+ if(kind==='lure'||kind==='ice'||kind==='bollard'){
   const length=Math.hypot(x,y)||1,dx=x/length,dy=y/length;
   // The duck pushes away from itself; the ice claw pulls towards itself.
   const side=kind==='ice'?1:-1;
@@ -3631,6 +3670,7 @@ function updateEnemyVisuals(dt){
  }
  z.recoil=Math.max(0,(z.recoil||0)-dt);z.hitHold=Math.max(0,(z.hitHold||0)-dt);
  z.flinch=Math.max(0,(z.flinch||0)-dt);z.knockTime=Math.max(0,(z.knockTime||0)-dt);
+ if(!z.knockTime)delete z.moleLaunch;
 
 }for(const d of enemyDeaths){d.t+=dt;if(!d.done&&d.t>=d.split){d.done=true;
  // Final bitmap already depicts lying down / cute brain debris; do not duplicate
@@ -3701,7 +3741,14 @@ function drawMiniEnemy(z,paint){
    w:z.miniBaseW,h:z.miniBaseH});
  }finally{g.restore();}
 }
-function zombie(z){return drawMiniEnemy(z,paintOriginalZombie)}
+function zombie(z){
+ // Vertical screen lift is cosmetic only; the floor shadow and collider
+ // follow the checked ground path. Retain the approved bitmap animation.
+ let lift=0;
+ if(z.moleLaunch&&z.knockTime>0)lift=12*Math.sin(Math.PI*knockMotionProgress(z));
+ else if(z.moleHop)lift=10*Math.sin(Math.PI*clamp(z.moleHop.travel/Math.max(1,z.moleHop.total),0,1));
+ return drawMiniEnemy(lift>0?{...z,y:z.y-lift}:z,paintOriginalZombie);
+}
 function paintOriginalZombie(z){
  if(z.boss&&window.ZZLargeBossSprites?.draw(g,z,enemyAnimationClock))return;
  if(!z.boss&&window.ZZEliteSprites?.draw(g,z,enemyAnimationClock))return;

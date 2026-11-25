@@ -179,6 +179,21 @@ f.reset();f.begin([],1);place('ice',5,8,3);f.deploy([]);
 const armor=f.getStructure(5,8),frozen={x:armor.x+2,y:armor.y-63,w:33,h:60,hp:50,boss:true,fortressFrozenUntil:3};
 f.resolve(frozen,frozen.x,frozen.y,.35,null,1);assert.equal(armor.hp,16);
 
+
+ // v394: deterministic late crossing is interrupted by the rising hatch.
+f.reset();f.begin([],1);assert(f.selectBuild('bollard'));f.down(p(5,8),canvas);f.up(p(5,8),canvas);nodes['fortress-confirm'].click();f.deploy([]);
+const hatch=f.getStructure(5,8),runner=actor(hatch.x+3,hatch.y-24);
+hatch.cooldown=.18;hatch.lift=0;let pop=0;
+const hopOps={canMove:(z,x,y)=>y+z.h<550&&f.isPathClear(z,z.x,z.y,x,y),molePush(z,w,dir){pop++;z.y=dir>0?w.y+25:w.y-z.h-3;return true}};
+const originalRandom=Math.random;Math.random=()=>.1;
+try{
+ f.tickDevices(.01,[runner],1,hopOps);assert(runner.moleHop);
+ const firstY=runner.y;
+ for(let i=1;i<=20;i++)f.tickDevices(.01,[runner],1+i*.01,hopOps);
+ assert(runner.y!==firstY);assert(hatch.raised);assert.equal(pop,1);assert(!runner.moleHop);
+}finally{Math.random=originalRandom}
+console.log('PASS v394: risky fast crossing and rising mole interruption.');
+
 const source=fs.readFileSync('dist/fortress-mode.js','utf8');
 const renderWin={};const renderDoc={getElementById:id=>nodes[id]||null,createElement:()=>({getContext:()=>null})};
 new Function('window','document',source.replace('window.ZZFortress={','parts={};window.ZZFortress={drawDevice,'))(renderWin,renderDoc);
