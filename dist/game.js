@@ -3721,34 +3721,82 @@ function drawActiveItemIcons(){
 function drawIcon(k,x,y){g.save();g.translate(x-12,y-12);g.scale(.75,.75);g.strokeStyle=SKILLS[k].color;g.lineWidth=2.5;g.lineCap='round';g.lineJoin='round';const circle=(x,y,r)=>{g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.stroke()};if(k==='dual'){circle(9,12,5);circle(23,20,5)}if(k==='triple'){circle(16,7,4);circle(7,23,4);circle(25,23,4)}if(k==='power'){circle(16,16,12);g.stroke(new Path2D('M17 6 10 18H16L15 26 23 13H17Z'))}if(k==='fire')g.stroke(new Path2D('M17 3C21 12 13 12 19 17L24 11C33 23 25 30 16 29S3 21 8 13L11 18C15 14 11 10 17 3Z'));if(k==='slow'){circle(16,17,11);g.stroke(new Path2D('M16 10V18L22 21M12 2H20M16 2V4'))}if(k==='bazooka')g.stroke(new Path2D('M5 21 20 6 27 13 12 28ZM18 8 24 14M6 22 4 28 10 26M19 3 21 1M28 10 31 9M26 3 29 0'));if(k==='pierce'){circle(6,16,4);g.beginPath();g.moveTo(12,16);g.lineTo(29,16);g.moveTo(22,9);g.lineTo(29,16);g.lineTo(22,23);g.stroke()}if(k==='shield')g.stroke(new Path2D('M16 3 27 7V17C27 23 16 29 16 29S5 23 5 17V7ZM10 16 14 20 22 11'));g.restore()}
 // Fire stays attached to each burning enemy and sits on top of its sprite.
 function drawBurningOverlays(){
- if(!fxEnabled)return;
- const count=burningCount(),tier=typeof perfTier!=='undefined'?perfTier:0;
- const dense=count>5||(tier>0&&count>2)||tier===2;
- if(!count)return;
+ if(!fxEnabled||!burningCount())return;
+ // V365: all detail levels use the full original 7-column / 5-step flame.
+ // Cache its animated artwork instead of deleting the bright tips or rows.
  const paint=()=>{for(const actor of foes){
-  const z=knockVisualPosition(actor);
-  if(!(z.burn>0)||actor.burnVisualDelay>0)continue;
-  const scale=z.miniScale||1,cx=z.x+z.w/2,base=z.y+z.h-4*scale,lifeFade=Math.min(1,z.burn/.25);
-  g.save();g.globalAlpha=.92*lifeFade;
-  g.translate(cx,base);g.scale(scale,scale);g.translate(-cx,-base);
-  g.shadowColor='#ff822d';g.shadowBlur=dense?0:9;
-  // Pixel flames grow in staggered, stepped square stacks without a flat glowing border.
-  for(let column=-3;column<=3;column+=dense?1.5:1){
-   const x=cx+column*(z.boss?10:6);
-   const wave=.5+.5*Math.sin(clock*24+column*3.7+(z.seed||0));
-   const height=(z.boss?41:24)*(.65+.35*wave)*(1-.09*Math.abs(column));
-   for(let step=0;step<5;step+=dense?2:1){
-    const frac=step/5,y=base-height*frac,span=Math.max(2,(z.boss?7:5)-step*.65);
-    g.fillStyle=step>3?'#fff4a4':step>1?'#ffb641':'#f35a26';
-    g.globalAlpha=lifeFade*(1-step*.11);
-    g.fillRect(Math.round(x-span/2+Math.sin(clock*15+column*2+step)*2),Math.round(y),Math.ceil(span),Math.ceil((z.boss?8:5)));
-   }
+  if(!(actor.burn>0)||actor.burnVisualDelay>0)continue;
+  const z=knockVisualPosition(actor),scale=z.miniScale||1;
+  const cx=z.x+z.w/2,base=z.y+z.h-4*scale,fade=Math.min(1,z.burn/.25);
+  const atlas=burningFlameAtlas(!!z.boss);
+  g.save();
+  if(atlas&&typeof g.drawImage==='function'){
+   const period=2*Math.PI/3,phase=clock+(z.seed||0)/24;
+   const frame=((Math.floor(phase/period*64)%64)+64)%64;
+   g.shadowColor='transparent';g.shadowBlur=0;g.globalAlpha=fade;
+   g.drawImage(atlas.canvas,(frame%8)*atlas.w,Math.floor(frame/8)*atlas.h,atlas.w,atlas.h,
+    cx-atlas.cx*scale,base-atlas.base*scale,atlas.w*scale,atlas.h*scale);
+  }else{
+   // Canvas-less environments retain all original pixels, not a sparse LOD.
+   g.translate(cx,base);g.scale(scale,scale);g.translate(-cx,-base);
+   g.shadowColor='#ff822d';g.shadowBlur=9;
+   paintOriginalBurningFlame(g,!!z.boss,cx,base,clock,z.seed||0,fade);
   }
   g.restore();
  }};
- // V351: both detail levels contribute to the additive/Bloom source.
- // Dense flames retain fewer unblurred pixels, not a missing glow pass.
  luminous(paint);
+}
+// Identical geometry, color progression and staggered flicker to the full
+// pre-LOD flame. Coordinates are shared by cached and immediate paths.
+function burningFlameGeometry(boss,cx,base,time,seed,emit){
+ for(let column=-3;column<=3;column++){
+  const x=cx+column*(boss?10:6);
+  const wave=.5+.5*Math.sin(time*24+column*3.7+seed);
+  const height=(boss?41:24)*(.65+.35*wave)*(1-.09*Math.abs(column));
+  for(let step=0;step<5;step++){
+   const y=base-height*step/5,span=Math.max(2,(boss?7:5)-step*.65);
+   emit(Math.round(x-span/2+Math.sin(time*15+column*2+step)*2),Math.round(y),
+    Math.ceil(span),boss?8:5,step);
+  }
+ }
+}
+function paintOriginalBurningFlame(ctx,boss,cx,base,time,seed,fade){
+ burningFlameGeometry(boss,cx,base,time,seed,(x,y,w,h,step)=>{
+  ctx.fillStyle=step>3?'#fff4a4':step>1?'#ffb641':'#f35a26';
+  ctx.globalAlpha=fade*(1-step*.11);ctx.fillRect(x,y,w,h);
+ });
+}
+function burningFlameAtlas(boss){
+ const key=boss?'boss':'regular';
+ const cache=burningFlameAtlas.cache||(burningFlameAtlas.cache={});
+ if(key in cache)return cache[key];
+ if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
+ try{
+  const w=boss?112:80,h=boss?80:64,cx=w/2,base=boss?54:40;
+  const canvas=document.createElement('canvas');canvas.width=w*8;canvas.height=h*8;
+  const ctx=canvas.getContext('2d');
+  if(!ctx||typeof ctx.drawImage!=='function'||typeof ctx.fillRect!=='function')return cache[key]=null;
+  // Only five shadowed rectangle stamps per enemy size. Compose every
+  // full-detail frame from these once, avoiding thousands of shadow blurs.
+  const stamps=[];
+  for(let step=0;step<5;step++){
+   const stamp=document.createElement('canvas');stamp.width=stamp.height=40;
+   const sc=stamp.getContext('2d');
+   if(!sc||typeof sc.fillRect!=='function')return cache[key]=null;
+   sc.shadowColor='#ff822d';sc.shadowBlur=9;
+   sc.fillStyle=step>3?'#fff4a4':step>1?'#ffb641':'#f35a26';
+   sc.globalAlpha=1-step*.11;
+   sc.fillRect(16,16,Math.ceil(Math.max(2,(boss?7:5)-step*.65)),boss?8:5);
+   stamps.push(stamp);
+  }
+  for(let frame=0;frame<64;frame++){
+   const ox=frame%8*w,oy=Math.floor(frame/8)*h,time=frame/64*(2*Math.PI/3);
+   burningFlameGeometry(boss,cx,base,time,0,(x,y,sw,sh,step)=>{
+    ctx.drawImage(stamps[step],ox+x-16,oy+y-16);
+   });
+  }
+  return cache[key]={canvas,w,h,cx,base};
+ }catch{return cache[key]=null}
 }
 
 function drawBallVanish(){
@@ -5609,5 +5657,5 @@ function resizeCanvas(){
  draw();
 }
 window.ZZGameLayout={getHeight:()=>H,getDefenseY:()=>DEFENSE_Y,getPaddleY:()=>PY,getViewDelta:()=>VIEW_DELTA};
-resizeCanvas();window.addEventListener('resize',resizeCanvas);if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeCanvas).observe(c);
+resizeCanvas();if(typeof requestIdleCallback==='function'){requestIdleCallback(()=>burningFlameAtlas(false));requestIdleCallback(()=>burningFlameAtlas(true));}window.addEventListener('resize',resizeCanvas);if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeCanvas).observe(c);
 
