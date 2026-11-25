@@ -114,7 +114,7 @@ assert.equal(f.getStructure(15,19),undefined);
 assert(f.isOpen(rider,rider.x,rider.y));assert.equal(ballAtPost(),null);
 post.cooldown=0;f.tickDevices(.02,group,1,bump);
 assert.deepEqual(bumped,new Set([rider,neighbor]));
-assert(post.raised&&post.cooldown>=1.8&&post.cooldown<=4);
+assert(post.raised&&post.cooldown>=6&&post.cooldown<=9);assert.equal(post.hp,5);
 assert(!f.isOpen(rider,post.x,post.y));assert.equal(ballAtPost().nx,-1);
 post.cooldown=.01;f.tickDevices(.02,group,2,bump);
 assert(!post.raised);assert(f.isOpen(rider,post.x,post.y));assert.equal(ballAtPost(),null);
@@ -127,3 +127,18 @@ f.down(p(1,2),canvas);f.move(p(5,2),canvas);f.up(p(5,2),canvas);
 assert.equal(f.getPreview().builds,5);assert.equal(f.getPreview().cost,10);
 nodes['fortress-confirm'].click();
 for(let col=1;col<=5;col++)assert.equal(f.getStructure(col,2).kind,'bollard');
+
+ // v386: a hidden mole cannot be bitten; exposed mole breaks after five bites.
+f.reset();f.begin([],1);assert(f.selectBuild('bollard'));f.down(p(4,6),canvas);f.up(p(4,6),canvas);nodes['fortress-confirm'].click();f.deploy([]);
+const mole=f.getStructure(4,6),attacker=actor(mole.x+3,mole.y-21);
+const gnaw=()=>{attacker.y=mole.y-21;f.resolve(attacker,attacker.x,mole.y-23,.79)};
+gnaw();assert.equal(mole.hp,5);
+mole.cooldown=0;f.tickDevices(.02,[],1,{});
+assert(mole.raised);for(let i=0;i<4;i++)gnaw();assert.equal(mole.hp,1);
+gnaw();assert.equal(f.getStructure(4,6),undefined);
+f.reset();f.begin([],1);place('ice',4,6,3);f.deploy([]);
+const trap=f.getStructure(4,6),victim=actor(trap.x+125,trap.y+4),events=[];
+trap.cooldown=0;
+for(let i=1;i<=85;i++)f.tickDevices(.01,[victim],i*.01,{canMove:(z,x,y)=>f.isPathClear(z,z.x,z.y,x,y),contact:(z,k)=>events.push([z,k])});
+assert.equal(events.length,1);assert.deepEqual(events[0],[victim,'ice']);assert(victim.fortressFrozenUntil>0);
+console.log('PASS v386: vulnerable long-exposure mole, single capture contact and freeze.');

@@ -2266,9 +2266,10 @@ function makeFoeGrid(actors){
 function march(dt){
  if(isFortress()&&fortress)fortress.tickDevices?.(dt,foes,clock,{
   canMove:(z,x,y)=>canKnockback(z,x,y),
-  push:(z,x,y)=>applyKnockback(z,{x,y,duck:true},2),
+  push:(z,x,y,kind)=>{fortressContact(z,kind,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind},2)},
+  contact:fortressContact,
   damage:(z,n)=>damage(z,n,false,{x:0,y:-1,push:.25}),
-  pulse:(kind,x,y)=>{if(kind!=='ice')effect(x,y,kind==='lure'?'#ffd15c':'#ffc99a',22);sfx(kind==='lure'?'wall':kind==='ice'?'item':'hit')}
+  pulse:(kind,x,y)=>{if(kind==='ice')sfx('item')}
  });
  if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
  updateWormParade(dt);
@@ -2954,6 +2955,7 @@ function applyKnockback(z,impact,n=1){
    }
    // Repeated hits restart from the current rendered position, not a
    // previous distant collider destination.
+   if(impact.structure&&actor!==z&&typeof fortressContact==='function')fortressContact(actor,impact.structure,dirX,dirY);
    const before=knockVisualPosition(actor);
    const beforeX=before.x,beforeY=before.y; // snapshot values before actor mutates
    actor.x=pos.x;actor.y=pos.y;
@@ -2979,6 +2981,23 @@ function applyKnockback(z,impact,n=1){
   return true;
  }
  return false;
+}
+// Non-damaging structure contacts use the same pooled impact sprite,
+ // local stagger and feedback as ball hits without awarding damage or score.
+function fortressContact(z,kind,x=0,y=-1){
+ if(!foes.includes(z)||z.hp<=0)return;
+ if(clock<(z.fortressContactReady||0))return;
+ z.fortressContactReady=clock+.14;
+ const position=knockVisualPosition(z);
+ enemyReaction(z,1,{x,y},true);
+ z.fortressContactCel=enemyAnimationClock;
+ const flash=typeof flashPool!=='undefined'?(flashPool.pop()||{}):{};
+ Object.assign(flash,{x:position.x+z.w/2,y:position.y+z.h/2,groundY:position.y+z.h,
+  t:0,life:.48,critical:false,spread:Math.max(z.w,z.h),delay:0,
+  miniFxScale:isMiniHorde()?MINI_HORDE_SCALE:1,piercing:kind==='ice',angle:Math.atan2(y,x)});
+ hitFlashes.push(flash);
+ if(hitFlashes.length>36){const old=hitFlashes.shift();if(typeof flashPool!=='undefined')recycleVisual(flashPool,old)}
+ feedback(z.boss?'bossHit':'hit');sfx(z.boss?'bosshit':'hit');
 }
 function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritical=false){
  if(!foes.includes(z))return;
@@ -4548,7 +4567,7 @@ function drawStruckZombie(z){
   drawFrozenZombie(z);if(entering)g.restore();return;
  }
  const active=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
- if(!active){zombie(knockVisualPosition(z));if(entering)g.restore();return}
+ if(!active){delete z.fortressContactCel;zombie(knockVisualPosition(z));if(entering)g.restore();return}
  const t=clock-(z.hitShakeFrom||clock),duration=Math.max(.001,(z.hitShakeUntil||clock)-(z.hitShakeFrom||clock));
  const phase=t/duration;
  g.save();
@@ -4556,10 +4575,12 @@ function drawStruckZombie(z){
  g.filter=phase<.68?'brightness(2.25) saturate(.52)':'brightness(1.64) saturate(.83)';
  const jitter=hitShakeOffset(t,duration,!!z.boss);
  g.translate(jitter.x,jitter.y);
- zombie(knockVisualPosition(z));g.restore();
+ const liveCel=enemyAnimationClock;
+ if(Number.isFinite(z.fortressContactCel))enemyAnimationClock=z.fortressContactCel;
+ try{zombie(knockVisualPosition(z))}finally{enemyAnimationClock=liveCel;g.restore()}
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){if(fxRenderer.settings)fxRenderer.settings.quality=typeof perfTier!=='undefined'?perfTier:0;fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building');
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){if(fxRenderer.settings)fxRenderer.settings.quality=typeof perfTier!=='undefined'?perfTier:0;fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.

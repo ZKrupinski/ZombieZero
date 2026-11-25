@@ -12,7 +12,7 @@ const walls=new Map(),pending=new Map();
 // Special devices occupy a two-by-two footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
- bollard:{name:'두더지 차단봉',cost:2,hp:30,cycle:3.8,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
+ bollard:{name:'두더지 차단봉',cost:2,hp:5,cycle:6.5,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:3,hp:30,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
@@ -712,7 +712,7 @@ function drawIceArms(g,w){
   part(g,9,length-7,-6,14,12);g.restore();
  }
 }
-function drawDevice(g,w,building=false){
+function drawDevice(g,w,building=false,glow=null){
  if(!parts)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
@@ -730,9 +730,17 @@ function drawDevice(g,w,building=false){
  g.save();g.translate(w.x,w.y);g.scale(size/64,size/64);
  paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
  g.restore();
- if(!building&&w.hp<spec(w).hp){
-  g.fillStyle='#263039';g.fillRect(x-9,w.y+size-4,18,2);
-  g.fillStyle='#f2b968';g.fillRect(x-9,w.y+size-4,18*Math.max(0,w.hp/spec(w).hp),2);
+ if(!building&&w.kind!=='bollard'&&w.hp<spec(w).hp){
+  const bx=x-9,by=w.y+size-4,bw=18*Math.max(0,w.hp/spec(w).hp);
+  const color=w.kind==='ice'?'#46cfff':'#ffbf55';
+  g.save();g.fillStyle='#172733';g.fillRect(bx-1,by-1,20,4);
+  g.fillStyle=color;g.fillRect(bx,by,bw,2);g.restore();
+  if(bw>0&&glow)glow(ctx=>{
+   ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle=color;
+   ctx.globalAlpha=.32;ctx.fillRect(bx,by-1,bw,4);
+   ctx.globalAlpha=.85;ctx.fillStyle=w.kind==='ice'?'#b9f4ff':'#fff0a3';
+   ctx.fillRect(bx,by,bw,1);ctx.restore();
+  });
  }
 }
 // Devices act only when the real wave is moving. Cooldowns advance on the
@@ -760,12 +768,14 @@ function reelIceTarget(w,z,prev,progress,now,ops){
   z.fortressIceReady=now+remaining;
   z.trashStopUntil=Math.max(z.trashStopUntil||0,now+remaining);
   delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
+  ops.contact?.(z,'ice',w.x+T-z.x-z.w/2,w.y+T-z.y-z.h/2);
  }
  if(!run.grabbed.has(z)||prev>=ICE_FREEZE)return false;
  const dx=w.x+T-z.x-z.w/2,dy=w.y+T-z.y-z.h/2;
  const distance=Math.hypot(dx,dy);
- const elapsed=Math.max(0,Math.min(progress,ICE_FREEZE)-Math.max(prev,ICE_LATCH))*spec(w).duration;
- const travel=Math.min(distance,elapsed*760);
+ const pullStart=ICE_LATCH+.085/spec(w).duration;
+ const elapsed=Math.max(0,Math.min(progress,ICE_FREEZE)-Math.max(prev,pullStart))*spec(w).duration;
+ const travel=Math.min(distance,elapsed*1140);
  // Test short steps along the line so neither compact enemies nor a wall
  // can be skipped, even when an entire pull is processed in one update.
  const grip=run.grabbed.get(z),startX=z.x,startY=z.y;
@@ -801,7 +811,7 @@ function strikeDuck(w,enemies,prev,progress,now,ops){
    const ax=Math.max(z.x-x,0,x-z.x-z.w),ay=Math.max(z.y-y,0,y-z.y-z.h);
    if((ax/14)**2+(ay/9)**2>1)continue;
    run.struck.add(z);
-   if(ops.push?.(z,run.dx,run.dy))ops.pulse?.('lure',x,y,1);
+   ops.push?.(z,run.dx,run.dy,'lure');
   }
  }
 }
@@ -846,7 +856,7 @@ function tickBollard(w,dt,enemies,ops){
     const dx=z.x+z.w/2-cx,dy=z.y+z.h/2-cy;
     const vx=dy>0?(dx<0?-1:1):dx,vy=dy>0?0:Math.min(-1,dy);
     const length=Math.hypot(vx,vy);
-    if(!ops.push?.(z,vx/length,vy/length)&&intersects(z.x,z.y,z.w,z.h,w)){
+    if(!ops.push?.(z,vx/length,vy/length,'bollard')&&intersects(z.x,z.y,z.w,z.h,w)){
      // Try a clear exit for a boss or a zombie pinned on the primary side.
      for(const [sx,sy] of [[0,-1],[-1,0],[1,0]]){
       const distance=sy<0?z.y+z.h-w.y+2:sx<0?z.x+z.w-w.x+2:w.x+T-z.x+2;
@@ -863,8 +873,8 @@ function tickBollard(w,dt,enemies,ops){
    if(enemies.some(z=>z.hp>0&&intersects(z.x,z.y,z.w,z.h,w))){
     w.cooldown=.8+Math.random();return;
    }
-   w.raised=true;w.moleTime=0;w.cooldown=1.8+Math.random()*2.2;
-   ops.pulse?.('bollard',cx,cy,nearby.length);
+   w.raised=true;w.moleTime=0;w.cooldown=6+Math.random()*3;
+   if(!nearby.length)ops.pulse?.('bollard',cx,cy,0);
   }
  }
  if(w.raised)w.moleTime=(w.moleTime||0)+dt;
@@ -911,7 +921,7 @@ function tickDevices(dt,enemies,now,ops){
    if(prev>=impact||progress<impact)continue;
    ops.damage?.(z,z.boss?1:2);hit++;
   }
-  if(hit)ops.pulse?.(w.kind,cx,cy,hit);
+  if(hit&&w.kind==='ice')ops.pulse?.(w.kind,cx,cy,hit);
   if(progress>=1){w.run=null;w.cooldown=randomRest(w)}
  }
  // Keep freshly frozen enemies out of the normal march/parade selectors.
@@ -924,13 +934,13 @@ function tickDevices(dt,enemies,now,ops){
 for(const {kind,el} of buildButtons)el?.addEventListener?.('click',()=>selectBuild(kind));
 makeDeviceIcons();
 
-function draw(g,building=false){
+function draw(g,building=false,glow=null){
  const bitmap=bitmapTiles();
  const tile=bitmap||tiles();if(!tile)return;
  const frame=bitmap?BARRICADE_FRAME:T;
  if(!building&&parts)for(const w of walls.values())if(w.kind==='ice'&&w.run)drawIceArms(g,w);
  for(const w of walls.values()){
-  if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building);continue}
+  if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building,glow);continue}
   // The five authored PNG states are switched by actual remaining HP.
   const variant=w.hp>MAX_HP*.8?0:w.hp>MAX_HP*.6?1:
     w.hp>MAX_HP*.4?2:w.hp>MAX_HP*.2?3:4;
