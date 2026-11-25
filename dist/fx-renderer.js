@@ -55,7 +55,7 @@ class FXRenderer {
         gl.bindTexture(gl.TEXTURE_2D,this.textures[0]);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,this.source);
         gl.viewport(0,0,this.output.width,this.output.height);
         const pass=(input,fb,x,y)=>{gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.bindTexture(gl.TEXTURE_2D,input);gl.uniform2f(this.step,x,y);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)};
-        const passes=this.settings.quality>=2?[[this.settings.radius*1.5,1.15]]:[[this.settings.radius,.65],[this.settings.radius*2,.75]];
+        const passes=[[this.settings.radius,.65],[this.settings.radius*2,.75]];
         for(const [radius,gain] of passes){
           pass(this.textures[0],this.targets[0],radius/3.23/this.width,0);
           pass(this.textures[1],null,0,radius/3.23/this.height);

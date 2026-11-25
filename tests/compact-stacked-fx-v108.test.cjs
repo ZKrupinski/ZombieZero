@@ -1,26 +1,32 @@
 'use strict';
+// v400: capture all skill draw operations at identical time/geometry. More
+// balls or a measured slow frame must never select different artwork.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const src=fs.readFileSync('dist/game.js','utf8');
-let stats,colors,ground,floorSamples;
-const noop=()=>{};
-const g=new Proxy({createLinearGradient:()=>({addColorStop:noop})},{get(o,k){if(k in o)return o[k];return (...args)=>{if(k==='stroke'){stats.strokes++;colors.push(o.strokeStyle)}if(k==='fill')colors.push(o.fillStyle);if(k==='bezierCurveTo')stats.curves++;if(k==='createRadialGradient'){stats.gradients++;return{addColorStop:noop}}}},set(o,k,v){if(k==='shadowBlur'&&v>0)stats.blur++;o[k]=v;return true}});
-const env={g,Math,fxEnabled:true,clock:1.2,selectedHero:0,balls:[],has:k=>env.skills.includes(k),clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),TRAIL_GROUND_FIRE:[[255,150,60]],TRAIL_GROUND_PIERCE:[[100,220,255]],drawProjectedLightSpill(...args){ground++;floorSamples.push(args)}};
+const section=(a,b)=>{const i=src.indexOf(a),j=src.indexOf(b,i+a.length);assert(i>=0&&j>i);return src.slice(i,j)};
+let ops=[];
+const g=new Proxy({globalAlpha:1,shadowBlur:0},{get(o,k){if(k in o)return o[k];return (...args)=>{ops.push([k,...args]);if(k==='createLinearGradient'||k==='createRadialGradient')return{addColorStop(...a){ops.push(['stop',...a])}}}},set(o,k,v){if(typeof v!=='object')ops.push([k,v]);o[k]=v;return true}});
+const env={g,Math,fxEnabled:true,clock:1.2,selectedHero:0,balls:[],perfTier:0,has:k=>env.skills.includes(k),clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),drawProjectedLightSpill(...args){ops.push(['floor',...args])}};
 vm.createContext(env);
-vm.runInContext(src.slice(src.indexOf('function compactBallFX('),src.indexOf('// V76: per-ball rotational inertia')),env);
-vm.runInContext(src.slice(src.indexOf('function drawTrailGroundReflections('),src.indexOf('// V89:',src.indexOf('function drawTrailGroundReflections('))),env);
+vm.runInContext(section('function compactBallFX(','// V76: per-ball rotational inertia'),env);
+vm.runInContext(section('const TRAIL_GROUND_HERO_COLORS=','// V89:'),env);
 env.path=Array.from({length:77},(_,i)=>({x:250-i*2.5,y:120+i*.5,s:i*2.5}));env.b={x:250,y:120,vx:300,vy:100,held:false};
-for(const skills of [['pierce'],['power','fire'],['power','pierce'],['fire','pierce'],['power','fire','pierce']])for(const count of [1,2,3,6]){
- env.skills=skills;env.balls=Array.from({length:count},()=>env.b);stats={strokes:0,curves:0,gradients:0,blur:0};colors=[];ground=0;floorSamples=[];
- vm.runInContext(`
- if(!compactBallFX())throw Error('must select compact mode');
- drawBallSkillTrail(b,12,path);drawBurningTrailFlames(b,12,path);drawPierceTrailLightning(b,12,path);
- drawBallStateAura(b,12);drawBurningBallFlames(b,12,false);drawPierceBallLightning(b,12,false);
- drawBallStatusForeground(b,12);drawBurningBallFlames(b,12,true);drawPierceBallLightning(b,12,true);
- drawTrailGroundReflections(b,12,path);`,env);
- assert(stats.strokes<=12,'bounded strokes including jagged arc and short forks');
- assert(stats.curves<=50,'bounded curves after restoring compact front flames and denser short trail');if(skills.includes('fire'))assert(stats.curves>=10,'animated flame silhouettes remain');assert.equal(stats.gradients,0);assert.equal(stats.blur,0);assert.equal(ground,16,'all compact elemental combinations retain full-length cached floor wake');
- if(skills.includes('fire')){assert(colors.includes('#ffad48'),'orange fire identifier');assert(floorSamples.some(a=>a[3][0]===255),'warm floor wake remains');assert(Math.abs(floorSamples[0][0]-floorSamples.at(-1)[0])>150,'fire floor wake spans whole trajectory');}
- assert(floorSamples.every(a=>a[4]<=.25&&a[8]===false),'bounded floor brightness and no duplicated core');
- if(skills.includes('pierce'))assert(colors.includes('#a9f4ff'),'cyan pierce identifier');
+for(const skills of [['fire'],['pierce'],['power'],['power','fire'],['power','pierce'],['fire','pierce'],['power','fire','pierce']]){
+ env.skills=skills;let reference=null;
+ for(const count of [1,2,3,6])for(const tier of [0,1,2]){
+  env.balls=Array.from({length:count},()=>env.b);env.perfTier=tier;ops=[];
+  g.globalAlpha=1;g.shadowBlur=0;ops=[];
+  vm.runInContext(`
+   drawBallSkillTrail(b,12,path);drawBurningTrailFlames(b,12,path);drawPierceTrailLightning(b,12,path);
+   drawBallStateAura(b,12);drawBurningBallFlames(b,12,false);drawPierceBallLightning(b,12,false);
+   drawBallStatusForeground(b,12);drawBurningBallFlames(b,12,true);drawPierceBallLightning(b,12,true);
+   drawTrailGroundReflections(b,12,path);`,env);
+  const serial=JSON.stringify(ops);
+  if(reference===null)reference=serial;else assert.equal(serial,reference,skills+' must retain exact full detail');
+  const floors=ops.filter(x=>x[0]==='floor');
+  assert.equal(floors.length,18);assert(floors.every(a=>a[9]===undefined),'full core layer retained');
+  if(skills.includes('fire'))assert(ops.some(x=>x[0]==='bezierCurveTo'),'full fire tongues retained');
+  if(skills.includes('pierce'))assert(ops.some(x=>x[0]==='strokeStyle'&&x[1]==='#45c8ff'),'outer electric glow retained');
+ }
 }
-console.log('PASS v108: 20 single/stacked configurations, <=12 strokes + bounded flame silhouettes + up to 16 cached floor pools per ball, no radial aura/blur; both skill cues retained.');
+console.log('PASS v400: 84 skill/count/load combinations preserve identical paint operations and complete floor wake.');

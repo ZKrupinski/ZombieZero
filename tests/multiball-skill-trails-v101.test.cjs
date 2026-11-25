@@ -8,7 +8,7 @@ assert(sw.includes('v101-multiskill-lod'));
 const section=(a,b)=>{const i=src.indexOf(a),j=src.indexOf(b,i+a.length);
  assert(i>=0&&j>i,'source section '+a);return src.slice(i,j)};
 const draw=section('function draw(){','function frame(');
-assert(draw.includes("multiSkillFastRender=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'))"));
+assert(!draw.includes('multiSkillFastRender='),'no adaptive loss of artwork');
 assert(draw.includes('if(!elementalTrail){\n   drawHeroBallTrail(b,r,trailPath);'),
  'elemental body replaces duplicate base consistently');
 assert(draw.includes('drawBallSkillTrail(b,r,trailPath)'));
@@ -17,7 +17,7 @@ assert(draw.includes('drawPierceTrailLightning(b,r,trailPath)'));
 assert(draw.includes('drawHeroBallSprite(b,r,palette.main)'),'ball sprite still painted');
 assert(draw.includes('drawBallStatusForeground(b,r)'),'surface state still readable');
 assert(draw.includes('drawTrailEdgeHalo(b,r,trailPath,.72)'),'unchanged 1/2-ball halo');
-assert(src.includes("if(!fast&&i%3===0)"),'skill spark loop keeps single/dual detail');
+assert(src.includes('if(i%3===0)'),'skill sparks keep full density');
 assert(src.includes("if(drawCore)drawSoftLightSpill"),'multi-ball omits duplicate floor core');
 const path=Array.from({length:35},(_,i)=>({x:300-i*5,y:140,s:i*5}));
 const gStats={strokes:0,fills:0,arcs:0,blurs:0,images:0};
@@ -51,8 +51,7 @@ assert.equal(normalSkill.strokes,1,'bounded body draw count');
 assert.deepEqual(normalSkill,fastSkill,'body stays identical when ball count crosses LOD threshold');
 const normalFire=measure('drawBurningTrailFlames',false);
 const fastFire=measure('drawBurningTrailFlames',true);
-assert(normalFire.tongues>fastFire.tongues*3,
- 'fire tongues reduced >=3x');
+assert.deepEqual(normalFire,fastFire,'fire tongue count and draw operations invariant');
 assert(normalFire.fills===0&&fastFire.strokes===0,'fire detail never draws a second body');
 assert(fastFire.tongues>=3,'recognizable fire sparks remain');
 const normalBolt=measure('drawPierceTrailLightning',false);
@@ -75,10 +74,10 @@ assert(floorDraws.every(a=>a[8]===undefined),'normal pools include double-core h
 floorDraws.length=0;floor.balls=[{},{},{}];
 vm.runInContext('drawTrailGroundReflections(b,8,path)',floor);
 const fastPools=floorDraws.length;
-assert(fastPools<=10&&fastPools<basePools,'fewer multi-ball reflection samples');
-assert(floorDraws.every(a=>a[8]===false),'single wide floor halo per sample');
+assert.equal(fastPools,basePools,'full wake density independent of count');
+assert(floorDraws.every(a=>a[8]===undefined),'full outer and core retained');
 const summary={skillStrokes:[normalSkill.strokes,fastSkill.strokes],
  fireTongues:[normalFire.tongues,fastFire.tongues],fireRibbons:[normalFire.fills,fastFire.strokes],
  lightningForks:[normalBolt.electricArcs,fastBolt.strokes],
  floorSamples:[basePools,fastPools]};
-console.log('PASS: dynamic 3+ skill LOD saves repeated trails, fire/bolt arcs and floor glow while keeping game art/physics. '+JSON.stringify(summary));
+console.log('PASS: full trail, fire/bolt detail and floor glow invariant under multi-ball load. '+JSON.stringify(summary));

@@ -31,7 +31,7 @@ assert(glowPosition<render.indexOf('drawActiveItemIcons()'),'HUD remains unaffec
 assert(!render.includes('drawEnemyDeaths();drawEffectLightSpills()'),
  'the old occluded early pass is gone');
 assert(code.includes('drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius))'),'colored trail reflections remain');
-assert(lightSrc.includes('for(let i=Math.max(0,fx.length-12);i<fx.length;i++)'),'generic hit/catch effects still project light without array copying');
+assert(lightSrc.includes('for(let i=0;i<fx.length;i++)'),'every live hit/catch effect projects light without array copying');
 assert(lightSrc.includes('itemPickupFX'),'pickup effects project light');
 assert(lightSrc.includes('actor.burn>0'),'burning enemies project warm light');
 const draws={paths:[],fills:[],gradients:[],translates:[],scales:[]};

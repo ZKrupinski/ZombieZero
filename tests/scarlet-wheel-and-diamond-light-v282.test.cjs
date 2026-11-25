@@ -36,9 +36,9 @@ assert(context.calls.every(x=>x.rgb.join(',')==='192,234,112'),'Ace retains orig
 context.calls=[];context.selectedHero=4;
 context.compactBallFX=()=>true;
 draw();
-assert.equal(context.calls.length,1,'mobile compact mode remains one pooled light');
-assert.equal(context.calls[0].rgb.join(','),'180,212,255',
- 'mobile compact normal light matches diamond rather than the tennis ball');
+assert(context.calls.length>=12,'mobile retains full reflected wake');
+assert(context.calls.some(x=>x.rgb.join(',')==='180,212,255'),'diamond blue retained');
+assert(context.calls.some(x=>x.rgb.join(',')==='245,187,237'),'diamond accent retained');
 context.calls=[];context.compactBallFX=()=>false;
 context.has=kind=>kind==='fire';
 draw();

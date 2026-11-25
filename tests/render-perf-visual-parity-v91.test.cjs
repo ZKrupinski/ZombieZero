@@ -24,7 +24,7 @@ assert(renderSource.includes('const trailPath=getBallRenderTrailPath(b,r)'),
  'ball sprite and trail receive cached frame geometry');
 assert(src.includes('drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius))'),
  'floor reflections share the SAME frame geometry');
-assert(src.includes('for(let i=Math.max(0,fx.length-12);i<fx.length;i++)'),
+assert(src.includes('for(let i=0;i<fx.length;i++)'),
  'effect loop avoids an array copy every frame');
 assert(!src.includes('fx.slice(-12)'),'effect slices no longer allocate');
 // Compare every returned sample against the previous linear implementation,
@@ -149,7 +149,7 @@ assert(alloc.length===2,'only two texture allocations during renderer initializa
 assert(alloc[0][3]===450&&alloc[0][4]===710,'source texture matches full-size native canvas');
 assert(alloc[1][3]===225&&alloc[1][4]===355,'intermediate remains half-size');
 const surface={canvas:{width:450,height:710},globalAlpha:1,save(){},restore(){},setTransform(){},drawImage(){}};
-for(let i=0;i<4;i++){renderer.begin();renderer.dirty=true;renderer.composite(surface)}
+for(let i=0;i<4;i++){renderer.settings.quality=i%3;renderer.begin();renderer.dirty=true;renderer.composite(surface)}
 assert(uploads.length===4,'one sub-image upload per frame');
 assert(uploads.every(args=>args[2]===0&&args[3]===0&&args[6]===renderer.source),
  'source pixel upload uses preallocated texture at origin');

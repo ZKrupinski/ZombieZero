@@ -153,7 +153,6 @@ function queueContact(queue,x,y,nx,ny,kind,target,sizeMultiplier=1){
  const entry=typeof contactPool!=='undefined'?(contactPool.pop()||{}):{};
  Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,
   variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:queue===trashContactFX?.42:kind==='enemy'?.30:kind==='ceiling'?.25:.27});queue.push(entry);
- if(queue.length>20){const removed=queue.splice(0,queue.length-20);if(typeof contactPool!=='undefined')for(const v of removed){v.target=null;recycleVisual(contactPool,v)}}
 }
 function contactFace(b,z,r,ox,oy){
  const x=clamp(b.x,z.x+2,z.x+z.w-2),y=clamp(b.y,z.y+2,z.y+z.h-2);
@@ -420,9 +419,23 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTra
  // V89: the old 0.48 scale made falloff cores look like razor-thin lines.
  // Use a fuller oval; caller can give a rounder .94 for impact flashes.
  g.scale(1,Math.max(.72,Math.min(1,vertical)));
- drawSoftLightSpill(0,0,r,rgb,alpha,useTrailStamp);
- // Compact luminous center keeps colored reflections legible on bright roads.
- if(drawCore)drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
+ // Draw the same cached outer/core mask pair without nested saves, restores,
+ // repeated color-cache lookup or repeated blend/shadow state changes.
+ const stamp=useTrailStamp&&typeof trailLightStamp==='function'?trailLightStamp(rgb):null;
+ if(stamp&&Number.isFinite(x)&&Number.isFinite(y)){
+  const inherited=g.globalAlpha,outer=Math.min(100,Math.max(12,r));
+  g.globalCompositeOperation='lighter';g.shadowColor='transparent';g.shadowBlur=0;
+  g.globalAlpha=inherited*Math.min(.8,alpha)/.8;
+  g.drawImage(stamp,-outer,-outer,outer*2,outer*2);
+  if(drawCore){
+   const core=Math.min(100,Math.max(12,r*.52));
+   g.globalAlpha=inherited*Math.min(.8,alpha*.37)/.8;
+   g.drawImage(stamp,-core,-core,core*2,core*2);
+  }
+ }else{
+  drawSoftLightSpill(0,0,r,rgb,alpha,useTrailStamp);
+  if(drawCore)drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
+ }
  g.restore();
 }
 // V88: reflected light is a separate projected wake, NOT a glow pasted onto
@@ -462,36 +475,6 @@ const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[2
 
 function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
- if(typeof compactBallFX==='function'&&compactBallFX()){
-  if(has('pierce')||has('fire')){
-   // Use up to sixteen overlapping cached pools (near-standard 12px spacing).
-   // One layer per sample, no live blur and no duplicate inner light pool.
-   const length=path[path.length-1].s;
-   const limit=typeof perfTier!=='undefined'?(perfTier===2?9:perfTier===1?12:16):16;
-    const samples=Math.min(limit,Math.max(2,Math.ceil(length/12)+1));
-   for(let i=0;i<samples;i++){
-    const u=i/(samples-1),p=sampleBallTrail(path,length*u);
-    const fade=1-.78*u;
-    // Alternate warm and cyan pools when fire and pierce overlap.
-    // Same 16 cached stamps; never double the floor draw calls.
-    const rgb=has('fire')&&(!has('pierce')||i%2===0)?
-      (typeof TRAIL_GROUND_FIRE!=='undefined'?TRAIL_GROUND_FIRE[0]:[255,139,51]):
-      TRAIL_GROUND_PIERCE[0];
-    drawProjectedLightSpill(p.x,p.y,(has('power')?34:30)*(typeof miniBallScale==='function'?miniBallScale():1)*(1-.12*u),
-     rgb,.25*fade,30,.82,true,false);
-   }
-   return;
-  }
-  // One cached soft pool per ball replaces up to 36 large blended pools.
-  // With no elemental skill, keep the hero's own ball color instead of
-  // the formerly hard-coded cyan lightning stamp.
-  const fire=has('fire'),pierce=has('pierce'),power=has('power');
-  const rgb=fire?TRAIL_GROUND_FIRE[0]:pierce?TRAIL_GROUND_PIERCE[0]:
-    power?TRAIL_GROUND_POWER[0]:
-    (TRAIL_GROUND_HERO_COLORS[selectedHero]||TRAIL_GROUND_HERO_COLORS[0]);
-  drawProjectedLightSpill(b.x,b.y,r*2.4,rgb,.22,30,.82,true,false);
-  return;
- }
  // Match the full existing trail (170px normal, 190px power) exactly.
  // The v88 cutoff at 134px plus eight samples made its floor wake too short.
  const length=path[path.length-1].s;
@@ -503,15 +486,9 @@ function drawTrailGroundReflections(b,r,path){
  const baseAlpha=fire||pierce?(power ? .43 : .39):(power ? .42 : .39);
  const radius=(fire||pierce?(power?34:28):power?28:24)*(typeof miniBallScale==='function'?miniBallScale():1);
  // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
- // both ends present. At most 20 two-layer pools per ball for mobile GPUs.
- // 3+ simultaneous fire/pierce balls already have a bright elemental ribbon.
- // Project fewer soft pools and omit the duplicate inner core. The outer
- // stamp stays large enough for the pools to overlap without dotted gaps.
- const multiSkillFast=balls.length>=3&&(fire||pierce);
+ // both ends present. One quality profile for every ball count.
  const start=4;
- const samples=multiSkillFast?
-  Math.min(10,Math.max(2,Math.ceil((length-start)/21)+1)):
-  Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1));
+ const samples=Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1));
  for(let i=0;i<samples;i++){
   const d=start+(length-start)*i/(samples-1);
   const p=sampleBallTrail(path,d);
@@ -525,11 +502,7 @@ function drawTrailGroundReflections(b,r,path){
     SCARLET_DIAMOND_GROUND_ACCENT:
     normal?(defaultColors[selectedHero]||defaultColors[0]):colors[i%colors.length];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
-  if(multiSkillFast)
-   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
-     baseAlpha*.88*fade*variation,30,.82,true,false);
-  else
-   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
+  drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
      baseAlpha*.68*fade*variation,30,.82,true);
  }
 }
@@ -571,7 +544,7 @@ function drawEffectLightSpills(){
   const u=b.t/Math.max(.01,b.life||.39);
   if(u<1)drawProjectedLightSpill(b.x,b.y,96,[255,174,70],.65*(1-u),38);
  }
- for(let i=Math.max(0,fx.length-12);i<fx.length;i++){
+ for(let i=0;i<fx.length;i++){
   const f=fx[i];
   const u=f.t/Math.max(.01,f.visualLife||.21);
   if(u>=1||f.standardHit)continue;
@@ -785,7 +758,6 @@ function music(){
 function effect(x,y,color,size=45,text='',standardHit=false,shakeCamera=true){
  if(!fxEnabled)return;
  fx.push({x,y,color,size,text,t:0,life:text?.85:.26,visualLife:size>=100?.31:.21,seed:Math.random()*6.28,standardHit});
- if(fx.length>45)fx.shift();
  if(shakeCamera)cameraFeedback(size>=120?1.25:size>=70?.9:size>=45?.55:.3);
 }
 // V153: one base glyph + a faint additive text-only glow. Never postprocess
@@ -2620,7 +2592,6 @@ function retireBall(b,reason='expire'){
  if(!b||b.held)return;
  ballVanish.push({x:b.x,y:clamp(b.y,18,H-14),trail:(b.trail||[]).slice(0,8),
    miniScale:(typeof miniBallScale==='function'?miniBallScale():1),reason,t:0,life:reason==='lost'?.65:.5});
- if(ballVanish.length>22)ballVanish.splice(0,ballVanish.length-22);
  if(fxEnabled)burst(b.x,clamp(b.y,24,H-24),reason==='lost'?'#ff9d9f':'#b8f9ef',6);
 }
 function burst(x,y,color,n=12){
@@ -2634,7 +2605,6 @@ function burst(x,y,color,n=12){
   p.x=x;p.y=y;p.vx=Math.cos(angle)*velocity;p.vy=Math.sin(angle)*velocity-30;
   p.t=p.life=life;p.color=color;p.size=4+Math.random()*4;particles.push(p);
  }
- if(particles.length>260){const removed=particles.splice(0,particles.length-260);if(typeof particlePool!=='undefined')for(const p of removed)recycleVisual(particlePool,p)}
 }
 
 function multiCount(){return (has('dual')?2:1)*(has('triple')?3:1)}
@@ -2665,7 +2635,6 @@ function activate(k,x=car,y=PY-24){
  // A brief bitmap pickup confirmation at the actual caught-item position.
  // Do not grow or restyle the already-approved tiny equipped badges.
  itemPickupFX.push({k,x,y,t:0,life:.62});
- if(itemPickupFX.length>12)itemPickupFX.shift();
  effect(x,y,SKILLS[k].color,50);
  burst(x,y,SKILLS[k].color,10);
  // No score, life or wave changes here. Multiball already updates HUD in syncMulti.
@@ -2840,7 +2809,6 @@ const RED_BARREL_RADIUS=86;
 function explodeRedBarrel(z){
  const x=z.x+z.w/2,y=z.y+z.h/2;
  barrelBlasts.push({x,y,t:0,life:.34,seed:Math.random()*6.28});
- if(barrelBlasts.length>6)barrelBlasts.shift();
  effect(x,y,'#ffac48',112,'',false,false);burst(x,y,'#ff913b',48);
  sfx('blast');feedback('blast');
  // Fire spreads to nearby enemy collision rectangles, not to the player or civilians.
@@ -3002,7 +2970,6 @@ function applyKnockback(z,impact,n=1){
     actor.breakoutCooldownUntil=clock+2;
    }
   }
-  if(hitFlashes.length>36)hitFlashes.splice(0,hitFlashes.length-36);
   return true;
  }
  return false;
@@ -3085,7 +3052,6 @@ function fortressContact(z,kind,x=0,y=-1,freeze=null){
   t:0,life:.48,critical:false,spread:Math.max(z.w,z.h),delay:0,
   miniFxScale:isMiniHorde()?MINI_HORDE_SCALE:1,piercing:kind==='ice',angle:Math.atan2(y,x)});
  hitFlashes.push(flash);
- if(hitFlashes.length>36){const old=hitFlashes.shift();if(typeof flashPool!=='undefined')recycleVisual(flashPool,old)}
  feedback(z.boss?'bossHit':'hit');sfx(z.boss?'bosshit':'hit');
 }
 function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritical=false){
@@ -3104,7 +3070,6 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
    t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),delay:0,
    miniFxScale:isMiniHorde()?MINI_HORDE_SCALE:1,
    piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});hitFlashes.push(flash);
-  if(hitFlashes.length>36){const old=hitFlashes.shift();if(typeof flashPool!=='undefined')recycleVisual(flashPool,old)}
   }
   // Scarlett's third handbag return earns a prismatic hit without floating text.
   if(impact?.sparkle)burst(z.x+z.w/2,z.y+z.h/2,'#c9dfff',12);
@@ -3188,7 +3153,6 @@ function applyFireImpact(z,x,y,level){
  }
  if(count&&fxEnabled){
   fireWaves.push({x,y,radius,t:0,life:.28,seed:clock*2.4});
-  if(fireWaves.length>4)fireWaves.shift();
  }
  return count;
 }
@@ -3667,7 +3631,7 @@ function enemyDeath(z,critical=false){
  const spriteMode=largeBossSprite||eliteSprite||objectSprite||greenSprite;
  const split=largeBossSprite?(critical?.94:.78):eliteSprite?.72:objectSprite?(z.boss?(critical?.94:.78):(critical?.58:.52)):(greenSprite?(critical?.580:.520):(critical?.580:(z.boss?.32:.12)));
  const freeze=Math.max(0,(z.hitShakeUntil||0)-clock);
- enemyDeaths.push({source:z,z:{...z,flash:.12},critical,spriteMode,t:0,freeze,split:split+freeze,done:false});if(enemyDeaths.length>24)enemyDeaths.shift()}
+ enemyDeaths.push({source:z,z:{...z,flash:.12},critical,spriteMode,t:0,freeze,split:split+freeze,done:false});}
 function updateEnemyVisuals(dt){
  for(const ghost of dodgeGhosts)ghost.t+=dt;
  compactVisualQueue(dodgeGhosts,ghost=>ghost.t<ghost.life);
@@ -3979,12 +3943,11 @@ function drawImpactFlashes(){
   const t=clamp((f.t-(f.delay||0))/Math.max(.01,f.life-(f.delay||0)),0,1);
   if(t>=1)continue;
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
-  const tier=typeof perfTier!=='undefined'?perfTier:0;
-  const drawHit=()=>drawPixelBurst(f.x,f.y,t,(f.critical?55:(f.spread||44))*(f.miniFxScale||1),Math.max(4,Math.ceil((f.critical?32:16)*(f.miniFxScale||1)*(tier===2?.50:tier===1?.75:1))),
+  const drawHit=()=>drawPixelBurst(f.x,f.y,t,(f.critical?55:(f.spread||44))*(f.miniFxScale||1),Math.max(4,Math.ceil((f.critical?32:16)*(f.miniFxScale||1))),
     (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,(f.critical?1:1.75)*(f.miniFxScale||1),
-    f.critical?.56:1.45,f.critical?1.3:.78,tier>0?0:f.critical?1:.35);
+    f.critical?.56:1.45,f.critical?1.3:.78,f.critical?1:.35);
   // Critical hits retain full shader; ordinary hits get only subtle local glow.
-  if(f.critical&&!(tier===2&&f.piercing))luminous(drawHit);else drawHit();
+  if(f.critical)luminous(drawHit);else drawHit();
  }
 }
 function drawBarrelBlasts(){
@@ -4008,39 +3971,8 @@ function drawBarrelBlasts(){
 // V82: polished, close-fitting bitmap-ball accents. The real ball retains its
 // exact 2x powered diameter; effects never form a second oversized silhouette.
 // v108: stacked skills use a fixed, small render budget even with one ball.
-function compactBallFX(){
- return fxEnabled&&(has('pierce')||
-  (has('fire')&&(has('power')||balls.length>=3)));
-}
-// V156: Compact LOD still draws the skill colors. The previous early returns
-// erased ALL fire/pierce/power accents whenever stacked skills were active.
-// Keep a fixed 2-7 tiny additive dots per pass, with no blur or gradients.
-function drawCompactBallStatus(b,r,front=false){
- if(!fxEnabled)return;
- const fire=has('fire'),pierce=has('pierce'),power=has('power');
- if(!fire&&!pierce&&!power)return;
- const phase=clock*(front?1.1:.72),radius=r*(front?1.14:1.35);
- g.save();g.translate(b.x,b.y);
- g.globalCompositeOperation='lighter';g.shadowBlur=0;
- const emit=(count,phaseOffset,color,alpha)=>{
-  for(let i=0;i<count;i++){
-   const a=phase+phaseOffset+i*Math.PI*2/count;
-   g.fillStyle=color;g.globalAlpha=alpha;
-   g.beginPath();
-   g.arc(Math.cos(a)*radius,Math.sin(a)*radius,
-     Math.max(.85,Math.min(1.45,r*.095)),0,Math.PI*2);
-   g.fill();
-  }
- };
- if(fire)emit(front?2:3,0,'#ff9a3f',front?.56:.68);
- if(pierce)emit(front?2:3,Math.PI/3,'#a9f4ff',front?.66:.76);
- if(power)emit(front?1:2,Math.PI/4,'#ffdf87',front?.45:.55);
- g.restore();
-}
+function compactBallFX(){return false} // Compatibility query: no visible LOD.
 function drawBallStateAura(b,r){
- if(typeof compactBallFX==='function'&&compactBallFX()){
-  drawCompactBallStatus(b,r,false);return;
- }
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
  const phase=clock*(b.held?2.4:4.2),pulse=.5+.5*Math.sin(clock*9.5);
@@ -4118,9 +4050,6 @@ function drawBallStateAura(b,r){
 // remains readable on white baseballs and pale green tennis balls.
 // V82: sparse surface glints on TOP of the bitmap, not oversized pixels.
 function drawBallStatusForeground(b,r){
- if(typeof compactBallFX==='function'&&compactBallFX()){
-  drawCompactBallStatus(b,r,true);return;
- }
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fxEnabled||!(fire||pierce||power))return;
  const count=Number(fire)+Number(pierce)+Number(power),balance=count>1?.73:1;
@@ -4292,7 +4221,6 @@ function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
  g.stroke();g.restore();
 }
 function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
- const fast=typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender;
  if(!fxEnabled||path.length<2)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fire&&!pierce&&!power)return;
@@ -4300,7 +4228,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  const colors=fire&&pierce?['#ffd49b','#91e6fd','#fff8de']:fire?['#ffba77','#ff813e','#fff0c5']:
    pierce?['#79d8f6','#d9faff','#a3e7ff']:['#ffe8a0','#fff5d5','#e5c573'];
  const len=path[path.length-1].s;
- const step=fast?(r>8?14.5:13.5):(r>8?6.5:5.5);
+ const step=r>8?6.5:5.5;
  g.save();g.lineCap='round';g.lineJoin='round';
  g.globalCompositeOperation='lighter';
  // A single continuous, slightly feathered energy core stops individual
@@ -4332,7 +4260,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   const width=Math.min(2.3,Math.max(1,r*.14));
   g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*fade;
   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(next.x,next.y);g.stroke();
-  if(!fast&&i%3===0){
+  if(i%3===0){
    const lateral=r*.72,chip=Math.max(.8,width*.48);
    for(const side of [-1,1]){
     g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*fade;
@@ -4345,7 +4273,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
 // V83: fire is a living secondary layer, never a replacement for the ball bitmap.
 // v101: scope-limited multi-ball fast mode. Ordinary 1/2 ball effects keep
 // every original render call and visual characteristic intact.
-let multiSkillFastRender=false;
+// No ball-count or performance-dependent visual LOD.
 // Tapered cubic tongues, warm inner cores and a backward-flowing ember ribbon.
 function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  const mag=Math.hypot(dx,dy)||1,nx=-dy/mag,ny=dx/mag;
@@ -4360,8 +4288,6 @@ function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  g.restore();
 }
 function drawBurningBallFlames(b,r,front=false){
- const fast=(typeof compactBallFX==='function'&&compactBallFX())||
-  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('fire'))return;
  const t=clock,velocity=Math.hypot(b.vx||0,b.vy||0);
  const windX=velocity>1?-(b.vx||0)/velocity:0,windY=velocity>1?-(b.vy||0)/velocity:-1;
@@ -4369,7 +4295,7 @@ function drawBurningBallFlames(b,r,front=false){
  // thickness grows less aggressively so overlapping skills never look broken.
  const fxRadius=r>8?8+(r-8)*.55:r;
  g.save();g.translate(b.x,b.y);g.globalCompositeOperation='lighter';
- if(!front&&!fast){
+ if(!front){
   const glow=g.createRadialGradient?.(0,0,r*.65,0,0,r*2.05);
   if(glow&&typeof glow.addColorStop==='function'){
    glow.addColorStop(0,'rgba(255,238,155,0)');
@@ -4379,20 +4305,20 @@ function drawBurningBallFlames(b,r,front=false){
    g.fillStyle=glow;g.globalAlpha=.87;g.beginPath();g.arc(0,0,r*2.05,0,Math.PI*2);g.fill();
   }
  }
- const count=fast?(front?2:4):(front?6:12);
- g.shadowColor=fast||front?'transparent':'#ff7b2a';g.shadowBlur=fast||front?0:4;
+ const count=front?6:12;
+ g.shadowColor=front?'transparent':'#ff7b2a';g.shadowBlur=front?0:4;
  for(let i=0;i<count;i++){
   const angle=i*Math.PI*2/count+.06*Math.sin(t*7+i*2.3);
   const ax=Math.cos(angle),ay=Math.sin(angle);
   const wave=.5+.5*Math.sin(t*(front?13:10)+i*2.4);
   const bx=ax*r*(front?1.17:1.26),by=ay*r*(front?1.17:1.26);
-  const length=fxRadius*(front?.18+.18*wave:fast?.38+.28*wave:.25+.23*wave);
+  const length=fxRadius*(front?.18+.18*wave:.25+.23*wave);
   const dx=ax*length*.75+windX*length*.46;
   const dy=ay*length*.75+windY*length*.46;
-  const width=fxRadius*(front?.085:fast?.17:.14)*(1+.2*wave);
+  const width=fxRadius*(front?.085:.14)*(1+.2*wave);
   const alpha=front?.47:.73;
   flameTongue(bx,by,dx,dy,width,i%3===0?'#ffe393':i%2?'#ffad48':'#ff6428',alpha);
-  if(!front&&!fast)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
+  if(!front)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
  }
  if(front){
   // Surface heat should glimmer over, but not obscure, the three ball designs.
@@ -4405,31 +4331,9 @@ function drawBurningBallFlames(b,r,front=false){
  g.restore();
 }
 function drawBurningTrailFlames(b,r,path){
- const fast=(typeof compactBallFX==='function'&&compactBallFX())||
-  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('fire')||!path||path.length<2)return;
  const t=clock,maxLen=path[path.length-1].s;
  if(maxLen<4)return;
- if(fast){
-  // Even an 8px-long fresh trail gets a spark near the head. Multi-ball
-  // keeps a coarser fixed budget; 1/2-ball power/pierce is more detailed.
-  const spacing=typeof balls!=='undefined'&&balls.length>=3?19:12;
-  const ornamentR=r>8?8+(r-8)*.55:r;
-  g.save();g.globalCompositeOperation='lighter';
-  for(let d=3,i=0;d<maxLen-1;d+=spacing,i++){
-   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
-   if(!p||!q)continue;
-   let dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy);
-   if(mag<.35){dx=b.vx||0;dy=b.vy||-1;mag=Math.hypot(dx,dy)||1}
-   const nx=-dy/mag,ny=dx/mag,side=i%2?-1:1;
-   const fade=Math.pow(Math.max(.08,1-d/maxLen),.9);
-   const reach=(12+3*Math.sin(t*11+i*2))*fade;
-   flameTongue(p.x+nx*side*ornamentR*.42,p.y+ny*side*ornamentR*.42,
-    dx/mag*reach+nx*side*reach*.5,dy/mag*reach+ny*side*reach*.5,
-    Math.max(.7,ornamentR*.18*fade),i%3?'#ff8d36':'#ffe0a1',.72*fade);
-  }
-  g.restore();return;
- }
  g.save();g.lineCap='round';g.globalCompositeOperation='lighter';g.shadowBlur=0;
  // Tongues curl and detach from the outer edge of the moving trail,
  // staggered in time instead of one rigid straight beam.
@@ -4456,18 +4360,11 @@ function drawBurningTrailFlames(b,r,path){
 // V84: clearly readable cyan-white lightning for piercing shots.
 // Each arc receives a blurred additive outer glow and crisp inner filament.
 function drawElectricArc(points,alpha=1,scale=1){
- const fast=(typeof compactBallFX==='function'&&compactBallFX())||
-  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!points||points.length<2)return;
  g.save();g.lineCap='round';g.lineJoin='miter';
  g.globalCompositeOperation='lighter';g.beginPath();
  g.moveTo(points[0].x,points[0].y);
  for(let i=1;i<points.length;i++)g.lineTo(points[i].x,points[i].y);
- if(fast){
-  // Omit two shadow-blurred outer strokes for every fast-mode lightning arc.
-  g.shadowBlur=0;g.strokeStyle='#a9f4ff';g.lineWidth=2.15*scale;
-  g.globalAlpha=.81*alpha;g.stroke();g.restore();return;
- }
  g.shadowColor='#69dfff';g.shadowBlur=9*scale;
  g.strokeStyle='#45c8ff';g.lineWidth=3.5*scale;g.globalAlpha=.39*alpha;g.stroke();
  g.shadowBlur=3.5*scale;g.strokeStyle='#a3efff';
@@ -4477,13 +4374,8 @@ function drawElectricArc(points,alpha=1,scale=1){
  g.restore();
 }
 function drawPierceBallLightning(b,r,front=false){
- // A single thin foreground bolt keeps fire + pierce recognizable in
- // compact mode; pierce-only compact remains back-only to limit overdraw.
- if(front&&typeof compactBallFX==='function'&&compactBallFX()&&!has('fire'))return;
- const fast=(typeof compactBallFX==='function'&&compactBallFX())||
-  (typeof multiSkillFastRender!=='undefined'&&multiSkillFastRender);
  if(!fxEnabled||!has('pierce'))return;
- const beat=Math.floor(clock*25),count=fast?(front?1:2):(front?3:4);
+ const beat=Math.floor(clock*25),count=front?3:4;
  const bright=has('fire')?.86:1;
  g.save();g.translate(b.x,b.y);
  for(let i=0;i<count;i++){
@@ -4685,7 +4577,7 @@ function drawStruckZombie(z){
  try{zombie(knockVisualPosition(z))}finally{enemyAnimationClock=liveCel;g.restore()}
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){if(fxRenderer.settings)fxRenderer.settings.quality=typeof perfTier!=='undefined'?perfTier:0;fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.
@@ -4704,7 +4596,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
- multiSkillFastRender=fxEnabled&&balls.length>=3&&(has('fire')||has('pierce'));
+ // Skill artwork is invariant across ball counts and measured frame load.
  // Elemental shots own one broad body at every detail level.
  const elementalTrail=fxEnabled&&(has('fire')||has('pierce'));
  for(const b of balls){
@@ -4733,10 +4625,12 @@ drawKillCombo();drawBarrelBlasts();
   if(particles.length)luminous(()=>{
   g.save();
   for(const p of particles){
+   // Cull only completely offscreen pixels, including the maximum glow fringe.
+   if(p.x<-32||p.x>W+32||p.y<-32||p.y>H+32)continue;
    const fade=clamp(p.t/(p.life||.25),0,1);
    const size=Math.max(2,Math.round(p.size*(.6+.4*fade)));
    g.globalAlpha=fade;
-   g.fillStyle=p.color;g.shadowColor=p.color;g.shadowBlur=typeof perfTier!=='undefined'&&perfTier>0?0:6*fade;
+   g.fillStyle=p.color;g.shadowColor=p.color;g.shadowBlur=6*fade;
    g.fillRect(Math.round(p.x-size/2),Math.round(p.y-size/2),size,size);
    if(fade>.65){g.fillStyle='#fffce7';g.fillRect(Math.round(p.x),Math.round(p.y),Math.max(1,size*.35),Math.max(1,size*.35));}
   }
@@ -5656,7 +5550,6 @@ function updateBazooka(dt){
  for(const r of [...rockets]){r.t+=dt;if(r.t<r.duration)continue;rockets.splice(rockets.indexOf(r),1);
   const radius=r.radius??BAZOOKA_RADIUS_MAX;
   bazookaBlasts.push({x:r.tx,y:r.ty,radius,t:0,life:.39,seed:Math.random()*6.28});
-  if(bazookaBlasts.length>6)bazookaBlasts.shift();
   effect(r.tx,r.ty,'#ffd16c',radius*.94,'BAZOOKA!',false,false);feedback('blast');
   burst(r.tx,r.ty,'#ffae65',Math.round(14+radius*.27));
   sfx('blast');

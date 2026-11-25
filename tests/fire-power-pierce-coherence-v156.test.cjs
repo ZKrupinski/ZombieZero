@@ -38,6 +38,7 @@ const env={g,fxEnabled:true,Math,clock:2.5,balls:[],multiSkillFastRender:false,
  flameTongue:(...args)=>flames.push(args),
  drawElectricArc:(...args)=>events.push(['arc-bolt',args[1]]),
  TRAIL_GROUND_PIERCE:[[89,213,255]],TRAIL_GROUND_FIRE:[[255,139,51]],
+ TRAIL_GROUND_FIRE_PIERCE:[[255,155,62],[95,217,255]],TRAIL_GROUND_POWER:[[255,214,110]],TRAIL_GROUND_HERO_COLORS:[[192,234,112]],
  drawProjectedLightSpill:(...args)=>ground.push(args)};
 vm.createContext(env);
 for(const src of Object.values(paths))vm.runInContext(src,env);
@@ -47,13 +48,12 @@ function testAura(skills,count){
  events.length=colors.length=0;
  vm.runInContext('drawBallStateAura(b,r);drawBallStatusForeground(b,r)',Object.assign(env,{b:ball,r:skills.includes('power')?12:8}));
  const fills=events.filter(e=>e[0]==='fill'),paintColors=fills.map(e=>e[1]);
- if(skills.includes('fire'))assert(paintColors.includes('#ff9a3f'),'fire light remains on ball for '+skills);
- if(skills.includes('pierce'))assert(paintColors.includes('#a9f4ff'),'piercing cyan remains on ball for '+skills);
- if(skills.includes('power'))assert(paintColors.includes('#ffdf87'),'gold power light remains on ball for '+skills);
- assert(fills.length>=4,'compact head/tail pass is never blank for '+skills);
- assert(!events.some(e=>['radial','gradient'].includes(e[0])),'compact mode has no per-ball gradient');
- assert(g.shadowBlur===0,'compact mode has no expensive blur');
- assert(fills.length<=15,'aura budget bounded independently of ball count');
+ if(skills.includes('fire'))assert(paintColors.includes('#ff9236'),'fire light remains on ball for '+skills);
+ if(skills.includes('pierce'))assert(paintColors.includes('#70dafc'),'piercing cyan remains on ball for '+skills);
+ if(skills.includes('power'))assert(paintColors.includes('#f6d46d'),'gold power light remains on ball for '+skills);
+ assert(fills.length>=5,'full aura is never blank for '+skills);
+ assert(events.some(e=>e[0]==='radial'),'original radial aura retained');
+ assert(g.shadowBlur===0,'aura does not add extra blur');
 }
 for(const skills of [['fire','power'],['fire','pierce'],['fire','pierce','power'],['pierce'],['pierce','power']])
  for(const n of [1,3,6])testAura(skills,n);
@@ -70,7 +70,7 @@ for(const n of [1,3,6]){
  flames.length=0;
  vm.runInContext('drawBurningTrailFlames(b,r,path)',env);
  assert(flames.length>=7,'flames remain recognizable even with many balls');
- assert(flames.length<=(n>=3?11:17),'flame body sampling stays bounded');
+ assert.equal(flames.length,38,'same complete 2-sided flame samples at every count');
 }
 env.skills=['fire','power','pierce'];env.balls=[ball];env.path=pathOf(170);
 flames.length=0;events.length=0;
@@ -98,8 +98,8 @@ assert.equal(bolt[0][1],'#d9fdff','mixed trail uses bright cyan-white lightning'
 env.balls=[ball,ball,ball,ball,ball,ball];env.skills=['fire','pierce','power'];
 ground.length=0;
 vm.runInContext('drawTrailGroundReflections({held:false},r,path)',env);
-assert.equal(ground.length,16,'combined floor reflection does not add stamp draws');
-assert(ground.some(e=>e[3]===env.TRAIL_GROUND_FIRE[0]),'fire reflected orange');
-assert(ground.some(e=>e[3]===env.TRAIL_GROUND_PIERCE[0]),'pierce reflected cyan');
-assert(ground.every(e=>e[8]===false),'no duplicated inner light pool');
-console.log('PASS V156: short/curved fire wake stays visible, mixed color cues survive compact LOD, power ornament & floor costs bounded');
+assert.equal(ground.length,17,'combined floor reflection has full density');
+assert(ground.some(e=>e[3]===env.TRAIL_GROUND_FIRE_PIERCE[0]),'fire reflected orange');
+assert(ground.some(e=>e[3]===env.TRAIL_GROUND_FIRE_PIERCE[1]),'pierce reflected cyan');
+assert(ground.every(e=>e[8]===undefined),'original full inner light pool retained');
+console.log('PASS V156: short/curved fire wake stays visible, mixed colors and full-quality effects preserved');
