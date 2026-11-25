@@ -62,3 +62,22 @@ nodes['fortress-confirm'].click();
 assert.equal(f.getStructure(16,19),f.getStructure(15,18));
 assert.equal(f.getStructure(15,18).kind,'ice');
 console.log('PASS 2×2 occupancy, edge placement, shared demolition, overlap and outer-face collisions');
+for(const blocked of [false,true]){
+ f.reset();f.begin([],1);place('ice',4,6,6);
+ if(blocked){f.selectBuild('wall');f.down(p(7,6),canvas);f.up(p(7,6),canvas);nodes['fortress-confirm'].click()}
+ f.deploy([]);
+ const trap=f.getStructure(4,6),start=trap.x+145;
+ const target=actor(start,trap.y+4);
+ trap.cooldown=0;
+ const movement={canMove:(z,x,y)=>f.isPathClear(z,z.x,z.y,x,y)};
+ let movedBeforeFreeze=false;
+ for(let i=1;i<=75;i++){
+  f.tickDevices(.01,[target],i/100,movement);
+  if(i<=25){assert.equal(target.x,start);assert(!target.fortressFrozenUntil)}
+  if(target.x<start&&!target.fortressFrozenUntil)movedBeforeFreeze=true;
+ }
+ assert(movedBeforeFreeze);assert(target.fortressFrozenUntil>2);
+ const edge=trap.x+(blocked?4:2)*22;
+ assert(target.x>=edge&&target.x<edge+3.1);
+}
+console.log('PASS long-range claw latches, pulls before freezing and stops at solid surfaces');

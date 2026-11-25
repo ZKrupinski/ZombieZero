@@ -14,7 +14,7 @@ const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:70,duration:1.25,cycle:4.5,desc:'좀비를 옆으로 유인 → 위쪽으로 밀어냄'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
- ice:{name:'꽁꽁 포획기',cost:6,hp:24,range:57,duration:.85,cycle:6,desc:'주변 최대 4마리를 2.2초 결빙'}
+ ice:{name:'꽁꽁 포획기',cost:6,hp:24,range:126,duration:.85,cycle:6,desc:'집게로 최대 4마리를 당긴 뒤 결빙'}
 };
 let selectedBuild='wall',placementTip='';
 const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
@@ -625,6 +625,7 @@ function armReach(w,dx,dy){
  const face=length*half/Math.max(1,Math.abs(dx),Math.abs(dy));
  return Math.min(length,face+spec(w).range);
 }
+const ICE_LATCH=.32,ICE_FREEZE=.62;
 function drawDevice(g,w,building=false){
  const art=deviceBitmap(w.kind);if(!art)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
@@ -641,12 +642,13 @@ function drawDevice(g,w,building=false){
  paintMachine(g,w.kind,run?run.time*3:0,progress,offset);
  g.restore();
  if(run&&w.kind==='ice'){
-  const reach=Math.min(1,Math.sin(Math.PI*progress)*1.2);
+  const reach=Math.min(1,progress/ICE_LATCH,(1-progress)/(1-ICE_FREEZE));
   g.save();
   for(const z of run.targets){
+   if(progress>=ICE_LATCH&&!run.grabbed.has(z))continue;
    const dx=z.x+z.w/2-x,dy=z.y+z.h/2-y;
    g.save();g.translate(x,y);g.rotate(Math.atan2(dy,dx));
-   const length=armReach(w,dx,dy)*reach;
+   const length=Math.hypot(dx,dy)*reach;
    g.strokeStyle='#ac874e';g.lineWidth=2;g.beginPath();g.moveTo(0,0);g.lineTo(length,0);g.stroke();
    g.strokeStyle='#bcf9ff';g.lineWidth=3;
    const gap=3+6*(1-reach);
@@ -682,7 +684,35 @@ function withinReach(z,w){
 function eligible(z,w,now){
  if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550||!withinReach(z,w))return false;
  if(w.kind==='lure')return !z.boss&&!(z.fortressFrozenUntil>now);
- return w.kind!=='ice'||!(z.fortressIceReady>now);
+ return w.kind!=='ice'||(!(z.fortressIceReady>now)&&!(z.knockTime>0));
+}
+function reelIceTarget(w,z,prev,progress,now,ops){
+ const run=w.run;
+ if(prev<ICE_LATCH&&progress>=ICE_LATCH&&eligible(z,w,now)){
+  run.grabbed.add(z);
+  const remaining=(ICE_FREEZE-ICE_LATCH)*spec(w).duration;
+  z.fortressIceReady=now+remaining;
+  z.trashStopUntil=Math.max(z.trashStopUntil||0,now+remaining);
+  delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
+ }
+ if(!run.grabbed.has(z)||prev>=ICE_FREEZE)return false;
+ const dx=w.x+T-z.x-z.w/2,dy=w.y+T-z.y-z.h/2;
+ const distance=Math.hypot(dx,dy);
+ const elapsed=Math.max(0,Math.min(progress,ICE_FREEZE)-Math.max(prev,ICE_LATCH))*spec(w).duration;
+ const travel=Math.min(distance,elapsed*760);
+ // Test short steps along the line so neither compact enemies nor a wall
+ // can be skipped, even when an entire pull is processed in one update.
+ const steps=Math.ceil(travel/3);
+ for(let step=0;step<steps;step++){
+  const x=z.x+dx/distance*travel/steps,y=z.y+dy/distance*travel/steps;
+  if(y+z.h>550||!ops.canMove?.(z,x,y))break;
+  z.x=x;z.y=y;
+ }
+ if(progress<ICE_FREEZE)return false;
+ const duration=z.boss?.65:2.2;
+ z.fortressFrozenUntil=now+duration;z.fortressIceReady=now+duration+2;
+ z.trashStopUntil=Math.max(z.trashStopUntil||0,z.fortressFrozenUntil);
+ return true;
 }
 function tickDevices(dt,enemies,now,ops){
  if(active||!walls.size)return;
@@ -697,13 +727,19 @@ function tickDevices(dt,enemies,now,ops){
     .slice(0,w.kind==='saw'?3:w.kind==='ice'?4:6);
    if(!targets.length){w.cooldown=.25+.5*Math.random();continue}
    w.run={time:0,targets};
+   if(w.kind==='ice')w.run.grabbed=new Set();
   }
   const run=w.run,prev=run.time/type.duration;
   run.time=Math.min(type.duration,run.time+dt);
   const progress=run.time/type.duration;
   let hit=0;
   for(const [i,z] of run.targets.entries()){
-   if(!enemies.includes(z)||!eligible(z,w,now))continue;
+   if(z.hp<=0||!enemies.includes(z))continue;
+   if(w.kind==='ice'){
+    if(reelIceTarget(w,z,prev,progress,now,ops))hit++;
+    continue;
+   }
+   if(!eligible(z,w,now))continue;
    const impact=w.kind==='saw'?(i+.5)/run.targets.length:w.kind==='lure'?.65:.5;
    if(w.kind==='lure'&&prev<impact&&!(z.knockTime>0||z.trashStopUntil>now)){
     const dx=cx-(z.x+z.w/2);
@@ -714,13 +750,7 @@ function tickDevices(dt,enemies,now,ops){
    }
    if(prev>=impact||progress<impact)continue;
    if(w.kind==='lure'){if(ops.push?.(z))hit++}
-   else if(w.kind==='saw'){ops.damage?.(z,z.boss?1:2);hit++}
-   else{
-    const duration=z.boss?.65:2.2;
-    z.fortressFrozenUntil=now+duration;z.fortressIceReady=now+duration+2;
-    z.trashStopUntil=Math.max(z.trashStopUntil||0,now+duration);
-    hit++;
-   }
+   else{ops.damage?.(z,z.boss?1:2);hit++}
   }
   if(hit)ops.pulse?.(w.kind,cx,cy,hit);
   if(progress>=1){w.run=null;w.cooldown=randomRest(w)}
