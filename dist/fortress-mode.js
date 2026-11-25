@@ -22,8 +22,7 @@ const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
 const buildButtons=['wall','bollard','ice','lure','saw'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
- confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),stockLabel=$('fortress-stock'),helpLabel=$('fortress-tip'),
- buildCountLabel=$('fortress-build-count'),supplyLabel=$('fortress-supply'),
+ confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),materialLabel=$('fortress-material'),helpLabel=$('fortress-tip'),
  previewLabel=$('fortress-preview-summary');
 let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1,onReady=null;
 let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
@@ -67,15 +66,14 @@ function refresh(){
  actions.hidden=!active||!hasPreview||dragging;
  readyButton.hidden=!active||hasPreview||dragging;
  if(confirmButton)confirmButton.disabled=!summary.valid;
- if(stockLabel)stockLabel.textContent='STAGE '+String(stage).padStart(2,'0')+' · 자재 '+stock+' · 구조물 '+walls.size+'/'+MAX_WALLS;
- if(buildCountLabel){
-  const freeAfter=MAX_WALLS-(walls.size-summary.removes+summary.builds);
-  buildCountLabel.textContent='더 건설 '+Math.max(0,Math.min(Math.floor(summary.balance/BUILD_TYPES[selectedBuild].cost),freeAfter))+'개';
+ if(materialLabel){
+  materialLabel.hidden=!active;
+  const amount=materialLabel.querySelector?.('strong');
+  if(amount)amount.textContent=String(summary.balance).padStart(2,'0');
+  if(materialLabel.dataset)materialLabel.dataset.empty=String(summary.balance===0);
  }
- if(supplyLabel)supplyLabel.textContent=stage===1?'초기 건설 자재 +26':'생존 방벽 '+lastHealed+'개 자동 수리(무료) · 파괴 환급 +'+lastRefund+' · 보급 +'+lastBonus;
  if(previewLabel)previewLabel.textContent=
   '설치 +'+summary.builds+' (자재 -'+summary.cost+') · 철거 -'+summary.removes+' (환급 +'+summary.refund+')'+
-  ' · 확정 후 자재 '+summary.balance+
   (!summary.valid?' · 자재/공간 부족':'');
  for(const {kind,el} of buildButtons)if(el){
   el.setAttribute?.('aria-pressed',String(kind===selectedBuild));
@@ -84,7 +82,7 @@ function refresh(){
  }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
   :placementTip?placementTip:stock?(span({kind:selectedBuild})===1?'':'2×2칸 · 불규칙 가동 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
-  :'자재 0 · 기존 구조물 철거로 자재 확보 가능';
+  :'기존 구조물 철거로 자재 확보 가능';
 }
 function addCell(t){
  if(!t)return;
