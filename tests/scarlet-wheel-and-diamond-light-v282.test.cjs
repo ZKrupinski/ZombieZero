@@ -42,8 +42,8 @@ assert(context.calls.some(x=>x.rgb.join(',')==='245,187,237'),'diamond accent re
 context.calls=[];context.compactBallFX=()=>false;
 context.has=kind=>kind==='fire';
 draw();
-assert(context.calls.some(x=>x.rgb.join(',')==='255,139,51'),
- 'the fire skill still uses orange fire light');
+assert(context.calls.some(x=>x.rgb.join(',')==='255,16,40'),
+ 'the fire skill still uses red fire light');
 
 // Layout: anchor actual portrait (not the whole reel) by its bottom wheel line.
 assert(css.includes("/* v282: Scarlet's 80% portrait uses the SAME lower wheel datum"),

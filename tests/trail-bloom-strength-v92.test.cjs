@@ -46,8 +46,8 @@ vm.runInContext('luminous(()=>drawTrailEdgeHalo(ball,8,path),()=>drawTrailEdgeHa
 assert(strokes.length===2,'trail drawn once normally and once into bloom source');
 assert(strokes[0].kind==='base'&&strokes[1].kind==='captured',
  'draw order and separate FX source are preserved');
-assert(Math.abs(strokes[0].alpha-.23)<1e-10,'normal trail feather unchanged');
-assert(Math.abs(strokes[1].alpha-.23*.72)<1e-10,
+assert(Math.abs(strokes[0].alpha-.23*.6)<1e-10,'normal trail feather at 60%');
+assert(Math.abs(strokes[1].alpha-.23*.6*.72)<1e-10,
  'only bloom capture is attenuated by exactly 28%');
 assert(strokes[0].blur===4&&strokes[1].blur===4,
  'trail edge softness unchanged');

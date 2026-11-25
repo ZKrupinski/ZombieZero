@@ -55,7 +55,7 @@ stateContext.itemPickupFX=[{x:142,y:210,t:.01,life:.62,k:'fire'}];
 vm.runInContext('drawEffectLightSpills()',stateContext);
 const lights=draws.gradients.slice(afterFlying);
 assert(lights.length>=12,'distinct strong, soft ground reflections for all major effects');
-assert(lights.some(g=>g.y===314&&g.stops[0][1].includes('47,105,255')),
+assert(lights.some(g=>g.y===314&&g.stops[0][1].includes('22,66,255')),
  'piercing electric ball casts blue reflected light 34px lower');
 assert(lights.some(g=>g.y===195&&g.stops[0][1].includes('87,213,255')),
  'hit lightning light is projected 29px below the impact');

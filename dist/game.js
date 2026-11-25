@@ -459,15 +459,27 @@ const HERO_GROUND_RAMPS=[
  [[180,212,255],[159,198,255],[143,184,255],[128,169,255]]
 ];
 const SCARLET_DIAMOND_GROUND_ACCENT=[245,187,237]; // subtle violet-pink facet
-// Stable source arrays allow the color stamps to remain cached between frames.
-// Tail-to-head ramps, stable RGB arrays for the cached floor stamps.
-const TRAIL_GROUND_FIRE_PIERCE=[[164,125,255],[179,105,255],[198,91,249],[218,83,239],[237,76,225],[250,76,201]],TRAIL_GROUND_FIRE=[[255,139,51],[255,120,48],[255,100,46],[255,82,45],[255,64,48],[255,47,53]],TRAIL_GROUND_PIERCE=[[89,213,255],[77,192,255],[68,172,255],[57,152,255],[50,129,255],[47,105,255]],TRAIL_GROUND_POWER=[[255,214,110]];
- // V345: stable color identities, pre-rasterized before the first pickup.
- const TRAIL_HEAD_PIERCE=[47,105,255],TRAIL_HEAD_FIRE=[255,47,53],TRAIL_HEAD_MIXED=[250,76,201],TRAIL_HEAD_POWER=[255,219,111];
+// Indexed by fire (1), pierce (2), power (4). Stops run from tail to ball.
+const SKILL_TRAIL_RAMPS=[
+ null,
+ ['#ff792d','#ff3025','#ff1028'],
+ ['#5bd2ff','#287bff','#1642ff'],
+ ['#935bff','#c938ec','#ff249f'],
+ ['#ffb72a','#ffdb16','#fff32a'],
+ ['#ffdc26','#ff8619','#ff241d'],
+ ['#ffe438','#42ddbf','#215dff'],
+ ['#ffe32a','#ff4739','#9150ff']
+].map(stops=>stops&&{
+ stops,
+ ground:stops.map(hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)))
+});
+function activeTrailRamp(){
+ return SKILL_TRAIL_RAMPS[(has('fire')?1:0)|(has('pierce')?2:0)|(has('power')?4:0)];
+}
+const BURN_GROUND_COLOR=[255,139,51];
  const PICKUP_LIGHT_COLORS=Object.fromEntries(Object.entries(typeof SKILLS!=='undefined'?SKILLS:{}).map(([k,v])=>[k,typeof effectLightRGB==='function'?effectLightRGB(v.color):[255,210,112]]));
  const TRAIL_WARM_COLORS=[...TRAIL_GROUND_HERO_COLORS,...HERO_GROUND_RAMPS.flat(),SCARLET_DIAMOND_GROUND_ACCENT,
-  ...TRAIL_GROUND_FIRE_PIERCE,...TRAIL_GROUND_FIRE,...TRAIL_GROUND_PIERCE,...TRAIL_GROUND_POWER,
-  TRAIL_HEAD_PIERCE,TRAIL_HEAD_FIRE,TRAIL_HEAD_MIXED,TRAIL_HEAD_POWER,...Object.values(PICKUP_LIGHT_COLORS),
+  ...SKILL_TRAIL_RAMPS.slice(1).flatMap(ramp=>ramp.ground),BURN_GROUND_COLOR,...Object.values(PICKUP_LIGHT_COLORS),
    [87,213,255],[255,226,142],[255,194,105],[169,239,255],[255,248,197],[255,231,169],[255,125,39],[255,174,70],[255,210,112]];
  let trailWarmIndex=0;
  function warmTrailLighting(){
@@ -499,9 +511,9 @@ function drawTrailGroundReflections(b,r,path){
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  const defaultColors=TRAIL_GROUND_HERO_COLORS;
  const heroRamp=typeof HERO_GROUND_RAMPS!=='undefined'?(HERO_GROUND_RAMPS[selectedHero]||HERO_GROUND_RAMPS[0]):[defaultColors[selectedHero]||defaultColors[0]];
- const colors=fire&&pierce?TRAIL_GROUND_FIRE_PIERCE:fire?TRAIL_GROUND_FIRE:
-   pierce?TRAIL_GROUND_PIERCE:power?TRAIL_GROUND_POWER:defaultColors;
- const baseAlpha=fire||pierce?(power ? .43 : .39):(power ? .42 : .39);
+ const ramp=activeTrailRamp();
+ const colors=ramp?ramp.ground:heroRamp;
+ const baseAlpha=(fire||pierce?(power ? .43 : .39):(power ? .42 : .39))*(ramp ? .8 : .6);
  const radius=(fire||pierce?(power?34:28):power?28:24)*(typeof miniBallScale==='function'?miniBallScale():1);
  // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
  // both ends present. One quality profile for every ball count.
@@ -518,7 +530,7 @@ function drawTrailGroundReflections(b,r,path){
   const normal=!fire&&!pierce&&!power;
   const rgb=normal&&selectedHero===4&&i%5===3?
     SCARLET_DIAMOND_GROUND_ACCENT:
-    normal?heroRamp[Math.round((1-d/length)*(heroRamp.length-1))]:colors[Math.round((1-d/length)*(colors.length-1))];
+    colors[Math.round((1-d/length)*(colors.length-1))];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
      baseAlpha*.68*fade*variation,30,.82,true);
@@ -580,7 +592,7 @@ function drawEffectLightSpills(){
   if(!(actor.burn>0)||actor.burnVisualDelay>0)continue;
   const z=knockVisualPosition(actor);
   drawSoftLightSpill(z.x+z.w*.5,z.y+z.h-20*(z.miniScale||1),(z.boss?48:29)*(z.miniScale||1),
-    TRAIL_GROUND_FIRE[0],.23*Math.min(1,actor.burn/.3),true);
+    BURN_GROUND_COLOR,.23*Math.min(1,actor.burn/.3),true);
  }
  // Every ball trail gets a floor wake, even without a skill. Active fire,
  // pierce and power colors override the natural hero trail color.
@@ -596,18 +608,13 @@ function drawEffectLightSpills(){
  for(const b of balls){
   if(b.held)continue;
   const r=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1)),drop=ballProjectionDrop(r);
-  if(has('fire')&&has('pierce')){
-   drawProjectedLightSpill(b.x,b.y,(has('power')?28:24)*(typeof miniBallScale==='function'?miniBallScale():1),
-     TRAIL_HEAD_MIXED,.19,drop,.82,true,false);
-  }else if(has('pierce')){
-   drawProjectedLightSpill(b.x,b.y,(has('power')?24:20)*(typeof miniBallScale==='function'?miniBallScale():1),
-     TRAIL_HEAD_PIERCE,.16,drop,.82,true,false);
-  }else if(has('fire')){
-   drawProjectedLightSpill(b.x,b.y,(has('power')?28:24)*(typeof miniBallScale==='function'?miniBallScale():1),
-     TRAIL_HEAD_FIRE,.16,drop,.82,true,false);
+  const ramp=activeTrailRamp();
+  if(ramp){
+   const size=has('fire')?(has('power')?28:24):has('pierce')?(has('power')?24:20):26;
+   const alpha=has('fire')&&has('pierce')?.19:has('fire')||has('pierce')?.16:.17;
+   drawProjectedLightSpill(b.x,b.y,size*(typeof miniBallScale==='function'?miniBallScale():1),
+     ramp.ground[2],alpha*.8,drop,.82,true,false);
   }
-  if(has('power')&&!has('fire')&&!has('pierce'))
-   drawProjectedLightSpill(b.x,b.y,26*(typeof miniBallScale==='function'?miniBallScale():1),TRAIL_HEAD_POWER,.17,drop,.82,true,false);
  }
 }
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
@@ -1653,7 +1660,7 @@ function drawDodgeGhosts(){
   const fade=1-ghost.t/ghost.life;
   if(fade<=0)continue;
   g.save();
-  g.globalAlpha=.32*fade*fade;
+  g.globalAlpha=.32*.8*fade*fade;
   g.filter='brightness(1.5) saturate(.7)';
   zombie(ghost.z); // original approved bitmap asset, never vector imitation
   g.restore();
@@ -4165,7 +4172,7 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
  }
  // Same approved Ace ribbon opacity for every hero; the bitmap is drawn
  // after the trail, so the gemstone facets remain intact.
- g.save();g.globalAlpha=1;g.fillStyle=grad||col.main+'88';g.beginPath();
+ g.save();g.globalAlpha=.6;g.fillStyle=grad||col.main+'88';g.beginPath();
  // Trace the EXACT same left/right vertices directly to Canvas. Avoid two
  // temporary arrays and 2*(N+1) point allocations every rendered frame.
  for(let i=0;i<=n;i++){
@@ -4208,7 +4215,7 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
  g.shadowColor=glow;g.shadowBlur=4;
  // The ordinary feathered edge remains identical. Only the separate
  // bloom capture uses a lower alpha (v92).
- g.globalAlpha=.23*bloomScale;g.strokeStyle=grad||glow;
+ g.globalAlpha=.23*.6*bloomScale;g.strokeStyle=grad||glow;
  g.lineWidth=r*1.55;
  g.beginPath();g.moveTo(head.x,head.y);
  for(let i=2;i<path.length;i+=2)g.lineTo(path[i].x,path[i].y);
@@ -4223,11 +4230,9 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
 // A coincident head/tail falls back to solid color instead of disappearing.
 function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
  const head=path[0],tail=path[path.length-1];
- const color=fire&&pierce?'#f747ce':fire?'#ff3943':'#326fff';
- const middle=fire&&pierce?'#cc67f4':fire?'#ff7742':'#409eff';
- const tailColor=fire&&pierce?'#aa9aff':fire?'#ffb060':'#a0e9ff';
+ const [tailColor,middle,color]=activeTrailRamp().stops;
  g.save();g.lineCap='round';g.lineJoin='round';g.shadowBlur=0;
- g.globalCompositeOperation='lighter';g.globalAlpha=.90*bloomScale;
+ g.globalCompositeOperation='lighter';g.globalAlpha=.90*.8*bloomScale;
  // One stroke composites overlapping joins only once: no bright dotted seams.
  // A closed rebound must not create a zero-length transparent gradient.
  // A hairpin/rebound may put head almost on top of tail. A spatial
@@ -4249,31 +4254,11 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  if(!fxEnabled||path.length<2)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fire&&!pierce&&!power)return;
- if(fire||pierce){drawElementalTrailBody(b,r,path,fire,pierce);return;}
- const colors=fire&&pierce?['#ffd49b','#91e6fd','#fff8de']:fire?['#ffba77','#ff813e','#fff0c5']:
-   pierce?['#79d8f6','#d9faff','#a3e7ff']:['#ffe8a0','#fff5d5','#e5c573'];
- const len=path[path.length-1].s;
- const step=r>8?6.5:5.5;
- g.save();g.lineCap='round';g.lineJoin='round';
- g.globalCompositeOperation='lighter';
- // A single continuous, slightly feathered energy core stops individual
- // skill streaks looking like disconnected Morse-code dashes.
- const first=path[0],tail=path[path.length-1];
- const ribbon=g.createLinearGradient?.(tail.x,tail.y,first.x,first.y);
- if(ribbon&&typeof ribbon.addColorStop==='function'){
-  ribbon.addColorStop(0,colors[0]+'00');
-  ribbon.addColorStop(.23,colors[0]+'48');
-  ribbon.addColorStop(.63,colors[1]+'a0');
-  ribbon.addColorStop(1,colors[1]+'d0');
- }
- g.strokeStyle=ribbon||colors[0];
- g.globalAlpha=.78;g.lineWidth=Math.min(4.5,r*.39);
- g.shadowColor=colors[0];g.shadowBlur=3;
- g.beginPath();g.moveTo(first.x,first.y);
- for(let i=2;i<path.length;i+=2)g.lineTo(path[i].x,path[i].y);
- if((path.length-1)%2!==0)g.lineTo(tail.x,tail.y);
- g.stroke();
- g.shadowBlur=0;
+ drawElementalTrailBody(b,r,path,fire,pierce);
+ if(fire||pierce)return;
+ const colors=activeTrailRamp().stops;
+ const len=path[path.length-1].s,step=r>8?6.5:5.5;
+ g.save();g.globalCompositeOperation='lighter';g.lineCap='round';g.shadowBlur=0;
  // Short overlapping sparks occur every 5–6.5px (was 11–13px). The
  // continuous core beneath them remains exactly the original trail length.
  for(let d=3,i=0;d<len-1;d+=step,i++){
@@ -4283,12 +4268,12 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   const nx=-dy/mag,ny=dx/mag;
   const fade=1-.78*d/Math.max(1,len);
   const width=Math.min(2.3,Math.max(1,r*.14));
-  g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*fade;
+  g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*.8*fade;
   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(next.x,next.y);g.stroke();
   if(i%3===0){
    const lateral=r*.72,chip=Math.max(.8,width*.48);
    for(const side of [-1,1]){
-    g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*fade;
+    g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*.8*fade;
     g.beginPath();g.arc(p.x+nx*side*lateral,p.y+ny*side*lateral,chip,0,Math.PI*2);g.fill();
    }
   }
@@ -4376,7 +4361,7 @@ function drawBurningTrailFlames(b,r,path){
    const tx=dx/mag*reach+nx*side*reach*.65;
    const ty=dy/mag*reach+ny*side*reach*.65;
    flameTongue(x,y,tx,ty,Math.max(.7,r*.17*fade),
-     (i+side)%3===0?'#fff1b5':i%2?'#ff9e41':'#f75c2c',.78*fade);
+     (i+side)%3===0?'#fff1b5':i%2?'#ff9e41':'#ff3829',.78*.8*fade);
   }
  }
  g.restore();
@@ -4427,7 +4412,7 @@ function drawPierceTrailLightning(b,r,path){
  // Cyan-white must stay visible over the continuous warm fire ribbon.
  g.strokeStyle=has('fire')?'#d9fdff':'#a8f3ff';
  g.lineWidth=has('fire')?Math.max(2.4,r*.25):Math.max(1.5,r*.17);
- g.globalAlpha=has('fire')?.95:.9;
+ g.globalAlpha=(has('fire')?.95:.9)*.8;
  g.beginPath();g.moveTo(path[0].x,path[0].y);
  // Single branchless zigzag. Retain every trajectory vertex at rebounds;
  // a triangular wave supplies sharp alternating teeth, not parallel lines.
@@ -4493,10 +4478,10 @@ function ballSpritePose(b,r,heroIndex=selectedHero,now=clock){
 const skillBallTintCache=new WeakMap();
 function drawSkillTintedFrame(img,sx,sy,sw,sh,dx,dy,dw,dh){
  if(typeof has!=='function'||typeof fxEnabled!=='undefined'&&!fxEnabled||!img)return false;
- const fire=has('fire'),pierce=has('pierce');
- if(!fire&&!pierce||typeof document==='undefined'||!document.createElement)return false;
- const tint=fire&&pierce?'#ed52db':fire?'#ff3943':'#327aff';
- const rim=fire&&pierce?'#b17bff':fire?'#ff9b46':'#78c9ff';
+ if(typeof document==='undefined'||!document.createElement)return false;
+ const ramp=activeTrailRamp();
+ if(!ramp)return false;
+ const [rim,,tint]=ramp.stops;
  const key=[sx,sy,sw,sh,tint].join(',');
  let frames=skillBallTintCache.get(img);if(!frames){frames=new Map();skillBallTintCache.set(img,frames)}
  let canvas=frames.get(key);
@@ -4646,7 +4631,7 @@ drawKillCombo();drawBarrelBlasts();
  // inside each spark and flame loop; standalone legacy tests default to false.
  // Skill artwork is invariant across ball counts and measured frame load.
  // Elemental shots own one broad body at every detail level.
- const elementalTrail=fxEnabled&&(has('fire')||has('pierce'));
+ const elementalTrail=fxEnabled&&activeTrailRamp();
  for(const b of balls){
   const r=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1));
   const palette=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
@@ -4655,8 +4640,9 @@ drawKillCombo();drawBarrelBlasts();
    drawHeroBallTrail(b,r,trailPath);
    if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
+  }else{
+   drawBallSkillTrail(b,r,trailPath);
   }
-  drawBallSkillTrail(b,r,trailPath);
   // Capture only the single continuous ribbon, not all fire ornaments.
   if(elementalTrail&&trailPath.length>=2)captureBloom(()=>drawElementalTrailBody(b,r,trailPath,has('fire'),has('pierce'),.46));
   drawBurningTrailFlames(b,r,trailPath);

@@ -41,6 +41,8 @@ const env={g,fxEnabled:true,Math,clock:2.5,balls:[],multiSkillFastRender:false,
  TRAIL_GROUND_FIRE_PIERCE:[[164,125,255],[250,76,201]],TRAIL_GROUND_POWER:[[255,214,110]],TRAIL_GROUND_HERO_COLORS:[[192,234,112]],
  drawProjectedLightSpill:(...args)=>ground.push(args)};
 vm.createContext(env);
+vm.runInContext(game.slice(game.indexOf('const SKILL_TRAIL_RAMPS='),game.indexOf('const BURN_GROUND_COLOR=')),env);
+
 for(const src of Object.values(paths))vm.runInContext(src,env);
 const ball={x:210,y:180,vx:300,vy:-240,held:false};
 function testAura(skills,count){
@@ -99,7 +101,7 @@ env.balls=[ball,ball,ball,ball,ball,ball];env.skills=['fire','pierce','power'];
 ground.length=0;
 vm.runInContext('drawTrailGroundReflections({held:false},r,path)',env);
 assert.equal(ground.length,17,'combined floor reflection has full density');
-assert(ground.some(e=>e[3]===env.TRAIL_GROUND_FIRE_PIERCE[0]),'mixed tail reflects violet');
-assert(ground.some(e=>e[3]===env.TRAIL_GROUND_FIRE_PIERCE[1]),'mixed head reflects pink');
+assert(ground.some(e=>e[3].join(',')==='255,227,42'),'triple tail reflects yellow');
+assert(ground.some(e=>e[3].join(',')==='145,80,255'),'triple head reflects violet');
 assert(ground.every(e=>e[8]===undefined),'original full inner light pool retained');
 console.log('PASS V156: short/curved fire wake stays visible, mixed colors and full-quality effects preserved');

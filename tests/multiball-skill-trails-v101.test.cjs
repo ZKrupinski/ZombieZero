@@ -37,6 +37,8 @@ const env={Math,g,fxEnabled:true,clock:2.2,multiSkillFastRender:false,balls:[{},
  b:{x:300,y:140,vx:280,vy:160},path,
  clamp:(v,a,b)=>Math.max(a,Math.min(b,v))};
 vm.createContext(env);
+vm.runInContext(src.slice(src.indexOf('const SKILL_TRAIL_RAMPS='),src.indexOf('const BURN_GROUND_COLOR=')),env);
+
 vm.runInContext(section('function drawElementalTrailBody(','// V83: fire is a living secondary layer'),env);
 vm.runInContext(section('function drawBurningTrailFlames(','// V84: clearly readable cyan-white lightning'),env);
 vm.runInContext(section('function drawPierceTrailLightning(','// V76: per-ball rotational inertia'),env);

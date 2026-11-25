@@ -11,7 +11,7 @@ for(let hero=0;hero<5;hero++){
  const current=JSON.stringify(env.calls.map(v=>[v[0],v[1],v[2],...v.slice(4)]));
  if(hero===0)geometry=current;else{assert.equal(current,geometry);assert.notDeepEqual(env.calls[0][3],env.calls.at(-1)[3]);}
 }
-assert(src.includes('g.save();g.globalAlpha=1;g.fillStyle=grad||col.main'));
+assert(src.includes('g.save();g.globalAlpha=.6;g.fillStyle=grad||col.main'));
 assert(src.includes('if(fxEnabled)luminous(()=>drawTrailEdgeHalo'));
 assert(!src.includes('selectedHero===4?.42:1'));
 console.log('PASS v402: every hero uses identical basic wake density, opacity, geometry and halo, with distinct head color.');

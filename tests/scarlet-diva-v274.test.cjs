@@ -102,6 +102,6 @@ assert(saved&&saved.includes('"heavy"'),'fifth-hero loadout saved');
 console.log('PASS v274: 4 genuine RGBA WebP assets, five-hero menus and garage, animated still orb, DIVA three-return finisher, legacy save migration');
 
 assert(html.includes('v276-exact-master-clean-alpha')&&sw.includes('v276-exact-master-clean-alpha'),'v276 full cache invalidation');
-assert(game.includes('g.save();g.globalAlpha=1;g.fillStyle=grad||col.main'),'Scarlet uses the same ribbon opacity as Ace');
+assert(game.includes('g.save();g.globalAlpha=.6;g.fillStyle=grad||col.main'),'Scarlet uses the same ribbon opacity as Ace');
 assert(game.includes('if(fxEnabled)luminous(()=>drawTrailEdgeHalo'),'Scarlet receives the same halo and Bloom as all heroes');
 console.log('PASS v276: exact user-approved key art, corrected alpha, 192px idle/attack atlas, 256px portrait, stable diamond FX');
