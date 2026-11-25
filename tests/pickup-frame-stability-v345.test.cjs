@@ -10,7 +10,9 @@ vm.runInContext(section('const TRAIL_LIGHT_STAMP_SIZE=','// V91:')+section('cons
 const run=x=>vm.runInContext(x,ctx);
 run('warmTrailLighting()');assert.equal(canvases,1);
 run('mode="playing";balls=[{held:false}];warmTrailLighting()');assert.equal(canvases,1,'no warm-up work during rally');
-run('mode="menu";for(let i=0;i<40;i++)warmTrailLighting()');const ready=canvases;
+run('mode="playing";balls=[{held:true}];finishTrailLightingWarmup()');const ready=canvases;
+assert.equal(run('trailWarmIndex'),run('TRAIL_WARM_COLORS.length'),'all expanded palette entries prewarmed before launch');
+assert(src.includes("if(typeof finishTrailLightingWarmup==='function')finishTrailLightingWarmup();"),'serve completes remaining masks before launch');
 assert(ready>=14);
 run('mode="playing";balls=[{held:false}];for(const rgb of TRAIL_WARM_COLORS)drawSoftLightSpill(50,50,24,rgb,.25,true)');
 assert.equal(canvases,ready,'single-ball skill transition does not allocate light masks');assert.equal(gradients,0,'cached single-ball lights avoid live gradients');assert(draws>ready);

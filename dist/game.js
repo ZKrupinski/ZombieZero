@@ -480,6 +480,15 @@ const TRAIL_GROUND_FIRE_PIERCE=[[164,125,255],[179,105,255],[198,91,249],[218,83
   // Touch the texture on the live canvas at zero opacity, before action.
   if(stamp&&g?.drawImage){g.save();g.globalAlpha=0;g.drawImage(stamp,0,0,1,1);g.restore()}
  }
+ // A fast Start/Serve may occur before the expanded palette finishes
+ // prewarming. Complete only the remaining masks while the ball is held.
+ function finishTrailLightingWarmup(){
+  if(!fxEnabled||!balls[0]?.held||typeof document==='undefined'||typeof document.createElement!=='function')return;
+  while(trailWarmIndex<TRAIL_WARM_COLORS.length){
+   const previous=trailWarmIndex;warmTrailLighting();
+   if(trailWarmIndex===previous)break;
+  }
+ }
 
 function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
@@ -2549,6 +2558,7 @@ function backToSelection(){
  renderHeroes();endlessUI();$('overlay').hidden=false;
 }
 function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
+ if(typeof finishTrailLightingWarmup==='function')finishTrailLightingWarmup();
  if(typeof runMode!=='undefined'&&runMode==='endless')endlessRunStarted=true;
  const speed=Math.hypot(125,365);
  const angle=(.16+Math.random()*.52)*(Math.random()<.5?-1:1);
