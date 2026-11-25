@@ -12,13 +12,14 @@ const walls=new Map(),pending=new Map();
 // Special devices occupy a two-by-two footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
+ bollard:{name:'두더지 차단봉',cost:2,hp:30,cycle:3.8,desc:'1칸 · 솟을 때 밀치고 잠시 길을 막음'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:3,hp:30,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
 };
 let selectedBuild='wall',placementTip='';
 const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
-const buildButtons=['wall','lure','saw','ice'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
+const buildButtons=['wall','bollard','lure','saw','ice'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
  confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),stockLabel=$('fortress-stock'),helpLabel=$('fortress-tip'),
@@ -28,7 +29,7 @@ let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1
 let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
-const span=w=>w.kind&&w.kind!=='wall'?2:1;
+const span=w=>w.kind&&w.kind!=='wall'&&w.kind!=='bollard'?2:1;
 function footprint(w,visit){
  for(let row=w.row;row<w.row+span(w);row++)for(let col=w.col;col<w.col+span(w);col++)visit(id(col,row));
 }
@@ -82,14 +83,14 @@ function refresh(){
   if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
  }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
-  :placementTip?placementTip:stock?(selectedBuild==='wall'?'':'2×2칸 · 불규칙 가동 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
+  :placementTip?placementTip:stock?(span({kind:selectedBuild})===1?'':'2×2칸 · 불규칙 가동 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
   :'자재 0 · 기존 구조물 철거로 자재 확보 가능';
 }
 function addCell(t){
  if(!t)return;
  const current=occupied.get(t.id);
  if(current)t=cell(current.col,current.row);
- else if(selectedBuild!=='wall'){
+ else if(span({kind:selectedBuild})===2){
   t=cell(Math.min(t.col,COLS-2),Math.min(t.row,ROWS-2));
   let blocked=false;
   footprint({...t,kind:selectedBuild},key=>{if(occupied.has(key))blocked=true});
@@ -235,7 +236,7 @@ function begin(enemies,wave){
   // construction materials; already destroyed cubes stay absent and refund
   // one material each on top of the regular per-wave supply.
   lastHealed=walls.size;
-  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.run=null;w.pulse=0}
+  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.run=null;w.pulse=0;w.raised=false;w.lift=0}
   lastRefund=destroyedThisStage;
   lastBonus=Math.min(14,8+Math.floor(wave/5));
   stock+=lastRefund+lastBonus;destroyedThisStage=0;
@@ -245,11 +246,12 @@ function begin(enemies,wave){
 function intersects(x,y,w,h,other,margin=0){
  return x<other.x+T*span(other)+margin&&x+w>other.x-margin&&y<other.y+T*span(other)+margin&&y+h>other.y-margin;
 }
+function isSolid(w){return w&&(w.kind!=='bollard'||w.raised)}
 function firstWall(x,y,w,h){
  const c0=Math.max(0,Math.floor((x-X)/T)-1),c1=Math.min(COLS-1,Math.floor((x+w-X)/T)+1);
  const r0=Math.max(0,Math.floor((y-Y)/T)-1),r1=Math.min(ROWS-1,Math.floor((y+h-Y)/T)+1);
  for(let row=r0;row<=r1;row++)for(let col=c0;col<=c1;col++){
-  const wall=occupied.get(id(col,row));if(wall&&intersects(x,y,w,h,wall))return wall;
+  const wall=occupied.get(id(col,row));if(isSolid(wall)&&intersects(x,y,w,h,wall))return wall;
  }
  return null;
 }
@@ -308,7 +310,7 @@ function bounceBall(ball,oldX,oldY,radius){
  const r0=Math.max(0,Math.floor((by-r-Y)/T)),r1=Math.min(ROWS-1,Math.floor((by+r-Y)/T));
  let best=null;
  for(let row=r0;row<=r1;row++)for(let col=c0;col<=c1;col++){
-  const wall=occupied.get(id(col,row));if(!wall)continue;
+  const wall=occupied.get(id(col,row));if(!isSolid(wall))continue;
   const nearX=Math.max(wall.x,Math.min(wall.x+T*span(wall),bx));
   const nearY=Math.max(wall.y,Math.min(wall.y+T*span(wall),by));
   const dx=bx-nearX,dy=by-nearY;
@@ -510,6 +512,19 @@ function deviceBitmap(kind){
  const im=document.createElement('canvas');im.width=im.height=64;
  const c=im.getContext?.('2d');if(!c||typeof c.fillRect!=='function')return null;
  const box=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h)};
+ if(kind==='bollard'||kind==='bollardCap'){
+  if(kind==='bollard'){
+   box(1,1,62,62,'#293239');box(2,2,60,59,'#77868a');box(6,6,52,51,'#333d44');
+   for(const x of [4,56])for(const y of [4,55])box(x,y,4,4,'#ccdbd8');
+   box(7,8,50,45,'#59666a');box(8,9,48,3,'#92a09f');
+   box(10,29,44,2,'#354347');box(25,48,14,3,'#dc9952');
+  }else{
+   box(0,0,52,36,'#ed8731');box(0,0,52,4,'#ffcd71');box(48,3,4,33,'#ad562e');
+   for(const x of [7,23,39])for(let y=0;y<4;y++)box(x-y*2,11+y*3,7,3,'#443e3c');
+   box(0,36,52,21,'#99512f');box(3,38,44,6,'#f4b45b');box(4,48,43,5,'#5d493e');
+  }
+  deviceArt.set(kind,im);return im;
+ }
  box(7,37,50,20,'#222e35');box(7,32,43,19,'#60717b');box(50,34,7,17,'#374d55');
  box(9,29,42,10,'#b4c4bf');box(10,48,37,4,'#3a5058');
  for(let i=0;i<4;i++)box(12+i*10,43,5,4,'#f2bf59');
@@ -568,6 +583,15 @@ function sawBitmap(){
 function paintMachine(g,kind,time,pulse,bladeOffset=null){
  const art=deviceBitmap(kind);if(!art)return;
  g.drawImage(art,0,0);
+ if(kind==='bollard'){
+  const lift=pulse,top=10-9*lift;
+  if(lift<=0)return;
+  g.save();g.globalAlpha*=Math.min(1,lift*2);
+  const cap=deviceBitmap('bollardCap');
+  g.drawImage(cap,0,0,52,36,6,top,52,40);
+  g.drawImage(cap,0,36,52,21,6,top+40,52,21*lift);g.restore();
+  return;
+ }
  if(kind==='wall')return;
  const beat=Math.sin(time*5),kick=Math.sin(Math.PI*pulse);
  if(kind==='lure'){
@@ -614,7 +638,7 @@ function makeDeviceIcons(){
   if(!el)continue;
   const icon=el.querySelector?.('canvas'),art=deviceBitmap(kind);
   const q=icon?.getContext?.('2d');if(!q||!art)continue;
-  q.clearRect(0,0,64,64);paintMachine(q,kind,0,0);
+  q.clearRect(0,0,64,64);paintMachine(q,kind,0,kind==='bollard'?1:0);
  }
 }
 function selectBuild(kind){
@@ -643,7 +667,7 @@ function drawDevice(g,w,building=false){
   offset={x:dx*scale*reach,y:(dy*scale+10)*reach};
  }
  g.save();g.translate(w.x,w.y);g.scale(size/64,size/64);
- paintMachine(g,w.kind,run?run.time*3:0,progress,offset);
+ paintMachine(g,w.kind,run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
  g.restore();
  if(run&&w.kind==='ice'){
   const reach=Math.min(1,progress/ICE_LATCH,(1-progress)/(1-ICE_FREEZE));
@@ -762,10 +786,48 @@ function duckKnockPlan(root,dx,dy,enemies,inside){
  }
  return positions;
 }
+function tickBollard(w,dt,enemies,ops){
+ w.cooldown=Math.max(0,w.cooldown-dt);
+ if(w.cooldown===0){
+  if(w.raised){
+   w.raised=false;w.cooldown=randomRest(w);
+  }else{
+   const cx=w.x+T/2,cy=w.y+T/2;
+   const nearby=enemies.filter(z=>z.hp>0&&(z.arrivalTime||0)>=0&&intersects(z.x,z.y,z.w,z.h,w,T));
+   // Clear the hatch before solidifying. Shove away from its centre, favouring
+   // sideways escape on the player-facing side to respect the defence line.
+   for(const z of nearby){
+    const dx=z.x+z.w/2-cx,dy=z.y+z.h/2-cy;
+    const vx=dy>0?(dx<0?-1:1):dx,vy=dy>0?0:Math.min(-1,dy);
+    const length=Math.hypot(vx,vy);
+    if(!ops.push?.(z,vx/length,vy/length)&&intersects(z.x,z.y,z.w,z.h,w)){
+     // Try a clear exit for a boss or a zombie pinned on the primary side.
+     for(const [sx,sy] of [[0,-1],[-1,0],[1,0]]){
+      const distance=sy<0?z.y+z.h-w.y+2:sx<0?z.x+z.w-w.x+2:w.x+T-z.x+2;
+      const steps=Math.ceil(distance/3);
+      let clear=true;
+      for(let n=1;n<=steps;n++){
+       if(!ops.canMove?.(z,z.x+sx*distance*n/steps,z.y+sy*distance*n/steps)){clear=false;break}
+      }
+      if(clear){z.x+=sx*distance;z.y+=sy*distance;break}
+     }
+    }
+   }
+   // An immovable boss or a packed corridor can pin the hatch.
+   if(enemies.some(z=>z.hp>0&&intersects(z.x,z.y,z.w,z.h,w))){
+    w.cooldown=.8+Math.random();return;
+   }
+   w.raised=true;w.cooldown=1.8+Math.random()*2.2;
+   ops.pulse?.('bollard',cx,cy,nearby.length);
+  }
+ }
+ w.lift=w.raised?Math.min(1,(w.lift||0)+dt*14):Math.max(0,(w.lift||0)-dt*7);
+}
 function tickDevices(dt,enemies,now,ops){
  if(active||!walls.size)return;
  for(const w of walls.values()){
   if(!w.kind||w.kind==='wall')continue;
+  if(w.kind==='bollard'){tickBollard(w,dt,enemies,ops);continue}
   const type=spec(w),cx=w.x+T,cy=w.y+T;
   if(!w.run){
    w.cooldown=Math.max(0,w.cooldown-dt);

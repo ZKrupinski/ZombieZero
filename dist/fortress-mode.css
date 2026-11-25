@@ -116,7 +116,7 @@
 
 /* V366: compact, touchable construction catalog, below the 20-row board. */
 .zz-fortress-top{gap:3px;padding:5px 7px;bottom:1%;pointer-events:none}
-.zz-build-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;pointer-events:auto}
+.zz-build-picker{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;pointer-events:auto}
 .zz-build-picker button{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;min-width:0;padding:3px 1px;border:1px solid #718a87;border-radius:5px;background:#1c3b43;color:#e9f7e8;font:900 10px/1.15 Arial,'Noto Sans KR',sans-serif;touch-action:manipulation;min-height:52px}
 .zz-build-picker canvas{width:clamp(23px,7vw,32px);height:clamp(23px,7vw,32px);image-rendering:pixelated}
 .zz-build-picker span{white-space:nowrap;font-size:clamp(8px,2.1vw,11px)}

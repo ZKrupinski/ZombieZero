@@ -104,3 +104,21 @@ for(const [depth,z] of [lead,second,third].entries()){
  const pos=plans.get(z);assert.equal(pos.chainDepth,depth);assert(pos.x>z.x+12&&pos.y<z.y-25);
 }
 console.log('PASS directional spring contact, off-axis exclusion and three-body diagonal chain');
+f.reset();f.begin([],1);place('bollard',16,19,2);f.deploy([]);
+const post=f.getStructure(16,19),rider=actor(post.x+2,post.y-1);
+const neighbor=actor(post.x-21,post.y),far=actor(post.x-48,post.y);
+const group=[rider,neighbor,far],bumped=new Set();
+const bump={push(z,dx,dy){bumped.add(z);z.x+=dx*55;z.y+=dy*55;return true}};
+const ballAtPost=()=>f.bounceBall({x:post.x+1,y:post.y+10,vx:60,vy:0},post.x-6,post.y+10,3);
+assert.equal(f.getStructure(15,19),undefined);
+assert(f.isOpen(rider,rider.x,rider.y));assert.equal(ballAtPost(),null);
+post.cooldown=0;f.tickDevices(.02,group,1,bump);
+assert.deepEqual(bumped,new Set([rider,neighbor]));
+assert(post.raised&&post.cooldown>=1.8&&post.cooldown<=4);
+assert(!f.isOpen(rider,post.x,post.y));assert.equal(ballAtPost().nx,-1);
+post.cooldown=.01;f.tickDevices(.02,group,2,bump);
+assert(!post.raised);assert(f.isOpen(rider,post.x,post.y));assert.equal(ballAtPost(),null);
+post.cooldown=0;rider.x=post.x;rider.y=post.y;
+f.tickDevices(.02,[rider],3,{push:()=>false,canMove:()=>false});
+assert(!post.raised,'blocked hatch must never trap an overlapping zombie');
+console.log('PASS one-cell retractable bollard, adjacent shove, timed wall and ball collision');
