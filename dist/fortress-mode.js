@@ -9,14 +9,14 @@ const FORTRESS_SIDE_INSET=4;
 const FIELD_LEFT=X+FORTRESS_SIDE_INSET,FIELD_RIGHT=X+COLS*T-FORTRESS_SIDE_INSET;
 const occupied=new Map(); // Each occupied tile points to its single structure.
 const walls=new Map(),pending=new Map();
-// Special devices occupy a four-by-four footprint.
+// Special devices occupy a two-by-two footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
- lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:70,cycle:4.5,desc:'좀비를 옆으로 유인 → 위쪽으로 밀어냄'},
- saw:{name:'빙글 톱날',cost:5,hp:24,range:34,cycle:.85,desc:'주변 좀비 최대 3마리에 반복 피해'},
- ice:{name:'꽁꽁 포획기',cost:6,hp:24,range:57,cycle:7,desc:'주변 최대 4마리를 2.2초 결빙'}
+ lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:70,duration:1.25,cycle:4.5,desc:'좀비를 옆으로 유인 → 위쪽으로 밀어냄'},
+ saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
+ ice:{name:'꽁꽁 포획기',cost:6,hp:24,range:57,duration:.85,cycle:6,desc:'주변 최대 4마리를 2.2초 결빙'}
 };
-let selectedBuild='wall',deviceTime=0,placementTip='';
+let selectedBuild='wall',placementTip='';
 const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
 const buildButtons=['wall','lure','saw','ice'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
 const $=id=>document.getElementById(id);
@@ -28,7 +28,7 @@ let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1
 let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
-const span=w=>w.kind&&w.kind!=='wall'?4:1;
+const span=w=>w.kind&&w.kind!=='wall'?2:1;
 function footprint(w,visit){
  for(let row=w.row;row<w.row+span(w);row++)for(let col=w.col;col<w.col+span(w);col++)visit(id(col,row));
 }
@@ -82,7 +82,7 @@ function refresh(){
   if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
  }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
-  :placementTip?placementTip:stock?(selectedBuild==='wall'?'':'4×4칸 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
+  :placementTip?placementTip:stock?(selectedBuild==='wall'?'':'2×2칸 · 불규칙 가동 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
   :'자재 0 · 기존 구조물 철거로 자재 확보 가능';
 }
 function addCell(t){
@@ -90,10 +90,10 @@ function addCell(t){
  const current=occupied.get(t.id);
  if(current)t=cell(current.col,current.row);
  else if(selectedBuild!=='wall'){
-  t=cell(Math.min(t.col,COLS-4),Math.min(t.row,ROWS-4));
+  t=cell(Math.min(t.col,COLS-2),Math.min(t.row,ROWS-2));
   let blocked=false;
   footprint({...t,kind:selectedBuild},key=>{if(occupied.has(key))blocked=true});
-  if(blocked){placementTip='설치하려면 빈 4×4칸이 필요합니다';return}
+  if(blocked){placementTip='설치하려면 빈 2×2칸이 필요합니다';return}
  }
  if(pending.has(t.id))return;
  const action=current?'remove':'build';
@@ -222,7 +222,7 @@ function confirm(){
  pending.clear();refresh();return changed+summary.removes;
 }
 function reset(){
- occupied.clear();walls.clear();pending.clear();queued=[];stock=0;stage=1;selectedBuild='wall';deviceTime=0;
+ occupied.clear();walls.clear();pending.clear();queued=[];stock=0;stage=1;selectedBuild='wall';
  active=false;dragging=false;pointer=null;last=null;touchStroke=null;
  destroyedThisStage=0;lastRefund=0;lastBonus=0;lastHealed=0;refresh();
 }
@@ -235,7 +235,7 @@ function begin(enemies,wave){
   // construction materials; already destroyed cubes stay absent and refund
   // one material each on top of the regular per-wave supply.
   lastHealed=walls.size;
-  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.pulse=0}
+  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.run=null;w.pulse=0}
   lastRefund=destroyedThisStage;
   lastBonus=Math.min(14,8+Math.floor(wave/5));
   stock+=lastRefund+lastBonus;destroyedThisStage=0;
@@ -421,6 +421,9 @@ function deploy(target){
   z.arrivalTime=-Math.max(0,z.row||0)*.07-Math.random()*.05;
   placed.push(z);
  }
+ for(const w of walls.values())if(w.kind&&w.kind!=='wall'){
+  w.run=null;w.cooldown=randomRest(w)*(.25+.45*Math.random());
+ }
  target.push(...queued);queued=[];active=false;cancel();refresh();
  return true;
 }
@@ -562,13 +565,13 @@ function sawBitmap(){
  deviceArt.set('blade',im);return im;
 }
 // All coordinates are local to the 64px machine. Only moving parts are transformed.
-function paintMachine(g,kind,time,pulse){
+function paintMachine(g,kind,time,pulse,bladeOffset=null){
  const art=deviceBitmap(kind);if(!art)return;
  g.drawImage(art,0,0);
  if(kind==='wall')return;
  const beat=Math.sin(time*5),kick=Math.sin(Math.PI*pulse);
  if(kind==='lure'){
-  const lift=beat*2-kick*5;
+  const lift=beat*2-kick*11;
   g.strokeStyle='#43505b';g.lineWidth=3;g.beginPath();
   for(let i=0;i<=6;i++){
    const y=37-(10-lift)*i/6,x=32+(i%2?6:-6);
@@ -585,7 +588,11 @@ function paintMachine(g,kind,time,pulse){
   g.fillStyle='#48545a';g.fillRect(10,29,44,6);
   g.fillStyle='#ed9f39';g.fillRect(22+travel,27,20,10);
   const blade=sawBitmap();if(!blade)return;
-  g.save();g.translate(32+travel,22);g.rotate(time*8+.3);g.drawImage(blade,-22,-22,44,44);g.restore();
+  const bx=32+(bladeOffset?bladeOffset.x:travel),by=22+(bladeOffset?bladeOffset.y:0);
+  if(bladeOffset){
+   g.strokeStyle='#556a74';g.lineWidth=5;g.beginPath();g.moveTo(32,32);g.lineTo(bx,by);g.stroke();
+  }
+  g.save();g.translate(bx,by);g.rotate(time*8+.3);g.drawImage(blade,-22,-22,44,44);g.restore();
  }else{
   // Opposed toothed jaws close over the chilled core when the trap fires.
   const close=1+beat+kick*9;
@@ -598,7 +605,7 @@ function paintMachine(g,kind,time,pulse){
   }
   g.fillStyle='#204453';g.fillRect(19,41,26,8);
   g.fillStyle='#94fcff';
-  for(let i=0;i<4;i++)g.fillRect(21+i*6,43,3,i<2+beat||pulse>0?4:1);
+  for(let i=0;i<4;i++)g.fillRect(21+i*6,43,3,i<2+beat||pulse>0?2:1);
  }
 }
 function makeDeviceIcons(){
@@ -613,16 +620,50 @@ function selectBuild(kind){
  if(!active||dragging||pending.size||!BUILD_TYPES[kind])return false;
  placementTip='';selectedBuild=kind;refresh();return true;
 }
+function armReach(w,dx,dy){
+ const half=T*span(w)/2,length=Math.hypot(dx,dy);
+ const face=length*half/Math.max(1,Math.abs(dx),Math.abs(dy));
+ return Math.min(length,face+spec(w).range);
+}
 function drawDevice(g,w,building=false){
  const art=deviceBitmap(w.kind);if(!art)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
+ const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
+ let offset=null;
+ if(run&&w.kind==='saw'){
+  const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
+  const z=run.targets[index],reach=Math.sin(Math.PI*(step-index));
+  const dx=z.x+z.w/2-x,dy=z.y+z.h/2-y;
+  const scale=armReach(w,dx,dy)/Math.max(1,Math.hypot(dx,dy))*64/size;
+  offset={x:dx*scale*reach,y:(dy*scale+10)*reach};
+ }
  g.save();g.translate(w.x,w.y);g.scale(size/64,size/64);
- paintMachine(g,w.kind,building?0:deviceTime+w.id*.13,building?0:(w.pulse||0)/.45);
+ paintMachine(g,w.kind,run?run.time*3:0,progress,offset);
  g.restore();
- if(!building&&w.pulse>0&&typeof g.arc==='function'){
-  const f=Math.min(1,w.pulse/.45);
-  g.save();g.globalAlpha=.7*f;g.strokeStyle=w.kind==='ice'?'#9eeeff':w.kind==='lure'?'#ffda75':'#ffd299';
-  g.lineWidth=2;g.beginPath();g.arc(x,y,size*.36+(1-f)*spec(w).range,0,Math.PI*2);g.stroke();g.restore();
+ if(run&&w.kind==='ice'){
+  const reach=Math.min(1,Math.sin(Math.PI*progress)*1.2);
+  g.save();
+  for(const z of run.targets){
+   const dx=z.x+z.w/2-x,dy=z.y+z.h/2-y;
+   g.save();g.translate(x,y);g.rotate(Math.atan2(dy,dx));
+   const length=armReach(w,dx,dy)*reach;
+   g.strokeStyle='#ac874e';g.lineWidth=2;g.beginPath();g.moveTo(0,0);g.lineTo(length,0);g.stroke();
+   g.strokeStyle='#bcf9ff';g.lineWidth=3;
+   const gap=3+6*(1-reach);
+   for(const sign of [-1,1]){
+    g.beginPath();g.moveTo(length-7,0);g.lineTo(length-2,sign*gap);g.lineTo(length+3,sign*gap);g.stroke();
+   }
+   g.restore();
+  }
+  g.restore();
+ }
+ if(run&&w.kind==='lure'){
+  g.save();g.strokeStyle='#ffda75';g.lineWidth=2;
+  for(const phase of [0,.5]){
+   const f=(progress*2+phase)%1;g.globalAlpha=(1-f)*Math.sin(Math.PI*progress);
+   g.beginPath();g.arc(x,y,8+(spec(w).range+size/2-8)*f,0,Math.PI*2);g.stroke();
+  }
+  g.restore();
  }
  if(!building&&w.hp<spec(w).hp){
   g.fillStyle='#263039';g.fillRect(x-9,w.y+size-4,18,2);
@@ -631,58 +672,58 @@ function drawDevice(g,w,building=false){
 }
 // Devices act only when the real wave is moving. Cooldowns advance on the
 // same dt, not while the player is building, paused, or holding a serve.
+function randomRest(w){return spec(w).cycle*(.65+.8*Math.random())}
+function withinReach(z,w){
+ const half=T*span(w)/2;
+ const dx=Math.max(0,Math.abs(z.x+z.w/2-w.x-half)-half);
+ const dy=Math.max(0,Math.abs(z.y+z.h/2-w.y-half)-half);
+ return dx*dx+dy*dy<=spec(w).range**2;
+}
+function eligible(z,w,now){
+ if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550||!withinReach(z,w))return false;
+ if(w.kind==='lure')return !z.boss&&!(z.fortressFrozenUntil>now);
+ return w.kind!=='ice'||!(z.fortressIceReady>now);
+}
 function tickDevices(dt,enemies,now,ops){
- deviceTime+=dt;
- if(!walls.size)return;
+ if(active||!walls.size)return;
  for(const w of walls.values()){
   if(!w.kind||w.kind==='wall')continue;
-  const type=spec(w),cx=w.x+2*T,cy=w.y+2*T;
-  w.cooldown=Math.max(0,(w.cooldown||0)-dt);w.pulse=Math.max(0,(w.pulse||0)-dt);
-  const candidates=[];
-  for(const z of enemies){
-   if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550)continue;
-   const dx=cx-(z.x+z.w/2),dy=cy-(z.y+z.h/2),d2=dx*dx+dy*dy;
-   const edgeX=Math.max(0,Math.abs(dx)-1.5*T),edgeY=Math.max(0,Math.abs(dy)-1.5*T);
-   if(edgeX*edgeX+edgeY*edgeY<=type.range*type.range)candidates.push({z,dx,dy,d2});
+  const type=spec(w),cx=w.x+T,cy=w.y+T;
+  if(!w.run){
+   w.cooldown=Math.max(0,w.cooldown-dt);
+   if(w.cooldown>0)continue;
+   const distance=z=>(z.x+z.w/2-cx)**2+(z.y+z.h/2-cy)**2;
+   const targets=enemies.filter(z=>eligible(z,w,now)).sort((a,b)=>distance(a)-distance(b))
+    .slice(0,w.kind==='saw'?3:w.kind==='ice'?4:6);
+   if(!targets.length){w.cooldown=.25+.5*Math.random();continue}
+   w.run={time:0,targets};
   }
-  candidates.sort((a,b)=>a.d2-b.d2);
-  if(w.kind==='lure'){
-   // Sideways attraction cannot advance zombies toward the defence line.
-   for(const {z,dx} of candidates.slice(0,6)){
-    if(z.boss||z.fortressFrozenUntil>now||z.knockTime>0||z.trashStopUntil>now)continue;
-    if(Math.abs(dx)<13)continue;
-    const nx=Math.max(FIELD_LEFT,Math.min(FIELD_RIGHT-z.w,z.x+Math.sign(dx)*Math.min(Math.abs(dx)-12,dt*17)));
-    if(ops.canMove?.(z,nx,z.y)){z.x=nx;delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;z.moveDir=Math.sign(dx)}
-   }
-  }
-  if(w.cooldown>0||!candidates.length)continue;
+  const run=w.run,prev=run.time/type.duration;
+  run.time=Math.min(type.duration,run.time+dt);
+  const progress=run.time/type.duration;
   let hit=0;
-  if(w.kind==='lure'){
-   for(const {z} of candidates.slice(0,6)){
-    if(z.boss||z.fortressFrozenUntil>now)continue;
-    if(ops.push?.(z))hit++;
+  for(const [i,z] of run.targets.entries()){
+   if(!enemies.includes(z)||!eligible(z,w,now))continue;
+   const impact=w.kind==='saw'?(i+.5)/run.targets.length:w.kind==='lure'?.65:.5;
+   if(w.kind==='lure'&&prev<impact&&!(z.knockTime>0||z.trashStopUntil>now)){
+    const dx=cx-(z.x+z.w/2);
+    if(Math.abs(dx)>13){
+     const nx=Math.max(FIELD_LEFT,Math.min(FIELD_RIGHT-z.w,z.x+Math.sign(dx)*Math.min(Math.abs(dx)-12,dt*36)));
+     if(ops.canMove?.(z,nx,z.y)){z.x=nx;delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;z.moveDir=Math.sign(dx)}
+    }
    }
-  }else if(w.kind==='saw'){
-   for(const {z} of candidates.slice(0,3)){
-    if(z.hp<=0||!enemies.includes(z))continue;
-    ops.damage?.(z,z.boss?1:2);hit++;
-   }
-  }else if(w.kind==='ice'){
-   for(const {z} of candidates){
-    if(hit>=4)break;
-    if((z.fortressIceReady||0)>now)continue;
+   if(prev>=impact||progress<impact)continue;
+   if(w.kind==='lure'){if(ops.push?.(z))hit++}
+   else if(w.kind==='saw'){ops.damage?.(z,z.boss?1:2);hit++}
+   else{
     const duration=z.boss?.65:2.2;
-    z.fortressFrozenUntil=now+duration;
-    z.fortressIceReady=now+duration+2;
+    z.fortressFrozenUntil=now+duration;z.fortressIceReady=now+duration+2;
     z.trashStopUntil=Math.max(z.trashStopUntil||0,now+duration);
-    delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
-    z.hitHold=Math.max(z.hitHold||0,.12);
-    z.recoil=Math.max(z.recoil||0,.035);
     hit++;
    }
   }
-  if(hit){w.cooldown=type.cycle;w.pulse=.45;ops.pulse?.(w.kind,cx,cy,hit);}
-  else w.cooldown=.35; // avoid a fruitless full scan of blocked knockbacks
+  if(hit)ops.pulse?.(w.kind,cx,cy,hit);
+  if(progress>=1){w.run=null;w.cooldown=randomRest(w)}
  }
  // Keep freshly frozen enemies out of the normal march/parade selectors.
  for(const z of enemies)if(z.fortressFrozenUntil>now){
