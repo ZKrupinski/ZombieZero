@@ -4526,7 +4526,7 @@ drawKillCombo();drawBarrelBlasts();
 drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  if(mode==='endlessShift'||mode==='paused'&&resumeMode==='endlessShift')drawEndlessShift();
- if(mode==='stageNumber')drawStageAnnouncement('STAGE '+String(wave).padStart(2,'0'),'#ffffff',36);
+ if(mode==='stageNumber')drawStageAnnouncement('STAGE '+String(wave).padStart(2,'0'),'#ffffff',32);
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}
 // V349: measure real RAF and CPU work. Adapt secondary effects only.
 let perfTier=0,perfSlow=0,perfFast=0,perfWorkEMA=0,perfRafEMA=16.7,perfTag=null,perfDebugAt=0;
@@ -5526,22 +5526,36 @@ function drawStageAnnouncement(word,color,size){
  g.save();g.textAlign='center';g.textBaseline='middle';
  g.font='400 '+size+'px "Press Start 2P",monospace';
  g.lineJoin='round';g.lineCap='round';
- // Keep the outline legible even when bright combat effects are behind the title.
+ const parts=word.endsWith(' !')?[word.slice(0,-2),'!']:[word];
+ const widths=parts.map(p=>g.measureText(p).width);
+ const gap=parts.length>1?size*.42:0;
+ const natural=widths.reduce((a,b)=>a+b,0)+gap;
+ const fit=Math.min(1,(W-36)/Math.max(1,natural));
+ let left=x-natural*fit/2;
+ const runs=parts.map((p,i)=>{
+  const width=widths[i]*fit,cx=left+width/2;
+  left+=width+gap*fit;
+  return {p,cx,width};
+ });
+ const paint=stroke=>{for(const r of runs){
+  if(stroke)g.strokeText(r.p,r.cx,y,r.width);
+  else g.fillText(r.p,r.cx,y,r.width);
+ }};
  if(fxEnabled){
   g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.7;
   g.fillStyle=color;g.shadowColor=color;g.shadowBlur=20;
-  g.fillText(word,x,y,W-36);g.restore();
+  paint(false);g.restore();
  }
- g.strokeStyle='#000000';g.lineWidth=6;g.strokeText(word,x,y,W-36);
- g.fillStyle=color;g.fillText(word,x,y,W-36);
+ g.strokeStyle='#000000';g.lineWidth=6;paint(true);
+ g.fillStyle=color;paint(false);
  if(fxEnabled){
   g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.23;
   g.fillStyle=color;g.shadowColor=color;g.shadowBlur=9;
-  g.fillText(word,x,y,W-36);g.restore();
+  paint(false);g.restore();
  }
  g.restore();
 }
-function drawClear(){drawStageAnnouncement('STAGE CLEAR !','#ffe32b',32)}
+function drawClear(){drawStageAnnouncement('STAGE CLEAR !','#ffe32b',28)}
 let inputPointer=null,inputX=0;
 function releaseInput(){inputPointer=null}
 function blocksInput(e){return !!e.target?.closest?.('button,a,input,select,textarea,summary,[role="button"],.overlay,.guide')}

@@ -26,15 +26,23 @@ const clearStart=game.indexOf('function drawClear(){');
 const stageSource=game.slice(stageStart,game.indexOf('}',clearStart)+1);
 assert(stageSource.startsWith('function drawStageAnnouncement('));
 const stageCalls=[];
-const stageG={save(){},restore(){},fillText(word,x,y,maxWidth){stageCalls.push({kind:'fill',word,x,y,maxWidth,font:this.font,color:this.fillStyle,blend:this.globalCompositeOperation,blur:this.shadowBlur})},strokeText(word,x,y,maxWidth){stageCalls.push({kind:'stroke',word,x,y,maxWidth,color:this.strokeStyle,width:this.lineWidth})}};
-vm.runInNewContext(stageSource+";drawStageAnnouncement('STAGE 01','#ffffff',36);drawClear()",{g:stageG,W:450,H:710,fxEnabled:true},{timeout:1000});
-for(const [word,color,size] of [['STAGE 01','#ffffff',36],['STAGE CLEAR !','#ffe32b',32]]){
+const stageG={save(){},restore(){},measureText(word){return {width:word.length*parseFloat(this.font.split(' ')[1])}},fillText(word,x,y,maxWidth){stageCalls.push({kind:'fill',word,x,y,maxWidth,font:this.font,color:this.fillStyle,blend:this.globalCompositeOperation,blur:this.shadowBlur})},strokeText(word,x,y,maxWidth){stageCalls.push({kind:'stroke',word,x,y,maxWidth,color:this.strokeStyle,width:this.lineWidth})}};
+vm.runInNewContext(stageSource+";drawStageAnnouncement('STAGE 01','#ffffff',32);drawClear()",{g:stageG,W:450,H:710,fxEnabled:true},{timeout:1000});
+for(const [word,color,size] of [['STAGE 01','#ffffff',32],['STAGE CLEAR','#ffe32b',28],['!','#ffe32b',28]]){
  const calls=stageCalls.filter(c=>c.word===word);
  assert(calls.some(c=>c.kind==='stroke'&&c.color==='#000000'&&c.width>=6),'stage title has black outline');
  assert(calls.some(c=>c.kind==='fill'&&c.color===color&&c.font==='400 '+size+'px "Press Start 2P",monospace'),'stage title uses correct arcade font and color');
  assert(calls.some(c=>c.kind==='fill'&&c.blend==='lighter'&&c.blur>0),'stage title has additive glow');
- assert(calls.every(c=>c.x===225&&c.y===355&&c.maxWidth===414),'stage title centered with safe margins');
+ assert(calls.every(c=>c.y===355&&c.x-c.maxWidth/2>=18&&c.x+c.maxWidth/2<=432),'stage title has safe margins');
 }
+const title=stageCalls.find(c=>c.word==='STAGE 01'&&c.kind==='stroke');
+const clear=stageCalls.find(c=>c.word==='STAGE CLEAR'&&c.kind==='stroke');
+const bang=stageCalls.find(c=>c.word==='!'&&c.kind==='stroke');
+assert.equal(title.x,225,'stage intro centered');
+const gap=bang.x-bang.maxWidth/2-(clear.x+clear.maxWidth/2);
+assert(gap>0&&gap<28*.65,'exclamation gap smaller than a full glyph, not touching');
+assert(Math.abs((clear.x-clear.maxWidth/2+bang.x+bang.maxWidth/2)/2-225)<.001,'clear group centered');
+assert(game.includes("drawStageAnnouncement('STAGE '+String(wave).padStart(2,'0'),'#ffffff',32)"),'intro uses reduced size');
 assert(game.includes("if(mode==='stageNumber')drawStageAnnouncement("),'stage intro drawn above arena');
 assert(game.includes("if(mode==='stageNumber'){draw();requestAnimationFrame(frame);return}"),'arena renders during title without advancing combat');
 assert(game.includes("g.globalCompositeOperation='lighter'"),'canvas text glow uses ADD');
