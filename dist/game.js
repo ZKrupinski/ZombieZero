@@ -2363,7 +2363,7 @@ function march(dt){
  if(isFortress()&&fortress)for(const z of foes){
   fortress.resolve(z,z.fortressPreviousX,z.fortressPreviousY,dt,(x,y)=>{
    effect(x,y,'#d3bda0',18);sfx('wall');
-  });
+  },clock);
  }
 }
 // Endless advances through a short, in-world intermission. It never opens

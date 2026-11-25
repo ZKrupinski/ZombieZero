@@ -13,9 +13,9 @@ const walls=new Map(),pending=new Map();
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
  bollard:{name:'두더지 차단봉',cost:2,hp:2,cycle:6.5,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
- lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
- saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
- ice:{name:'꽁꽁 포획기',cost:3,hp:30,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
+ lure:{name:'꽥꽥 유인기',cost:4,hp:12,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
+ saw:{name:'빙글 톱날',cost:5,hp:14,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
+ ice:{name:'꽁꽁 포획기',cost:3,hp:16,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
 };
 let selectedBuild='wall',placementTip='';
 const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
@@ -453,24 +453,25 @@ function startWithFeedback(){
  },reduced?80:520);
  return true;
 }
-// Attack a raised mole even when movement already stopped just outside it.
-function adjacentRaisedMole(z){
- const gap=3.5;
+// A stopped boss still attacks nearby solid structures.
+function adjacentStructure(z){
+ const gap=z.boss?6:3.5;
  const c0=Math.max(0,Math.floor((z.x-gap-X)/T)),c1=Math.min(COLS-1,Math.floor((z.x+z.w+gap-X)/T));
  const r0=Math.max(0,Math.floor((z.y-gap-Y)/T)),r1=Math.min(ROWS-1,Math.floor((z.y+z.h+gap-Y)/T));
  let nearest=null,best=Infinity;
  for(let row=r0;row<=r1;row++)for(let col=c0;col<=c1;col++){
   const w=occupied.get(id(col,row));
-  if(!w||w.kind!=='bollard'||!w.raised)continue;
-  const dx=Math.max(0,w.x-z.x-z.w,z.x-w.x-T),dy=Math.max(0,w.y-z.y-z.h,z.y-w.y-T);
+  if(!isSolid(w)||(!z.boss&&(!w.kind||w.kind==='wall')))continue;
+  const size=T*span(w);
+  const dx=Math.max(0,w.x-z.x-z.w,z.x-w.x-size),dy=Math.max(0,w.y-z.y-z.h,z.y-w.y-size);
   const d=Math.hypot(dx,dy);
   if(d<=gap&&d<best){best=d;nearest=w}
  }
  return nearest;
 }
-function resolve(z,oldX,oldY,dt,onBreak){
+function resolve(z,oldX,oldY,dt,onBreak,now=Infinity){
  const trace=firstWallOnPath(oldX,oldY,z.x,z.y,z.w,z.h);
- const hit=trace?.wall||adjacentRaisedMole(z);
+ const hit=trace?.wall||adjacentStructure(z);
  if(!hit){
   z.fortressTarget=null;z.fortressBite=0;return false;
  }
@@ -485,12 +486,14 @@ function resolve(z,oldX,oldY,dt,onBreak){
  if(!isOpen(z,z.x,z.y)){
   z.fortressTarget=null;z.fortressBite=0;return true;
  }
+ if((z.fortressFrozenUntil||0)>now||(z.trashStopUntil||0)>now||(z.hitShakeUntil||0)>now||(z.knockTime||0)>0)return true;
  if(z.fortressTarget!==hit.id){z.fortressTarget=hit.id;z.fortressBite=0}
  z.fortressBite=(z.fortressBite||0)+dt*(z.boss?2.25:Number.isInteger(z.eliteKind)?1.5:1);
  const bitePeriod=hit.kind==='bollard'?.32:.78;
  if(z.fortressBite>=bitePeriod){
-  const damage=Math.floor(z.fortressBite/bitePeriod);
-  z.fortressBite%=bitePeriod;hit.hp-=hit.kind==='ice'&&!hit.run?damage*.5:damage;hit.hit=.18;hit.biteShake=.18;
+  const damage=Math.floor(z.fortressBite/bitePeriod)*(z.boss?8:1);
+  // Boss impacts overpower idle cryo armor; ordinary bites do not.
+  z.fortressBite%=bitePeriod;hit.hp-=hit.kind==='ice'&&!hit.run&&!z.boss?damage*.5:damage;hit.hit=.18;hit.biteShake=.18;
   if(hit.hp<=0){removeStructure(hit);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T*span(hit)/2,hit.y+T*span(hit)/2)}
  }
  return true;
@@ -728,7 +731,7 @@ function drawIceArms(g,w){
   part(g,9,length-7,-6,14,12);g.restore();
  }
 }
-function drawDevice(g,w,building=false,glow=null){
+function drawDevice(g,w,building=false,glow=null,drawGauge=true){
  if(!parts)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
@@ -754,12 +757,16 @@ function drawDevice(g,w,building=false,glow=null){
  g.translate(w.x+shakeX,w.y+shakeY);g.scale(size/64,size/64);
  paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
  g.restore();
- // Moles never enter the durability gauge or glow rendering path.
- if(w.kind==='bollard')return;
- if(!building&&w.hp<spec(w).hp){
-  const bx=x-9,by=w.y+size-4,bw=18*Math.max(0,w.hp/spec(w).hp);
+ if(drawGauge)drawDeviceGauge(g,w,glow);
+}
+function drawDeviceGauge(g,w,glow=null){
+ // Moles and ordinary walls retain their gauge-free appearance.
+ if(w.kind==='bollard'||!w.kind||w.kind==='wall'||!Number.isFinite(w.hp))return;
+ const size=T*span(w),x=w.x+size/2;
+ {
+  const width=24,bx=x-width/2,by=w.y+size+1,bw=width*Math.max(0,Math.min(1,w.hp/spec(w).hp));
   const color=w.kind==='ice'?'#46cfff':'#ffbf55';
-  g.save();g.fillStyle='#172733';g.fillRect(bx-1,by-1,20,4);
+  g.save();g.fillStyle='#172733';g.fillRect(bx-1,by-1,width+2,4);
   g.fillStyle=color;g.fillRect(bx,by,bw,2);g.restore();
   if(bw>0&&glow)glow(ctx=>{
    ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle=color;
@@ -970,7 +977,7 @@ function draw(g,building=false,glow=null){
  const frame=bitmap?BARRICADE_FRAME:T;
  if(!building&&parts)for(const w of walls.values())if(w.kind==='ice'&&w.run)drawIceArms(g,w);
  for(const w of walls.values()){
-  if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building,glow);continue}
+  if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building,glow,false);continue}
   // The five authored PNG states are switched by actual remaining HP.
   const variant=w.hp>MAX_HP*.8?0:w.hp>MAX_HP*.6?1:
     w.hp>MAX_HP*.4?2:w.hp>MAX_HP*.2?3:4;
@@ -986,6 +993,8 @@ function draw(g,building=false,glow=null){
   g.drawImage(tile,index*frame,0,frame,frame,w.x+shakeX,w.y+shakeY,T,T);
   g.restore();
  }
+ // Draw gauges after sprites so neighboring structures cannot hide them.
+ for(const w of walls.values())drawDeviceGauge(g,w,glow);
  if(!building)return;
  g.save();g.globalAlpha=.22;g.fillStyle='#a3d1b0';
  for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++)g.fillRect(X+col*T+10,Y+row*T+10,2,2);

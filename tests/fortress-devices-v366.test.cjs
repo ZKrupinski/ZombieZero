@@ -30,7 +30,7 @@ for(let frame=0;saw.run&&frame<150;frame++)f.tickDevices(.01,enemies,10+frame*.0
 assert(!saw.run&&saw.cooldown>0);
 const previous=hits;
 f.tickDevices(Math.min(.1,saw.cooldown/2),enemies,12,ops);assert.equal(hits,previous);
-f.begin([],2);assert.equal(f.getStructure(12,5).hp,30);
+f.begin([],2);assert.equal(f.getStructure(12,5).hp,16);
 assert.equal(f.getStructure(12,5).cooldown,0);
 assert(f.selectBuild('ice'));let before=f.getStock();
 f.down(p(12,5),canvas);f.up(p(12,5),canvas);
@@ -86,9 +86,9 @@ const ice=f.getStructure(4,6);
 assert(ice.cooldown>=.3&&ice.cooldown<=.75);
 const biter=actor(ice.x+4,ice.y-21);
 const bite=()=>{biter.y=ice.y-21;f.resolve(biter,biter.x,ice.y-23,.79)};
-bite();assert.equal(ice.hp,29.5);
+bite();assert.equal(ice.hp,15.5);
 ice.cooldown=0;f.tickDevices(.05,[biter],1,{});assert(ice.run);
-bite();assert.equal(ice.hp,28.5);
+bite();assert.equal(ice.hp,14.5);
 assert(fs.readFileSync('dist/index.html','utf8').includes('꽁꽁 포획기</span><b>◆ 3'));
 f.reset();f.begin([],1);place('lure',5,10,4);f.deploy([]);
 const duck=f.getStructure(5,10),origin={x:duck.x+22,y:duck.y+44*18/64};
@@ -163,6 +163,22 @@ for(let i=0;i<85;i++)f.tickDevices(.01,[capturedBoss],i*.01,{canMove:(z,x,y)=>f.
 assert.equal(bossCapture,1);assert(capturedBoss.fortressFrozenUntil>0);
 console.log('PASS v392: large boss body-edge saw damage, direct duck hit, ice capture.');
 
+
+for(const [kind,hp,expected] of [['lure',12,2],['saw',14,2],['ice',16,2],['wall',30,4]]){
+ f.reset();f.begin([],1);
+ if(kind==='wall'){f.selectBuild(kind);f.down(p(5,8),canvas);f.up(p(5,8),canvas);nodes['fortress-confirm'].click()}
+ else place(kind,5,8,kind==='lure'?4:kind==='saw'?5:3);
+ f.deploy([]);
+ const device=f.getStructure(5,8),boss={x:device.x+2,y:device.y-60-3,w:33,h:60,hp:50,boss:true};
+ assert.equal(device.hp,hp);
+ let destroyed=0;const hit=()=>f.resolve(boss,boss.x,boss.y,.35,()=>destroyed++,1);
+ for(let i=1;i<expected;i++){hit();assert.equal(device.hp,hp-i*8)}
+ hit();assert.equal(f.getStructure(5,8),undefined);assert.equal(destroyed,1);
+}
+f.reset();f.begin([],1);place('ice',5,8,3);f.deploy([]);
+const armor=f.getStructure(5,8),frozen={x:armor.x+2,y:armor.y-63,w:33,h:60,hp:50,boss:true,fortressFrozenUntil:3};
+f.resolve(frozen,frozen.x,frozen.y,.35,null,1);assert.equal(armor.hp,16);
+
 const source=fs.readFileSync('dist/fortress-mode.js','utf8');
 const renderWin={};const renderDoc={getElementById:id=>nodes[id]||null,createElement:()=>({getContext:()=>null})};
 new Function('window','document',source.replace('window.ZZFortress={','parts={};window.ZZFortress={drawDevice,'))(renderWin,renderDoc);
@@ -174,3 +190,12 @@ for(const kind of ['bollard','ice','saw','lure']){
  assert.equal(bars,kind==='bollard'?0:2,kind+' durability bar');
 }
 console.log('PASS v387: stationary mole bites, no mole gauge, all machines flash and shake.');
+
+for(const [kind,hp] of [['lure',12],['saw',14],['ice',16]]){
+ const rects=[];let glowCount=0;
+ const ctx={save(){},restore(){},translate(){},scale(){},rotate(){},drawImage(){},fillRect(...r){rects.push(r)}};
+ renderWin.ZZFortress.drawDevice(ctx,{kind,x:100,y:100,id:1,hp},false,paint=>{glowCount++;paint(ctx)});
+ assert.equal(rects[0][1],144,'bar below sprite');assert.equal(rects[1][2],24,'full health bar');
+ assert.equal(glowCount,1);
+}
+console.log('PASS v393: weaker machines, stationary boss breaks in 2-4 strikes, frozen boss cannot bite, full-health glowing bars below sprites.');
