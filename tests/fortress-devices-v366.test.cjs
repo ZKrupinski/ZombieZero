@@ -90,3 +90,17 @@ bite();assert.equal(ice.hp,29.5);
 ice.cooldown=0;f.tickDevices(.05,[biter],1,{});assert(ice.run);
 bite();assert.equal(ice.hp,28.5);
 assert(fs.readFileSync('dist/index.html','utf8').includes('꽁꽁 포획기</span><b>◆ 3'));
+f.reset();f.begin([],1);place('lure',5,10,4);f.deploy([]);
+const duck=f.getStructure(5,10),origin={x:duck.x+22,y:duck.y+44*18/64};
+const front=actor(origin.x+14,origin.y-55),side=actor(origin.x-50,origin.y-59);
+const behind=actor(origin.x,origin.y+33),contacts=[];
+duck.cooldown=0;
+for(let i=0;i<60;i++)f.tickDevices(.01,[front,side,behind],i*.01,{push(z,dx,dy){contacts.push(z);assert(dx>0&&dy<0&&dx<=-dy);return true}});
+assert.deepEqual(contacts,[front]);
+const lead=actor(132,205),second=actor(144,179),third=actor(156,153);
+const spare=actor(200,195),plans=f.duckKnockPlan(lead,.45,-Math.sqrt(1-.45**2),[lead,second,third,spare],()=>true);
+assert.equal(plans.size,3);
+for(const [depth,z] of [lead,second,third].entries()){
+ const pos=plans.get(z);assert.equal(pos.chainDepth,depth);assert(pos.x>z.x+12&&pos.y<z.y-25);
+}
+console.log('PASS directional spring contact, off-axis exclusion and three-body diagonal chain');

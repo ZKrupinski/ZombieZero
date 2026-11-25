@@ -12,7 +12,7 @@ const walls=new Map(),pending=new Map();
 // Special devices occupy a two-by-two footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
- lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:70,duration:1.25,cycle:4.5,desc:'좀비를 옆으로 유인 → 위쪽으로 밀어냄'},
+ lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:3,hp:30,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
 };
@@ -571,14 +571,15 @@ function paintMachine(g,kind,time,pulse,bladeOffset=null){
  if(kind==='wall')return;
  const beat=Math.sin(time*5),kick=Math.sin(Math.PI*pulse);
  if(kind==='lure'){
-  const lift=beat*2-kick*11;
-  g.strokeStyle='#43505b';g.lineWidth=3;g.beginPath();
-  for(let i=0;i<=6;i++){
-   const y=37-(10-lift)*i/6,x=32+(i%2?6:-6);
+  const lift=bladeOffset?.y||0,slide=bladeOffset?.x||0;
+  g.strokeStyle='#43505b';g.lineWidth=5;g.beginPath();
+  for(let i=0;i<=12;i++){
+   const f=i/12,y=37+(lift-10)*f,x=32+slide*f+(i%2?7:-7);
    if(i)g.lineTo(x,y);else g.moveTo(x,y);
   }
   g.stroke();
-  g.drawImage(deviceBitmap('duck'),0,lift);
+  g.strokeStyle='#ffe392';g.lineWidth=2;g.stroke();
+  g.drawImage(deviceBitmap('duck'),slide,lift);
   if(pulse>0){
    g.strokeStyle='#ffdf70';g.lineWidth=2;
    for(const x of [16,48]){g.beginPath();g.arc(x,44,6+kick*5,0,Math.PI*2);g.stroke()}
@@ -631,6 +632,9 @@ function drawDevice(g,w,building=false){
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
  let offset=null;
+ if(run&&w.kind==='lure'){
+  const travel=duckTravel(progress)*64/size;offset={x:run.dx*travel,y:run.dy*travel};
+ }
  if(run&&w.kind==='saw'){
   const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
   const z=run.targets[index],reach=Math.sin(Math.PI*(step-index));
@@ -659,14 +663,6 @@ function drawDevice(g,w,building=false){
   }
   g.restore();
  }
- if(run&&w.kind==='lure'){
-  g.save();g.strokeStyle='#ffda75';g.lineWidth=2;
-  for(const phase of [0,.5]){
-   const f=(progress*2+phase)%1;g.globalAlpha=(1-f)*Math.sin(Math.PI*progress);
-   g.beginPath();g.arc(x,y,8+(spec(w).range+size/2-8)*f,0,Math.PI*2);g.stroke();
-  }
-  g.restore();
- }
  if(!building&&w.hp<spec(w).hp){
   g.fillStyle='#263039';g.fillRect(x-9,w.y+size-4,18,2);
   g.fillStyle='#f2b968';g.fillRect(x-9,w.y+size-4,18*Math.max(0,w.hp/spec(w).hp),2);
@@ -683,7 +679,10 @@ function withinReach(z,w){
 }
 function eligible(z,w,now){
  if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550||!withinReach(z,w))return false;
- if(w.kind==='lure')return !z.boss&&!(z.fortressFrozenUntil>now);
+ if(w.kind==='lure'){
+  const dx=z.x+z.w/2-w.x-T,up=duckOriginY(w)-z.y-z.h/2;
+  return !z.boss&&!(z.fortressFrozenUntil>now)&&up>0&&Math.abs(dx)<=up&&Math.hypot(dx,up)<=spec(w).range+12;
+ }
  return w.kind!=='ice'||(!(z.fortressIceReady>now)&&!(z.knockTime>0));
 }
 function reelIceTarget(w,z,prev,progress,now,ops){
@@ -714,6 +713,55 @@ function reelIceTarget(w,z,prev,progress,now,ops){
  z.trashStopUntil=Math.max(z.trashStopUntil||0,z.fortressFrozenUntil);
  return true;
 }
+// The centre of the painted duck sits 18/64 down the machine.
+function duckOriginY(w){return w.y+2*T*18/64}
+function duckTravel(p){
+ if(p<.22)return -4*Math.sin(Math.PI*p/.22);
+ if(p<.45)return BUILD_TYPES.lure.range*(1-(1-(p-.22)/.23)**2);
+ return BUILD_TYPES.lure.range*(1-(p-.45)/.55)**2;
+}
+function strikeDuck(w,enemies,prev,progress,now,ops){
+ if(progress<=.22||prev>=.45)return;
+ const run=w.run,start=duckTravel(Math.max(.22,prev)),end=duckTravel(Math.min(.45,progress));
+ const steps=Math.max(1,Math.ceil((end-start)/4));
+ for(let i=0;i<=steps;i++){
+  const d=start+(end-start)*i/steps,x=w.x+T+run.dx*d,y=duckOriginY(w)+run.dy*d;
+  for(const z of enemies){
+   if(run.struck.has(z)||z.boss||z.hp<=0||(z.arrivalTime||0)<0||z.fortressFrozenUntil>now)continue;
+   const ax=Math.max(z.x-x,0,x-z.x-z.w),ay=Math.max(z.y-y,0,y-z.y-z.h);
+   if((ax/14)**2+(ay/9)**2>1)continue;
+   run.struck.add(z);
+   if(ops.push?.(z,run.dx,run.dy))ops.pulse?.('lure',x,y,1);
+  }
+ }
+}
+// Plan small, swept displacements. Each touching neighbour joins the same
+// directional shove, while a wall, boss or road edge stops the connected group.
+function duckKnockPlan(root,dx,dy,enemies,inside){
+ const positions=new Map(),stride=3,limit=12;
+ for(let step=0;step<24;step++){
+  const next=new Map();
+  function advance(z,depth){
+   if(next.has(z))return true;
+   if(z.boss||depth>limit)return false;
+   const old=positions.get(z)||z;
+   const pos={x:old.x+dx*stride,y:old.y+dy*stride,chainDepth:old.chainDepth??depth};
+   if(!inside(z,pos)||!isPathClear(z,old.x,old.y,pos.x,pos.y))return false;
+   next.set(z,pos);
+   for(const other of enemies){
+    if(other===z)continue;
+    const at=next.get(other)||positions.get(other)||other;
+    if(pos.x<at.x+other.w+.5&&pos.x+z.w+.5>at.x&&pos.y<at.y+other.h+.5&&pos.y+z.h+.5>at.y){
+     if(next.has(other)||!advance(other,depth+1))return false;
+    }
+   }
+   return true;
+  }
+  if(!advance(root,0))break;
+  for(const [actor,pos] of next)positions.set(actor,pos);
+ }
+ return positions;
+}
 function tickDevices(dt,enemies,now,ops){
  if(active||!walls.size)return;
  for(const w of walls.values()){
@@ -728,10 +776,20 @@ function tickDevices(dt,enemies,now,ops){
    if(!targets.length){w.cooldown=.25+.5*Math.random();continue}
    w.run={time:0,targets};
    if(w.kind==='ice')w.run.grabbed=new Set();
+   if(w.kind==='lure'){
+    const target=targets[0],dx=target.x+target.w/2-cx,dy=target.y+target.h/2-duckOriginY(w);
+    const length=Math.hypot(dx,dy);
+    Object.assign(w.run,{dx:dx/length,dy:dy/length,struck:new Set()});
+   }
   }
   const run=w.run,prev=run.time/type.duration;
   run.time=Math.min(type.duration,run.time+dt);
   const progress=run.time/type.duration;
+  if(w.kind==='lure'){
+   strikeDuck(w,enemies,prev,progress,now,ops);
+   if(progress>=1){w.run=null;w.cooldown=randomRest(w)}
+   continue;
+  }
   let hit=0;
   for(const [i,z] of run.targets.entries()){
    if(z.hp<=0||!enemies.includes(z))continue;
@@ -740,17 +798,9 @@ function tickDevices(dt,enemies,now,ops){
     continue;
    }
    if(!eligible(z,w,now))continue;
-   const impact=w.kind==='saw'?(i+.5)/run.targets.length:w.kind==='lure'?.65:.5;
-   if(w.kind==='lure'&&prev<impact&&!(z.knockTime>0||z.trashStopUntil>now)){
-    const dx=cx-(z.x+z.w/2);
-    if(Math.abs(dx)>13){
-     const nx=Math.max(FIELD_LEFT,Math.min(FIELD_RIGHT-z.w,z.x+Math.sign(dx)*Math.min(Math.abs(dx)-12,dt*36)));
-     if(ops.canMove?.(z,nx,z.y)){z.x=nx;delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;z.moveDir=Math.sign(dx)}
-    }
-   }
+   const impact=(i+.5)/run.targets.length;
    if(prev>=impact||progress<impact)continue;
-   if(w.kind==='lure'){if(ops.push?.(z))hit++}
-   else{ops.damage?.(z,z.boss?1:2);hit++}
+   ops.damage?.(z,z.boss?1:2);hit++;
   }
   if(hit)ops.pulse?.(w.kind,cx,cy,hit);
   if(progress>=1){w.run=null;w.cooldown=randomRest(w)}
@@ -827,7 +877,7 @@ function tick(dt){for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
-window.ZZFortress={reset,begin,deploy,resolve,selectBuild,tickDevices,drawStatuses,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
+window.ZZFortress={duckKnockPlan,reset,begin,deploy,resolve,selectBuild,tickDevices,drawStatuses,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
  bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),

@@ -2266,7 +2266,7 @@ function makeFoeGrid(actors){
 function march(dt){
  if(isFortress()&&fortress)fortress.tickDevices?.(dt,foes,clock,{
   canMove:(z,x,y)=>canKnockback(z,x,y),
-  push:z=>applyKnockback(z,{x:0,y:-1,push:1.4},2),
+  push:(z,x,y)=>applyKnockback(z,{x,y,duck:true},2),
   damage:(z,n)=>damage(z,n,false,{x:0,y:-1,push:.25}),
   pulse:(kind,x,y)=>{effect(x,y,kind==='ice'?'#91efff':kind==='lure'?'#ffd15c':'#ffc99a',22);sfx(kind==='lure'?'wall':kind==='ice'?'item':'hit')}
  });
@@ -2925,7 +2925,8 @@ function applyKnockback(z,impact,n=1){
  const distance=Math.min(50,36+Math.min(n,5)*3)*enemyDisplacementScale()*(impact.push||1);
  const dirX=vx/mag,dirY=vy/mag;
  for(const factor of [1,.85,.7,.55,.4,.25,.12]){
-  const plans=new Map();
+  const plans=impact.duck?fortress.duckKnockPlan(z,dirX,dirY,foes,insideZombieRoad):new Map();
+  if(impact.duck&&!plans.size)return false;
   // Reflect lateral impact at the painted side walls instead of embedding a
   // knocked zombie in a wall. Full chains remain collision-checked as before.
   const proposedX=z.x+dirX*distance*factor;
@@ -2934,7 +2935,7 @@ function applyKnockback(z,impact,n=1){
                    proposedX>high?2*high-proposedX:proposedX;
   const pushX=reflectedX-z.x;
   const pushY=dirY*distance*factor;
-  if(!planKnockPush(z,pushX,pushY,plans))continue;
+  if(!impact.duck&&!planKnockPush(z,pushX,pushY,plans))continue;
   let valid=true;
   for(const [a,pa] of plans)
    for(const other of foes){
@@ -2942,10 +2943,11 @@ function applyKnockback(z,impact,n=1){
     const pb=plans.get(other)||{x:other.x,y:other.y};
     if(zombieBoxesOverlap(a,pa,other,pb,.5)){valid=false;break}
    }
-  if(!valid)continue;
+  if(!valid){if(impact.duck)return false;continue}
   for(const [actor,pos] of plans){
    // A chained shove interrupts any existing elite route; never snap back
    // to the start of a pre-hit dash once the physics tween ends.
+   if(impact.duck)delete actor.wormParade;
    if(actor.eliteMotion){
     delete actor.eliteMotion;
     actor.eliteNextMove=clock+(actor.eliteKind===2?.6:1.1);
