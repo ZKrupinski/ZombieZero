@@ -567,8 +567,46 @@ function paintMachine(g,kind,time,pulse,offset=null){
 // Dedicated high-DPI picker artwork: render the original bitmap parts
 // directly into a 256px UI canvas, never enlarge the old 64px composite.
 // Gameplay sprites and their animation geometry are deliberately untouched.
+// Edge-directed bitmap enlargement for the 56px wall source. Unlike
+// stretching a 64px composite, this reconstructs diagonal pixel edges.
+let wallIconSource=null,wallIconHD=null;
+function upscaleWallIcon(tile){
+ if(!tile||typeof document.createElement!=='function')return null;
+ if(wallIconSource===tile&&wallIconHD)return wallIconHD;
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=BARRICADE_FRAME;
+ const q=canvas.getContext?.('2d');
+ if(!q||typeof q.getImageData!=='function'||typeof q.putImageData!=='function'||typeof q.createImageData!=='function')return null;
+ q.drawImage(tile,0,0,BARRICADE_FRAME,BARRICADE_FRAME,0,0,BARRICADE_FRAME,BARRICADE_FRAME);
+ let data=q.getImageData(0,0,BARRICADE_FRAME,BARRICADE_FRAME).data,side=BARRICADE_FRAME;
+ // Two Scale2x passes, preserving the actual wall palette and transparency.
+ for(let pass=0;pass<2;pass++){
+  const next=new Uint8ClampedArray(side*side*16),n=side*2;
+  const at=(x,y)=>(Math.max(0,Math.min(side-1,y))*side+Math.max(0,Math.min(side-1,x)))*4;
+  const same=(a,b)=>{
+   if(data[a+3]<16&&data[b+3]<16)return true;
+   return Math.abs(data[a+3]-data[b+3])<20&&
+    Math.abs(data[a]-data[b])+Math.abs(data[a+1]-data[b+1])+Math.abs(data[a+2]-data[b+2])<26;
+  };
+  const copy=(a,x,y)=>next.set(data.subarray(a,a+4),(y*n+x)*4);
+  for(let y=0;y<side;y++)for(let x=0;x<side;x++){
+   const e=at(x,y),b=at(x,y-1),d=at(x-1,y),f=at(x+1,y),h=at(x,y+1);
+   const edge=!same(b,h)&&!same(d,f);
+   copy(edge&&same(d,b)?d:e,x*2,y*2);
+   copy(edge&&same(b,f)?f:e,x*2+1,y*2);
+   copy(edge&&same(d,h)?d:e,x*2,y*2+1);
+   copy(edge&&same(h,f)?f:e,x*2+1,y*2+1);
+  }
+  data=next;side=n;
+ }
+ canvas.width=canvas.height=side;
+ const bitmap=q.createImageData(side,side);bitmap.data.set(data);q.putImageData(bitmap,0,0);
+ wallIconSource=tile;wallIconHD=canvas;return canvas;
+}
 function makeDeviceIcons(){
- const resolution=256,pad=4,artSize=384;
+ const resolution=256,artSize=384;
+ // 1x1 structures should look smaller than the 2x2 machines. Keep
+ // comfortable margins for all five and never normalize to full-bleed.
+ const displayScale={wall:.60,bollard:.67,ice:.82,lure:.82,saw:.82};
  let source=null,ctx=null;
  if(typeof document.createElement==='function'){
   source=document.createElement('canvas');source.width=source.height=artSize;
@@ -581,16 +619,18 @@ function makeDeviceIcons(){
   const q=icon.getContext?.('2d');if(!q)continue;
   q.clearRect(0,0,resolution,resolution);
   q.imageSmoothingEnabled=true;q.imageSmoothingQuality='high';
+  const fit=resolution*displayScale[kind];
   if(!ctx||typeof ctx.getImageData!=='function'){
-   q.save();q.scale(resolution/64,resolution/64);
+   q.save();q.translate((resolution-fit)/2,(resolution-fit)/2);q.scale(fit/64,fit/64);
    paintMachine(q,kind,0,kind==='bollard'?1:0);q.restore();continue;
   }
-  // Recompose from the source atlas, then crop actual transparent margins.
-  // Extra room around the original 64px drawing avoids clipping claws/saw.
   ctx.clearRect(0,0,artSize,artSize);
   ctx.save();ctx.translate(32,32);ctx.scale(5,5);
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  paintMachine(ctx,kind,0,kind==='bollard'?1:0);ctx.restore();
+  const wall=kind==='wall'?upscaleWallIcon(bitmapTiles()):null;
+  if(wall)ctx.drawImage(wall,0,0,64,64);
+  else paintMachine(ctx,kind,0,kind==='bollard'?1:0);
+  ctx.restore();
   const pixels=ctx.getImageData(0,0,artSize,artSize).data;
   let x0=artSize,y0=artSize,x1=-1,y1=-1;
   for(let y=0;y<artSize;y++)for(let x=0;x<artSize;x++){
@@ -598,7 +638,7 @@ function makeDeviceIcons(){
    x0=Math.min(x,x0);y0=Math.min(y,y0);x1=Math.max(x,x1);y1=Math.max(y,y1);
   }
   if(x1<x0||y1<y0)continue;
-  const w=x1-x0+1,h=y1-y0+1,scale=(resolution-pad*2)/Math.max(w,h);
+  const w=x1-x0+1,h=y1-y0+1,scale=fit/Math.max(w,h);
   q.drawImage(source,x0,y0,w,h,(resolution-w*scale)/2,(resolution-h*scale)/2,w*scale,h*scale);
  }
 }
