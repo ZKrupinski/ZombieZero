@@ -544,12 +544,12 @@ function paintMachine(g,kind,time,pulse,offset=null){
   g.save();g.translate(32+x,22+y);g.rotate(time*8+.3);
   part(g,7,-22,-22,44,44);g.restore();
  }else if(kind==='ice'){
-  part(g,8,3,9,58,54);
   const spread=Math.sin(Math.PI*pulse)*5;
   for(const side of [-1,1]){
    g.save();g.translate(32+side*(18+spread),17);g.rotate(side<0?-2.1:-1.04);
-   part(g,9,-9,-9,19,18);g.restore();
+   part(g,9,-10,-15,21,20);g.restore();
   }
+  part(g,8,3,9,58,54);
  }
 }
 function makeDeviceIcons(){
@@ -573,6 +573,35 @@ function armReach(w,dx,dy){
  return Math.min(length,face+spec(w).range);
 }
 const ICE_LATCH=.32,ICE_FREEZE=.62;
+function drawIceArms(g,w){
+ const run=w.run,progress=run.time/spec(w).duration;
+ const reach=Math.min(1,progress/ICE_LATCH,(1-progress)/(1-ICE_FREEZE));
+ for(const z of run.targets){
+  const grip=run.grabbed.get(z);
+  if(z.hp<=0||(progress>=ICE_LATCH&&!grip))continue;
+  const dx=z.x+z.w/2-w.x-T,dy=z.y+z.h/2-w.y-T;
+  const length=Math.hypot(dx,dy)*reach;
+  g.save();g.translate(w.x+T,w.y+T);g.rotate(Math.atan2(dy,dx));
+  linkage(g,11,0,0,length,0,4);
+  if(grip&&progress<ICE_FREEZE){
+   // Leave tapered speed marks in the space the captured zombie just crossed.
+   const pulled=Math.min(36,Math.max(0,grip.distance-length));
+   g.strokeStyle='#a3ebff';g.lineWidth=2;g.beginPath();
+   for(const side of [-1,1]){
+    g.moveTo(length+6,side*7);g.lineTo(length+6+pulled,side*10);
+   }
+   g.stroke();
+   // Directional highlights travel down the taut cable toward the winch.
+   const shift=(run.time*190)%18;
+   g.strokeStyle='#e0ffff';g.lineWidth=2.3;g.beginPath();
+   for(let pos=length-shift;pos>15;pos-=18){
+    g.moveTo(pos+4,-3);g.lineTo(pos,0);g.lineTo(pos+4,3);
+   }
+   g.stroke();
+  }
+  part(g,9,length-10,-7,16,14);g.restore();
+ }
+}
 function drawDevice(g,w,building=false){
  if(!parts)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
@@ -591,20 +620,6 @@ function drawDevice(g,w,building=false){
  g.save();g.translate(w.x,w.y);g.scale(size/64,size/64);
  paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
  g.restore();
- if(run&&w.kind==='ice'){
-  const reach=Math.min(1,progress/ICE_LATCH,(1-progress)/(1-ICE_FREEZE));
-  g.save();
-  for(const z of run.targets){
-   if(progress>=ICE_LATCH&&!run.grabbed.has(z))continue;
-   const dx=z.x+z.w/2-x,dy=z.y+z.h/2-y;
-   g.save();g.translate(x,y);g.rotate(Math.atan2(dy,dx));
-   const length=Math.hypot(dx,dy)*reach;
-   linkage(g,11,0,0,length,0,3);
-   part(g,9,length-8,-5,12,10);
-   g.restore();
-  }
-  g.restore();
- }
  if(!building&&w.hp<spec(w).hp){
   g.fillStyle='#263039';g.fillRect(x-9,w.y+size-4,18,2);
   g.fillStyle='#f2b968';g.fillRect(x-9,w.y+size-4,18*Math.max(0,w.hp/spec(w).hp),2);
@@ -630,7 +645,7 @@ function eligible(z,w,now){
 function reelIceTarget(w,z,prev,progress,now,ops){
  const run=w.run;
  if(prev<ICE_LATCH&&progress>=ICE_LATCH&&eligible(z,w,now)){
-  run.grabbed.add(z);
+  run.grabbed.set(z,{distance:Math.hypot(w.x+T-z.x-z.w/2,w.y+T-z.y-z.h/2)});
   const remaining=(ICE_FREEZE-ICE_LATCH)*spec(w).duration;
   z.fortressIceReady=now+remaining;
   z.trashStopUntil=Math.max(z.trashStopUntil||0,now+remaining);
@@ -756,7 +771,7 @@ function tickDevices(dt,enemies,now,ops){
     .slice(0,w.kind==='saw'?3:w.kind==='ice'?4:6);
    if(!targets.length){w.cooldown=.25+.5*Math.random();continue}
    w.run={time:0,targets};
-   if(w.kind==='ice')w.run.grabbed=new Set();
+   if(w.kind==='ice')w.run.grabbed=new Map();
    if(w.kind==='lure'){
     const target=targets[0],dx=target.x+target.w/2-cx,dy=target.y+target.h/2-duckOriginY(w);
     const length=Math.hypot(dx,dy);
@@ -793,18 +808,6 @@ function tickDevices(dt,enemies,now,ops){
   delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
  }
 }
-function drawStatuses(g,enemies,now,position){
- for(const actor of enemies){
-  if(!(actor.fortressFrozenUntil>now))continue;
-  const z=position(actor),x=z.x-2,y=z.y-2,w=z.w+4,h=z.h+4;
-  g.save();g.globalAlpha=.32;g.fillStyle='#8fe9ff';g.fillRect(x,y,w,h);
-  g.globalAlpha=.9;g.strokeStyle='#cafaff';g.lineWidth=1.5;g.strokeRect(x,y,w,h);
-  g.fillStyle='#d4ffff';g.fillRect(x+2,y+2,3,8);g.fillRect(x+6,y+2,6,2);
-  // The comic rope remains readable on the transparent ice shell.
-  g.fillStyle='#c99c52';g.fillRect(x,y+h*.65,w,3);g.fillStyle='#ffdb86';g.fillRect(x+w*.45,y+h*.65-2,5,6);
-  g.restore();
- }
-}
 for(const {kind,el} of buildButtons)el?.addEventListener?.('click',()=>selectBuild(kind));
 makeDeviceIcons();
 
@@ -812,6 +815,7 @@ function draw(g,building=false){
  const bitmap=bitmapTiles();
  const tile=bitmap||tiles();if(!tile)return;
  const frame=bitmap?BARRICADE_FRAME:T;
+ if(!building&&parts)for(const w of walls.values())if(w.kind==='ice'&&w.run)drawIceArms(g,w);
  for(const w of walls.values()){
   if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building);continue}
   // The five authored PNG states are switched by actual remaining HP.
@@ -858,7 +862,7 @@ function tick(dt){for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',ready);
-window.ZZFortress={duckKnockPlan,reset,begin,deploy,resolve,selectBuild,tickDevices,drawStatuses,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
+window.ZZFortress={duckKnockPlan,reset,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,
  bind(fn){onReady=fn},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),

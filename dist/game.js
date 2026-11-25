@@ -4509,10 +4509,35 @@ function hitShakeOffset(t,duration,boss=false){
  return {x:(frame%2?1:-1)*amplitude,
    y:[-.42,.28,-.26,.38][frame%4]*amplitude};
 }
+// Tint only the sprite's alpha, including the transparent gaps between limbs.
+let frozenSpriteCanvas=null;
+function drawFrozenZombie(actor){
+ const z=knockVisualPosition(actor),size=Math.ceil(Math.max(z.w,z.h)*3+24);
+ if(!frozenSpriteCanvas)frozenSpriteCanvas=document.createElement('canvas');
+ if(frozenSpriteCanvas.width<size*2||frozenSpriteCanvas.height<size*2){
+  frozenSpriteCanvas.width=frozenSpriteCanvas.height=size*2;
+ }
+ const layer=frozenSpriteCanvas.getContext('2d');
+ const left=z.x+z.w/2-size/2,top=z.y+z.h/2-size/2;
+ layer.clearRect(0,0,size*2,size*2);layer.save();
+ const screen=g;
+ try{
+  layer.setTransform(2,0,0,2,-left*2,-top*2);g=layer;zombie(z);
+ }finally{g=screen;layer.restore()}
+ layer.save();layer.globalCompositeOperation='source-atop';
+ layer.fillStyle='rgba(59,163,255,.58)';layer.fillRect(0,0,size*2,size*2);layer.restore();
+ const phase=clock*53+(actor.col||0)*2+(actor.row||0);
+ const fade=Math.min(1,(actor.fortressFrozenUntil-clock)*8);
+ g.drawImage(frozenSpriteCanvas,0,0,size*2,size*2,left+Math.sin(phase)*1.35*fade,
+  top+Math.cos(phase*.85)*.55*fade,size,size);
+}
 function drawStruckZombie(z){
  drawTrashContact(z);
  const entering=Number.isFinite(z.arrivalTime);
  if(entering){g.save();g.globalAlpha=Math.max(0,Math.min(1,z.arrivalTime/.62));}
+ if(z.fortressFrozenUntil>clock){
+  drawFrozenZombie(z);if(entering)g.restore();return;
+ }
  const active=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
  if(!active){zombie(knockVisualPosition(z));if(entering)g.restore();return}
  const t=clock-(z.hitShakeFrom||clock),duration=Math.max(.001,(z.hitShakeUntil||clock)-(z.hitShakeFrom||clock));
@@ -4540,7 +4565,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);if(isFortress())fortress?.drawStatuses?.(g,foes,clock,knockVisualPosition);drawBurningOverlays();drawFireWaves();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawFireWaves();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
