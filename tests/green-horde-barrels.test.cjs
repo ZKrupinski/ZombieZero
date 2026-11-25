@@ -28,14 +28,15 @@ function composition(stage){
  check(nonGreen<=Math.floor(slotCount*.42),'never overpopulate rare types');
  check(count(0)>slotCount/2,'green is the majority at stage '+stage);
  check(count(1)<=2,'at most two red barrels at stage '+stage);
- for(const z of ordinary)check(ZOMBIE_FORMS[z.form].unlock<=stage,'no locked enemy at stage '+stage);
+ for(const z of ordinary)check(ZOMBIE_FORMS[z.form].unlock<=stage||(runMode==='campaign'&&stage<=2&&[1,4].includes(z.form)),'no locked enemy except approved comic cameos at stage '+stage);
  if(stage%3===0)check(foes.filter(z=>z.boss).length===1,'boss retained at '+stage);
  return {green:count(0),barrel:count(1),yellow:count(7),red:count(3),black:count(6),
    blackBarrel:count(2),card:count(4),wood:count(5),total:ordinary.length};
 }
 start();serve();
 Math.random=()=>.42;
-let a=composition(1);check(a.green===a.total&&a.yellow===0,'stage 1 entirely green');
+let a=composition(1);check(a.barrel===1&&a.card===1&&a.green===a.total-2&&a.yellow===0,'stage 1 comic introduces one drum and box');
+a=composition(2);check(a.barrel===2&&a.card===2&&a.green===a.total-4,'stage 2 comic expands object horde');
 a=composition(3);check(a.green===a.total,'early boss wave remains green');
 a=composition(4);check(a.yellow===1&&a.red===0&&a.black===0,'yellow introduced first');
 a=composition(6);check(a.barrel===1&&a.yellow===1,'rare red barrel enters as a new tactical piece');
@@ -50,7 +51,7 @@ a=composition(32);check(a.blackBarrel===1,'black barrel remains a single cameo')
 a=composition(35);check(a.yellow===3&&a.red===3&&a.black===3,'late-stage colored cast only 2–3 each');
 a=composition(50);check(a.barrel===2&&a.green>a.total*.58,'50th stage retains densely green formation');
 a=composition(51);check([2,3].includes(a.yellow)&&[2,3].includes(a.red)&&[2,3].includes(a.black),'endless boss stage keeps only 2–3 each on reduced normal slots');
-for(const stage of [1,4,6,9,16,24,35,50,80]){
+for(const stage of [1,2,4,6,9,16,24,35,50,80]){
  let previous=null;
  for(const roll of [.01,.23,.5,.79,.99]){
   Math.random=()=>roll;
