@@ -13,10 +13,10 @@ function place(kind,col,row,cost){
  nodes['fortress-confirm'].click();assert.equal(f.getStock(),before-cost);
  assert.equal(f.getStructure(col,row).kind,kind);
 }
-f.reset();f.begin([],1);place('lure',2,5,4);place('saw',7,5,5);place('ice',12,5,6);
-assert.equal(f.getStock(),11);assert.equal(f.getWallCount(),3);
+f.reset();f.begin([],1);place('lure',2,5,4);place('saw',7,12,5);place('ice',12,5,3);
+assert.equal(f.getStock(),14);assert.equal(f.getWallCount(),3);
 const actor=(x,y)=>({x,y,w:16,h:22,hp:12});
-const a=actor(38+2*22+28,82+5*22-24),b=actor(38+7*22+6,82+5*22-25),c=actor(38+12*22+6,82+5*22-25);
+const a=actor(38+2*22+28,82+5*22-24),b=actor(38+7*22+6,82+12*22-25),c=actor(38+12*22+6,82+5*22-25);
 const enemies=[a,b,c];let pushes=0,hits=0;
 f.deploy([]);
 const ops={canMove:()=>true,push:()=>{pushes++;return true},damage(z,n){hits++;z.hp-=n}};
@@ -25,16 +25,16 @@ f.tickDevices(.01,enemies,.01,ops);
 assert.equal(pushes+hits,0);assert.equal(a.x,startX);assert(!c.fortressFrozenUntil);
 for(let frame=2;frame<=900;frame++)f.tickDevices(.01,enemies,frame*.01,ops);
 assert(pushes>0);assert(hits>0);assert(c.fortressFrozenUntil>0);
-const saw=f.getStructure(7,5);
+const saw=f.getStructure(7,12);
 for(let frame=0;saw.run&&frame<150;frame++)f.tickDevices(.01,enemies,10+frame*.01,ops);
 assert(!saw.run&&saw.cooldown>0);
 const previous=hits;
 f.tickDevices(Math.min(.1,saw.cooldown/2),enemies,12,ops);assert.equal(hits,previous);
-f.begin([],2);assert.equal(f.getStructure(12,5).hp,24);
+f.begin([],2);assert.equal(f.getStructure(12,5).hp,30);
 assert.equal(f.getStructure(12,5).cooldown,0);
 assert(f.selectBuild('ice'));let before=f.getStock();
 f.down(p(12,5),canvas);f.up(p(12,5),canvas);
-assert.equal(f.getPreview().refund,6);nodes['fortress-confirm'].click();assert.equal(f.getStock(),before+6);
+assert.equal(f.getPreview().refund,3);nodes['fortress-confirm'].click();assert.equal(f.getStock(),before+3);
 console.log('PASS V366: individual placement, material costs, full demolition refund, lure, damage, freeze, cooldown, persistence');
 // Every tile belongs to one shared machine, including the far corner.
 f.reset();f.begin([],1);place('saw',4,6,5);
@@ -63,7 +63,7 @@ assert.equal(f.getStructure(16,19),f.getStructure(15,18));
 assert.equal(f.getStructure(15,18).kind,'ice');
 console.log('PASS 2×2 occupancy, edge placement, shared demolition, overlap and outer-face collisions');
 for(const blocked of [false,true]){
- f.reset();f.begin([],1);place('ice',4,6,6);
+ f.reset();f.begin([],1);place('ice',4,6,3);
  if(blocked){f.selectBuild('wall');f.down(p(7,6),canvas);f.up(p(7,6),canvas);nodes['fortress-confirm'].click()}
  f.deploy([]);
  const trap=f.getStructure(4,6),start=trap.x+145;
@@ -81,3 +81,12 @@ for(const blocked of [false,true]){
  assert(target.x>=edge&&target.x<edge+3.1);
 }
 console.log('PASS long-range claw latches, pulls before freezing and stops at solid surfaces');
+f.reset();f.begin([],1);place('ice',4,6,3);f.deploy([]);
+const ice=f.getStructure(4,6);
+assert(ice.cooldown>=.3&&ice.cooldown<=.75);
+const biter=actor(ice.x+4,ice.y-21);
+const bite=()=>{biter.y=ice.y-21;f.resolve(biter,biter.x,ice.y-23,.79)};
+bite();assert.equal(ice.hp,29.5);
+ice.cooldown=0;f.tickDevices(.05,[biter],1,{});assert(ice.run);
+bite();assert.equal(ice.hp,28.5);
+assert(fs.readFileSync('dist/index.html','utf8').includes('꽁꽁 포획기</span><b>◆ 3'));

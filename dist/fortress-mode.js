@@ -14,7 +14,7 @@ const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:70,duration:1.25,cycle:4.5,desc:'좀비를 옆으로 유인 → 위쪽으로 밀어냄'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
- ice:{name:'꽁꽁 포획기',cost:6,hp:24,range:126,duration:.85,cycle:6,desc:'집게로 최대 4마리를 당긴 뒤 결빙'}
+ ice:{name:'꽁꽁 포획기',cost:3,hp:30,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
 };
 let selectedBuild='wall',placementTip='';
 const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
@@ -422,7 +422,7 @@ function deploy(target){
   placed.push(z);
  }
  for(const w of walls.values())if(w.kind&&w.kind!=='wall'){
-  w.run=null;w.cooldown=randomRest(w)*(.25+.45*Math.random());
+  w.run=null;w.cooldown=w.kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());
  }
  target.push(...queued);queued=[];active=false;cancel();refresh();
  return true;
@@ -449,7 +449,7 @@ function resolve(z,oldX,oldY,dt,onBreak){
  z.fortressBite=(z.fortressBite||0)+dt*(z.boss?2.25:Number.isInteger(z.eliteKind)?1.5:1);
  if(z.fortressBite>=.78){
   const damage=Math.floor(z.fortressBite/.78);
-  z.fortressBite%=.78;hit.hp-=damage;hit.hit=.18;hit.biteShake=.18;
+  z.fortressBite%=.78;hit.hp-=hit.kind==='ice'&&!hit.run?damage*.5:damage;hit.hit=.18;hit.biteShake=.18;
   if(hit.hp<=0){removeStructure(hit);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T*span(hit)/2,hit.y+T*span(hit)/2)}
  }
  return true;
@@ -709,7 +709,7 @@ function reelIceTarget(w,z,prev,progress,now,ops){
   z.x=x;z.y=y;
  }
  if(progress<ICE_FREEZE)return false;
- const duration=z.boss?.65:2.2;
+ const duration=z.boss?.85:2.8;
  z.fortressFrozenUntil=now+duration;z.fortressIceReady=now+duration+2;
  z.trashStopUntil=Math.max(z.trashStopUntil||0,z.fortressFrozenUntil);
  return true;
