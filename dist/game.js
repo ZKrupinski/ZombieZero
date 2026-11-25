@@ -1112,7 +1112,7 @@ function zombieHP(form,kind=0,stage=wave){
  // Opening two stages use low durability before the full progression starts.
  const base=(stage<=2?2:3)+(stage>=20?1:0)+(stage>=38?1:0);
  const tier=Math.floor(kind/2);
- const bonus=[0,2,3,3,2,2,4,2][form??0]??0;
+ const bonus=stage<=2&&(form===1||form===4)?0:([0,2,3,3,2,2,4,2][form??0]??0);
  return base+tier+bonus;
 }
 // Distinct original enemy silhouettes remain visible in every endless wave.
