@@ -193,14 +193,14 @@
 .zz-fortress-builder>#fortress-ready{--start-fx-time:520ms}
 #fortress-ready:active,#fortress-ready[data-starting="true"]{background-position:0 45.4545%}
 #fortress-ready[data-starting="true"]{animation:zz-start-punch-v384 var(--start-fx-time) cubic-bezier(.2,.7,.25,1) both}
-#fortress-ready::before,#fortress-ready::after{width:125%;opacity:0;mix-blend-mode:screen}
+#fortress-ready::before,#fortress-ready::after{width:100%;opacity:0;mix-blend-mode:screen}
 #fortress-ready::before{mask-image:radial-gradient(ellipse,#000 22%,#000b 47%,transparent 70%)}
 #fortress-ready::after{mask-image:radial-gradient(ellipse,#000 35%,#000b 60%,transparent 73%)}
 #fortress-ready[data-starting="true"]::before{animation:zz-start-flash-v384 var(--start-fx-time) ease-out both}
 #fortress-ready[data-starting="true"]::after{animation:zz-start-wave-v384 var(--start-fx-time) ease-out both}
 #fortress-ready .zz-start-rays,#fortress-ready .zz-start-sparks{display:block;position:absolute;left:50%;top:50%;pointer-events:none;opacity:0}
 #fortress-ready .zz-start-rays{
- width:165%;aspect-ratio:1;transform:translate(-50%,-50%) scale(.3);z-index:-1;
+ width:130%;aspect-ratio:1;transform:translate(-50%,-50%) scale(.3);z-index:-1;
  background:repeating-conic-gradient(from 7deg,transparent 0deg 9deg,#ffbd31 10deg 13deg,#fff4a4 14deg 15deg,transparent 16deg 24deg);
  mask-image:radial-gradient(circle,transparent 0 13%,#000 23%,#000a 40%,transparent 69%);
 }
@@ -216,7 +216,7 @@
 @keyframes zz-start-punch-v384{
  0%{transform:translate(-50%,-50%) scale(1,.98);filter:brightness(1)}
  13%{transform:translate(-50%,-46%) scale(1.07,.70);filter:brightness(1.65)}
- 33%{transform:translate(-50%,-53%) scale(1.17,1.13);filter:brightness(1.5)}
+ 33%{transform:translate(-50%,-53%) scale(1.10,1.08);filter:brightness(1.5)}
  55%{transform:translate(-50%,-50%) scale(.96,1.04);filter:brightness(1.1)}
  72%{transform:translate(-50%,-50%) scale(1.035,.98);filter:brightness(1.18)}
  100%{transform:translate(-50%,-50%) scale(1);filter:brightness(1)}
@@ -224,25 +224,25 @@
 @keyframes zz-start-flash-v384{
  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
  13%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
- 34%{opacity:.92;transform:translate(-50%,-50%) scale(1.55)}
- 100%{opacity:0;transform:translate(-50%,-50%) scale(2.1)}
+ 34%{opacity:.92;transform:translate(-50%,-50%) scale(1.18)}
+ 100%{opacity:0;transform:translate(-50%,-50%) scale(1.45)}
 }
 @keyframes zz-start-wave-v384{
  0%{opacity:0;transform:translate(-50%,-50%) scale(.35)}
  18%{opacity:1;transform:translate(-50%,-50%) scale(.8)}
- 100%{opacity:0;transform:translate(-50%,-50%) scale(2.35)}
+ 100%{opacity:0;transform:translate(-50%,-50%) scale(1.65)}
 }
 @keyframes zz-start-rays-v384{
  0%{opacity:0;transform:translate(-50%,-50%) scale(.35)}
  18%{opacity:.95;transform:translate(-50%,-50%) scale(.85)}
  45%{opacity:.65;transform:translate(-50%,-50%) scale(1.2)}
- 100%{opacity:0;transform:translate(-50%,-50%) scale(1.65)}
+ 100%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}
 }
 @keyframes zz-start-spark-v384{
  0%{opacity:0;transform:rotate(var(--a)) translateX(2cqw) rotate(45deg) scale(.5)}
  17%{opacity:1}
  55%{opacity:1}
- 100%{opacity:0;transform:rotate(var(--a)) translateX(calc(35cqw * var(--d))) rotate(135deg) scale(.2)}
+ 100%{opacity:0;transform:rotate(var(--a)) translateX(calc(23cqw * var(--d))) rotate(135deg) scale(.2)}
 }
 @media(prefers-reduced-motion:reduce){
  #fortress-ready[data-starting="true"],#fortress-ready[data-starting="true"]::before,#fortress-ready[data-starting="true"]::after,#fortress-ready[data-starting="true"] .zz-start-rays,#fortress-ready[data-starting="true"] .zz-start-sparks b{animation:none}
