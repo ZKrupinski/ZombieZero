@@ -12,7 +12,7 @@ const walls=new Map(),pending=new Map();
 // Special devices occupy a two-by-two footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
- bollard:{name:'두더지 차단봉',cost:2,hp:5,cycle:6.5,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
+ bollard:{name:'두더지 차단봉',cost:2,hp:2,cycle:6.5,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:3,hp:30,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
@@ -453,16 +453,31 @@ function startWithFeedback(){
  },reduced?80:520);
  return true;
 }
+// Attack a raised mole even when movement already stopped just outside it.
+function adjacentRaisedMole(z){
+ const gap=3.5;
+ const c0=Math.max(0,Math.floor((z.x-gap-X)/T)),c1=Math.min(COLS-1,Math.floor((z.x+z.w+gap-X)/T));
+ const r0=Math.max(0,Math.floor((z.y-gap-Y)/T)),r1=Math.min(ROWS-1,Math.floor((z.y+z.h+gap-Y)/T));
+ let nearest=null,best=Infinity;
+ for(let row=r0;row<=r1;row++)for(let col=c0;col<=c1;col++){
+  const w=occupied.get(id(col,row));
+  if(!w||w.kind!=='bollard'||!w.raised)continue;
+  const dx=Math.max(0,w.x-z.x-z.w,z.x-w.x-T),dy=Math.max(0,w.y-z.y-z.h,z.y-w.y-T);
+  const d=Math.hypot(dx,dy);
+  if(d<=gap&&d<best){best=d;nearest=w}
+ }
+ return nearest;
+}
 function resolve(z,oldX,oldY,dt,onBreak){
  const trace=firstWallOnPath(oldX,oldY,z.x,z.y,z.w,z.h);
- if(!trace){
+ const hit=trace?.wall||adjacentRaisedMole(z);
+ if(!hit){
   z.fortressTarget=null;z.fortressBite=0;return false;
  }
- const hit=trace.wall;
- if(!trace.startInside){
+ if(trace&&!trace.startInside){
   // Stop at the last genuinely safe point along the swept movement.
   z.x=trace.x;z.y=trace.y;
- }else if(!isOpen(z,z.x,z.y)){
+ }else if(trace&&!isOpen(z,z.x,z.y)){
   // A previously embedded enemy must be pushed outside immediately.
   escapeWall(z,oldX,oldY);
  }
@@ -472,9 +487,10 @@ function resolve(z,oldX,oldY,dt,onBreak){
  }
  if(z.fortressTarget!==hit.id){z.fortressTarget=hit.id;z.fortressBite=0}
  z.fortressBite=(z.fortressBite||0)+dt*(z.boss?2.25:Number.isInteger(z.eliteKind)?1.5:1);
- if(z.fortressBite>=.78){
-  const damage=Math.floor(z.fortressBite/.78);
-  z.fortressBite%=.78;hit.hp-=hit.kind==='ice'&&!hit.run?damage*.5:damage;hit.hit=.18;hit.biteShake=.18;
+ const bitePeriod=hit.kind==='bollard'?.32:.78;
+ if(z.fortressBite>=bitePeriod){
+  const damage=Math.floor(z.fortressBite/bitePeriod);
+  z.fortressBite%=bitePeriod;hit.hp-=hit.kind==='ice'&&!hit.run?damage*.5:damage;hit.hit=.18;hit.biteShake=.18;
   if(hit.hp<=0){removeStructure(hit);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T*span(hit)/2,hit.y+T*span(hit)/2)}
  }
  return true;
@@ -727,10 +743,19 @@ function drawDevice(g,w,building=false,glow=null){
   const scale=armReach(w,dx,dy)/Math.max(1,Math.hypot(dx,dy))*64/size;
   offset={x:dx*scale*reach,y:(dy*scale+10)*reach};
  }
- g.save();g.translate(w.x,w.y);g.scale(size/64,size/64);
+ // Same impact envelope as barricades, applied only to the bitmap.
+ const bite=building?0:Math.min(1,Math.max(0,(w.biteShake||0)/.18));
+ const elapsed=.18-Math.min(.18,w.biteShake||0);
+ const shakeX=bite?Math.sin(elapsed*124+w.id*.31)*1.5*bite:0;
+ const shakeY=bite?Math.cos(elapsed*105+w.id*.19)*.7*bite:0;
+ g.save();
+ if(bite>0)g.filter='brightness('+String((1+1.2*bite).toFixed(2))+') saturate(.85)';
+ g.translate(w.x+shakeX,w.y+shakeY);g.scale(size/64,size/64);
  paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
  g.restore();
- if(!building&&w.kind!=='bollard'&&w.hp<spec(w).hp){
+ // Moles never enter the durability gauge or glow rendering path.
+ if(w.kind==='bollard')return;
+ if(!building&&w.hp<spec(w).hp){
   const bx=x-9,by=w.y+size-4,bw=18*Math.max(0,w.hp/spec(w).hp);
   const color=w.kind==='ice'?'#46cfff':'#ffbf55';
   g.save();g.fillStyle='#172733';g.fillRect(bx-1,by-1,20,4);
