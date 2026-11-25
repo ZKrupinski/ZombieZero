@@ -1100,7 +1100,7 @@ function stageFeaturedForm(stage){
  return best;
 }
 function stageRosterLabel(stage){
- if(runMode==='campaign'&&stage<=2)return '그린 좀비 · 드럼통 · 포장 박스';
+ if((runMode==='campaign'||isMiniHorde())&&stage<=2)return '그린 좀비 · 드럼통 · 포장 박스';
  const latest=stageFeaturedForm(stage);
  return stage>1&&ZOMBIE_FORMS[latest].unlock===stage
   ? 'NEW · '+ZOMBIE_FORMS[latest].name
@@ -1118,17 +1118,18 @@ function zombieHP(form,kind=0,stage=wave){
 // Distinct original enemy silhouettes remain visible in every endless wave.
 // Only one explosive barrel is included in each large formation.
 const ENDLESS_CAST=[7,3,6,4,5,2,1,7,3,6,4,5,2,7,3,6,4,5,2,7,3];
-// Approved campaign comics 01–02 introduce red drums and cardboard boxes.
-// Preserve the original progression table and all non-campaign modes.
-function campaignOpeningComicForms(stage,slots){
+// Opening comics 01–02 introduce red drums and cardboard boxes.
+// Mini and Barricade Horde have double rows and columns: preserve the
+// campaign opening density with four times the same special roster.
+function campaignOpeningComicForms(stage,slots,multiplier=1){
  const forms=stage===1?[1,4]:stage===2?[1,4,1,4]:[];
- return forms.slice(0,Math.floor(slots*.42));
+ return forms.flatMap(form=>Array(multiplier).fill(form)).slice(0,Math.floor(slots*.42));
 }
 function setStageForms(regulars,stage){
  const forms=runMode==='endless'
   ?ENDLESS_CAST.slice(0,Math.floor(regulars.length*.62))
-  :(runMode==='campaign'&&stage<=2
-    ?campaignOpeningComicForms(stage,regulars.length)
+  :((runMode==='campaign'||isMiniHorde())&&stage<=2
+    ?campaignOpeningComicForms(stage,regulars.length,isMiniHorde()?4:1)
     :isMiniHorde()
      ?stageRoster(stage,regulars.length).flatMap(form=>Array(form===1?2:4).fill(form))
      :stageRoster(stage,regulars.length));
@@ -1139,11 +1140,12 @@ function setStageForms(regulars,stage){
   [available[i],available[j]]=[available[j],available[i]];
  }
  const deployedBarrels=[];
+ const openingSpacing=isMiniHorde()&&stage<=2?.5:1;
  for(const form of forms){
   let index=available.findIndex(z=>form!==1||z.row>0&&
-    deployedBarrels.every(other=>Math.hypot(z.x-other.x,z.y-other.y)>95));
+    deployedBarrels.every(other=>Math.hypot(z.x-other.x,z.y-other.y)>95*openingSpacing));
   if(index<0)index=available.findIndex(z=>form!==1||
-    deployedBarrels.every(other=>Math.hypot(z.x-other.x,z.y-other.y)>65));
+    deployedBarrels.every(other=>Math.hypot(z.x-other.x,z.y-other.y)>65*openingSpacing));
   if(index<0)index=0;
   const [z]=available.splice(index,1);
   if(!z)break;
