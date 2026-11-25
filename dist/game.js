@@ -2268,7 +2268,7 @@ function march(dt){
   canMove:(z,x,y)=>canKnockback(z,x,y),
   push:(z,x,y)=>applyKnockback(z,{x,y,duck:true},2),
   damage:(z,n)=>damage(z,n,false,{x:0,y:-1,push:.25}),
-  pulse:(kind,x,y)=>{effect(x,y,kind==='ice'?'#91efff':kind==='lure'?'#ffd15c':'#ffc99a',22);sfx(kind==='lure'?'wall':kind==='ice'?'item':'hit')}
+  pulse:(kind,x,y)=>{if(kind!=='ice')effect(x,y,kind==='lure'?'#ffd15c':'#ffc99a',22);sfx(kind==='lure'?'wall':kind==='ice'?'item':'hit')}
  });
  if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
  updateWormParade(dt);
@@ -3733,7 +3733,7 @@ function drawBurningOverlays(){
  // V365: all detail levels use the full original 7-column / 5-step flame.
  // Cache its animated artwork instead of deleting the bright tips or rows.
  const paint=()=>{for(const actor of foes){
-  if(!(actor.burn>0)||actor.burnVisualDelay>0)continue;
+  if(!(actor.burn>0)||actor.burnVisualDelay>0||actor.fortressFrozenUntil>clock)continue;
   const z=knockVisualPosition(actor),scale=z.miniScale||1;
   const cx=z.x+z.w/2,base=z.y+z.h-4*scale,fade=Math.min(1,z.burn/.25);
   const atlas=burningFlameAtlas(!!z.boss);
@@ -4520,16 +4520,25 @@ function drawFrozenZombie(actor){
  const layer=frozenSpriteCanvas.getContext('2d');
  const left=z.x+z.w/2-size/2,top=z.y+z.h/2-size/2;
  layer.clearRect(0,0,size*2,size*2);layer.save();
- const screen=g;
+ const screen=g,liveAnimationClock=enemyAnimationClock;
+ // Hold one real animation cel for this freeze, not an advancing walk loop.
+ if(actor.fortressFrozenFrameUntil!==actor.fortressFrozenUntil){
+  actor.fortressFrozenFrameUntil=actor.fortressFrozenUntil;
+  actor.fortressFrozenFrame=liveAnimationClock;
+  actor.fortressFrozenStart=clock;
+ }
+ const fade=Math.max(0,Math.min(1,(actor.fortressFrozenUntil-clock)*6));
+ const onset=Math.max(.35,Math.min(1,(clock-actor.fortressFrozenStart)*12));
  try{
-  layer.setTransform(2,0,0,2,-left*2,-top*2);g=layer;zombie(z);
- }finally{g=screen;layer.restore()}
+  layer.setTransform(2,0,0,2,-left*2,-top*2);g=layer;
+  enemyAnimationClock=actor.fortressFrozenFrame;zombie({...z,burn:0});
+ }finally{g=screen;enemyAnimationClock=liveAnimationClock;layer.restore()}
  layer.save();layer.globalCompositeOperation='source-atop';
- layer.fillStyle='rgba(59,163,255,.58)';layer.fillRect(0,0,size*2,size*2);layer.restore();
- const phase=clock*53+(actor.col||0)*2+(actor.row||0);
- const fade=Math.min(1,(actor.fortressFrozenUntil-clock)*8);
- g.drawImage(frozenSpriteCanvas,0,0,size*2,size*2,left+Math.sin(phase)*1.35*fade,
-  top+Math.cos(phase*.85)*.55*fade,size,size);
+ layer.fillStyle='rgba(65,166,246,'+(.44*fade*onset)+')';
+ layer.fillRect(0,0,size*2,size*2);layer.restore();
+ const phase=clock*48+(actor.col||0)*2+(actor.row||0);
+ g.drawImage(frozenSpriteCanvas,0,0,size*2,size*2,left+Math.sin(phase)*.95*fade,
+  top+Math.cos(phase*.85)*.32*fade,size,size);
 }
 function drawStruckZombie(z){
  drawTrashContact(z);
