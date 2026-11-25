@@ -96,3 +96,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # V363: use the already-authorized offline packaging step for source repairs.
+    import subprocess, sys
+    subprocess.run([sys.executable, "tools/repair-source-sprites-v363.py"], check=True)
