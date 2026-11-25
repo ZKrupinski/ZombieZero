@@ -842,7 +842,7 @@ function drawPixelBurst(x,y,t,radius,count,seed,palette,heading=0,particleScale=
   }
  }
  if(t<.24){
-  const core=(t<.08?20:t<.15?14:7)*(1-Math.max(0,t-.15));
+  const core=(t<.08?20:t<.15?14:7)*(1-Math.max(0,t-.15))*Math.min(1,particleScale);
   g.globalAlpha=(1-t/.24)*.92;g.fillStyle='#fffefa';
   g.fillRect(-core/2,-core/2,core,core);
  }
@@ -2278,7 +2278,11 @@ function march(dt){
    }
    damage(z,n,false,{x:0,y:-1,push:.25});
   },
-  pulse:(kind,x,y)=>{if(kind==='ice')sfx('item')}
+  pulse:(kind,x,y,count)=>{if(kind==='ice')sfx('item');else if(kind==='bollard'){
+   // A localized pop at the hatch, not a group-wide explosion.
+   queueContact(ballContactFX,x,y-8,0,-1,'enemy',null,count?.58:.32);
+   if(count)sfx('wall');
+  }}
  });
  if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
  updateWormParade(dt);
@@ -3089,14 +3093,17 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
  const amount=criticalKnockout?z.hp:n;
  z.hp-=amount;
  z.flash=burning?.12:.22;
- enemyReaction(z,amount,impact,!burning);
+ enemyReaction(z,amount,impact,!burning&&!impact?.bankSplash);
+ if(impact?.bankSplash&&z.hp>0){z.bankFlashUntil=clock+.10}
  if(!burning){
+  if(!impact?.bankSplash){
   const flash=typeof flashPool!=='undefined'?(flashPool.pop()||{}):{};
  Object.assign(flash,{x:z.x+z.w/2,y:z.y+z.h/2,groundY:z.y+z.h,
    t:0,life:critical?.39:.48,critical,spread:Math.max(z.w,z.h),delay:0,
    miniFxScale:isMiniHorde()?MINI_HORDE_SCALE:1,
    piercing:piercingCritical||has('pierce'),angle:Math.atan2(impact?.y??-1,impact?.x??0)});hitFlashes.push(flash);
   if(hitFlashes.length>36){const old=hitFlashes.shift();if(typeof flashPool!=='undefined')recycleVisual(flashPool,old)}
+  }
   // Scarlett's third handbag return earns a prismatic hit without floating text.
   if(impact?.sparkle)burst(z.x+z.w/2,z.y+z.h/2,'#c9dfff',12);
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
@@ -3211,7 +3218,7 @@ function hit(z,impact=null,piercing=false){
  // Piercing deals two times the normal damage to ALL enemies, including
  // bosses, but never turns a full-health boss into a one-hit kill.
  const echo=impact?.echo?fireTargetsNear(z,110).find(other=>other!==z):null;
- const bankTargets=impact?.ricochet?fireTargetsNear(z,84).slice(0,2):[];
+ const bankTargets=impact?.ricochet?fireTargetsNear(z,84*(isMiniHorde()?MINI_HORDE_SCALE:1)).slice(0,2):[];
  const moduleAttack=1+garageCombat().attack/100;
  damage(z,hero().damage*moduleAttack*(has('power')?2:1)*(piercing?2:1)*(impact?.power||1),false,impact,critical,piercing);
  if(echo&&foes.includes(echo)){spawnContact({vx:0,vy:-1},echo.x+echo.w/2,echo.y+echo.h/2,0,1,'enemy');damage(echo,1.35*moduleAttack,false,{x:0,y:-1})}
@@ -3219,8 +3226,8 @@ function hit(z,impact=null,piercing=false){
   // Wrench: first enemy hit after a side-wall bounce splashes at most two nearby foes.
   for(const other of bankTargets){
    if(!foes.includes(other)||mode!=='playing')continue;
-   spawnContact({vx:impact.x||1,vy:-.2},other.x+other.w/2,other.y+other.h/2,0,1,'enemy');
-   damage(other,.8*moduleAttack,false,{x:impact.x||1,y:-.2,push:1.1});
+   queueContact(ballContactFX,other.x+other.w/2,other.y+other.h/2,0,1,'enemy',null,isMiniHorde()?.30:.55);
+   damage(other,.8*moduleAttack,false,{x:impact.x||1,y:-.2,push:.55,bankSplash:true});
   }
  }
  if(has('fire')){
@@ -3972,7 +3979,7 @@ function drawImpactFlashes(){
   const palette=f.piercing?['#ffffff','#a3f5ff','#4dc8ed']:['#fffefe','#ffe58c','#ffac51'];
   const tier=typeof perfTier!=='undefined'?perfTier:0;
   const drawHit=()=>drawPixelBurst(f.x,f.y,t,(f.critical?55:(f.spread||44))*(f.miniFxScale||1),Math.max(4,Math.ceil((f.critical?32:16)*(f.miniFxScale||1)*(tier===2?.50:tier===1?.75:1))),
-    (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,f.critical?1:1.75,
+    (f.x*.17+f.y*.09)%6.28,palette,f.angle||0,(f.critical?1:1.75)*(f.miniFxScale||1),
     f.critical?.56:1.45,f.critical?1.3:.78,tier>0?0:f.critical?1:.35);
   // Critical hits retain full shader; ordinary hits get only subtle local glow.
   if(f.critical&&!(tier===2&&f.piercing))luminous(drawHit);else drawHit();
@@ -4661,7 +4668,9 @@ function drawStruckZombie(z){
  const localHit=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
  const deviceBossHit=z.boss&&clock<(z.fortressBossFlashUntil||0);
  const active=localHit||deviceBossHit;
- if(!active){delete z.fortressContactCel;zombie(knockVisualPosition(z));if(entering)g.restore();return}
+ if(!active){delete z.fortressContactCel;
+  if(z.bankFlashUntil>clock){g.save();g.filter='brightness(1.35)';zombie(knockVisualPosition(z));g.restore()}
+  else zombie(knockVisualPosition(z));if(entering)g.restore();return}
  const t=localHit?clock-(z.hitShakeFrom||clock):Math.max(0,clock-(z.fortressBossFlashUntil-.19)),duration=localHit?Math.max(.001,(z.hitShakeUntil||clock)-(z.hitShakeFrom||clock)):.19;
  const phase=t/duration;
  g.save();

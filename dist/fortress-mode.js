@@ -928,17 +928,18 @@ function tickBollard(w,dt,enemies,ops,now=0){
    w.raised=false;w.cooldown=randomRest(w);
   }else{
    const cx=w.x+T/2,cy=w.y+T/2;
-   const nearby=enemies.filter(z=>z.hp>0&&(z.arrivalTime||0)>=0&&intersects(z.x,z.y,z.w,z.h,w,ops.molePush?9:T))
+   const nearby=enemies.filter(z=>z.hp>0&&(z.arrivalTime||0)>=0&&intersects(z.x,z.y,z.w,z.h,w,ops.molePush?2:T))
     .sort((a,b)=>Number(intersects(b.x,b.y,b.w,b.h,w))-Number(intersects(a.x,a.y,a.w,a.h,w)));
    // Clear the hatch before solidifying. Shove away from its centre, favouring
    // sideways escape on the player-facing side to respect the defence line.
+   let launched=0;
    for(const z of nearby){
     const dx=z.x+z.w/2-cx,dy=z.y+z.h/2-cy;
     if(ops.molePush){
-     if(z.fortressFrozenUntil>now||z.trashStopUntil>now)continue;
+     if(z.fortressFrozenUntil>now||z.trashStopUntil>now||z.moleLaunch||z.molePopReady>now)continue;
      const crossing=intersects(z.x,z.y,z.w,z.h,w);
      const forward=crossing?Math.random()<.5:dy>0;
-     if(ops.molePush(z,w,forward?1:-1)){delete z.moleHop;z.moleHopReady=now+1.5}
+     if(ops.molePush(z,w,forward?1:-1)){delete z.moleHop;z.moleHopReady=now+1.5;z.molePopReady=now+.8;launched++}
      continue;
     }
     const vx=dy>0?(dx<0?-1:1):dx,vy=dy>0?0:Math.min(-1,dy);
@@ -961,7 +962,8 @@ function tickBollard(w,dt,enemies,ops,now=0){
     w.cooldown=.8+Math.random();return;
    }
    w.raised=true;w.moleTime=0;w.cooldown=6+Math.random()*3;
-   if(!nearby.length)ops.pulse?.('bollard',cx,cy,0);
+   if(ops.molePush)ops.pulse?.('bollard',cx,cy,launched);
+   else if(!nearby.length)ops.pulse?.('bollard',cx,cy,0);
   }
  }
  if(!w.raised)tryMoleHop(w,dt,enemies,now,ops);
