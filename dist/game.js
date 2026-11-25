@@ -463,7 +463,7 @@ const TRAIL_GROUND_FIRE_PIERCE=[[255,155,62],[95,217,255]],TRAIL_GROUND_FIRE=[[2
 function drawTrailGroundReflections(b,r,path){
  if(!fxEnabled||b.held||!path||path.length<2)return;
  if(typeof compactBallFX==='function'&&compactBallFX()){
-  if(has('pierce')){
+  if(has('pierce')||has('fire')){
    // Use up to sixteen overlapping cached pools (near-standard 12px spacing).
    // One layer per sample, no live blur and no duplicate inner light pool.
    const length=path[path.length-1].s;
@@ -474,11 +474,11 @@ function drawTrailGroundReflections(b,r,path){
     const fade=1-.78*u;
     // Alternate warm and cyan pools when fire and pierce overlap.
     // Same 16 cached stamps; never double the floor draw calls.
-    const rgb=has('fire')&&i%2===0?
+    const rgb=has('fire')&&(!has('pierce')||i%2===0)?
       (typeof TRAIL_GROUND_FIRE!=='undefined'?TRAIL_GROUND_FIRE[0]:[255,139,51]):
       TRAIL_GROUND_PIERCE[0];
     drawProjectedLightSpill(p.x,p.y,(has('power')?34:30)*(typeof miniBallScale==='function'?miniBallScale():1)*(1-.12*u),
-     rgb,.34*fade,30,.82,true,false);
+     rgb,.25*fade,30,.82,true,false);
    }
    return;
   }
@@ -500,7 +500,7 @@ function drawTrailGroundReflections(b,r,path){
  const defaultColors=TRAIL_GROUND_HERO_COLORS;
  const colors=fire&&pierce?TRAIL_GROUND_FIRE_PIERCE:fire?TRAIL_GROUND_FIRE:
    pierce?TRAIL_GROUND_PIERCE:power?TRAIL_GROUND_POWER:defaultColors;
- const baseAlpha=fire||pierce?(power ? .66 : .60):(power ? .53 : .39);
+ const baseAlpha=fire||pierce?(power ? .43 : .39):(power ? .42 : .39);
  const radius=(fire||pierce?(power?34:28):power?28:24)*(typeof miniBallScale==='function'?miniBallScale():1);
  // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
  // both ends present. At most 20 two-layer pools per ball for mobile GPUs.
@@ -611,7 +611,7 @@ function drawEffectLightSpills(){
   }
   if(has('fire')){
    drawProjectedLightSpill(b.x,b.y,(has('power')?28:24)*(typeof miniBallScale==='function'?miniBallScale():1),
-     TRAIL_HEAD_FIRE,has('pierce')?.12:.20,drop,.82,true,false);
+     TRAIL_HEAD_FIRE,has('pierce')?.10:.16,drop,.82,true,false);
   }
   if(has('power')&&!has('fire')&&!has('pierce'))
    drawProjectedLightSpill(b.x,b.y,26*(typeof miniBallScale==='function'?miniBallScale():1),TRAIL_HEAD_POWER,.17,drop,.82,true,false);
@@ -1763,7 +1763,7 @@ function wormForwardClearance(group){
  }
  // Barricade blocks count as occupied space: do not schedule a front surge
  // with a wall directly underneath the chosen leading zombies.
- if(typeof isFortress==='function'&&(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress){
+ if(typeof isFortress==='function'&&isFortress()&&fortress){
   const travel=Math.min(24,Math.max(0,room-10));
   if(group.some(z=>z.y+z.h>=bottom-3&&
      !fortress.isPathClear(z,z.x,z.y,z.x,z.y+travel)))return 0;
@@ -2478,7 +2478,7 @@ function advanceStage(){
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;
- if((isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress){
+ if(isFortress()&&fortress){
   // A new planning phase must not inherit the previous battle's frozen FX.
   clearFortressStageVisuals();
   fortress.begin(foes,wave);mode='building';
@@ -4269,11 +4269,11 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
 // v107: a single broad body for elemental shots, independent of ball count.
 // Round, short strokes follow every history vertex, including reversal corners.
 // A coincident head/tail falls back to solid color instead of disappearing.
-function drawElementalTrailBody(b,r,path,fire,pierce){
+function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
  const head=path[0],tail=path[path.length-1];
- const color=fire&&pierce?'#ffad62':fire?'#ff9b46':'#79d8f6';
+ const color=fire&&pierce?'#ffbf80':fire?'#ffb060':'#a0e9ff';
  g.save();g.lineCap='round';g.lineJoin='round';g.shadowBlur=0;
- g.globalCompositeOperation='lighter';g.globalAlpha=.52;
+ g.globalCompositeOperation='lighter';g.globalAlpha=.90*bloomScale;
  // One stroke composites overlapping joins only once: no bright dotted seams.
  // A closed rebound must not create a zero-length transparent gradient.
  // A hairpin/rebound may put head almost on top of tail. A spatial
@@ -4283,7 +4283,7 @@ function drawElementalTrailBody(b,r,path,fire,pierce){
  const useGradient=displacement>Math.min(24,path[path.length-1].s*.33);
  const gradient=useGradient&&g.createLinearGradient?.(tail.x,tail.y,head.x,head.y);
  if(gradient&&typeof gradient.addColorStop==='function'){
-  gradient.addColorStop(0,color+'00');gradient.addColorStop(.35,color+'65');
+  gradient.addColorStop(0,color+'00');gradient.addColorStop(.35,color+'95');
   gradient.addColorStop(1,color+'ff');
  }
  g.strokeStyle=gradient||color;g.lineWidth=r*1.52;
@@ -4314,7 +4314,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   ribbon.addColorStop(1,colors[1]+'d0');
  }
  g.strokeStyle=ribbon||colors[0];
- g.globalAlpha=.48;g.lineWidth=Math.min(4.5,r*.39);
+ g.globalAlpha=.78;g.lineWidth=Math.min(4.5,r*.39);
  g.shadowColor=colors[0];g.shadowBlur=3;
  g.beginPath();g.moveTo(first.x,first.y);
  for(let i=2;i<path.length;i+=2)g.lineTo(path[i].x,path[i].y);
@@ -4717,6 +4717,8 @@ drawKillCombo();drawBarrelBlasts();
     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
   }
   drawBallSkillTrail(b,r,trailPath);
+  // Capture only the single continuous ribbon, not all fire ornaments.
+  if(elementalTrail&&trailPath.length>=2)captureBloom(()=>drawElementalTrailBody(b,r,trailPath,has('fire'),has('pierce'),.46));
   drawBurningTrailFlames(b,r,trailPath);
   drawPierceTrailLightning(b,r,trailPath);
   drawBallStateAura(b,r);
