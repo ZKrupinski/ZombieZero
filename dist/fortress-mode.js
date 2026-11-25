@@ -19,7 +19,7 @@ const BUILD_TYPES={
 };
 let selectedBuild='wall',placementTip='';
 const spec=w=>BUILD_TYPES[w?.kind]||BUILD_TYPES.wall;
-const buildButtons=['wall','bollard','lure','saw','ice'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
+const buildButtons=['wall','bollard','ice','lure','saw'].map(kind=>({kind,el:document.getElementById('build-pick-'+kind)}));
 const $=id=>document.getElementById(id);
 const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fortress-ready'),
  confirmButton=$('fortress-confirm'),cancelButton=$('fortress-cancel'),stockLabel=$('fortress-stock'),helpLabel=$('fortress-tip'),
