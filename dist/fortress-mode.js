@@ -12,7 +12,7 @@ const walls=new Map(),pending=new Map();
 // Special devices occupy a two-by-two footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
- bollard:{name:'두더지 차단봉',cost:2,hp:30,cycle:3.8,desc:'1칸 · 솟을 때 밀치고 잠시 길을 막음'},
+ bollard:{name:'두더지 차단봉',cost:2,hp:30,cycle:3.8,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:22,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
  saw:{name:'빙글 톱날',cost:5,hp:24,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:3,hp:30,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
@@ -180,11 +180,11 @@ function down(e,canvas){
  placementTip='';pending.clear();dragging=true;pointer=e.pointerId;last=null;
  const origin=pointerPosition(e,canvas);
  touchStroke=e.pointerType==='touch'?{originX:origin.x,originY:origin.y,anchor:to,axis:null}:null;
- if(selectedBuild==='wall')lineTo(to);else addCell(to);refresh();
+ if(span({kind:selectedBuild})===1)lineTo(to);else addCell(to);refresh();
  try{canvas.setPointerCapture(e.pointerId)}catch{}
  return true;
 }
-function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;if(selectedBuild==='wall')touchLineTo(e,canvas);refresh();return true}
+function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;if(span({kind:selectedBuild})===1)touchLineTo(e,canvas);refresh();return true}
 function showActionsAt(e,canvas){
  if(!ui||!actions||!actions.style)return;
  const rect=ui.getBoundingClientRect?.()||canvas.getBoundingClientRect?.();
@@ -201,7 +201,7 @@ function up(e,canvas){
  if(!dragging||e.pointerId!==pointer)return false;
  // Finger-lift coordinates are noisy: keep the chosen axis and never
  // reinterpret a tiny release movement as a new corner.
- if(selectedBuild==='wall')touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
+ if(span({kind:selectedBuild})===1)touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
  showActionsAt(e,canvas);refresh();return true;
 }
 function cancel(){dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh()}
@@ -469,7 +469,7 @@ function bitmapTiles(){
   barricadeSpriteRequested=true;
   const im=new Image();im.decoding='async';
   im.onload=()=>{
-   if(im.naturalWidth===BARRICADE_FRAME*5&&im.naturalHeight===BARRICADE_FRAME)barricadeSprite=im;
+   if(im.naturalWidth===BARRICADE_FRAME*5&&im.naturalHeight===BARRICADE_FRAME){barricadeSprite=im;makeDeviceIcons()}
   };
   im.onerror=()=>{}; // never repaint an absent asset every frame
   im.src=BARRICADE_BITMAP_URL;
@@ -503,143 +503,65 @@ function tiles(){
  return atlas;
 }
 
-// Cached raster art: use the same blocky top/side shading as the barricade.
-// The tiny animated accents are separate; the icon and board share the art.
-const deviceArt=new Map();
-function deviceBitmap(kind){
- if(deviceArt.has(kind))return deviceArt.get(kind);
- if(typeof document.createElement!=='function')return null;
- const im=document.createElement('canvas');im.width=im.height=64;
- const c=im.getContext?.('2d');if(!c||typeof c.fillRect!=='function')return null;
- const box=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h)};
- if(kind==='bollard'||kind==='bollardCap'){
-  if(kind==='bollard'){
-   box(1,1,62,62,'#293239');box(2,2,60,59,'#77868a');box(6,6,52,51,'#333d44');
-   for(const x of [4,56])for(const y of [4,55])box(x,y,4,4,'#ccdbd8');
-   box(7,8,50,45,'#59666a');box(8,9,48,3,'#92a09f');
-   box(10,29,44,2,'#354347');box(25,48,14,3,'#dc9952');
-  }else{
-   box(0,0,52,36,'#ed8731');box(0,0,52,4,'#ffcd71');box(48,3,4,33,'#ad562e');
-   for(const x of [7,23,39])for(let y=0;y<4;y++)box(x-y*2,11+y*3,7,3,'#443e3c');
-   box(0,36,52,21,'#99512f');box(3,38,44,6,'#f4b45b');box(4,48,43,5,'#5d493e');
-  }
-  deviceArt.set(kind,im);return im;
- }
- box(7,37,50,20,'#222e35');box(7,32,43,19,'#60717b');box(50,34,7,17,'#374d55');
- box(9,29,42,10,'#b4c4bf');box(10,48,37,4,'#3a5058');
- for(let i=0;i<4;i++)box(12+i*10,43,5,4,'#f2bf59');
- if(kind==='duck'){
-  c.clearRect(0,0,64,64);
-  // Rubber duck on a spring-loaded loudspeaker.
-
-  box(13,19,34,12,'#b87826');box(14,15,30,13,'#f5c341');box(16,12,26,8,'#ffdf72');
-  box(31,4,16,18,'#ffc537');box(33,4,10,4,'#ffed8c');
-  box(42,11,4,5,'#202c34');box(47,14,12,6,'#f18b3c');box(47,19,8,3,'#b85528');
- }else if(kind==='lure'){
-  // Twin bass speakers on the striped cabinet.
-  for(const x of [17,45]){
-   for(const [radius,color] of [[10,'#26323e'],[8,'#cb8032'],[6,'#54414b'],[3,'#efb055']]){
-    c.fillStyle=color;c.beginPath();c.arc(x,44,radius,0,Math.PI*2);c.fill();
-   }
-  }
- }else if(kind==='saw'){
-  box(24,15,16,25,'#364d56');box(27,12,10,25,'#a7b8c1');
-  // Blade is rendered separately so its teeth genuinely rotate.
-  box(20,33,24,7,'#d79a39');
- }else if(kind==='ice'){
-  box(13,12,37,28,'#277b98');box(12,10,34,25,'#80c9d9');box(14,9,30,7,'#c5f9ef');
-  box(19,16,22,13,'#235466');box(22,19,16,7,'#80f7ff');
-  box(25,14,3,17,'#e2ffff');box(18,21,20,3,'#e2ffff');
-  box(45,14,5,23,'#397789');box(8,29,43,5,'#d5af64');
-  box(15,36,8,5,'#604c38');box(41,36,8,5,'#604c38');
- }else if(kind==='wall'){
-  box(8,13,46,34,'#64737b');box(8,11,41,9,'#c4d0c9');
-  box(49,15,7,29,'#46555d');box(14,24,34,3,'#364951');
-  box(25,18,3,15,'#46565b');box(16,37,34,3,'#405258');
- }
- deviceArt.set(kind,im);return im;
+// Twelve transparent, separately articulated voxel sprite parts, 128px per cell.
+const partsURL='assets/ip/v2/barricades/fortress-voxels-v373.png';
+let parts=null;
+function part(g,index,x,y,w,h){
+ if(parts)g.drawImage(parts,(index%4)*128,Math.floor(index/4)*128,128,128,x,y,w,h);
 }
-function sawBitmap(){
- if(deviceArt.has('blade'))return deviceArt.get('blade');
- const im=document.createElement?.('canvas');if(!im)return null;
- im.width=im.height=64;const c=im.getContext?.('2d');
- if(!c||typeof c.beginPath!=='function')return null;
- c.beginPath();
- for(let i=0;i<32;i++){const a=i*Math.PI/16,r=i%2===0?30:23;
-  const x=32+Math.cos(a)*r,y=32+Math.sin(a)*r;
-  if(!i)c.moveTo(x,y);else c.lineTo(x,y);
- }
- c.closePath();c.fillStyle='#4b5c65';c.fill();
- c.beginPath();c.arc(32,32,22,0,Math.PI*2);c.fillStyle='#d0dfe0';c.fill();
- c.beginPath();c.arc(32,32,15,0,Math.PI*2);c.fillStyle='#a1b6bd';c.fill();
- for(const a of [0,2.1,4.2]){
-  c.fillStyle='#465b62';c.beginPath();c.arc(32+12*Math.cos(a),32+12*Math.sin(a),3,0,Math.PI*2);c.fill();
- }
- c.fillStyle='#e5ae52';c.fillRect(26,26,12,12);
- c.fillStyle='#354952';c.fillRect(29,29,6,6);
- deviceArt.set('blade',im);return im;
+function linkage(g,index,x,y,dx,dy,width){
+ const length=Math.hypot(dx,dy);if(length<.1)return;
+ g.save();g.translate(x,y);g.rotate(Math.atan2(dy,dx));
+ if(index===10){g.rotate(Math.PI/2);part(g,index,-width/2,-length,width,length)}
+ else part(g,index,0,-width/2,length,width);
+ g.restore();
 }
-// All coordinates are local to the 64px machine. Only moving parts are transformed.
-function paintMachine(g,kind,time,pulse,bladeOffset=null){
- const art=deviceBitmap(kind);if(!art)return;
- g.drawImage(art,0,0);
- if(kind==='bollard'){
-  const lift=pulse,top=10-9*lift;
-  if(lift<=0)return;
-  g.save();g.globalAlpha*=Math.min(1,lift*2);
-  const cap=deviceBitmap('bollardCap');
-  g.drawImage(cap,0,0,52,36,6,top,52,40);
-  g.drawImage(cap,0,36,52,21,6,top+40,52,21*lift);g.restore();
+function paintMachine(g,kind,time,pulse,offset=null){
+ if(kind==='wall'){
+  const tile=bitmapTiles();if(tile)g.drawImage(tile,0,0,56,56,0,0,64,64);
   return;
  }
- if(kind==='wall')return;
- const beat=Math.sin(time*5),kick=Math.sin(Math.PI*pulse);
+ if(kind==='bollard'){
+  part(g,3,0,22,64,40);
+  if(pulse<=0||!parts)return;
+  const spring=time>0?Math.sin(time*32)*Math.exp(-time*9)*.32:0;
+  const height=50*pulse*(1+spring),width=(46+6*(1-pulse))/(1+spring*.48);
+  const gaze=Math.sin(time*5);
+  const face=gaze<-.42?0:gaze>.42?2:1;
+  part(g,face,32-width/2,52-height,width,height);
+  // Cover the feet with the near lip of the same rock ring.
+  g.drawImage(parts,384,77,128,51,0,46.06,64,15.94);
+  return;
+ }
+ const x=offset?.x||0,y=offset?.y||0;
  if(kind==='lure'){
-  const lift=bladeOffset?.y||0,slide=bladeOffset?.x||0;
-  g.strokeStyle='#43505b';g.lineWidth=5;g.beginPath();
-  for(let i=0;i<=12;i++){
-   const f=i/12,y=37+(lift-10)*f,x=32+slide*f+(i%2?7:-7);
-   if(i)g.lineTo(x,y);else g.moveTo(x,y);
-  }
-  g.stroke();
-  g.strokeStyle='#ffe392';g.lineWidth=2;g.stroke();
-  g.drawImage(deviceBitmap('duck'),slide,lift);
-  if(pulse>0){
-   g.strokeStyle='#ffdf70';g.lineWidth=2;
-   for(const x of [16,48]){g.beginPath();g.arc(x,44,6+kick*5,0,Math.PI*2);g.stroke()}
-  }
+  part(g,5,2,27,60,36);
+  linkage(g,10,32,36,x,y-13,12);
+  part(g,4,11+x,1+y,43,35);
  }else if(kind==='saw'){
-  const travel=Math.sin(time*3)*6-kick*3;
-  g.fillStyle='#48545a';g.fillRect(10,29,44,6);
-  g.fillStyle='#ed9f39';g.fillRect(22+travel,27,20,10);
-  const blade=sawBitmap();if(!blade)return;
-  const bx=32+(bladeOffset?bladeOffset.x:travel),by=22+(bladeOffset?bladeOffset.y:0);
-  if(bladeOffset){
-   g.strokeStyle='#556a74';g.lineWidth=5;g.beginPath();g.moveTo(32,32);g.lineTo(bx,by);g.stroke();
-  }
-  g.save();g.translate(bx,by);g.rotate(time*8+.3);g.drawImage(blade,-22,-22,44,44);g.restore();
- }else{
-  // Opposed toothed jaws close over the chilled core when the trap fires.
-  const close=1+beat+kick*9;
+  part(g,6,2,20,60,43);
+  linkage(g,11,32,38,x,y-16,7);
+  g.save();g.translate(32+x,22+y);g.rotate(time*8+.3);
+  part(g,7,-22,-22,44,44);g.restore();
+ }else if(kind==='ice'){
+  part(g,8,3,9,58,54);
+  const spread=Math.sin(Math.PI*pulse)*5;
   for(const side of [-1,1]){
-   g.save();g.translate(32,0);g.scale(side,1);g.translate(-close,0);
-   g.fillStyle='#244855';g.fillRect(19,14,6,27);
-   g.fillStyle='#6ac9dc';g.fillRect(18,11,6,24);
-   g.fillStyle='#d8ffff';g.fillRect(12,9,12,6);g.fillRect(12,14,4,5);
-   g.fillStyle='#c08c4c';g.fillRect(17,30,10,6);g.restore();
+   g.save();g.translate(32+side*(18+spread),17);g.rotate(side<0?-2.1:-1.04);
+   part(g,9,-9,-9,19,18);g.restore();
   }
-  g.fillStyle='#204453';g.fillRect(19,41,26,8);
-  g.fillStyle='#94fcff';
-  for(let i=0;i<4;i++)g.fillRect(21+i*6,43,3,i<2+beat||pulse>0?2:1);
  }
 }
 function makeDeviceIcons(){
  for(const {kind,el} of buildButtons){
-  if(!el)continue;
-  const icon=el.querySelector?.('canvas'),art=deviceBitmap(kind);
-  const q=icon?.getContext?.('2d');if(!q||!art)continue;
+  const q=el?.querySelector?.('canvas')?.getContext?.('2d');if(!q)continue;
   q.clearRect(0,0,64,64);paintMachine(q,kind,0,kind==='bollard'?1:0);
  }
+}
+if(typeof Image==='function'){
+ const image=new Image();image.onload=()=>{
+  if(image.naturalWidth===512&&image.naturalHeight===384){parts=image;makeDeviceIcons()}
+ };image.src=partsURL;
 }
 function selectBuild(kind){
  if(!active||dragging||pending.size||!BUILD_TYPES[kind])return false;
@@ -652,7 +574,7 @@ function armReach(w,dx,dy){
 }
 const ICE_LATCH=.32,ICE_FREEZE=.62;
 function drawDevice(g,w,building=false){
- const art=deviceBitmap(w.kind);if(!art)return;
+ if(!parts)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
  let offset=null;
@@ -667,7 +589,7 @@ function drawDevice(g,w,building=false){
   offset={x:dx*scale*reach,y:(dy*scale+10)*reach};
  }
  g.save();g.translate(w.x,w.y);g.scale(size/64,size/64);
- paintMachine(g,w.kind,run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
+ paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
  g.restore();
  if(run&&w.kind==='ice'){
   const reach=Math.min(1,progress/ICE_LATCH,(1-progress)/(1-ICE_FREEZE));
@@ -677,12 +599,8 @@ function drawDevice(g,w,building=false){
    const dx=z.x+z.w/2-x,dy=z.y+z.h/2-y;
    g.save();g.translate(x,y);g.rotate(Math.atan2(dy,dx));
    const length=Math.hypot(dx,dy)*reach;
-   g.strokeStyle='#ac874e';g.lineWidth=2;g.beginPath();g.moveTo(0,0);g.lineTo(length,0);g.stroke();
-   g.strokeStyle='#bcf9ff';g.lineWidth=3;
-   const gap=3+6*(1-reach);
-   for(const sign of [-1,1]){
-    g.beginPath();g.moveTo(length-7,0);g.lineTo(length-2,sign*gap);g.lineTo(length+3,sign*gap);g.stroke();
-   }
+   linkage(g,11,0,0,length,0,3);
+   part(g,9,length-8,-5,12,10);
    g.restore();
   }
   g.restore();
@@ -817,10 +735,11 @@ function tickBollard(w,dt,enemies,ops){
    if(enemies.some(z=>z.hp>0&&intersects(z.x,z.y,z.w,z.h,w))){
     w.cooldown=.8+Math.random();return;
    }
-   w.raised=true;w.cooldown=1.8+Math.random()*2.2;
+   w.raised=true;w.moleTime=0;w.cooldown=1.8+Math.random()*2.2;
    ops.pulse?.('bollard',cx,cy,nearby.length);
   }
  }
+ if(w.raised)w.moleTime=(w.moleTime||0)+dt;
  w.lift=w.raised?Math.min(1,(w.lift||0)+dt*14):Math.max(0,(w.lift||0)-dt*7);
 }
 function tickDevices(dt,enemies,now,ops){

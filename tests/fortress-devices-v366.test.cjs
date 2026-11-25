@@ -122,3 +122,8 @@ post.cooldown=0;rider.x=post.x;rider.y=post.y;
 f.tickDevices(.02,[rider],3,{push:()=>false,canMove:()=>false});
 assert(!post.raised,'blocked hatch must never trap an overlapping zombie');
 console.log('PASS one-cell retractable bollard, adjacent shove, timed wall and ball collision');
+f.reset();f.begin([],1);f.selectBuild('bollard');
+f.down(p(1,2),canvas);f.move(p(5,2),canvas);f.up(p(5,2),canvas);
+assert.equal(f.getPreview().builds,5);assert.equal(f.getPreview().cost,10);
+nodes['fortress-confirm'].click();
+for(let col=1;col<=5;col++)assert.equal(f.getStructure(col,2).kind,'bollard');
