@@ -2266,9 +2266,16 @@ function makeFoeGrid(actors){
 function march(dt){
  if(isFortress()&&fortress)fortress.tickDevices?.(dt,foes,clock,{
   canMove:(z,x,y)=>canKnockback(z,x,y),
-  push:(z,x,y,kind,struck)=>{fortressContact(z,kind,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind,struck},2)},
+  push:(z,x,y,kind,struck)=>{fortressContact(z,kind,x,y);if(z.boss)return pushFortressBoss(z,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind,struck},2)},
   contact:fortressContact,
-  damage:(z,n)=>damage(z,n,false,{x:0,y:-1,push:.25}),
+  damage:(z,n,kind,cx,cy)=>{
+   if(kind==='saw'){
+    const px=Math.max(z.x,Math.min(z.x+z.w,cx)),py=Math.max(z.y,Math.min(z.y+z.h,cy));
+    queueContact(ballContactFX,px,py,0,-1,'enemy',null,z.boss?.86:.48);
+    if(z.boss)z.fortressBossFlashUntil=clock+.19;
+   }
+   damage(z,n,false,{x:0,y:-1,push:.25});
+  },
   pulse:(kind,x,y)=>{if(kind==='ice')sfx('item')}
  });
  if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
@@ -2992,6 +2999,20 @@ function applyKnockback(z,impact,n=1){
 }
 // Non-damaging structure contacts use the same pooled impact sprite,
  // local stagger and feedback as ball hits without awarding damage or score.
+function pushFortressBoss(z,x,y){
+ const length=Math.hypot(x,Math.min(0,y))||1,dx=x/length,dy=Math.min(0,y)/length;
+ const before=knockVisualPosition(z),beforeX=before.x,beforeY=before.y;
+ for(const distance of [12,9,6,3]){
+  const nx=z.x+dx*distance,ny=z.y+dy*distance;
+  if(!canKnockback(z,nx,ny))continue;
+  z.x=nx;z.y=ny;z.knockFromX=beforeX;z.knockFromY=beforeY;
+  z.knockChain=false;z.knockDelay=0;z.knockFreeze=Math.max(0,(z.hitShakeUntil||0)-clock);
+  z.knockDuration=z.knockFreeze+KNOCK_TWEEN_LIFE;z.knockTime=z.knockDuration;
+  delete z.bossGoalX;delete z.bossGoalY;z.bossHomeY=z.y;z.bossNextMove=clock+z.knockDuration+.2;
+  return true;
+ }
+ return false;
+}
 function fortressContact(z,kind,x=0,y=-1,freeze=null){
  if(!foes.includes(z)||z.hp<=0)return;
  if(clock<(z.fortressContactReady||0))return;
@@ -3000,6 +3021,7 @@ function fortressContact(z,kind,x=0,y=-1,freeze=null){
  enemyReaction(z,1,{x,y},true);
  if(freeze!==null&&!z.boss){z.hitAt=clock;z.hitHold=freeze;z.hitShakeFrom=clock;z.hitShakeUntil=clock+freeze}
  z.fortressContactCel=enemyAnimationClock;
+ if(z.boss)z.fortressBossFlashUntil=clock+.19;
  // Reuse the approved monochrome comic impact atlas at the real contact
  // face. Duck and ice capture never emit explosive/death-like debris.
  if(kind==='lure'||kind==='ice'){
@@ -4588,9 +4610,11 @@ function drawStruckZombie(z){
  if(z.fortressFrozenUntil>clock){
   drawFrozenZombie(z);if(entering)g.restore();return;
  }
- const active=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
+ const localHit=clock>=(z.hitShakeFrom||0)&&clock<(z.hitShakeUntil||0);
+ const deviceBossHit=z.boss&&clock<(z.fortressBossFlashUntil||0);
+ const active=localHit||deviceBossHit;
  if(!active){delete z.fortressContactCel;zombie(knockVisualPosition(z));if(entering)g.restore();return}
- const t=clock-(z.hitShakeFrom||clock),duration=Math.max(.001,(z.hitShakeUntil||clock)-(z.hitShakeFrom||clock));
+ const t=localHit?clock-(z.hitShakeFrom||clock):Math.max(0,clock-(z.fortressBossFlashUntil-.19)),duration=localHit?Math.max(.001,(z.hitShakeUntil||clock)-(z.hitShakeFrom||clock)):.19;
  const phase=t/duration;
  g.save();
  // First two-thirds are an unmistakable white contact flash. No blurry glow.

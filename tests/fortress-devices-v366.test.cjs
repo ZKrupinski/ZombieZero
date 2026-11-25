@@ -145,6 +145,24 @@ for(let i=1;i<=85;i++)f.tickDevices(.01,[victim],i*.01,{canMove:(z,x,y)=>f.isPat
 assert.equal(events.length,1);assert.deepEqual(events[0],[victim,'ice']);assert(victim.fortressFrozenUntil>0);
 console.log('PASS v386: vulnerable long-exposure mole, single capture contact and freeze.');
 
+
+f.reset();f.begin([],1);place('saw',5,8,5);f.deploy([]);
+const blade=f.getStructure(5,8),large={x:blade.x+44+25,y:blade.y-20,w:66,h:88,hp:40,boss:true};
+blade.cooldown=0;let bossHits=0;
+for(let i=0;i<120;i++)f.tickDevices(.01,[large],i*.01,{damage(z,n,kind){assert.equal(z,large);assert.equal(kind,'saw');z.hp-=n;bossHits++}});
+assert.equal(bossHits,1);assert.equal(large.hp,37);
+f.reset();f.begin([],1);place('lure',5,10,4);f.deploy([]);
+const duckBoss=f.getStructure(5,10),targetBoss={x:duckBoss.x-10,y:duckBoss.y-82,w:66,h:70,hp:40,boss:true};
+duckBoss.cooldown=0;let duckHits=0;
+for(let i=0;i<90;i++)f.tickDevices(.01,[targetBoss],i*.01,{push(z){assert.equal(z,targetBoss);duckHits++;return false}});
+assert.equal(duckHits,1);assert.equal(targetBoss.hp,40);
+f.reset();f.begin([],1);place('ice',5,8,3);f.deploy([]);
+const iceBoss=f.getStructure(5,8),capturedBoss={x:iceBoss.x+44+100,y:iceBoss.y-10,w:66,h:88,hp:40,boss:true};
+iceBoss.cooldown=0;let bossCapture=0;
+for(let i=0;i<85;i++)f.tickDevices(.01,[capturedBoss],i*.01,{canMove:(z,x,y)=>f.isPathClear(z,z.x,z.y,x,y),contact(z,k){assert.equal(k,'ice');bossCapture++}});
+assert.equal(bossCapture,1);assert(capturedBoss.fortressFrozenUntil>0);
+console.log('PASS v392: large boss body-edge saw damage, direct duck hit, ice capture.');
+
 const source=fs.readFileSync('dist/fortress-mode.js','utf8');
 const renderWin={};const renderDoc={getElementById:id=>nodes[id]||null,createElement:()=>({getContext:()=>null})};
 new Function('window','document',source.replace('window.ZZFortress={','parts={};window.ZZFortress={drawDevice,'))(renderWin,renderDoc);

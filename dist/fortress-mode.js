@@ -739,7 +739,8 @@ function drawDevice(g,w,building=false,glow=null){
  if(run&&w.kind==='saw'){
   const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
   const z=run.targets[index],reach=Math.sin(Math.PI*(step-index));
-  const dx=z.x+z.w/2-x,dy=z.y+z.h/2-y;
+  const target=deviceTarget(z,x,y);
+  const dx=target.x-x,dy=target.y-y;
   const scale=armReach(w,dx,dy)/Math.max(1,Math.hypot(dx,dy))*64/size;
   offset={x:dx*scale*reach,y:(dy*scale+10)*reach};
  }
@@ -771,17 +772,21 @@ function drawDevice(g,w,building=false,glow=null){
 // Devices act only when the real wave is moving. Cooldowns advance on the
 // same dt, not while the player is building, paused, or holding a serve.
 function randomRest(w){return spec(w).cycle*(.65+.8*Math.random())}
+// Boss body edge, rather than center, determines contact range.
+function deviceTarget(z,cx,cy){
+ return z.boss?{x:Math.max(z.x,Math.min(z.x+z.w,cx)),y:Math.max(z.y,Math.min(z.y+z.h,cy))}:{x:z.x+z.w/2,y:z.y+z.h/2};
+}
 function withinReach(z,w){
- const half=T*span(w)/2;
- const dx=Math.max(0,Math.abs(z.x+z.w/2-w.x-half)-half);
- const dy=Math.max(0,Math.abs(z.y+z.h/2-w.y-half)-half);
+ const half=T*span(w)/2,cx=w.x+half,cy=w.y+half,p=deviceTarget(z,cx,cy);
+ const dx=Math.max(0,Math.abs(p.x-cx)-half),dy=Math.max(0,Math.abs(p.y-cy)-half);
  return dx*dx+dy*dy<=spec(w).range**2;
 }
 function eligible(z,w,now){
  if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550||!withinReach(z,w))return false;
  if(w.kind==='lure'){
-  const dx=z.x+z.w/2-w.x-T,up=duckOriginY(w)-z.y-z.h/2;
-  return !z.boss&&!(z.fortressFrozenUntil>now)&&up>0&&Math.abs(dx)<=up&&Math.hypot(dx,up)<=spec(w).range+12;
+  const p=deviceTarget(z,w.x+T,duckOriginY(w));
+  const dx=p.x-w.x-T,up=duckOriginY(w)-p.y;
+  return !(z.fortressFrozenUntil>now)&&up>0&&Math.abs(dx)<=up&&Math.hypot(dx,up)<=spec(w).range+12;
  }
  return w.kind!=='ice'||(!(z.fortressIceReady>now)&&!(z.knockTime>0));
 }
@@ -832,7 +837,7 @@ function strikeDuck(w,enemies,prev,progress,now,ops){
  for(let i=0;i<=steps;i++){
   const d=start+(end-start)*i/steps,x=w.x+T+run.dx*d,y=duckOriginY(w)+run.dy*d;
   for(const z of enemies){
-   if(run.struck.has(z)||z.boss||z.hp<=0||(z.arrivalTime||0)<0||z.fortressFrozenUntil>now)continue;
+   if(run.struck.has(z)||z.hp<=0||(z.arrivalTime||0)<0||z.fortressFrozenUntil>now)continue;
    const ax=Math.max(z.x-x,0,x-z.x-z.w),ay=Math.max(z.y-y,0,y-z.y-z.h);
    if((ax/14)**2+(ay/9)**2>1)continue;
    run.struck.add(z);
@@ -914,15 +919,15 @@ function tickDevices(dt,enemies,now,ops){
   if(!w.run){
    w.cooldown=Math.max(0,w.cooldown-dt);
    if(w.cooldown>0)continue;
-   const distance=z=>(z.x+z.w/2-cx)**2+(z.y+z.h/2-cy)**2;
-   const targets=enemies.filter(z=>eligible(z,w,now)).sort((a,b)=>distance(a)-distance(b))
+   const distance=z=>{const p=deviceTarget(z,cx,cy);return (p.x-cx)**2+(p.y-cy)**2};
+   const targets=enemies.filter(z=>eligible(z,w,now)).sort((a,b)=>(w.kind==='saw'?Number(!!b.boss)-Number(!!a.boss):0)||distance(a)-distance(b))
     .slice(0,w.kind==='saw'?3:w.kind==='ice'?4:6);
    if(!targets.length){w.cooldown=.25+.5*Math.random();continue}
    w.run={time:0,targets};
    if(w.kind==='ice')w.run.grabbed=new Map();
    if(w.kind==='lure'){
-    const target=targets[0],dx=target.x+target.w/2-cx,dy=target.y+target.h/2-duckOriginY(w);
-    const length=Math.hypot(dx,dy);
+    const target=deviceTarget(targets[0],cx,duckOriginY(w)),dx=target.x-cx,dy=target.y-duckOriginY(w);
+    const length=Math.hypot(dx,dy)||1;
     Object.assign(w.run,{dx:dx/length,dy:dy/length,struck:new Set()});
    }
   }
@@ -944,7 +949,7 @@ function tickDevices(dt,enemies,now,ops){
    if(!eligible(z,w,now))continue;
    const impact=(i+.5)/run.targets.length;
    if(prev>=impact||progress<impact)continue;
-   ops.damage?.(z,z.boss?1:2);hit++;
+   ops.damage?.(z,z.boss?3:2,w.kind,cx,cy);hit++;
   }
   if(hit&&w.kind==='ice')ops.pulse?.(w.kind,cx,cy,hit);
   if(progress>=1){w.run=null;w.cooldown=randomRest(w)}
