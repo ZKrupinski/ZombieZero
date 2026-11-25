@@ -16,7 +16,7 @@ const grab=(from,to)=>{
  assert(a>=0&&b>a,'missing source region '+from);
  return game.slice(a,b);
 };
-const drawSprite=grab('function drawHeroBallSprite(b,r,col){','// Hit reaction stays attached');
+const drawSprite=grab('const skillBallTintCache=new WeakMap();','// Hit reaction stays attached');
 const calls=[];
 const g={save(){},restore(){},translate(){},rotate(){},scale(){},
  drawImage(...args){calls.push(args)}};

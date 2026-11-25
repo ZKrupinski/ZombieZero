@@ -451,6 +451,13 @@ const TRAIL_GROUND_HERO_COLORS=[
  [174,213,221], // Wrench: brushed steel cyan
  [180,212,255]  // Scarlet: ice-blue diamond refraction
 ];
+const HERO_GROUND_RAMPS=[
+ [TRAIL_GROUND_HERO_COLORS[0]],
+ [[255,227,183],[255,215,190],[255,195,173],[255,174,161]],
+ [[255,191,129],[255,174,107],[255,154,89],[255,139,74]],
+ [[174,213,221],[151,209,223],[125,198,220],[105,185,217]],
+ [[180,212,255],[159,198,255],[143,184,255],[128,169,255]]
+];
 const SCARLET_DIAMOND_GROUND_ACCENT=[245,187,237]; // subtle violet-pink facet
 // Stable source arrays allow the color stamps to remain cached between frames.
 // Tail-to-head ramps, stable RGB arrays for the cached floor stamps.
@@ -458,7 +465,7 @@ const TRAIL_GROUND_FIRE_PIERCE=[[164,125,255],[179,105,255],[198,91,249],[218,83
  // V345: stable color identities, pre-rasterized before the first pickup.
  const TRAIL_HEAD_PIERCE=[47,105,255],TRAIL_HEAD_FIRE=[255,47,53],TRAIL_HEAD_MIXED=[250,76,201],TRAIL_HEAD_POWER=[255,219,111];
  const PICKUP_LIGHT_COLORS=Object.fromEntries(Object.entries(typeof SKILLS!=='undefined'?SKILLS:{}).map(([k,v])=>[k,typeof effectLightRGB==='function'?effectLightRGB(v.color):[255,210,112]]));
- const TRAIL_WARM_COLORS=[...TRAIL_GROUND_HERO_COLORS,SCARLET_DIAMOND_GROUND_ACCENT,
+ const TRAIL_WARM_COLORS=[...TRAIL_GROUND_HERO_COLORS,...HERO_GROUND_RAMPS.flat(),SCARLET_DIAMOND_GROUND_ACCENT,
   ...TRAIL_GROUND_FIRE_PIERCE,...TRAIL_GROUND_FIRE,...TRAIL_GROUND_PIERCE,...TRAIL_GROUND_POWER,
   TRAIL_HEAD_PIERCE,TRAIL_HEAD_FIRE,TRAIL_HEAD_MIXED,TRAIL_HEAD_POWER,...Object.values(PICKUP_LIGHT_COLORS),
    [87,213,255],[255,226,142],[255,194,105],[169,239,255],[255,248,197],[255,231,169],[255,125,39],[255,174,70],[255,210,112]];
@@ -482,6 +489,7 @@ function drawTrailGroundReflections(b,r,path){
  if(length<9)return;
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  const defaultColors=TRAIL_GROUND_HERO_COLORS;
+ const heroRamp=typeof HERO_GROUND_RAMPS!=='undefined'?(HERO_GROUND_RAMPS[selectedHero]||HERO_GROUND_RAMPS[0]):[defaultColors[selectedHero]||defaultColors[0]];
  const colors=fire&&pierce?TRAIL_GROUND_FIRE_PIERCE:fire?TRAIL_GROUND_FIRE:
    pierce?TRAIL_GROUND_PIERCE:power?TRAIL_GROUND_POWER:defaultColors;
  const baseAlpha=fire||pierce?(power ? .43 : .39):(power ? .42 : .39);
@@ -501,7 +509,7 @@ function drawTrailGroundReflections(b,r,path){
   const normal=!fire&&!pierce&&!power;
   const rgb=normal&&selectedHero===4&&i%5===3?
     SCARLET_DIAMOND_GROUND_ACCENT:
-    normal?(defaultColors[selectedHero]||defaultColors[0]):colors[Math.round((1-d/length)*(colors.length-1))];
+    normal?heroRamp[Math.round((1-d/length)*(heroRamp.length-1))]:colors[Math.round((1-d/length)*(colors.length-1))];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
      baseAlpha*.68*fade*variation,30,.82,true);
@@ -4078,10 +4086,10 @@ function drawBallStatusForeground(b,r){
 // Physical tennis, baseball and toy-ball sprite colors, not one shared lime beam.
 const HERO_BALL_TRAILS=[
  {main:'#d8efa1',soft:'#95b96e',accent:'#f4f8d1'}, // tennis felt
- {main:'#f2e9dd',soft:'#c9bdaf',accent:'#c86e6b'}, // baseball leather + stitches
- {main:'#f5be76',soft:'#78c2d9',accent:'#e995c2'}, // colorful toy ball
- {main:'#d0dce0',soft:'#6b999f',accent:'#e8f5fd'}, // Wrench steel
- {main:'#c2e7ff',soft:'#a795f2',accent:'#ffbce9'}  // Scarlett gemstone
+ {main:'#f2e9dd',soft:'#c9bdaf',accent:'#c86e6b',head:'#ffb9a8'}, // baseball leather + stitches
+ {main:'#f5be76',soft:'#78c2d9',accent:'#e995c2',head:'#ff984c'}, // colorful toy ball
+ {main:'#d0dce0',soft:'#6b999f',accent:'#e8f5fd',head:'#88c8df'}, // Wrench steel
+ {main:'#c2e7ff',soft:'#a795f2',accent:'#ffbce9',head:'#94baff'}  // Scarlett gemstone
 ];
 // V67 physical substep history: one shared centerline for ribbon and skill chips.
 const BALL_TRAIL_NORMAL=170,BALL_TRAIL_POWER=190;
@@ -4143,11 +4151,11 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
  const n=path.length-1,len=Math.max(1,path[n].s),tip=path[n];
  const grad=g.createLinearGradient?.(tip.x,tip.y,b.x,b.y);
  if(grad&&typeof grad.addColorStop==='function'){
-  grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,col.main+'b0');
+  grad.addColorStop(0,col.soft+'00');grad.addColorStop(.3,col.main+'55');grad.addColorStop(.7,col.main+'85');grad.addColorStop(1,(col.head||col.main)+'b0');
  }
- // Scarlet's diamond facets must remain legible: suppress the extra-white
- // ribbon intensity without changing other characters or ball physics.
- g.save();g.globalAlpha=selectedHero===4?.42:1;g.fillStyle=grad||col.main+'88';g.beginPath();
+ // Same approved Ace ribbon opacity for every hero; the bitmap is drawn
+ // after the trail, so the gemstone facets remain intact.
+ g.save();g.globalAlpha=1;g.fillStyle=grad||col.main+'88';g.beginPath();
  // Trace the EXACT same left/right vertices directly to Canvas. Avoid two
  // temporary arrays and 2*(N+1) point allocations every rendered frame.
  for(let i=0;i<=n;i++){
@@ -4175,13 +4183,14 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
  const col=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  const glow=fire&&pierce?'#ed58df':pierce?'#468bff':
-   fire?'#ff5543':power?'#ffe0a3':col.main;
+   fire?'#ff5543':power?'#ffe0a3':(col.head||col.main);
  const end=path[path.length-1],head=path[0];
  const grad=g.createLinearGradient?.(end.x,end.y,head.x,head.y);
  if(grad&&typeof grad.addColorStop==='function'){
-  grad.addColorStop(0,glow+'00');
-  grad.addColorStop(.16,glow+'30');
-  grad.addColorStop(.58,glow+'8a');
+  const tailGlow=!fire&&!pierce&&!power?col.main:glow;
+  grad.addColorStop(0,tailGlow+'00');
+  grad.addColorStop(.16,tailGlow+'30');
+  grad.addColorStop(.58,tailGlow+'8a');
   grad.addColorStop(1,glow+'c2');
  }
  g.save();g.globalCompositeOperation='lighter';
@@ -4634,7 +4643,7 @@ drawKillCombo();drawBarrelBlasts();
   const trailPath=getBallRenderTrailPath(b,r);
   if(!elementalTrail){
    drawHeroBallTrail(b,r,trailPath);
-   if(fxEnabled&&selectedHero!==4)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
+   if(fxEnabled)luminous(()=>drawTrailEdgeHalo(b,r,trailPath),
     ()=>drawTrailEdgeHalo(b,r,trailPath,.72));
   }
   drawBallSkillTrail(b,r,trailPath);
