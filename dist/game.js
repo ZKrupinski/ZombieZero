@@ -865,6 +865,7 @@ let runMode='campaign',endlessUnlocked=false,lastStandUsed=false,resistFlash=0,f
 const MINI_HORDE_SCALE=.5,MINI_HORDE_COLUMNS=18;
 const isFortress=()=>runMode==='fortress';
 const fortress=window.ZZFortress;
+const hasEndlessStructures=()=>runMode==='endless'&&wave>=60;
 const isMiniHorde=()=>runMode==='mini'||isFortress();
 // Scale raw zombie displacement to its body size in MINI/BARRICADE modes.
 // Spawn-row and column pitches are already half-size; never scale those twice.
@@ -1406,7 +1407,7 @@ function tryStartBreakouts(){
 const BOSS_SWEEP_MIN=84,BOSS_SWEEP_MAX=190,BOSS_SWEEP_SPEED=118,BOSS_DEPTH_SWAY=18;
 function bossPatrolFree(z,x,y,gap=8){
  if(!insideZombieRoad(z,{x,y})||
-   isFortress()&&fortress&&!fortress.isPathClear(z,z.x,z.y,x,y))return false;
+   (isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress&&!fortress.isPathClear(z,z.x,z.y,x,y))return false;
  return foes.every(other=>other===z||
   !zombieBoxesOverlap(z,{x,y},other,{x:other.x,y:other.y},gap));
 }
@@ -1762,7 +1763,7 @@ function wormForwardClearance(group){
  }
  // Barricade blocks count as occupied space: do not schedule a front surge
  // with a wall directly underneath the chosen leading zombies.
- if(typeof isFortress==='function'&&isFortress()&&fortress){
+ if(typeof isFortress==='function'&&(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress){
   const travel=Math.min(24,Math.max(0,room-10));
   if(group.some(z=>z.y+z.h>=bottom-3&&
      !fortress.isPathClear(z,z.x,z.y,z.x,z.y+travel)))return 0;
@@ -1869,7 +1870,7 @@ function wormOrbitClear(group,dx,dy,fromCurrent=false){
      y+z.h>DEFENSE_Y-WORM_SAFE_MARGIN)return false;
   // The entire route and its projected source are checked against wall
   // tiles, including during construction-persistent BARRICADE waves.
-  if(typeof isFortress==='function'&&isFortress()&&fortress&&
+  if(typeof isFortress==='function'&&(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress&&
      (!fortress.isOpen(z,x,y)||
       !fortress.isPathClear(z,z.x,z.y,x,y)))return false;
   for(const other of foes){
@@ -1979,7 +1980,7 @@ function updateGalagaOrbit(dt){
   const y=z.y+clamp(m.baseY+offset.dy-z.y,-maxStep,maxStep);
   if(x<zombieMinX()||x>zombieMaxX(z)||y<ENEMY_TOP_Y||
      y+z.h>DEFENSE_Y-WORM_SAFE_MARGIN||
-     typeof isFortress==='function'&&isFortress()&&fortress&&
+     typeof isFortress==='function'&&(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress&&
      (!fortress.isOpen(z,x,y)||!fortress.isPathClear(z,z.x,z.y,x,y))){
    // The active orbit is cancelled rather than stranding a circling pack
    // at the line or letting any zombie cross a new wall.
@@ -2265,7 +2266,7 @@ function makeFoeGrid(actors){
  }};
 }
 function march(dt){
- if(isFortress()&&fortress)fortress.tickDevices?.(dt,foes,clock,{
+ if((isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress)fortress.tickDevices?.(dt,foes,clock,{
   canMove:(z,x,y)=>canKnockback(z,x,y),
   molePush:pushMoleZombie,
   push:(z,x,y,kind,struck)=>{fortressContact(z,kind,x,y);if(z.boss)return pushFortressBoss(z,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind,struck},2)},
@@ -2284,7 +2285,7 @@ function march(dt){
    if(count)sfx('wall');
   }}
  });
- if(isFortress()&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
+ if((isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress)for(const z of foes){z.fortressPreviousX=z.x;z.fortressPreviousY=z.y}
  updateWormParade(dt);
  tryStartBreakouts();
  const sorted=[...foes].sort((a,b)=>b.y-a.y),done=[];
@@ -2367,7 +2368,7 @@ function march(dt){
   if(!corrected)break;
  }
  // Zombie bodies cannot pass barricade blocks. Every blocked attack chips HP.
- if(isFortress()&&fortress)for(const z of foes){
+ if((isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress)for(const z of foes){
   fortress.resolve(z,z.fortressPreviousX,z.fortressPreviousY,dt,(x,y)=>{
    effect(x,y,'#d3bda0',18);sfx('wall');
   },clock);
@@ -2477,7 +2478,7 @@ function advanceStage(){
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;
- if(isFortress()&&fortress){
+ if((isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress){
   // A new planning phase must not inherit the previous battle's frozen FX.
   clearFortressStageVisuals();
   fortress.begin(foes,wave);mode='building';
@@ -2493,6 +2494,7 @@ function refillEndlessWave(){
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  rack();
+ if(fortress?.setupEndless)fortress.setupEndless(endlessWaveNumber(),foes,DEFENSE_Y);
  for(const z of foes)z.arrivalTime=-z.row*.09-Math.random()*.06;
  waveInitialRegulars=foes.filter(z=>!z.boss).length;
  score+=500;hud();
@@ -2882,7 +2884,7 @@ function knockVisualPosition(z){
        y=z.knockFromY+(z.y-z.knockFromY)*ease;
  // Final knockback colliders may be safe while a visual tween crosses an
  // intervening wall. Never paint a zombie on top of the barricade bitmap.
- if(!z.moleLaunch&&typeof isFortress==='function'&&isFortress()&&fortress&&
+ if(!z.moleLaunch&&typeof isFortress==='function'&&(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress&&
    (!fortress.isOpen(z,x,y)||
     !fortress.isPathClear(z,z.knockFromX,z.knockFromY,x,y)))return z;
  return {...z,x,y};
@@ -2894,12 +2896,12 @@ function zombieBoxesOverlap(a,pa,b,pb,gap=.5){
 function insideZombieRoad(z,p){
  return p.x>=zombieMinX()&&p.x<=zombieMaxX(z)&&
         p.y>=ENEMY_TOP_Y&&p.y+z.h<=DEFENSE_Y-16&&
-        (!isFortress()||!fortress||fortress.isOpen(z,p.x,p.y));
+        (!(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))||!fortress||fortress.isOpen(z,p.x,p.y));
 }
 function canKnockback(z,x,y){
  const pos={x,y};
  return insideZombieRoad(z,pos)&&
-   (!isFortress()||!fortress||fortress.isPathClear(z,z.x,z.y,x,y))&&
+   (!(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))||!fortress||fortress.isPathClear(z,z.x,z.y,x,y))&&
    !foes.some(other=>other!==z&&
     zombieBoxesOverlap(z,pos,other,{x:other.x,y:other.y},1));
 }
@@ -2909,7 +2911,7 @@ function planKnockPush(z,dx,dy,plans,depth=0){
  if(dy>0||z.boss||depth>KNOCK_CHAIN_LIMIT||plans.has(z))return false;
  const pos={x:z.x+dx,y:z.y+dy};
  if(!insideZombieRoad(z,pos)||
-   isFortress()&&fortress&&!fortress.isPathClear(z,z.x,z.y,pos.x,pos.y))return false;
+   (isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress&&!fortress.isPathClear(z,z.x,z.y,pos.x,pos.y))return false;
  plans.set(z,{...pos,chainDepth:depth});
  const pushX=Math.abs(dx)>=Math.abs(dy);
  const direction=Math.sign(pushX?dx:dy);
@@ -3272,7 +3274,7 @@ function update(dt){
   const sec=Math.floor(endlessSurvival);
   if(sec!==endlessHudSecond){endlessHudSecond=sec;$('survival-time').textContent=survivalClock(endlessSurvival)}
  }
- clock+=dt;enemyAnimationClock+=dt*enemySlowRate();if(isFortress())fortress?.tick(dt);updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;advanceVisualQueue(fx,dt);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);compactVisualQueue(particles,particleAlive);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
+ clock+=dt;enemyAnimationClock+=dt*enemySlowRate();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.tick(dt);updateStageBackground(dt);resistFlash=Math.max(0,resistFlash-dt);updateEnemyVisuals(dt);cameraKick*=Math.exp(-dt*23);if(cameraKick<.06)cameraKick=0;advanceVisualQueue(fx,dt);swing=Math.max(0,swing-dt);heroAttackTime=Math.max(0,heroAttackTime-dt);compactVisualQueue(particles,particleAlive);for(const p of particles){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt}
 if(standRetreat.length){updateStandRetreat();return}
 if(mode==='endlessShift'){updateEndlessShift(dt);return}
 if(mode==='playing'){killTimer=Math.max(0,killTimer-dt);if(!killTimer)killCombo=0;comboPop=Math.max(0,comboPop-dt);comboDisplayTime=Math.max(0,comboDisplayTime-dt)}
@@ -3334,7 +3336,7 @@ for(const b of [...balls]){updateBallSpin(b,dt);const cruise=ensureBallCruiseSpe
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Barricades reflect ALL balls, even pierce shots; only zombie bites
  // damage their HP. Run before enemy hit tests, at existing ball substeps.
- if(isFortress()&&fortress){
+ if((isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress){
   const wallHit=fortress.bounceBall(b,ox,oy,radius);
   if(wallHit){
    ballImpact(b,wallHit.axis,wallHit.axis==='x'?b.vx:b.vy,'wall');
@@ -4683,11 +4685,11 @@ function drawStruckZombie(z){
  try{zombie(knockVisualPosition(z))}finally{enemyAnimationClock=liveCel;g.restore()}
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){if(fxRenderer.settings)fxRenderer.settings.quality=typeof perfTier!=='undefined'?perfTier:0;fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress())fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){if(fxRenderer.settings)fxRenderer.settings.quality=typeof perfTier!=='undefined'?perfTier:0;fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.
-  if(isFortress()&&fortress&&
+  if((isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))&&fortress&&
     !fortress.isPathClear(z,z.knockFromX,z.knockFromY,z.x,z.y))continue;
   const fade=Math.min(1,z.knockTime/(z.knockDuration||KNOCK_TRAIL_LIFE));
   g.save();g.globalAlpha=.4*fade;

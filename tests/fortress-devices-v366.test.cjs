@@ -214,3 +214,22 @@ for(const [kind,hp] of [['lure',12],['saw',14],['ice',16]]){
  assert.equal(glowCount,1);
 }
 console.log('PASS v393: weaker machines, stationary boss breaks in 2-4 strikes, frozen boss cannot bite, full-health glowing bars below sprites.');
+
+const opening=Array.from({length:36},(_,i)=>({x:45+(i%9)*42,y:70+Math.floor(i/9)*60,w:33,h:44,hp:10}));
+const expected=['wall','bollard','ice','lure','saw'];
+function supportList(){const result=new Set();for(let row=0;row<20;row++)for(let col=0;col<17;col++){const w=f.getStructure(col,row);if(w)result.add(w)}return [...result]}
+for(let wave=9;wave<=14;wave++){
+ assert.equal(f.setupEndless(wave,opening,565),wave===9?0:wave-8);
+ const devices=supportList(),kinds=new Set(devices.map(w=>w.kind));
+ assert.deepEqual(kinds,new Set(expected.slice(0,Math.max(0,wave-9))));
+ assert.equal(f.getStock(),0);
+ assert.equal(nodes['fortress-builder'].hidden,true);
+ for(const w of devices){
+  const size=w.kind==='wall'||w.kind==='bollard'?22:44;
+  assert(w.y+size<=499);
+  for(const z of opening)assert(z.x+z.w<=w.x||z.x>=w.x+size||z.y+z.h<=w.y||z.y>=w.y+size);
+ }
+}
+assert(f.setupEndless(100,opening,565)<=11);
+f.reset();assert.equal(f.getWallCount(),0);
+console.log('PASS v398: endless support progression, fresh unobstructed placement, bounded count, no construction UI.');

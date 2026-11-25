@@ -235,6 +235,44 @@ function reset(){
  active=false;dragging=false;pointer=null;last=null;touchStroke=null;
  destroyedThisStage=0;lastRefund=0;lastBonus=0;lastHealed=0;refresh();
 }
+// Endless assistance uses the same physical devices, without spending stock
+// or invoking construction, relocation, Ready, or the fortress UI.
+const ENDLESS_DEVICE_ORDER=['wall','bollard','ice','lure','saw'];
+function setupEndless(wave,enemies,defenseY=565){
+ reset();
+ if(wave<10)return 0;
+ stage=wave;
+ const unlocks=Math.min(ENDLESS_DEVICE_ORDER.length,wave-9);
+ const kinds=['wall','wall',...ENDLESS_DEVICE_ORDER.slice(1,unlocks)];
+ // After all five types are introduced, add one every four waves, with
+ // a fixed cap to preserve open lanes and keep long runs inexpensive.
+ const extra=Math.min(5,Math.max(0,Math.floor((wave-14)/4)));
+ for(let i=0;i<extra;i++)kinds.push(ENDLESS_DEVICE_ORDER[i%ENDLESS_DEVICE_ORDER.length]);
+ const front=enemies.reduce((y,z)=>Math.max(y,z.y+z.h),0);
+ const minY=Math.max(Y+T*7,front+18);
+ const maxY=Math.min(Y+ROWS*T,defenseY-66);
+ // Distribute the support over alternating thirds of the road. Leave
+ // space between each machine and a clear area for the player's ball.
+ const order=[...kinds].sort((a,b)=>span({kind:b})-span({kind:a}));
+ for(const kind of order){
+  const type=BUILD_TYPES[kind],size=T*span({kind}),choices=[];
+  for(let row=1;row<ROWS-1;row++)for(let col=1;col<COLS-1;col++){
+   const t={...cell(col,row),kind};
+   if(col+span(t)>COLS-1||row+span(t)>ROWS-1||t.y<minY||t.y+size>maxY)continue;
+   if(enemies.some(z=>intersects(z.x,z.y,z.w,z.h,t,12)))continue;
+   if([...walls.values()].some(w=>intersects(t.x,t.y,size,size,w,12)))continue;
+   // Bias devices toward the approaching wave without creating a solid wall.
+   const distance=walls.size?Math.min(...[...walls.values()].map(w=>Math.hypot(t.x+size/2-w.x-T*span(w)/2,t.y+size/2-w.y-T*span(w)/2))):70;
+   choices.push({t,score:Math.min(100,distance)*.5-(t.y-minY)*.12+Math.random()*50});
+  }
+  if(!choices.length)continue;
+  choices.sort((a,b)=>b.score-a.score);
+  const t=choices[0].t,w={...t,hp:type.hp,hit:0,biteShake:0,run:null,pulse:0,raised:false,lift:0};
+  w.cooldown=kind==='wall'?0:kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());
+  walls.set(w.id,w);footprint(w,key=>occupied.set(key,w));
+ }
+ return walls.size;
+}
 function begin(enemies,wave){
  starting=false;startToken++;
  placementTip='';queued=enemies.splice(0,enemies.length);stage=wave;
@@ -1078,7 +1116,7 @@ function tick(dt){for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',startWithFeedback);
-window.ZZFortress={duckKnockPlan,reset,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,startWithFeedback,
+window.ZZFortress={duckKnockPlan,reset,setupEndless,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>occupied.get(id(col,row)),isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,startWithFeedback,
  bind(fn,feedback){onReady=fn;onStartFeedback=feedback},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),
