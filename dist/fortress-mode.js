@@ -450,7 +450,7 @@ function startWithFeedback(){
   if(token!==startToken||!starting)return;
   starting=false;refresh();
   ready();
- },reduced?80:340);
+ },reduced?80:520);
  return true;
 }
 function resolve(z,oldX,oldY,dt,onBreak){
