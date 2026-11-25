@@ -2971,7 +2971,8 @@ function applyKnockback(z,impact,n=1){
      ?HIT_FREEZE_NORMAL+((pos.chainDepth||0)-1)*CHAIN_KNOCK_STEP:0;
    if(duckRipple)actor.knockDelay=depth*DUCK_CHAIN_STEP;
    // Duck contacts stagger individually before each reserved collider tween.
-   actor.knockFreeze=actor===z?Math.max(0,(actor.hitShakeUntil||0)-clock):duckRipple?DUCK_CHAIN_FREEZE:0;
+   actor.knockFreeze=actor===z?Math.max(0,(actor.hitShakeUntil||0)-clock):0;
+   if(duckRipple&&actor!==z)actor.knockFreeze=DUCK_CHAIN_FREEZE;
    actor.knockDuration=actor.knockDelay+actor.knockFreeze+KNOCK_TWEEN_LIFE;
    actor.knockTime=actor.knockDuration;
    // Each collider reserves its final safe position immediately; only the
