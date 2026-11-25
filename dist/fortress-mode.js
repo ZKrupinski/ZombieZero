@@ -525,12 +525,24 @@ function paintMachine(g,kind,time,pulse,offset=null){
   part(g,3,0,22,64,40);
   if(pulse<=0||!parts)return;
   const spring=time>0?Math.sin(time*32)*Math.exp(-time*9)*.32:0;
-  const height=50*pulse*(1+spring),width=(46+6*(1-pulse))/(1+spring*.48);
+  // Keep the lower body below the curved inner edge of the rocks, even
+  // during the elastic rise. The mole must emerge from a hole, not a flat cut.
+  const height=54*pulse*(1+spring),width=(46*(.70+.30*pulse))/(1+spring*.48);
   const gaze=Math.sin(time*5);
   const face=gaze<-.42?0:gaze>.42?2:1;
-  part(g,face,32-width/2,52-height,width,height);
-  // Cover the feet with the near lip of the same rock ring.
-  g.drawImage(parts,384,77,128,51,0,46.06,64,15.94);
+  part(g,face,32-width/2,56-height,width,height);
+  // Repaint only the original foreground stones, following their irregular
+  // U-shaped inner rim in source coordinates. No horizontal crop seam.
+  g.save();g.translate(0,22);g.scale(.5,40/128);
+  if(typeof g.clip==='function'){
+   g.beginPath();g.moveTo(0,47);g.lineTo(13,48);g.lineTo(24,57);
+   g.lineTo(36,75);g.lineTo(47,78);g.lineTo(56,86);
+   g.lineTo(69,85);g.lineTo(80,77);g.lineTo(93,71);
+   g.lineTo(105,56);g.lineTo(116,47);g.lineTo(128,43);
+   g.lineTo(128,128);g.lineTo(0,128);g.closePath();g.clip();
+   g.drawImage(parts,384,0,128,128,0,0,128,128);
+  }else g.drawImage(parts,384,77,128,51,0,77,128,51);
+  g.restore();
   return;
  }
  const x=offset?.x||0,y=offset?.y||0;
@@ -556,18 +568,38 @@ function paintMachine(g,kind,time,pulse,offset=null){
 // directly into a 256px UI canvas, never enlarge the old 64px composite.
 // Gameplay sprites and their animation geometry are deliberately untouched.
 function makeDeviceIcons(){
- const resolution=256;
+ const resolution=256,pad=4,artSize=384;
+ let source=null,ctx=null;
+ if(typeof document.createElement==='function'){
+  source=document.createElement('canvas');source.width=source.height=artSize;
+  ctx=source.getContext?.('2d');
+ }
  for(const {kind,el} of buildButtons){
   const icon=el?.querySelector?.('canvas');if(!icon)continue;
   if(icon.width!==resolution)icon.width=resolution;
   if(icon.height!==resolution)icon.height=resolution;
   const q=icon.getContext?.('2d');if(!q)continue;
   q.clearRect(0,0,resolution,resolution);
-  q.save();q.scale(resolution/64,resolution/64);
   q.imageSmoothingEnabled=true;q.imageSmoothingQuality='high';
-  // Same exact source parts, colors, angle and assembled idle silhouette.
-  paintMachine(q,kind,0,kind==='bollard'?1:0);
-  q.restore();
+  if(!ctx||typeof ctx.getImageData!=='function'){
+   q.save();q.scale(resolution/64,resolution/64);
+   paintMachine(q,kind,0,kind==='bollard'?1:0);q.restore();continue;
+  }
+  // Recompose from the source atlas, then crop actual transparent margins.
+  // Extra room around the original 64px drawing avoids clipping claws/saw.
+  ctx.clearRect(0,0,artSize,artSize);
+  ctx.save();ctx.translate(32,32);ctx.scale(5,5);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  paintMachine(ctx,kind,0,kind==='bollard'?1:0);ctx.restore();
+  const pixels=ctx.getImageData(0,0,artSize,artSize).data;
+  let x0=artSize,y0=artSize,x1=-1,y1=-1;
+  for(let y=0;y<artSize;y++)for(let x=0;x<artSize;x++){
+   if(pixels[(y*artSize+x)*4+3]<12)continue;
+   x0=Math.min(x,x0);y0=Math.min(y,y0);x1=Math.max(x,x1);y1=Math.max(y,y1);
+  }
+  if(x1<x0||y1<y0)continue;
+  const w=x1-x0+1,h=y1-y0+1,scale=(resolution-pad*2)/Math.max(w,h);
+  q.drawImage(source,x0,y0,w,h,(resolution-w*scale)/2,(resolution-h*scale)/2,w*scale,h*scale);
  }
 }
 if(typeof Image==='function'){
