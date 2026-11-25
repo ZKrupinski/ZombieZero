@@ -12,7 +12,7 @@ const walls=new Map(),pending=new Map();
 // Special devices occupy a two-by-two footprint.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
- bollard:{name:'두더지 차단봉',cost:2,hp:8,cycle:6.5,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
+ bollard:{name:'두더지 차단봉',cost:2,hp:12,cycle:4.8,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
  lure:{name:'꽥꽥 유인기',cost:4,hp:12,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
  saw:{name:'빙글 톱날',cost:5,hp:14,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:3,hp:16,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
@@ -961,7 +961,7 @@ function tickBollard(w,dt,enemies,ops,now=0){
    if(enemies.some(z=>z.hp>0&&intersects(z.x,z.y,z.w,z.h,w))){
     w.cooldown=.8+Math.random();return;
    }
-   w.raised=true;w.moleTime=0;w.cooldown=6+Math.random()*3;
+   w.raised=true;w.moleTime=0;w.cooldown=4.5+Math.random()*2.5;
    if(ops.molePush)ops.pulse?.('bollard',cx,cy,launched);
    else if(!nearby.length)ops.pulse?.('bollard',cx,cy,0);
   }
