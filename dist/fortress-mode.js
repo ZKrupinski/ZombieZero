@@ -836,19 +836,19 @@ function strikeDuck(w,enemies,prev,progress,now,ops){
    const ax=Math.max(z.x-x,0,x-z.x-z.w),ay=Math.max(z.y-y,0,y-z.y-z.h);
    if((ax/14)**2+(ay/9)**2>1)continue;
    run.struck.add(z);
-   ops.push?.(z,run.dx,run.dy,'lure');
+   ops.push?.(z,run.dx,run.dy,'lure',run.struck);
   }
  }
 }
 // Plan small, swept displacements. Each touching neighbour joins the same
 // directional shove, while a wall, boss or road edge stops the connected group.
-function duckKnockPlan(root,dx,dy,enemies,inside){
+function duckKnockPlan(root,dx,dy,enemies,inside,alreadyStruck=null){
  const positions=new Map(),stride=3,limit=12;
  for(let step=0;step<24;step++){
   const next=new Map();
   function advance(z,depth){
    if(next.has(z))return true;
-   if(z.boss||depth>limit)return false;
+   if(z.boss||depth>limit||(z!==root&&alreadyStruck?.has(z)))return false;
    const old=positions.get(z)||z;
    const pos={x:old.x+dx*stride,y:old.y+dy*stride,chainDepth:old.chainDepth??depth};
    if(!inside(z,pos)||!isPathClear(z,old.x,old.y,pos.x,pos.y))return false;

@@ -2266,7 +2266,7 @@ function makeFoeGrid(actors){
 function march(dt){
  if(isFortress()&&fortress)fortress.tickDevices?.(dt,foes,clock,{
   canMove:(z,x,y)=>canKnockback(z,x,y),
-  push:(z,x,y,kind)=>{fortressContact(z,kind,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind},2)},
+  push:(z,x,y,kind,struck)=>{fortressContact(z,kind,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind,struck},2)},
   contact:fortressContact,
   damage:(z,n)=>damage(z,n,false,{x:0,y:-1,push:.25}),
   pulse:(kind,x,y)=>{if(kind==='ice')sfx('item')}
@@ -2849,6 +2849,7 @@ function criticalEligible(z){return !z.boss&&Number.isInteger(z.form)&&z.hp>=z.m
 const KNOCK_CHAIN_LIMIT=8,KNOCK_TWEEN_LIFE=.27;
 const HIT_FREEZE_NORMAL=.16,HIT_FREEZE_BOSS=.19;
 const CHAIN_KNOCK_STEP=.14,CHAIN_HIT_FREEZE=.125;
+const DUCK_CHAIN_STEP=.22,DUCK_CHAIN_FREEZE=.12;
 const KNOCK_TRAIL_LIFE=KNOCK_TWEEN_LIFE+HIT_FREEZE_NORMAL+
   KNOCK_CHAIN_LIMIT*CHAIN_KNOCK_STEP+CHAIN_HIT_FREEZE;
 // Safe collider destinations are committed immediately; the animated sprite
@@ -2926,7 +2927,7 @@ function applyKnockback(z,impact,n=1){
  const distance=Math.min(50,36+Math.min(n,5)*3)*enemyDisplacementScale()*(impact.push||1);
  const dirX=vx/mag,dirY=vy/mag;
  for(const factor of [1,.85,.7,.55,.4,.25,.12]){
-  const plans=impact.duck?fortress.duckKnockPlan(z,dirX,dirY,foes,insideZombieRoad):new Map();
+  const plans=impact.duck?fortress.duckKnockPlan(z,dirX,dirY,foes,insideZombieRoad,impact.struck):new Map();
   if(impact.duck&&!plans.size)return false;
   // Reflect lateral impact at the painted side walls instead of embedding a
   // knocked zombie in a wall. Full chains remain collision-checked as before.
@@ -2955,16 +2956,21 @@ function applyKnockback(z,impact,n=1){
    }
    // Repeated hits restart from the current rendered position, not a
    // previous distant collider destination.
-   if(impact.structure&&actor!==z&&typeof fortressContact==='function')fortressContact(actor,impact.structure,dirX,dirY);
+   const duckRipple=impact.structure==='lure';
+   const depth=pos.chainDepth||0;
+   if(duckRipple){
+    impact.struck?.add(actor);
+    if(actor!==z)actor.duckContact={at:clock+depth*DUCK_CHAIN_STEP,x:dirX,y:dirY};
+   }else if(impact.structure&&actor!==z&&typeof fortressContact==='function')fortressContact(actor,impact.structure,dirX,dirY);
    const before=knockVisualPosition(actor);
    const beforeX=before.x,beforeY=before.y; // snapshot values before actor mutates
    actor.x=pos.x;actor.y=pos.y;
    actor.knockFromX=beforeX;actor.knockFromY=beforeY;
    actor.knockChain=actor!==z;
-   actor.knockDelay=(pos.chainDepth||0)>0
+   actor.knockDelay=duckRipple?depth*DUCK_CHAIN_STEP:(pos.chainDepth||0)>0
      ?HIT_FREEZE_NORMAL+((pos.chainDepth||0)-1)*CHAIN_KNOCK_STEP:0;
-   // Only a direct hit has a local hit-stop. Neighbors inherit displacement.
-   actor.knockFreeze=actor===z?Math.max(0,(actor.hitShakeUntil||0)-clock):0;
+   // Duck contacts stagger individually before each reserved collider tween.
+   actor.knockFreeze=actor===z?Math.max(0,(actor.hitShakeUntil||0)-clock):duckRipple?DUCK_CHAIN_FREEZE:0;
    actor.knockDuration=actor.knockDelay+actor.knockFreeze+KNOCK_TWEEN_LIFE;
    actor.knockTime=actor.knockDuration;
    // Each collider reserves its final safe position immediately; only the
@@ -2984,12 +2990,13 @@ function applyKnockback(z,impact,n=1){
 }
 // Non-damaging structure contacts use the same pooled impact sprite,
  // local stagger and feedback as ball hits without awarding damage or score.
-function fortressContact(z,kind,x=0,y=-1){
+function fortressContact(z,kind,x=0,y=-1,freeze=null){
  if(!foes.includes(z)||z.hp<=0)return;
  if(clock<(z.fortressContactReady||0))return;
  z.fortressContactReady=clock+.14;
  const position=knockVisualPosition(z);
  enemyReaction(z,1,{x,y},true);
+ if(freeze!==null&&!z.boss){z.hitAt=clock;z.hitHold=freeze;z.hitShakeFrom=clock;z.hitShakeUntil=clock+freeze}
  z.fortressContactCel=enemyAnimationClock;
  const flash=typeof flashPool!=='undefined'?(flashPool.pop()||{}):{};
  Object.assign(flash,{x:position.x+z.w/2,y:position.y+z.h/2,groundY:position.y+z.h,
@@ -3580,6 +3587,7 @@ function updateEnemyVisuals(dt){
  for(const ghost of dodgeGhosts)ghost.t+=dt;
  compactVisualQueue(dodgeGhosts,ghost=>ghost.t<ghost.life);
  advanceVisualQueue(hitFlashes,dt);advanceVisualQueue(barrelBlasts,dt);advanceVisualQueue(bazookaBlasts,dt);for(const z of foes){
+ if(z.duckContact&&clock>=z.duckContact.at){const q=z.duckContact;delete z.duckContact;if(!(z.fortressFrozenUntil>clock))fortressContact(z,'lure',q.x,q.y,DUCK_CHAIN_FREEZE)}
  if(z.trashStopUntil>clock){z.hitHold=Math.max(0,(z.hitHold||0)-dt);continue}
  if(Number.isFinite(z.arrivalTime)){
   z.arrivalTime=Math.min(.62,z.arrivalTime+dt);
