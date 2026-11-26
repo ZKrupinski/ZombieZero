@@ -5063,7 +5063,7 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
   screenShake.power=serveStrike?12:9.5;screenShake.started=now;screenShake.until=now+100;
   screenShake.phase=(screenShake.phase+1.41)%6.283;
   screenShake.hero=true;screenShake.critical=false;
-  screenShake.zoom=serveStrike?.04+Math.random()*.02:.12+Math.random()*.08;screenShake.zoomAt=now;
+  screenShake.zoom=serveStrike?.04+Math.random()*.02:.10+Math.random()*.06;screenShake.zoomAt=now;
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
   screenShake.focusY=typeof PY==='number'?PY+15:599;
   cameraKick=screenShake.power;lastCameraFeedback=now;return;
@@ -5104,10 +5104,10 @@ function cameraOffset(){
 function heroCameraZoom(){
  if(screenShake.zoom<=0||screenShake.until<=0||(typeof mode!=='undefined'&&mode!=='playing'))return null;
  const age=feedbackNow()-screenShake.zoomAt;
- if(age<0||age>=340)return null;
+ if(age<0||age>=260)return null;
  // Hard cut to the close shot on frame zero, then ease back smoothly.
  // Independent of the shorter shake, so subsequent enemy hits never cut it off.
- const u=age/340,t=1-u*u*(3-2*u);
+ const u=age/260,t=1-u*u*(3-2*u);
  return {scale:1+screenShake.zoom*t,x:screenShake.focusX,y:screenShake.focusY};
 }
 // Keep lightweight counters so players can verify that zombie hits reach
