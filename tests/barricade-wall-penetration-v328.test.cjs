@@ -19,19 +19,19 @@ new Function('window','document',src)(win,fakeDoc);
 const f=win.ZZFortress;
 const canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}};
-const xy=(col,row)=>({clientX:38+col*22+11,clientY:82+row*22+11,
+const xy=(col,row)=>({clientX:38+col*44+11,clientY:82+row*44+11,
  pointerId:1,button:0});
 function build(col,r0,r1){
  assert(f.down(xy(col,r0),canvas));
  f.move(xy(col,r1),canvas);f.up(xy(col,r1),canvas);
  dom['fortress-confirm'].click();
 }
-f.reset();f.begin([],1);build(5,3,10);
+f.reset();f.begin([],1);build(3,1,8);
 assert.equal(f.getWallCount(),8);
-const wallX=38+5*22,wallY=82+5*22;
-const zombie={x:wallX+40,y:wallY+1,w:16.5,h:22};
+const wallX=38+3*44,wallY=82+3*44;
+const zombie={x:wallX+62,y:wallY+1,w:16.5,h:22};
 assert.equal(f.isOpen(zombie,wallX+1,wallY+1),false,'wall solid at center');
-assert.equal(f.isPathClear(zombie,wallX-55,wallY+1,wallX+40,wallY+1),false,
+assert.equal(f.isPathClear(zombie,wallX-55,wallY+1,wallX+62,wallY+1),false,
  'long step with two open endpoints still intersects the wall');
 assert.equal(f.isPathClear(zombie,wallX-55,wallY+1,wallX-45,wallY+1),true,
  'movement entirely before the wall stays free');
@@ -40,10 +40,10 @@ assert.equal(f.resolve(zombie,startX,wallY+1,.9,()=>{}),true,
  'crossing a wall is blocked even when landing past its far side');
 assert(zombie.x+zombie.w<=wallX+.001,'zombie stopped at near face, not far face');
 assert(f.isOpen(zombie,zombie.x,zombie.y),'the corrected zombie is not embedded');
-assert.equal(f.getWallHP(5,5),29,'one actual bite damages one cube');
-const up={x:wallX+2,y:wallY+60,w:16,h:22};
-assert(f.resolve(up,wallX+2,wallY-45,.9,()=>{}),'a long vertical dash is blocked');
-assert(up.y+up.h<=wallY+.001,'zombie lands above the cube, not inside it');
+assert.equal(f.getWallHP(6,6),29,'one actual bite damages one cube');
+const up={x:wallX+2,y:wallY+100,w:16,h:22};
+assert(f.resolve(up,wallX+2,wallY-110,.9,()=>{}),'a long vertical dash is blocked');
+assert(up.y+up.h<=82+44+.001,'zombie lands above the cube, not inside it');
 assert(f.isOpen(up,up.x,up.y));
 const alreadyInside={x:wallX+3,y:wallY+3,w:16,h:22};
 assert.equal(f.escapeWall(alreadyInside,alreadyInside.x,alreadyInside.y),true);
@@ -69,7 +69,7 @@ f.reset();
 const crowded=Array.from({length:144},(_,i)=>({
  x:wallX+3,y:wallY+1,w:16.5,h:22,row:Math.floor(i/18),col:i%18
 }));
-f.begin(crowded,1);build(5,3,10);
+f.begin(crowded,1);build(3,1,8);
 const targets=[];
 assert.equal(f.deploy(targets),true);
 assert.equal(targets.length,144,'all enemies retained when barricades are crowded');

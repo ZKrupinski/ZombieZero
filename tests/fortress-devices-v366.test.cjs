@@ -106,11 +106,11 @@ for(const [depth,z] of [lead,second,third].entries()){
 console.log('PASS directional spring contact, off-axis exclusion and three-body diagonal chain');
 f.reset();f.begin([],1);place('bollard',16,19,2);f.deploy([]);
 const post=f.getStructure(16,19),rider=actor(post.x+2,post.y-1);
-const neighbor=actor(post.x-21,post.y),far=actor(post.x-48,post.y);
+const neighbor=actor(post.x-21,post.y),far=actor(post.x-70,post.y);
 const group=[rider,neighbor,far],bumped=new Set();
 const bump={push(z,dx,dy){bumped.add(z);z.x+=dx*55;z.y+=dy*55;return true}};
 const ballAtPost=()=>f.bounceBall({x:post.x+1,y:post.y+10,vx:60,vy:0},post.x-6,post.y+10,3);
-assert.equal(f.getStructure(15,19),undefined);
+assert.equal(f.getStructure(15,19),post);assert.equal(f.getStructure(14,19),undefined);
 assert(f.isOpen(rider,rider.x,rider.y));assert.equal(ballAtPost(),null);
 post.cooldown=0;f.tickDevices(.02,group,1,bump);
 assert.deepEqual(bumped,new Set([rider,neighbor]));
@@ -124,9 +124,9 @@ assert(!post.raised,'blocked hatch must never trap an overlapping zombie');
 console.log('PASS one-cell retractable bollard, adjacent shove, timed wall and ball collision');
 f.reset();f.begin([],1);f.selectBuild('bollard');
 f.down(p(1,2),canvas);f.move(p(5,2),canvas);f.up(p(5,2),canvas);
-assert.equal(f.getPreview().builds,5);assert.equal(f.getPreview().cost,10);
+assert.equal(f.getPreview().builds,3);assert.equal(f.getPreview().cost,6);
 nodes['fortress-confirm'].click();
-for(let col=1;col<=5;col++)assert.equal(f.getStructure(col,2).kind,'bollard');
+for(let col=1;col<=6;col++)assert.equal(f.getStructure(col,2).kind,'bollard');
 
 // v387: stationary contact damages an exposed mole at real frame intervals.
 f.reset();f.begin([],1);assert(f.selectBuild('bollard'));f.down(p(4,6),canvas);f.up(p(4,6),canvas);nodes['fortress-confirm'].click();f.deploy([]);
@@ -184,7 +184,7 @@ f.resolve(frozen,frozen.x,frozen.y,.35,null,1);assert.equal(armor.hp,16);
 f.reset();f.begin([],1);assert(f.selectBuild('bollard'));f.down(p(5,8),canvas);f.up(p(5,8),canvas);nodes['fortress-confirm'].click();f.deploy([]);
 const hatch=f.getStructure(5,8),runner=actor(hatch.x+3,hatch.y-24);
 hatch.cooldown=.18;hatch.lift=0;let pop=0;
-const hopOps={canMove:(z,x,y)=>y+z.h<550&&f.isPathClear(z,z.x,z.y,x,y),molePush(z,w,dir){pop++;z.y=dir>0?w.y+25:w.y-z.h-3;return true}};
+const hopOps={canMove:(z,x,y)=>y+z.h<550&&f.isPathClear(z,z.x,z.y,x,y),molePush(z,w,dir){pop++;z.y=dir>0?w.y+47:w.y-z.h-3;return true}};
 const originalRandom=Math.random;Math.random=()=>.1;
 try{
  f.tickDevices(.01,[runner],1,hopOps);assert(runner.moleHop);

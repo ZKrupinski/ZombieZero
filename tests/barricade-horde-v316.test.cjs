@@ -13,7 +13,7 @@ const win={};
 new Function('window','document',src)(win,document);
 const fort=win.ZZFortress;
 const canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),setPointerCapture(){}};
-const p=(col,row)=>({clientX:38+col*22+10,clientY:82+row*22+10,pointerId:7,button:0});
+const p=(col,row)=>({clientX:38+col*44+10,clientY:82+row*44+10,pointerId:7,button:0});
 fort.reset();
 const enemies=Array.from({length:144},(_,i)=>({
  x:45+(i%18)*343.5/17,y:70+Math.floor(i/18)*29,
@@ -41,7 +41,7 @@ assert.equal(launched,1);
 assert.equal(assigned.length,144,'all 144 mini zombies are deployed after ready');
 assert.equal(elements['fortress-builder'].hidden,true);
 for(const z of assigned)for(let col=0;col<3;col++){
- const wall={x:38+22*col,y:82,w:22,h:22};
+ const wall={x:38+44*col,y:82,w:44,h:44};
  assert(!(z.x<wall.x+wall.w&&z.x+z.w>wall.x&&z.y<wall.y+wall.h&&z.y+z.h>wall.y),
   'spawn colliders must avoid built walls');
 }

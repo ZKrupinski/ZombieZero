@@ -20,14 +20,14 @@ const win={};new Function('window','document',source)(win,doc);
 const fort=win.ZZFortress;
 const canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}};
-const p=(col,row=0)=>({pointerId:17,button:0,clientX:48+22*col,clientY:92+22*row});
+const p=(col,row=0)=>({pointerId:17,button:0,clientX:48+44*col,clientY:92+44*row});
 function drag(a,b,row=0){
  assert.equal(fort.down(p(a,row),canvas),true);
  fort.move(p(b,row),canvas);assert.equal(fort.up(p(b,row),canvas),true);
 }
 const confirm=()=>nodes['fortress-confirm'].click();
 function chip(col,row=0,count=1){
- const x=41+col*22,y=90+row*22,z={x,y,w:16,h:22};
+ const x=41+col*44,y=90+row*44,z={x,y,w:16,h:22};
  for(let i=0;i<count;i++){
   z.x=x;z.y=y;fort.resolve(z,x,y-35,.79,()=>{});
  }
@@ -42,7 +42,7 @@ assert.equal(fort.getStock(),20,'being bitten consumes no material');
 const count=fort.getWallCount(),stock=fort.getStock();
 fort.begin([],2);
 assert.equal(fort.getWallCount(),count,'surviving cubes persist in place');
-for(let i=0;i<6;i++)assert.equal(fort.getWallHP(i,0),30,'ALL survivors fully healed');
+for(let i=0;i<6;i++)assert.equal(fort.getWallHP(i*2,0),30,'ALL survivors fully healed');
 assert.equal(fort.getStock(),stock+8,'automatic repair is free on top of stage supply');
 assert.deepEqual(fort.getSupply(),{refund:0,bonus:8,healed:6});
 assert.equal(materialNumber.textContent,'6/34');

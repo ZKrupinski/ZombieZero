@@ -29,18 +29,18 @@ const fort=win.ZZFortress,c={
  getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}
 };
-const ptr=(col)=>({pointerId:7,button:0,clientX:48+col*22,clientY:92});
+const ptr=(col)=>({pointerId:7,button:0,clientX:48+col*44,clientY:92});
 fort.reset();fort.begin([],1);
 assert.equal(fort.down(ptr(0),c),true);
 fort.move(ptr(4),c);fort.up(ptr(4),c);
 nodes['fortress-confirm'].click();
 assert.equal(fort.getWallCount(),5);
 function bite(col,n){
- const x=41+col*22,z={x,y:90,w:16,h:22};
+ const x=41+col*44,z={x,y:90,w:16,h:22};
  for(let i=0;i<n;i++){z.x=x;z.y=90;fort.resolve(z,x,57,.79,()=>{})}
 }
 for(let i=1;i<5;i++)bite(i,i*6);
-for(let i=0;i<5;i++)assert.equal(fort.getWallHP(i,0),30-i*6);
+for(let i=0;i<5;i++)assert.equal(fort.getWallHP(i*2,0),30-i*6);
 const g={drawn:[],filter:'none',save(){this._stack??=[];this._stack.push(this.filter)},
  restore(){this.filter=this._stack.pop()},drawImage(...a){this.drawn.push({a,filter:this.filter})}};
 fort.draw(g,false);g.drawn.length=0;
@@ -51,14 +51,14 @@ for(let i=0;i<5;i++){
  const call=g.drawn[i];
  assert(call.a[0] instanceof FakeImage,'use real bitmap rather than procedural tile');
  assert.deepEqual(call.a.slice(1,5),[i*56,0,56,56],'HP maps to its own art frame');
- assert.equal(call.a[7],22);assert.equal(call.a[8],22);
+ assert.equal(call.a[7],44);assert.equal(call.a[8],44);
  if(i===0)assert.equal(call.filter,'none','undamaged block unaffected by neighbor bite');
  else assert(call.filter.includes('brightness('),'bitten block flashes independently');
 }
-assert.notEqual(g.drawn[1].a[5],60,'bite shaking displaces bitten wall only');
+assert.notEqual(g.drawn[1].a[5],82,'bite shaking displaces bitten wall only');
 fort.tick(.30);g.drawn.length=0;fort.draw(g,false);
 assert(g.drawn.every(d=>d.filter==='none'),'bite flash expires');
-for(let i=0;i<5;i++)assert.equal(g.drawn[i].a[5],38+i*22,'shake ends without shifting actual collisions');
+for(let i=0;i<5;i++)assert.equal(g.drawn[i].a[5],38+i*44,'shake ends without shifting actual collisions');
 assert(html.includes('src="fortress-mode.js?v='),'versioned barricade module present');
 assert(sw.includes('v323-aligned-damage-frames'));
 assert(sw.includes("'./"+asset+"'"),'PWA precaches actual bitmap');
