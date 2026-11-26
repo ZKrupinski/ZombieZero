@@ -45,7 +45,7 @@ assert.equal(fort.getWallCount(),count,'surviving cubes persist in place');
 for(let i=0;i<6;i++)assert.equal(fort.getWallHP(i,0),30,'ALL survivors fully healed');
 assert.equal(fort.getStock(),stock+8,'automatic repair is free on top of stage supply');
 assert.deepEqual(fort.getSupply(),{refund:0,bonus:8,healed:6});
-assert.equal(materialNumber.textContent,'6/34');
+assert.equal(materialNumber.textContent,'6/24'); // 16 initial + 8 next-stage materials
 assert(!html.includes('id="fortress-supply"'),'duplicate supply label removed');
 assert(!html.includes('id="fortress-tool"'),'manual repair button is removed');
 assert(!source.includes('repairMode'),'manual repair mode removed');
