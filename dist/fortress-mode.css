@@ -247,3 +247,60 @@
 @media(prefers-reduced-motion:reduce){
  #fortress-ready[data-starting="true"],#fortress-ready[data-starting="true"]::before,#fortress-ready[data-starting="true"]::after,#fortress-ready[data-starting="true"] .zz-start-rays,#fortress-ready[data-starting="true"] .zz-start-sparks b{animation:none}
 }
+
+/* V414: approved raster artwork; the 5-slot steel plate and gold selection
+   overlay are independent alpha bitmaps. Only DOM state selects a slot. */
+.zz-fortress-builder .zz-fortress-top{
+ left:3%;right:3%;bottom:.8%;height:15.7%;
+ display:block;padding:0;gap:0;background:none;border:0;box-shadow:none;
+}
+.zz-fortress-top .zz-build-picker{
+ position:absolute;inset:0 0 10.5%;display:block;
+ background: url('assets/ui/fortress-picker-v414.webp') center/100% 100% no-repeat;
+}
+.zz-fortress-top .zz-build-picker button{
+ position:absolute;top:18.6%;bottom:20.2%;width:17.4%;height:auto;
+ display:grid;grid-template-rows:minmax(0,1fr) auto;
+ padding:0 1px 2px;gap:0;margin:0;border:0;border-radius:5px;
+ background:#10313a;color:#f2f5e7;box-shadow:none;overflow:visible;
+ isolation:isolate;opacity:1;
+}
+.zz-build-picker #build-pick-wall{left:4.3%}
+.zz-build-picker #build-pick-bollard{left:23.2%}
+.zz-build-picker #build-pick-ice{left:41.3%}
+.zz-build-picker #build-pick-lure{left:59.6%}
+.zz-build-picker #build-pick-saw{left:78.2%}
+.zz-fortress-top .zz-build-picker button::after{
+ content:'';position:absolute;inset:-3.5% -4%;z-index:2;pointer-events:none;
+ background:url('assets/ui/fortress-selected-v414.webp') center/100% 100% no-repeat;
+ opacity:0;
+}
+.zz-fortress-top .zz-build-picker button[aria-pressed="true"]{
+ background:#153e39;box-shadow:none;border:0;
+}
+.zz-fortress-top .zz-build-picker button[aria-pressed="true"]::after{opacity:1}
+.zz-fortress-top .zz-build-picker button:focus-visible{outline:2px solid #fff7c0;outline-offset:2px}
+.zz-fortress-top .zz-build-picker button canvas{
+ width:100%;height:100%;object-fit:contain;min-height:0;display:block;
+}
+.zz-fortress-top .zz-build-picker button span{
+ font-size:clamp(7px,2.15cqw,12px);line-height:1.12;
+ text-shadow:0 1px 2px #081e24;align-self:end;white-space:nowrap;
+}
+.zz-fortress-top .zz-build-picker button b{
+ z-index:3;top:1px;right:2px;color:#ffdc76;
+ background:#071a22e8;box-shadow:0 1px 1px #07131a;
+}
+.zz-fortress-top .zz-build-picker button[data-affordable="false"],
+.zz-fortress-top .zz-build-picker button:disabled{opacity:1}
+.zz-fortress-top .zz-build-picker button[data-affordable="false"] canvas,
+.zz-fortress-top .zz-build-picker button[data-affordable="false"] span,
+.zz-fortress-top .zz-build-picker button:disabled canvas,
+.zz-fortress-top .zz-build-picker button:disabled span{opacity:.55}
+.zz-fortress-top #fortress-tip{
+ position:absolute;bottom:0;left:7%;right:7%;height:10.5%;
+ display:flex;align-items:center;justify-content:center;text-align:center;
+ background:#0a2834e8;color:#eff5e1;border-radius:2px;
+ font-size:clamp(7px,1.2cqh,11px);line-height:1.1;
+ white-space:nowrap;overflow:hidden;text-shadow:0 1px 1px #06151b;
+}
