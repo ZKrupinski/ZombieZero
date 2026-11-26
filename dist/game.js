@@ -2551,6 +2551,9 @@ function refillEndlessWave(){
  score+=500;hud();
 }
 function updateEndlessShift(dt){
+ // V430: updateEnemyVisuals runs before this function. Do not clear the
+ // death queue or evict current sprite sheets while any death is still playing.
+ if(!endlessShiftSpawned&&enemyDeaths.some(d=>!d.done))return;
  if(!endlessShiftSpawned&&endlessShiftTime+dt>=ENDLESS_SHIFT_SPAWN_AT&&
     (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||
      nextBossArtLoading(wave+1)||preparedArtLoading(preparedStage))&&endlessBackgroundWait<6){
@@ -6026,6 +6029,7 @@ function drawJunk(){for(const j of junk){
  drawThrowable(j.kind,x,y,24+4*Math.sin(Math.PI*t),t*8);
 }}
 function drawEndlessShift(){
+ if(!endlessShiftSpawned&&enemyDeaths.some(d=>!d.done))return;
  // A light in-world cue only; never show the stage result card.
  const waveNumber=endlessWaveNumber()+(endlessShiftSpawned?0:1);
  const alpha=Math.min(1,Math.max(0,endlessShiftTime/.24),
@@ -6077,7 +6081,7 @@ function drawStageAnnouncement(word,color,size){
  }
  g.restore();
 }
-function drawClear(){drawStageAnnouncement('STAGE CLEAR !','#ffe32b',28)}
+function drawClear(){if(enemyDeaths.some(d=>!d.done))return;drawStageAnnouncement('STAGE CLEAR !','#ffe32b',28)}
 let inputPointer=null,inputX=0,armedServeBall=null;
 function releaseInput(){inputPointer=null;armedServeBall=null}
 function blocksInput(e){return !!e.target?.closest?.('button,a,input,select,textarea,summary,[role="button"],.overlay,.guide')}

@@ -46,6 +46,36 @@ const bossWave=r('wave');
 r("foes=foes.filter(z=>z.boss);update(.016)");
 assert.equal(r('wave'),bossWave,'living boss prevents intermission');
 
+// Final-death regression: all 15 canonical species, both kill flags.
+// The real death queue and wave-transition update are exercised together.
+// The production HD atlas test separately verifies the actual frame crops.
+for(const [form,eliteKind,bossForm] of [
+ ...Array.from({length:8},(_,i)=>[i,undefined,undefined]),
+ ...Array.from({length:3},(_,i)=>[0,i,undefined]),
+ ...Array.from({length:4},(_,i)=>[3,undefined,i])
+])for(const critical of [false,true]){
+ r("start('endless')");
+ r(`foes=[{x:170,y:220,w:33,h:44,form:${form},kind:0,seed:1,hp:1,max:1,
+ eliteKind:${eliteKind},bossForm:${bossForm},boss:${bossForm!==undefined},hitShakeUntil:clock+.12}];
+ enemyDeath(foes[0],${critical});enemyDeaths[0].split=enemyDeaths[0].freeze+(${bossForm!==undefined}?.94:.72);
+ foes=[];beginClear()`);
+ const total=r('enemyDeaths[0].split');
+ r('update(.35)');
+ assert.equal(r('wave'),51,'no premature replacement of final dying sprite');
+ assert.equal(r('enemyDeaths.length'),1);
+ assert.equal(r('endlessShiftTime'),0);
+ r(`update(${total-.35-.01})`);
+ assert.equal(r('enemyDeaths.length'),1,'death queue retained to last fade');
+ assert.equal(r('wave'),51);
+ r('update(.02)');
+ assert.equal(r('enemyDeaths.length'),0,'death completes before reset');
+ assert.equal(r('wave'),51);
+ r('update(.35)');
+ assert.equal(r('wave'),52,'next wave resumes after completed death');
+ r('update(1.5)');assert.equal(r('mode'),'playing');
+}
+// Restore the solo boss fixture for the original emergency checks.
+r("start('endless');wave=53;rack();foes=foes.filter(z=>z.boss)");
 // The emergency assist is reserved for the final approach AFTER the solo
 // boss returns from its single retreat and survives near the defense line.
 r("foes[0].mercyUsed=true;foes[0].mercyDescending=true;foes[0].y=DEFENSE_Y-foes[0].h-20;updateEmergencySupport(9)");
