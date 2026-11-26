@@ -2432,10 +2432,38 @@ function march(dt){
 // a stage result dialog, but the player must serve a fresh ball for each wave.
 const ENDLESS_SHIFT_SECONDS=1.8,ENDLESS_SHIFT_SPAWN_AT=.35;
 let endlessShiftTime=0,endlessShiftSpawned=false,endlessBackgroundWait=0;
+const WAVE_QUIPS=[
+ '좀비 명언 ① 머리는 열고, 입은 닫자.',
+ '좀비 명언 ② 뇌가 쉬어야 머리가 돈다.',
+ '좀비 명언 ③ 뚜껑 열릴 땐 심호흡.',
+ '신입 좀비 “앞줄이 명당이라면서요?”',
+ '좀비 반장 “줄 맞춰! 공 사이로!”',
+ '좀비 코치 “공은 끝까지… 아야.”',
+ '좀비 심판 “방금 내 이마는 인이야.”',
+ '좀비 주장 “작전명은 일단 피해.”',
+ '검은 봉투 “저 오늘 수거일인데요.”',
+ '생수병 “흔들지 마세요. 어지러워요.”',
+ '쓰레기통 “공 넣는 데 아닙니다.”',
+ '나무상자 “택배요? 저 출근인데요.”',
+ '에이스 “랠리 친구가 좀 많네.”',
+ '루비 “홈런 치면 누가 주워 와?”',
+ '렌치 “공이 찌그러지면 펴 드려요.”',
+ '스칼렛 “가방에 공 자국 나면 네 탓.”',
+ '시민 “응원은 할게요. 여기서.”',
+ '뒷줄 좀비 “앞줄 수당은 따로 줘요?”'
+];
+let remainingWaveQuips=[],waveQuip='';
+function pickWaveQuip(){
+ if(!remainingWaveQuips.length)remainingWaveQuips=WAVE_QUIPS.slice();
+ let index=Math.floor(Math.random()*remainingWaveQuips.length);
+ if(remainingWaveQuips[index]===waveQuip)index=(index+1)%remainingWaveQuips.length;
+ waveQuip=remainingWaveQuips.splice(index,1)[0];
+}
 function beginEndlessShift(){
  if(runMode!=='endless'||mode!=='playing')return;
  resetCitizenSpeech();
  window.ZZProgression?.grant?.('wave',wave-50,10,selectedHero);
+ pickWaveQuip();
  mode='endlessShift';endlessShiftTime=0;endlessShiftSpawned=false;
  endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));prepareStageArt(wave+1);
  releaseInput();
@@ -6070,7 +6098,7 @@ function drawEndlessShift(){
  g.shadowColor='#132926';g.shadowBlur=8;
  arcadeGlowText('WAVE '+String(waveNumber).padStart(2,'0'),225,315,9);
  g.font='bold 12px Arial, sans-serif';g.fillStyle='#d7e9e0';
- g.fillText('READY · 다음 공을 준비하세요',225,338);
+ g.fillText(waveQuip,W/2,338,W-48);
  g.restore();
 }
 // Screen-space announcement: crisp black outline, bright face and a soft local bloom.
