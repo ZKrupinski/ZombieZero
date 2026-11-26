@@ -24,7 +24,7 @@ for(const skills of [['fire'],['pierce'],['power'],['power','fire'],['power','pi
   const serial=JSON.stringify(ops);
   if(reference===null)reference=serial;else assert.equal(serial,reference,skills+' must retain exact full detail');
   const floors=ops.filter(x=>x[0]==='floor');
-  assert.equal(floors.length,18);assert(floors.every(a=>a[9]===undefined),'full core layer retained');
+  assert.equal(floors.length,Math.ceil((env.path.at(-1).s-4)/16)+1);assert(floors.every(a=>a[9]===undefined),'full core layer retained');
   if(skills.includes('fire'))assert(ops.some(x=>x[0]==='bezierCurveTo'),'full fire tongues retained');
   if(skills.includes('pierce'))assert(ops.some(x=>x[0]==='strokeStyle'&&x[1]==='#45c8ff'),'outer electric glow retained');
  }

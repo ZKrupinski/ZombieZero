@@ -9,9 +9,13 @@ function referenceTrail(b,r){
  for(let i=0;i<raw.length-1&&total<limit;i++){
   const p=raw[i],q=raw[i+1],prev=raw[Math.max(0,i-1)],next=raw[Math.min(raw.length-1,i+2)];
   const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy);if(len<.6)continue;
-  const count=Math.ceil(len/2.6);
+  // V410 preserves the dense sampling at bends, with 4px on straight segments.
+  const corner=p.corner||q.corner;
+  const ax=p.x-prev.x,ay=p.y-prev.y,bx=next.x-q.x,by=next.y-q.y;
+  const curved=!corner&&(Math.abs(ax*dy-ay*dx)>.12*Math.hypot(ax,ay)*len||Math.abs(bx*dy-by*dx)>.12*Math.hypot(bx,by)*len);
+  const count=Math.ceil(len/(curved?2.6:4));
   for(let n=1;n<=count;n++){
-   const t=n/count,t2=t*t,t3=t2*t,corner=p.corner||q.corner;
+   const t=n/count,t2=t*t,t3=t2*t;
    const m0x=corner?dx:(q.x-prev.x)*.5,m0y=corner?dy:(q.y-prev.y)*.5;
    const m1x=corner?dx:(next.x-p.x)*.5,m1y=corner?dy:(next.y-p.y)*.5;
    const x=clamp(corner?p.x+dx*t:(2*t3-3*t2+1)*p.x+(t3-2*t2+t)*m0x+(-2*t3+3*t2)*q.x+(t3-t2)*m1x,Math.min(p.x,q.x),Math.max(p.x,q.x));
@@ -37,7 +41,7 @@ for(let k=0;k<1000;k++){
  for(let i=0;i<k%97;i++){x+=(rand()-.5)*22;y+=(rand()-.5)*22;b.trail.push({x,y,corner:rand()<.12})}
  const radius=k%2?8:12;
  const expected=referenceTrail(b,radius),actual=box.buildBallTrailPath(b,radius,storage);
- assert.equal(JSON.stringify(actual),JSON.stringify(expected),'bit-identical vertices, length, clipping and corners');
+ assert.equal(JSON.stringify(actual),JSON.stringify(expected),'bit-identical V410 reference vertices, length, clipping and corners');
  vertices+=actual.length;
  for(const point of actual)if(!identities.has(point)){identities.add(point);allocated++}
 }
