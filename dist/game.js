@@ -3072,7 +3072,8 @@ function applyKnockback(z,impact,n=1){
 // Only mole launches may propel a zombie toward the player. Reserve a
 // legal landing before the hatch becomes solid and animate the short arc.
 function pushMoleZombie(z,w,dir){
- const top=w.y-z.h-3,bottom=w.y+22+3;
+ const tile=fortress?.bounds?.().tile||22;
+ const top=w.y-z.h-3,bottom=w.y+tile+3;
  const before=knockVisualPosition(z),bx=before.x,by=before.y;
  for(const sy of [dir,-dir]){
   const edge=sy>0?bottom:top;
@@ -3093,7 +3094,7 @@ function pushMoleZombie(z,w,dir){
  // Crowded vertical lanes: choose a checked sideways exit, or leave the
  // mole submerged rather than pinning a zombie inside a solid structure.
  for(const sx of [-1,1]){
-  const nx=sx<0?w.x-z.w-3:w.x+22+3;
+  const nx=sx<0?w.x-z.w-3:w.x+tile+3;
   if(!canKnockback(z,nx,z.y))continue;
   fortressContact(z,'bollard',sx,0);
   z.knockFromX=bx;z.knockFromY=by;z.x=nx;

@@ -225,11 +225,12 @@ for(let wave=9;wave<=14;wave++){
  assert.equal(f.getStock(),0);
  assert.equal(nodes['fortress-builder'].hidden,true);
  for(const w of devices){
-  const size=w.kind==='wall'||w.kind==='bollard'?22:44;
+  const size=w.kind==='wall'||w.kind==='bollard'?44:88;
+  assert.equal(f.bounds().tile,44);
   assert(w.y+size<=499);
   for(const z of opening)assert(z.x+z.w<=w.x||z.x>=w.x+size||z.y+z.h<=w.y||z.y>=w.y+size);
  }
 }
 assert(f.setupEndless(100,opening,565)<=11);
-f.reset();assert.equal(f.getWallCount(),0);
-console.log('PASS v398: endless support progression, fresh unobstructed placement, bounded count, no construction UI.');
+f.reset();assert.equal(f.getWallCount(),0);assert.equal(f.bounds().tile,22);
+console.log('PASS v412: endless support progression, fresh unobstructed placement, bounded count, no construction UI.');
