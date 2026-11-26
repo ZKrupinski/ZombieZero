@@ -12,9 +12,10 @@ assert(shot,'serve method found');
 function serveAt(car){
  const math=Object.create(Math);
  const b={held:true,bounceTime:.12};
- const o={Math:math,W:450,PY:584,car,heldBallOffset:()=>({x:-12,y:-35}),mode:'playing',balls:[b],unlockAudio:()=>{},
+ const o={Math:math,introFadeAt:Infinity,clock:23,W:450,PY:584,car,heldBallOffset:()=>({x:-12,y:-35}),mode:'playing',balls:[b],unlockAudio:()=>{},
  syncMulti:()=>{},sfx:()=>{},feedback:()=>{},hud:()=>{},swing:0,heroAttackTime:0,HERO_ATTACK_DURATION:.42};
  vm.runInNewContext(shot[0]+';serve()',o,{timeout:1000});
+ assert.equal(o.introFadeAt,o.clock,'opening serve starts the caption fade');
  return b;
 }
 const left=serveAt(72),right=serveAt(378),center=serveAt(225);
