@@ -4950,7 +4950,7 @@ function drawSlowProjectileEchoes(){
   }
  }finally{g.restore()}
 }
-function draw(){recordSlowEchoHistory();trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);const zoom=heroCameraZoom();if(zoom){g.translate(zoom.x,zoom.y);g.scale(zoom.scale,zoom.scale);g.translate(-zoom.x,-zoom.y)}background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
+function draw(){recordSlowEchoHistory();trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);const zoom=heroCameraZoom();const spring=heroCameraSpring(zoom);if(spring){if(spring.stretch>1){g.translate(0,spring.pivotY);g.scale(1,spring.stretch);g.translate(0,-spring.pivotY)}g.translate(0,spring.offset)}if(zoom){g.translate(zoom.x,zoom.y);g.scale(zoom.scale,zoom.scale);g.translate(-zoom.x,-zoom.y)}background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.
@@ -5202,7 +5202,7 @@ const PLAYER_HAPTIC_KINDS=new Set([
  'serve','racket','car','poisonBlock','blocked','groggy','groggyRecover'
 ]);
 // V415: compact real-time camera impulse. No queued or extended shakes.
-const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,zoom:0,zoomAt:-Infinity,zoomDuration:100,focusX:225,focusY:584};
+const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,zoom:0,zoomAt:-Infinity,zoomDuration:100,springPower:0,springTail:0,focusX:225,focusY:584};
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
 const CAMERA_AMPLITUDE_SCALE=1.15;
@@ -5220,6 +5220,9 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
   screenShake.phase=(screenShake.phase+1.41)%6.283;
   screenShake.hero=true;screenShake.critical=false;
   screenShake.zoom=serveStrike?.10+Math.random()*.04:.04+Math.random()*.02;screenShake.zoomAt=now;screenShake.zoomDuration=serveStrike?200:overhead?180:100;
+  // V431: a distinct vertical spring, never a second shake impulse.
+  screenShake.springPower=serveStrike?12:overhead?14:10;
+  screenShake.springTail=serveStrike?12:overhead?14:10;
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
   // V427: frame the action above the hero. The world transform shifts the
   // hero downward on screen while its position, collisions and input stay put.
@@ -5269,6 +5272,34 @@ function heroCameraZoom(){
  // Independent of the shorter shake, so subsequent enemy hits never cut it off.
  const u=age/screenShake.zoomDuration,t=1-u*u*(3-2*u);
  return {scale:1+screenShake.zoom*t,x:screenShake.focusX,y:screenShake.focusY};
+}
+// V431: press downward on impact, recover with the zoom, then overshoot
+// upwards and rebound once at lower amplitude. Fixed time, not frame count.
+const HERO_SPRING_TAIL_MS=200;
+function heroCameraSpring(zoom,height=typeof H==='number'?H:710){
+ if(screenShake.zoom<=0||screenShake.until<=0||screenShake.springPower<=0||(typeof mode!=='undefined'&&mode!=='playing'))return null;
+ const age=feedbackNow()-screenShake.zoomAt,duration=screenShake.zoomDuration;
+ if(age<0||age>=duration+HERO_SPRING_TAIL_MS)return null;
+ let offset;
+ if(age<duration){
+  const u=age/duration;
+  offset=screenShake.springPower*(1-u)*(1-u);
+ }else{
+  const u=(age-duration)/HERO_SPRING_TAIL_MS;
+  offset=-screenShake.springTail*Math.sin(2*Math.PI*u)*(1-u)*(1-u);
+ }
+ if(Math.abs(offset)<.0001)return null;
+ // Compose the spring in screen space. A tiny vertical stretch around the
+ // rendered hero pivot only when needed covers the top/bottom canvas edges.
+ // It does not change the existing horizontal zoom or the hero's target Y.
+ const scale=zoom?.scale||1,baseTop=zoom?(1-scale)*zoom.y:0;
+ const top=baseTop+offset,bottom=top+height*scale;
+ const pivot=(typeof PY==='number'?PY:584)+15;
+ const pivotY=pivot*scale+top;
+ let stretch=1;
+ if(top>0&&pivotY>top)stretch=Math.max(stretch,pivotY/(pivotY-top));
+ if(bottom<height&&bottom>pivotY)stretch=Math.max(stretch,(height-pivotY)/(bottom-pivotY));
+ return {offset,pivotY,stretch};
 }
 // Keep lightweight counters so players can verify that zombie hits reach
 // the vibration API, independently from whether the device motor responds.

@@ -27,7 +27,7 @@ const stageSource=game.slice(stageStart,game.indexOf('}',clearStart)+1);
 assert(stageSource.startsWith('function drawStageAnnouncement('));
 const stageCalls=[];
 const stageG={save(){},restore(){},measureText(word){return {width:word.length*parseFloat(this.font.split(' ')[1])}},fillText(word,x,y,maxWidth){stageCalls.push({kind:'fill',word,x,y,maxWidth,font:this.font,color:this.fillStyle,blend:this.globalCompositeOperation,blur:this.shadowBlur})},strokeText(word,x,y,maxWidth){stageCalls.push({kind:'stroke',word,x,y,maxWidth,color:this.strokeStyle,width:this.lineWidth})}};
-vm.runInNewContext(stageSource+";drawStageAnnouncement('STAGE 01','#ffffff',32);drawClear()",{g:stageG,W:450,H:710,fxEnabled:true},{timeout:1000});
+vm.runInNewContext(stageSource+";drawStageAnnouncement('STAGE 01','#ffffff',32);drawClear()",{g:stageG,W:450,H:710,fxEnabled:true,enemyDeaths:[]},{timeout:1000});
 for(const [word,color,size] of [['STAGE 01','#ffffff',32],['STAGE CLEAR','#ffe32b',28],['!','#ffe32b',28]]){
  const calls=stageCalls.filter(c=>c.word===word);
  assert(calls.some(c=>c.kind==='stroke'&&c.color==='#000000'&&c.width>=6),'stage title has black outline');
@@ -45,7 +45,7 @@ assert(Math.abs((clear.x-clear.maxWidth/2+bang.x+bang.maxWidth/2)/2-225)<.001,'c
 assert(game.includes("drawStageAnnouncement('STAGE '+String(wave).padStart(2,'0'),'#ffffff',32)"),'intro uses reduced size');
 // A limited canvas context must never crash the clearing transition.
 const noMetrics={save(){},restore(){},measureText(){},fillText(word,x,y,width){assert(Number.isFinite(x+y+width))},strokeText(word,x,y,width){assert(Number.isFinite(x+y+width))}};
-vm.runInNewContext(stageSource+';drawClear()',{g:noMetrics,W:450,H:710,fxEnabled:true},{timeout:1000});
+vm.runInNewContext(stageSource+';drawClear()',{g:noMetrics,W:450,H:710,fxEnabled:true,enemyDeaths:[]},{timeout:1000});
 assert(game.includes("if(mode==='stageNumber')drawStageAnnouncement("),'stage intro drawn above arena');
 assert(game.includes("if(mode==='stageNumber'){draw();requestAnimationFrame(frame);return}"),'arena renders during title without advancing combat');
 assert(game.includes("g.globalCompositeOperation='lighter'"),'canvas text glow uses ADD');

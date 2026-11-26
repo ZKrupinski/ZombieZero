@@ -4,7 +4,7 @@ const src=fs.readFileSync('dist/game.js','utf8'),start=src.indexOf('const FEEDBA
 let now=1000,random=.2;const pulses=[];
 const h=new Function('env',`let cameraKick=0,lastCameraFeedback=0,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0,hapticsEnabled=true;const car=130,PY=584;
 const performance={now:env.now},navigator={vibrate:p=>{env.pulses.push(p);return true}},document={hidden:false},window={};const Math=Object.create(globalThis.Math);Math.random=env.random;
-${src.slice(start,stop)};return {feedback,cameraOffset,heroCameraZoom,screenShake,FEEDBACK_PRESETS,overheadReturn}`)({now:()=>now,random:()=>random,pulses});
+${src.slice(start,stop)};return {feedback,cameraOffset,heroCameraZoom,screenShake,FEEDBACK_PRESETS,overheadReturn,heroCameraSpring}`)({now:()=>now,random:()=>random,pulses});
 h.feedback('critical',true);assert.equal(h.screenShake.until,1084);
 now=1010;h.feedback('serve');assert.equal(h.screenShake.power,12);assert.equal(h.screenShake.until,1110);assert(h.screenShake.hero);assert.equal(h.screenShake.focusX,130);
 assert.deepEqual(pulses,[[180,48,210],[205,32,235]]);
@@ -27,6 +27,27 @@ now=5250;assert(h.heroCameraZoom().scale<deep.scale);now=5300;assert(h.heroCamer
 now=5800;h.feedback('car',false,true);assert.equal(h.heroCameraZoom().y,20);assert.equal(h.screenShake.zoomDuration,180);
 now=6400;h.feedback('racket',false,false);assert.equal(h.heroCameraZoom().y,399);assert.equal(h.screenShake.zoomDuration,100);
 now=7000;h.feedback('serve',false,true);assert.equal(h.heroCameraZoom().y,399);assert.equal(h.screenShake.zoomDuration,200);
+// Spring remains separate from zoom and haptics. All three timings get
+// an impact press, upward overshoot, smaller downward rebound and rest.
+for(const [kind,overhead,duration,amplitude] of [['racket',false,100,10],['racket',true,180,14],['car',false,100,10],['serve',false,200,12]]){
+ now+=1000;const start=now;random=.5;h.feedback(kind,false,overhead);
+ assert.equal(h.screenShake.zoomDuration,duration);
+ const initial=h.heroCameraSpring(h.heroCameraZoom());assert.equal(initial.offset,amplitude);
+ let minimum=0,maximum=0;
+ for(let age=0;age<duration+200;age++){
+  now=start+age;const zoom=h.heroCameraZoom(),spring=h.heroCameraSpring(zoom);
+  if(!spring)continue;
+  const scale=zoom?.scale||1,top=(zoom?(1-scale)*zoom.y:0)+spring.offset;
+  const bottom=top+710*scale;
+  assert(spring.pivotY+(top-spring.pivotY)*spring.stretch<=1e-7,'no newly exposed top edge');
+  assert(spring.pivotY+(bottom-spring.pivotY)*spring.stretch>=710-1e-7,'no newly exposed bottom edge');
+  if(age>=duration){minimum=Math.min(minimum,spring.offset);maximum=Math.max(maximum,spring.offset)}
+ }
+ assert(minimum<-4&&maximum>0&&maximum<-minimum,'damped upward then smaller downward rebound');
+ now=start+duration+200;assert.equal(h.heroCameraSpring(null),null);
+}
+h.screenShake.zoom=0;assert.equal(h.heroCameraSpring(null),null);
+assert(src.includes('const spring=heroCameraSpring(zoom)'));
 assert(src.includes('const overhead=overheadReturn(b.vx,b.vy),offset='));
 assert(src.includes('const overhead=overheadReturn(b.vx,b.vy);upwardBounce'));
 assert(src.includes('g.scale(zoom.scale,zoom.scale)'));assert(src.includes('drawBubbles();g.restore();drawDanger()'));
