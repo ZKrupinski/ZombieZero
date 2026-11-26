@@ -270,41 +270,49 @@ function setupEndless(wave,enemies,defenseY=565){
  if(wave>=15&&kinds.length<ENDLESS_MAX_STRUCTURES)kinds.push(ENDLESS_DEVICE_ORDER[Math.floor(Math.random()*ENDLESS_DEVICE_ORDER.length)]);
  const mapHeight=defenseY+145,front=enemies.reduce((y,z)=>Math.max(y,z.y+z.h),0);
  const minY=Math.max(mapHeight/3,front+12),maxY=Math.min(mapHeight*2/3,defenseY-66);
- const candidates=[];
- // Preserve 44px layout slots and the 132px boss corridor. Split each
- // wall/mole slot into four touching, independent 22px structures.
- const macroCols=COLS/2,macroRows=ROWS/2,slot=ENDLESS_TILE;
- const overlaps=(x,y,w,h,v,margin=0)=>x<v.x+slot+margin&&x+w>v.x-margin&&y<v.y+slot+margin&&y+h>v.y-margin;
- for(let row=0;row<macroRows;row++)for(let col=0;col<macroCols;col++){
-  const t=cell(col*2,row*2);
-  if(t.y<minY||t.y+slot>maxY)continue;
-  if(enemies.some(z=>overlaps(z.x,z.y,z.w,z.h,t,12)))continue;
-  candidates.push(t);
+ // V443: straight, independent small-cell lines, irregularly spaced machines.
+ // Every candidate uses its actual rectangular footprint, not a 44px macro grid.
+ const candidates={line:[],machine:[]};
+ const overlaps=(a,b,margin=0)=>a.x<b.x+b.w+margin&&a.x+a.w>b.x-margin&&a.y<b.y+b.h+margin&&a.y+a.h>b.y-margin;
+ function candidate(col,row,cols,rows,list){
+  if(col+cols>COLS||row+rows>ROWS)return;
+  const p={...cell(col,row),cols,rows,w:cols*T,h:rows*T};
+  if(p.y<minY||p.y+p.h>maxY||enemies.some(z=>overlaps(p,z,12)))return;
+  list.push(p);
+ }
+ for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
+  candidate(col,row,2,2,candidates.machine);
+  for(let length=4;length<=6;length++){
+   candidate(col,row,length,1,candidates.line);
+   candidate(col,row,1,length,candidates.line);
+  }
  }
  let best=[];
- const corridors=shuffledEndless(Array.from({length:macroCols-2},(_,i)=>i));
- for(const corridor of corridors){
-  const cells=shuffledEndless(candidates.filter(t=>t.col/2<corridor||t.col/2>=corridor+3));
-  const chosen=[],rowCounts=new Map();
-  function search(index){
-   if(chosen.length>best.length)best=chosen.slice();
-   if(chosen.length===kinds.length)return true;
-   if(chosen.length+cells.length-index<=best.length)return false;
-   for(let i=index;i<cells.length;i++){
-    const t=cells[i],n=rowCounts.get(t.row)||0;
-    if(n>=3||chosen.some(w=>overlaps(t.x,t.y,slot,slot,w,12)))continue;
-    chosen.push(t);rowCounts.set(t.row,n+1);
-    if(search(i+1))return true;
-    chosen.pop();rowCounts.set(t.row,n);
-   }
-   return false;
+ // A bounded randomized search, with a different full-height 132px clear
+ // corridor on each attempt. Close pairs and broad gaps are both possible.
+ for(let attempt=0;attempt<40;attempt++){
+  const corridor=Math.floor(Math.random()*(COLS-5));
+  const fits=p=>p.col+p.cols<=corridor||p.col>=corridor+6;
+  const line=candidates.line.filter(fits),machine=candidates.machine.filter(fits);
+  const chosen=[];
+  for(const kind of kinds){
+   const pool=smallStructure({kind})?line:machine;
+   // No fixed spacing: a small safety gap keeps separate groups identifiable.
+   // Different groups may sit close or far apart and use odd grid offsets.
+   const available=pool.filter(p=>chosen.every(v=>!overlaps(p,v,6)));
+   if(!available.length)break;
+   const p=available[Math.floor(Math.random()*available.length)];
+   chosen.push({...p,kind});
   }
-  if(search(0))break;
+  if(chosen.length>best.length)best=chosen;
+  if(chosen.length===kinds.length)break;
  }
- const order=shuffledEndless(best);
- for(let i=0;i<Math.min(kinds.length,order.length);i++){
-  const kind=kinds[i],type=BUILD_TYPES[kind],t=order[i];
-  const group=smallStructure({kind})?[cell(t.col,t.row),cell(t.col+1,t.row),cell(t.col,t.row+1),cell(t.col+1,t.row+1)]:[t];
+ for(const p of best){
+  const kind=p.kind,type=BUILD_TYPES[kind];
+  const group=[];
+  if(smallStructure(p)){
+   for(let dy=0;dy<p.rows;dy++)for(let dx=0;dx<p.cols;dx++)group.push(cell(p.col+dx,p.row+dy));
+  }else group.push(cell(p.col,p.row));
   for(const pos of group){
    const w={...pos,kind,hp:type.hp,hit:0,biteShake:0,run:null,pulse:0,raised:false,lift:0};
    w.cooldown=kind==='wall'?0:kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());

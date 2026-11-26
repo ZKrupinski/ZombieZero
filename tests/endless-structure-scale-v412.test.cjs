@@ -5,7 +5,7 @@ new Function('window','document',fs.readFileSync('dist/fortress-mode.js','utf8')
 const f=window.ZZFortress;
 const opening=Array.from({length:36},(_,i)=>({x:45+i%9*42,y:70+Math.floor(i/9)*60,w:33,h:44,hp:10}));
 for(let repeat=0;repeat<50;repeat++){
- const count=f.setupEndless(15,opening,565);assert(count===12||count===15);
+ const count=f.setupEndless(15,opening,565);assert(count>=12&&count<=21);
  const {tile,columns,rows}=f.bounds();assert.equal(tile,22);
  const all=new Set();
  for(let row=0;row<rows;row++)for(let col=0;col<columns;col++){const w=f.getStructure(col,row);if(w)all.add(w)}
@@ -16,9 +16,12 @@ for(let repeat=0;repeat<50;repeat++){
   for(let dy=0;dy<span;dy++)for(let dx=0;dx<span;dx++)assert.equal(f.getStructure(w.col+dx,w.row+dy),w);
   if(w.kind==='bollard')w.raised=true;
   assert(!f.isOpen({w:2,h:2},w.x+size-3,w.y+size-3),'collision covers enlarged far edge');
-  const b={x:w.x+size+1,y:w.y+size-8,vx:-100,vy:0};
-  const hit=f.bounceBall(b,b.x+7,b.y,3);
-  assert(hit&&hit.nx===1);assert(b.x>=w.x+size+3);
+  // Test only exposed faces; a connected line's internal seam is not a free approach.
+  if(!f.getStructure(w.col+span,w.row)){
+   const b={x:w.x+size+1,y:w.y+size-8,vx:-100,vy:0};
+   const hit=f.bounceBall(b,b.x+7,b.y,3);
+   assert(hit&&hit.nx===1);assert(b.x>=w.x+size+3);
+  }
   for(const other of all)if(w!==other){const s=f.structureSize(other);assert(w.x+size<=other.x||other.x+s<=w.x||w.y+size<=other.y||other.y+s<=w.y)}
  }
 }

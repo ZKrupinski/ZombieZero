@@ -220,7 +220,7 @@ const expected=['wall','bollard','ice','lure','saw'];
 function supportList(){const result=new Set();for(let row=0;row<20;row++)for(let col=0;col<17;col++){const w=f.getStructure(col,row);if(w)result.add(w)}return [...result]}
 for(let wave=1;wave<=14;wave++){
  const count=Math.min(5,Math.ceil(wave/2));
- assert.equal(f.setupEndless(wave,opening,565),count===1?4:8+count-2);
+ const placed=f.setupEndless(wave,opening,565);assert(placed>=(count===1?4:8+count-2)&&placed<=(count===1?6:12+count-2));
  const devices=supportList(),kinds=new Set(devices.map(w=>w.kind));
  assert.deepEqual(kinds,new Set(expected.slice(0,count)));
  assert.equal(f.getStock(),0);
@@ -232,6 +232,6 @@ for(let wave=1;wave<=14;wave++){
   for(const z of opening)assert(z.x+z.w<=w.x||z.x>=w.x+size||z.y+z.h<=w.y||z.y>=w.y+size);
  }
 }
-assert([12,15].includes(f.setupEndless(100,opening,565)));
+{const count=f.setupEndless(100,opening,565);assert(count>=12&&count<=21);}
 f.reset();assert.equal(f.getWallCount(),0);assert.equal(f.bounds().tile,22);
 console.log('PASS v412: endless support progression, fresh unobstructed placement, bounded count, no construction UI.');
