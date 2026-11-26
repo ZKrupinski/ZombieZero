@@ -5047,6 +5047,7 @@ const PLAYER_HAPTIC_KINDS=new Set([
 const screenShake={power:0,started:0,until:0,phase:0,critical:false};
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
+const CAMERA_AMPLITUDE_SCALE=1.15;
 function cameraFeedback(strength,zombieImpact=false,criticalLabel=false){
  if(!(strength>0))return;
  const now=feedbackNow();
@@ -5054,11 +5055,11 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false){
  // (even during its rest), but never restart another critical envelope.
  if(criticalLabel){
   if(screenShake.critical&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
-  screenShake.power=8*.82;screenShake.started=now;screenShake.until=now+84;
+  screenShake.power=8*.82*CAMERA_AMPLITUDE_SCALE;screenShake.started=now;screenShake.until=now+84;
   screenShake.phase=(screenShake.phase+1.41)%6.283;screenShake.critical=true;
   cameraKick=screenShake.power;lastCameraFeedback=now;return;
  }
- const power=(strength<.5?.45:Math.min(5.2,(1.7+2.4*strength)*.65))*(zombieImpact?.82:1);
+ const power=(strength<.5?.45:Math.min(5.2,(1.7+2.4*strength)*.65))*(zombieImpact?.82:1)*CAMERA_AMPLITUDE_SCALE;
  const life=(strength>=4?90:strength>=2?75:60)*(zombieImpact?.8:1);
  // Stronger impacts can take over amplitude, never restart phase or extend
  // the current impulse. Ignore every request during the quiet interval.
