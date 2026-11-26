@@ -5221,8 +5221,8 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
   screenShake.hero=true;screenShake.critical=false;
   screenShake.zoom=serveStrike?.10+Math.random()*.04:.04+Math.random()*.02;screenShake.zoomAt=now;screenShake.zoomDuration=serveStrike?200:overhead?180:100;
   // V431: a distinct vertical spring, never a second shake impulse.
-  screenShake.springPower=serveStrike?12:overhead?11:8;
-  screenShake.springTailMs=serveStrike?200:150;
+  screenShake.springPower=serveStrike?4:overhead?3.5:2.5;
+  screenShake.springTailMs=serveStrike?120:95;
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
   // V427: frame the action above the hero. The world transform shifts the
   // hero downward on screen while its position, collisions and input stay put.
