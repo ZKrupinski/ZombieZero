@@ -252,45 +252,56 @@ function reset(){
 // Endless assistance uses the same physical devices, without spending stock
 // or invoking construction, relocation, Ready, or the fortress UI.
 const ENDLESS_DEVICE_ORDER=['wall','bollard','ice','lure','saw'];
+const ENDLESS_INTRO_WAVES=[1,3,5,7,9],ENDLESS_MAX_STRUCTURES=6;
+function shuffledEndless(list){
+ for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]]}
+ return list;
+}
 function setupEndless(wave,enemies,defenseY=565){
  reset();
- if(wave<10)return 0;
+ if(wave<1)return 0;
  setStructureGrid(true);stage=wave;
- const unlocks=Math.min(ENDLESS_DEVICE_ORDER.length,wave-9);
- const kinds=['wall','wall',...ENDLESS_DEVICE_ORDER.slice(1,unlocks)];
- // After all five types are introduced, add one every four waves, with
- // a fixed cap to preserve open lanes and keep long runs inexpensive.
- const extra=Math.min(5,Math.max(0,Math.floor((wave-14)/4)));
- for(let i=0;i<extra;i++)kinds.push(ENDLESS_DEVICE_ORDER[i%ENDLESS_DEVICE_ORDER.length]);
- const front=enemies.reduce((y,z)=>Math.max(y,z.y+z.h),0);
- const minY=Math.max(236,front+18);
- const maxY=Math.min(Y+ROWS*T,defenseY-66);
- // Distribute the support over alternating thirds of the road. Leave
- // space between each machine and a clear area for the player's ball.
- const order=[...kinds];
- const laneColumns=Math.random()<.5?[0,3,6]:[6,3,0];
- let index=0;
- for(const kind of order){
-  const type=BUILD_TYPES[kind],size=T*span({kind}),choices=[];
-  const large=kind!=='wall'&&kind!=='bollard';
-  const lane=laneColumns[index%laneColumns.length];
-  for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
-   const t={...cell(col,row),kind};
-   if(col+span(t)>COLS||row+span(t)>ROWS||t.y<minY||t.y+size>maxY)continue;
-   if(enemies.some(z=>intersects(z.x,z.y,z.w,z.h,t,12)))continue;
-   if([...walls.values()].some(w=>intersects(t.x,t.y,size,size,w,12)))continue;
-   // Bias devices toward the approaching wave without creating a solid wall.
-   const distance=walls.size?Math.min(...[...walls.values()].map(w=>Math.hypot(t.x+size/2-w.x-structureSize(w)/2*span(w)/2,t.y+size/2-w.y-structureSize(w)/2*span(w)/2))):70;
-   // Three lanes leave 44px gaps for 33px normal zombies. Small
-   // supports prefer the lower row beneath machines, not the open lanes.
-   const laneBias=index<3?Math.abs(col-lane)*100:0;
-   const depth=large?(t.y-minY):(maxY-t.y-size);
-   choices.push({t,score:Math.min(100,distance)*.3-depth*2-laneBias+Math.random()*8});
+ const kinds=ENDLESS_DEVICE_ORDER.filter((kind,i)=>wave>=ENDLESS_INTRO_WAVES[i]);
+ // One additional random type from wave 15, never more than two of a type.
+ if(wave>=15&&kinds.length<ENDLESS_MAX_STRUCTURES)kinds.push(ENDLESS_DEVICE_ORDER[Math.floor(Math.random()*ENDLESS_DEVICE_ORDER.length)]);
+ const mapHeight=defenseY+145,front=enemies.reduce((y,z)=>Math.max(y,z.y+z.h),0);
+ const minY=Math.max(mapHeight/3,front+12),maxY=Math.min(mapHeight*2/3,defenseY-66);
+ const candidates=[];
+ for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
+  const t=cell(col,row);
+  if(t.y<minY||t.y+T>maxY)continue;
+  if(enemies.some(z=>intersects(z.x,z.y,z.w,z.h,t,12)))continue;
+  candidates.push(t);
+ }
+ // Random uninterrupted 3-column (132px) corridor, enough for the
+ // giant 112px boss. All other placements retain a 12px clearance.
+ // Search randomized candidates for a full layout instead of forcing a
+ // lower-row or fixed hero-front lane; if space is limited, reduce count.
+ let best=[];
+ const corridors=shuffledEndless(Array.from({length:COLS-2},(_,i)=>i));
+ for(const corridor of corridors){
+  const cells=shuffledEndless(candidates.filter(t=>t.col<corridor||t.col>=corridor+3));
+  const chosen=[],rowCounts=new Map();
+  function search(index){
+   if(chosen.length>best.length)best=chosen.slice();
+   if(chosen.length===kinds.length)return true;
+   if(chosen.length+cells.length-index<=best.length)return false;
+   for(let i=index;i<cells.length;i++){
+    const t=cells[i],n=rowCounts.get(t.row)||0;
+    if(n>=3||chosen.some(w=>intersects(t.x,t.y,T,T,w,12)))continue;
+    chosen.push(t);rowCounts.set(t.row,n+1);
+    if(search(i+1))return true;
+    chosen.pop();rowCounts.set(t.row,n);
+   }
+   return false;
   }
-  index++;
-  if(!choices.length)continue;
-  choices.sort((a,b)=>b.score-a.score);
-  const t=choices[0].t,w={...t,hp:type.hp,hit:0,biteShake:0,run:null,pulse:0,raised:false,lift:0};
+  if(search(0))break;
+ }
+ const order=shuffledEndless(best);
+ // Introductions have priority over late duplicate support when room is tight.
+ for(let i=0;i<Math.min(kinds.length,order.length);i++){
+  const kind=kinds[i],type=BUILD_TYPES[kind],t=order[i];
+  const w={...t,kind,hp:type.hp,hit:0,biteShake:0,run:null,pulse:0,raised:false,lift:0};
   w.cooldown=kind==='wall'?0:kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());
   walls.set(w.id,w);footprint(w,key=>occupied.set(key,w));
  }

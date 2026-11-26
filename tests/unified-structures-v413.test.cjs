@@ -24,7 +24,7 @@ for(const kind of ['wall','bollard']){
 assert.equal(f.getWallCount(),8);
 const opening=Array.from({length:36},(_,i)=>({x:45+i%9*42,y:70+Math.floor(i/9)*60,w:33,h:44,hp:10}));
 for(let i=0;i<30;i++){
- assert.equal(f.setupEndless(14,opening,565),6);let set=new Set();
+ assert.equal(f.setupEndless(15,opening,565),6);let set=new Set();
  for(let row=0;row<f.bounds().rows;row++)for(let col=0;col<f.bounds().columns;col++){
   const w=f.getStructure(col,row);if(w){assert.equal(f.structureSize(w),44);assert(!set.has(w));set.add(w)}
  }
