@@ -410,8 +410,8 @@ const trailRenderPaths=new WeakMap();
 function getBallRenderTrailPath(b,r){
  const hit=trailRenderPaths.get(b);
  if(hit&&hit.frame===trailRenderFrame&&hit.radius===r)return hit.path;
- const entry=hit||{points:[]};
- const path=buildBallTrailPath(b,r,entry.points);
+ const entry=hit||{points:[],storage:[]};
+ const path=buildBallTrailPath(b,r,entry.points,entry.storage);
  entry.frame=trailRenderFrame;entry.radius=r;entry.path=path;
  if(!hit)trailRenderPaths.set(b,entry);
  return path;
@@ -704,7 +704,7 @@ function playCachedCombatSfx(name){
  try{const src=audio.createBufferSource();src.buffer=buffer;src.connect(master);src.onended=()=>src.disconnect?.();src.start(audio.currentTime);return true}catch{return false}
 }
 function warmCombatSfx(){
- if(combatSfxWarmBusy||combatSfxWarmFailed||!audioRunning()||!sound)return;
+ if(combatSfxCache.size>=combatSfxNames.length*15||combatSfxWarmBusy||combatSfxWarmFailed||!audioRunning()||!sound)return;
  if(mode==='playing'&&!balls[0]?.held)return;
  const Ctor=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!Ctor)return;
  let name,level;
@@ -2308,8 +2308,8 @@ function makeFoeGrid(actors){
     const k=key(x,y);let list=buckets.get(k);if(!list)buckets.set(k,list=[]);list.push(i);
    }
  }
- return {query(x,y,w,h,min=-1){
-  seen.clear();const result=[];
+ return {query(x,y,w,h,min=-1,result=[]){
+  seen.clear();result.length=0;
   for(let cy=Math.floor(y/cell);cy<=Math.floor((y+h)/cell);cy++)
    for(let cx=Math.floor(x/cell);cx<=Math.floor((x+w)/cell);cx++){
     const list=buckets.get(key(cx,cy));if(!list)continue;
@@ -3469,10 +3469,11 @@ for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
   damage(z,FIRE_TICK_DAMAGE,true);
   if(mode!=='playing')return;
  }
-}if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y){if(wave>=20&&standReady()){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
+}if(z.y+z.h>=DEFENSE_Y&&foes.includes(z)){if(wave>=20&&standReady()){z.y=DEFENSE_Y-z.h-1;continue}end(z.boss?'보스가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.':'좀비가 방어선을 돌파했습니다. 하트와 관계없이 패배합니다.',{type:'breach',x:z.x+z.w/2,y:z.y+z.h/2});return}}
 // Resolve real-time avoidance before the ball's existing substep collider tests.
 tryReactiveDodges(dt);
 let ballGrid=foes.length>=32&&typeof makeFoeGrid==='function'?makeFoeGrid(foes):null;
+const ballGridScratch=[]; // One candidate buffer across all ball substeps; order stays identical.
 for(const b of [...balls]){updateBallSpin(b,dt);const cruise=ensureBallCruiseSpeed(b);b.bounceTime=Math.max(0,(b.bounceTime||0)-dt);const radius=((has('power')?12:8)*(typeof miniBallScale==='function'?miniBallScale():1)),steps=Math.max(1,Math.ceil(Math.max(cruise*dt,Math.abs(car-previousCar))/4)),d=dt/steps;
 for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b.x+=b.vx*d;b.y+=b.vy*d;if(b.x<ROAD_LEFT+radius){b.x=ROAD_LEFT+radius;b.vx=Math.abs(b.vx);ballImpact(b,'x',1,'wall');spawnContact(b,b.x,b.y,1,0,'wall');sfx('wall');feedback('wall')}if(b.x>ROAD_RIGHT-radius){b.x=ROAD_RIGHT-radius;b.vx=-Math.abs(b.vx);ballImpact(b,'x',-1,'wall');spawnContact(b,b.x,b.y,-1,0,'wall');sfx('wall');feedback('wall')}if(b.y<16+radius){b.y=16+radius;b.vy=Math.abs(b.vy);ballImpact(b,'y',1,'ceiling');spawnContact(b,b.x,b.y,0,1,'ceiling');sfx('wall');feedback('wall')}
  // Barricades reflect ALL balls, even pierce shots; only zombie bites
@@ -3496,7 +3497,8 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
   if(!foes.includes(z)||b.x+radius<=z.x||b.x-radius>=z.x+z.w||
      b.y+radius<=z.y||b.y-radius>=z.y+z.h)b.pierceContacts.delete(z);
  }
- const ballCandidates=ballGrid?ballGrid.query(b.x-radius,b.y-radius,radius*2,radius*2).map(i=>foes[i]):foes;
+ const ballCandidates=ballGrid?ballGrid.query(b.x-radius,b.y-radius,radius*2,radius*2,-1,ballGridScratch):foes;
+ if(ballGrid)for(let i=0;i<ballCandidates.length;i++)ballCandidates[i]=foes[ballCandidates[i]];
  for(const z of ballCandidates){
   if(b.pierceContacts.has(z)||(!piercing&&b.lastHit===z&&b.hitLock>0))continue;
   if(b.x+radius>z.x&&b.x-radius<z.x+z.w&&b.y+radius>z.y&&b.y-radius<z.y+z.h){
@@ -4323,12 +4325,13 @@ function recordBallTrail(b,x,y,corner=false){
  b.trail.unshift({x,y,corner:!!corner});
  if(b.trail.length>96)b.trail.length=96;
 }
-function buildBallTrailPath(b,r,points){
- if(b.held||!b.trail?.length)return [];
+function buildBallTrailPath(b,r,points,path=[]){
+ path.length=0;
+ if(b.held||!b.trail?.length)return path;
  // Reuse vertex storage per live ball; retain the exact spline and sampling.
  // Index zero is the current position (without a historical corner flag).
  const head={x:b.x,y:b.y},trail=b.trail,limit=(r>8||(typeof has==='function'&&has('power')))?BALL_TRAIL_POWER:BALL_TRAIL_NORMAL;
- let total=0;const path=[];
+ let total=0;
  const append=(x,y,s)=>{
   const i=path.length,p=points?(points[i]||(points[i]={x:0,y:0,s:0})):{};
   p.x=x;p.y=y;p.s=s;path.push(p);
