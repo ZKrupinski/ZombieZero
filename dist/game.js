@@ -3170,18 +3170,20 @@ function damage(z,n=1,burning=false,impact=null,criticalHit=false,piercingCritic
   if(z.hp>0&&!piercingCritical)applyKnockback(z,impact,amount);
  }
  const hitPosition=knockVisualPosition(z);
+ let criticalLabel=false;
  if(critical){citizenReaction('critical');
   // V348: at most one live piercing label across all balls. Do not throttle
   // damage, death, local hit flash, citizen reactions or regular criticals.
   const textScale=piercingCritical?.75+Math.random()*.28:.90+Math.random()*.15;
   if(!piercingCritical||!criticalPopups.some(f=>f.pierce&&f.t<f.life)){
+   criticalLabel=true;
    criticalPopups.push({x:hitPosition.x+z.w/2,y:hitPosition.y+z.h/2,
      t:0,life:.72,pierce:piercingCritical,textScale});
    if(criticalPopups.length>12)criticalPopups.shift();
   }
  }
  if(burning){if(z.hp<=0)feedback('fireKill')}
- else feedback(critical?'critical':z.boss?(z.hp<=0?'bossKill':'bossHit'):(z.hp<=0?'kill':amount>=2?'powerHit':'hit'));
+ else feedback(critical?'critical':z.boss?(z.hp<=0?'bossKill':'bossHit'):(z.hp<=0?'kill':amount>=2?'powerHit':'hit'),criticalLabel);
  effect(hitPosition.x+z.w/2,hitPosition.y+z.h/2,burning?'#ffac48':critical?'#fff3b2':TYPES[z.kind].color,
   z.hp<=0?(z.boss?150:55):burning?20:38,
   // Hit and kill values belong to the score calculation, not floating text.
@@ -5042,12 +5044,20 @@ const PLAYER_HAPTIC_KINDS=new Set([
  'serve','racket','car','poisonBlock','blocked','groggy','groggyRecover'
 ]);
 // V415: compact real-time camera impulse. No queued or extended shakes.
-const screenShake={power:0,started:0,until:0,phase:0};
+const screenShake={power:0,started:0,until:0,phase:0,critical:false};
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
-function cameraFeedback(strength,zombieImpact=false){
+function cameraFeedback(strength,zombieImpact=false,criticalLabel=false){
  if(!(strength>0))return;
  const now=feedbackNow();
+ // V416: a newly displayed CRITICAL label may replace an ordinary shake
+ // (even during its rest), but never restart another critical envelope.
+ if(criticalLabel){
+  if(screenShake.critical&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
+  screenShake.power=8*.82;screenShake.started=now;screenShake.until=now+84;
+  screenShake.phase=(screenShake.phase+1.41)%6.283;screenShake.critical=true;
+  cameraKick=screenShake.power;lastCameraFeedback=now;return;
+ }
  const power=(strength<.5?.45:Math.min(5.2,(1.7+2.4*strength)*.65))*(zombieImpact?.82:1);
  const life=(strength>=4?90:strength>=2?75:60)*(zombieImpact?.8:1);
  // Stronger impacts can take over amplitude, never restart phase or extend
@@ -5057,7 +5067,7 @@ function cameraFeedback(strength,zombieImpact=false){
   return;
  }
  if(screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
- screenShake.power=power;screenShake.started=now;screenShake.until=now+life;
+ screenShake.power=power;screenShake.started=now;screenShake.until=now+life;screenShake.critical=false;
  screenShake.phase=(screenShake.phase+1.41)%6.283;
  cameraKick=power;lastCameraFeedback=now;
 }
@@ -5093,9 +5103,10 @@ function updateFeedbackDiagnostics(){
  }
  hapticDebugTag.textContent='v186 HIT '+d.hits+' / VIBE '+d.hitAccepted+' / BLOCK '+d.hitBlocked+' · '+(feedbackNames[d.lastHit]||d.lastHit)+' · '+d.lastHitResult;
 }
-function feedback(kind){
+function feedback(kind,criticalLabel=false){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
- cameraFeedback(cfg.s,COMBAT_FEEDBACK_KINDS.has(kind));
+ if(kind==='critical'&&criticalLabel)cameraFeedback(cfg.s,true,true);
+ else cameraFeedback(cfg.s,COMBAT_FEEDBACK_KINDS.has(kind));
  const d=feedbackDiagnostics,combat=COMBAT_FEEDBACK_KINDS.has(kind);
  d.last=kind;
  if(combat){d.hits++;d.lastHit=kind}
