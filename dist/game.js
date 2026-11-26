@@ -23,6 +23,8 @@ let enemyAnimationClock=0;
 // V424: bounded, reusable 10 Hz pose history; no raster copies or extra assets.
 let slowEchoHistory=new WeakMap(),slowEchoNextSample=-Infinity;
 const SLOW_ECHO_DELAY=3,SLOW_ECHO_INTERVAL=.1,SLOW_ECHO_CAPACITY=32,SLOW_ECHO_ALPHA=.28;
+let slowTintCache=new WeakMap(),slowTintQueue=[],slowTintPixels=0,slowTintContexts=new WeakMap();
+const SLOW_TINT_PIXEL_LIMIT=3500000,SLOW_TINT_COLOR='rgba(65,166,246,0.44)';
 const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:10,color:'#ff9763',desc:'강화할수록 점화·전염 범위 및 연소 대상 증가',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:14,color:'#86f2e0',desc:'좀비와 적 투사체는 질질~ 공은 쌩쌩!',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},pierce:{name:'관통샷',duration:10,color:'#ffe88a',desc:'10초간 적을 관통 · 충돌당 크리티컬 피해 ×2',icon:'<circle cx="7" cy="16" r="4"/><path d="M12 16h17M22 8l7 8-7 8M17 11h7"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,ballVanish=[],criticalPopups=[],itemPickupFX=[],clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
@@ -3820,13 +3822,69 @@ function drawMiniEnemy(z,paint){
    w:z.miniBaseW,h:z.miniBaseH});
  }finally{g.restore();}
 }
+// V425: same alpha-clipped blue overlay as the cryo trap. Cache only the
+// actual source cel (not an entire actor or atlas), and share it across foes.
+function resetSlowTintCache(){
+ slowTintCache=new WeakMap();slowTintQueue=[];slowTintPixels=0;
+}
+function slowTintBitmap(image,sx=0,sy=0,sw=image?.naturalWidth||image?.width,sh=image?.naturalHeight||image?.height){
+ if(!image||!(sw>0&&sh>0)||typeof document.createElement!=='function')return image;
+ let entries=slowTintCache.get(image);
+ if(!entries){entries=new Map();slowTintCache.set(image,entries)}
+ const key=sx+','+sy+','+sw+','+sh;
+ const prior=entries.get(key);if(prior)return prior;
+ const scale=Math.min(1,256/Math.max(sw,sh)),w=Math.max(1,Math.ceil(sw*scale)),h=Math.max(1,Math.ceil(sh*scale));
+ try{
+  const tile=document.createElement('canvas');tile.width=w;tile.height=h;
+  const ctx=tile.getContext('2d');if(!ctx||typeof ctx.drawImage!=='function')return image;
+  ctx.drawImage(image,sx,sy,sw,sh,0,0,w,h);
+  ctx.globalCompositeOperation='source-atop';ctx.fillStyle=SLOW_TINT_COLOR;
+  ctx.fillRect(0,0,w,h);ctx.globalCompositeOperation='source-over';
+  while(slowTintQueue.length&&slowTintPixels+w*h>SLOW_TINT_PIXEL_LIMIT){
+   const old=slowTintQueue.shift();old.entries.delete(old.key);slowTintPixels-=old.pixels;
+  }
+  entries.set(key,tile);slowTintQueue.push({entries,key,pixels:w*h});slowTintPixels+=w*h;
+  return tile;
+ }catch{return image}
+}
+// Forward native Canvas methods with their real receiver. Only drawImage
+// substitutes the shared blue cel. Hit flash, transform and opacity survive.
+function slowTintContext(ctx){
+ let proxy=slowTintContexts.get(ctx);if(proxy)return proxy;
+ const bound=new Map();
+ const draw=(image,...a)=>{
+  if(a.length===8){
+   const tile=slowTintBitmap(image,a[0],a[1],a[2],a[3]);
+   if(tile!==image)return ctx.drawImage(tile,0,0,tile.width,tile.height,a[4],a[5],a[6],a[7]);
+  }else if(a.length===2||a.length===4){
+   const tile=slowTintBitmap(image);
+   if(tile!==image){
+    if(a.length===2)return ctx.drawImage(tile,a[0],a[1],image.naturalWidth||image.width,image.naturalHeight||image.height);
+    return ctx.drawImage(tile,...a);
+   }
+  }
+  return ctx.drawImage(image,...a);
+ };
+ proxy=new Proxy(ctx,{get(target,key){
+  if(key==='drawImage')return draw;
+  const value=Reflect.get(target,key,target);
+  if(typeof value!=='function')return value;
+  if(!bound.has(key))bound.set(key,value.bind(target));
+  return bound.get(key);
+ },set(target,key,value){return Reflect.set(target,key,value,target)}});
+ slowTintContexts.set(ctx,proxy);return proxy;
+}
+function slowTintOn(){return typeof slowEchoVisible==='function'&&slowEchoVisible()}
 function zombie(z){
  // Vertical screen lift is cosmetic only; the floor shadow and collider
  // follow the checked ground path. Retain the approved bitmap animation.
  let lift=0;
  if(z.moleLaunch&&z.knockTime>0)lift=12*Math.sin(Math.PI*knockMotionProgress(z));
  else if(z.moleHop)lift=10*Math.sin(Math.PI*clamp(z.moleHop.travel/Math.max(1,z.moleHop.total),0,1));
- return drawMiniEnemy(lift>0?{...z,y:z.y-lift}:z,paintOriginalZombie);
+ const actor=lift>0?{...z,y:z.y-lift}:z;
+ if(typeof slowTintOn!=='function'||!slowTintOn()||z.fortressFrozenUntil>clock)return drawMiniEnemy(actor,paintOriginalZombie);
+ const live=g;g=slowTintContext(live);
+ try{return drawMiniEnemy(actor,paintOriginalZombie)}finally{g=live}
 }
 function paintOriginalZombie(z){
  if(z.boss&&window.ZZLargeBossSprites?.draw(g,z,enemyAnimationClock))return;
@@ -4803,7 +4861,7 @@ function drawStruckZombie(z){
 }
 // Capture only data needed to repaint a historical approved sprite cel.
 // Weak keys let removed enemies/projectiles release their rings immediately.
-function resetSlowEchoHistory(){slowEchoHistory=new WeakMap();slowEchoNextSample=-Infinity}
+function resetSlowEchoHistory(){slowEchoHistory=new WeakMap();slowEchoNextSample=-Infinity;if(typeof resetSlowTintCache==='function')resetSlowTintCache()}
 function slowEchoSlot(actor){
  let ring=slowEchoHistory.get(actor);
  if(!ring){ring={next:0,count:0,slots:new Array(SLOW_ECHO_CAPACITY)};slowEchoHistory.set(actor,ring)}
@@ -4879,11 +4937,12 @@ function drawSlowProjectileEchoes(){
    const q=slowEchoAt(p);if(!q)continue;
    if(q.type==='spit'){
     // Reuse the cached neon bitmap but do not add a second bloom pass.
-    paintSpit(spitSprite(Math.round(11+3*Math.sin(Math.PI*q.t))),q.x,q.y,q.angle,1,q.spitScale);
+    const sprite=spitSprite(Math.round(11+3*Math.sin(Math.PI*q.t)));
+    paintSpit(typeof slowTintBitmap==='function'?slowTintBitmap(sprite):sprite,q.x,q.y,q.angle,1,q.spitScale);
    }else{
     const flare=1-Math.abs(2*q.t-1);
     const size=q.eliteKind===0?22+5*flare:q.eliteKind===1?24+6*flare:29+7*flare;
-    drawThrowable(q.kind,q.x,q.y,size*q.enemyScale,q.angle);
+    drawThrowable(q.kind,q.x,q.y,size*q.enemyScale,q.angle,true);
    }
   }
  }finally{g.restore()}
@@ -5452,15 +5511,16 @@ function nextThrowableKind(){
  }
  return throwableBag.pop();
 }
-function drawThrowable(kind,x,y,size,turn=0){
+function drawThrowable(kind,x,y,size,turn=0,hostile=false){
  // Enlarge approved 36-item sheet uniformly, without resizing the source PNG.
  size*=THROWABLE_SIZE_SCALE;
  const sheet=window.ZZThrowablesV159;
- if(sheet?.draw?.(g,kind,x,y,size,turn))return;
+ const tinted=hostile&&typeof slowTintOn==='function'&&slowTintOn();
+ if(sheet?.draw?.(tinted?slowTintContext(g):g,kind,x,y,size,turn))return;
  // Loading fallback is a small solid package, never an old zombie/vector.
  g.save();g.translate(x,y);g.rotate(turn);
- rect(-size*.32,-size*.20,size*.64,size*.40,'#7a5741');
- rect(-size*.30,-size*.23,size*.6,size*.08,'#e0ae66');
+ rect(-size*.32,-size*.20,size*.64,size*.40,tinted?'#617e9a':'#7a5741');
+ rect(-size*.30,-size*.23,size*.6,size*.08,tinted?'#9bb4a6':'#e0ae66');
  g.restore();
 }
 function bossTrashProjectilePosition(p){
@@ -5784,7 +5844,8 @@ function paintSpit(sprite,x,y,angle,alpha=1,scale=1){
 }
 function drawNeonSpit(x,y,t,angle=0,alpha=1,scale=1){
  if(alpha<=0)return; // no one-frame flash before the visible reveal
- const sprite=spitSprite(Math.round(11+3*Math.sin(Math.PI*t)));
+ const base=spitSprite(Math.round(11+3*Math.sin(Math.PI*t)));
+ const sprite=typeof slowTintOn==='function'&&slowTintOn()?slowTintBitmap(base):base;
  paintSpit(sprite,x,y,angle,alpha,scale);
  // The ADD/bloom pass must use the very same reveal alpha and pickup scale,
  // otherwise full-strength bloom flashes while the toxin is still invisible.
@@ -5807,7 +5868,7 @@ function drawBossTrashShots(){
    g.save();
    g.globalAlpha*=phase.alpha;
    const mini=z.miniScale||1;
-   drawThrowable(z.throwKind,hand.x,hand.y+phase.y*mini,size*phase.scale*mini,phase.turn);
+   drawThrowable(z.throwKind,hand.x,hand.y+phase.y*mini,size*phase.scale*mini,phase.turn,true);
    g.restore();
   }
   if(spitThrower(z)&&z.spitWindup>0){
@@ -5827,7 +5888,7 @@ function drawBossTrashShots(){
   }else{
    const flare=1-Math.abs(2*pos.t-1);
    const size=p.eliteKind===0?22+5*flare:p.eliteKind===1?24+6*flare:29+7*flare;
-   drawThrowable(p.kind,pos.x,pos.y,size*(p.enemyScale||1),pos.t*Math.PI*5);
+   drawThrowable(p.kind,pos.x,pos.y,size*(p.enemyScale||1),pos.t*Math.PI*5,true);
   }
  }
  if(spitBloomDraws.length)captureBloom(drawSpitBloom);
