@@ -2633,9 +2633,9 @@ function serve(){unlockAudio();if(mode==='playing'&&balls[0]?.held){
  if(typeof finishTrailLightingWarmup==='function')finishTrailLightingWarmup();
  if(typeof runMode!=='undefined'&&runMode==='endless')endlessRunStarted=true;
  const speed=Math.hypot(125,365);
- // Hidden inward fan: central hero launches straight, edge positions aim
- // progressively inward up to 38 degrees. Use the actual launch position.
- const center=W/2,angle=Math.max(-1,Math.min(1,(center-car)/(center-72)))*(38*Math.PI/180);
+ // Hidden outward fan: central hero launches straight, edge positions aim
+ // progressively outward up to 38 degrees. Use the actual launch position.
+ const center=W/2,angle=Math.max(-1,Math.min(1,(car-center)/(center-72)))*(38*Math.PI/180);
  const origin=heldBallOffset();
  balls[0].x=car+origin.x;balls[0].y=PY+origin.y;
  balls[0].held=false;

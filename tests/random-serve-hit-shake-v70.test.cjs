@@ -6,7 +6,7 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 assert.match(html,/game\.js\?v=93-multiball-light-cache/);
 assert.match(sw,/zombie-zero-shell-v93-multiball-light-cache/);
 assert.doesNotMatch(source,/setLineDash\(\[4,6\]\)/,'old predicted trajectory must not appear');
-assert.match(source,/\(center-car\)\/\(center-72\)/);
+assert.match(source,/\(car-center\)\/\(center-72\)/);
 const shot=source.match(/function serve\(\)\{[\s\S]*?\n\}\}/);
 assert(shot,'serve method found');
 function serveAt(car){
@@ -23,7 +23,7 @@ for(const b of [left,right]){
  assert(b.vy<0,'both directions travel upward');
  assert(Math.abs(Math.hypot(b.vx,b.vy)-Math.hypot(125,365))<.0001,'speed unchanged');
 }
-assert(left.vx>0&&right.vx<0,'inward directions at left and right edges');assert.equal(center.vx,0);assert.equal(left.x,60);assert.equal(right.x,366);
+assert(left.vx<0&&right.vx>0,'outward directions at left and right edges');assert.equal(center.vx,0);assert.equal(left.x,60);assert.equal(right.x,366);
 const jit=source.match(/function hitShakeOffset\(t,duration,boss=false\)\{[\s\S]*?\n\}/);
 assert(jit,'frame-indexed per-zombie jitter exists');
 const shake=vm.runInNewContext(jit[0]+';hitShakeOffset',{Math});

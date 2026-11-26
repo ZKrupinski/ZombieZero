@@ -12,7 +12,7 @@ const make=()=>new Function(`
  return {inputDown,inputMove,inputEnd,releaseInput,serve,state:()=>({car,target,ball:balls[0],launches}),lose:()=>{balls=[{held:true}]},rally:()=>{balls[0].held=false},pause:()=>{mode='paused';releaseInput()}};
 `)();
 const e=(type,x,id=1)=>({type,clientX:x,pointerId:id,pointerType:'touch',button:0,preventDefault(){}});
-for(const [dx,x,sign] of [[-100,72,1],[0,225,0],[100,378,-1]]){
+for(const [dx,x,sign] of [[-100,72,-1],[0,225,0],[100,378,1]]){
  const h=make();h.inputDown(e('pointerdown',100));
  assert(h.state().ball.held);assert.equal(h.state().launches,0);
  h.inputMove(e('pointermove',100+dx));assert.equal(h.state().car,x);
@@ -30,4 +30,4 @@ const lost=make();lost.rally();lost.inputDown(e('pointerdown',100));lost.lose();
 const paused=make();paused.inputDown(e('pointerdown',100));paused.pause();paused.inputEnd(e('pointerup',100));assert(paused.state().ball.held);
 const keyboard=make();keyboard.serve();assert(!keyboard.state().ball.held);
 assert(!s.includes('setLineDash([4,6])'));
-console.log('PASS V419: held ball tracks drag, hidden inward fan, release-only launch, cancellation and keyboard behavior.');
+console.log('PASS V419: held ball tracks drag, hidden outward fan, release-only launch, cancellation and keyboard behavior.');
