@@ -154,7 +154,7 @@ assert(source.includes('clearWormParade();wormNextAt=clock+4+Math.random()*2.5;'
  'new wave resets parade and schedules a faster first event');
 assert(source.includes('fortress.resolve(z,z.fortressPreviousX,z.fortressPreviousY,dt,'),
  'all fortress wall collisions remain operational');
-assert(source.includes('if(foes.includes(z)&&z.y+z.h>=DEFENSE_Y)'),
+assert(source.includes('if(z.y+z.h>=DEFENSE_Y&&foes.includes(z))'),
  'ordinary defense breach checks stay intact');
 assert(html.includes('-v338-front-open-parade'),'front-row gameplay cache refreshes on reload');
 assert(sw.includes('v338-front-open-parade'),'PWA front-row cache is invalidated');
