@@ -4792,7 +4792,7 @@ function drawStruckZombie(z){
  try{zombie(knockVisualPosition(z))}finally{enemyAnimationClock=liveCel;g.restore()}
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
+function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);const zoom=heroCameraZoom();if(zoom){g.translate(zoom.x,zoom.y);g.scale(zoom.scale,zoom.scale);g.translate(-zoom.x,-zoom.y)}background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.
@@ -5007,8 +5007,8 @@ try{
 let hapticsEnabled=hapticsMode!=='off';
 const FEEDBACK_PRESETS={
  wall:{v:28,s:0.28,p:0},
- racket:{v:38,s:0.9,p:2},
- car:{v:45,s:1.3,p:3},
+ racket:{v:[205,32,235],s:0.9,p:13},
+ car:{v:[205,32,235],s:1.3,p:13},
  hit:{v:105,s:1.4,p:5},
  powerHit:{v:140,s:2.15,p:7},
  kill:{v:[115,36,105],s:2.6,p:8},
@@ -5030,7 +5030,7 @@ const FEEDBACK_PRESETS={
  blocked:{v:40,s:0.85,p:3},
  bossSpawn:{v:[85,32,105],s:2.8,p:8},
  item:{v:40,s:0.55,p:2},
- serve:{v:28,s:0.4,p:1},
+ serve:{v:[205,32,235],s:0.4,p:13},
  start:{v:25,s:0,p:1},
  wave:{v:[45,30,45],s:1.15,p:3},
  victory:{v:[55,35,110],s:2,p:6},
@@ -5044,19 +5044,32 @@ const PLAYER_HAPTIC_KINDS=new Set([
  'serve','racket','car','poisonBlock','blocked','groggy','groggyRecover'
 ]);
 // V415: compact real-time camera impulse. No queued or extended shakes.
-const screenShake={power:0,started:0,until:0,phase:0,critical:false};
+const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,zoom:0,focusX:225,focusY:584};
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
 const CAMERA_AMPLITUDE_SCALE=1.15;
-function cameraFeedback(strength,zombieImpact=false,criticalLabel=false){
+function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStrike=false){
  if(!(strength>0))return;
  const now=feedbackNow();
+ // V418: own strike gets the highest priority, a single bounded pulse and
+ // a short zoom toward the hero. Rapid multiball contacts do not accumulate.
+ if(heroStrike){
+  if(screenShake.hero&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
+  screenShake.power=9.5;screenShake.started=now;screenShake.until=now+100;
+  screenShake.phase=(screenShake.phase+1.41)%6.283;
+  screenShake.hero=true;screenShake.critical=false;
+  screenShake.zoom=.035+Math.random()*.035;
+  screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
+  screenShake.focusY=typeof PY==='number'?PY+15:599;
+  cameraKick=screenShake.power;lastCameraFeedback=now;return;
+ }
+ if(screenShake.hero&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
  // V416: a newly displayed CRITICAL label may replace an ordinary shake
  // (even during its rest), but never restart another critical envelope.
  if(criticalLabel){
   if(screenShake.critical&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
   screenShake.power=8*.82*CAMERA_AMPLITUDE_SCALE;screenShake.started=now;screenShake.until=now+84;
-  screenShake.phase=(screenShake.phase+1.41)%6.283;screenShake.critical=true;
+  screenShake.phase=(screenShake.phase+1.41)%6.283;screenShake.critical=true;screenShake.hero=false;
   cameraKick=screenShake.power;lastCameraFeedback=now;return;
  }
  const power=(strength<.5?.45:Math.min(5.2,(1.7+2.4*strength)*.65))*(zombieImpact?.82:1)*CAMERA_AMPLITUDE_SCALE;
@@ -5068,7 +5081,7 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false){
   return;
  }
  if(screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
- screenShake.power=power;screenShake.started=now;screenShake.until=now+life;screenShake.critical=false;
+ screenShake.power=power;screenShake.started=now;screenShake.until=now+life;screenShake.critical=false;screenShake.hero=false;
  screenShake.phase=(screenShake.phase+1.41)%6.283;
  cameraKick=power;lastCameraFeedback=now;
 }
@@ -5080,6 +5093,15 @@ function cameraOffset(){
  const power=screenShake.power*fade;
  const phase=screenShake.phase+(now-screenShake.started)*.1344;
  return {x:Math.sin(phase)*power*.92,y:Math.cos(phase*1.2)*power*.72};
+}
+// The zoom only transforms the world render. HUD, collision space and input
+// stay in their original coordinates. Bloom captures the same world matrix.
+function heroCameraZoom(){
+ if(!screenShake.hero||screenShake.until<=0)return null;
+ const age=feedbackNow()-screenShake.started;
+ if(age<0||age>=145)return null;
+ const t=age<18?1-Math.pow(1-age/18,2):Math.pow(Math.max(0,1-(age-18)/127),2);
+ return {scale:1+screenShake.zoom*t,x:screenShake.focusX,y:screenShake.focusY};
 }
 // Keep lightweight counters so players can verify that zombie hits reach
 // the vibration API, independently from whether the device motor responds.
@@ -5106,7 +5128,8 @@ function updateFeedbackDiagnostics(){
 }
 function feedback(kind,criticalLabel=false){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
- if(kind==='critical'&&criticalLabel)cameraFeedback(cfg.s,true,true);
+ if(kind==='serve'||kind==='racket'||kind==='car')cameraFeedback(cfg.s,false,false,true);
+ else if(kind==='critical'&&criticalLabel)cameraFeedback(cfg.s,true,true);
  else cameraFeedback(cfg.s,COMBAT_FEEDBACK_KINDS.has(kind));
  const d=feedbackDiagnostics,combat=COMBAT_FEEDBACK_KINDS.has(kind);
  d.last=kind;
@@ -5129,7 +5152,7 @@ function feedback(kind,criticalLabel=false){
  }
  if(typeof document!=='undefined'&&document.hidden){report('화면 비활성');return}
  const now=feedbackNow(),length=Array.isArray(cfg.v)?cfg.v.reduce((a,b)=>a+b,0):cfg.v;
- // Max-priority single dispatcher: wall/racket/item never interrupt a zombie hit.
+ // Max-priority single dispatcher: own strike beats critical; wall/item cannot interrupt combat.
  if(now<buzzLockedUntil&&cfg.p<=buzzPriority){
   d.blocked++;report('중복 차단',true);return;
  }

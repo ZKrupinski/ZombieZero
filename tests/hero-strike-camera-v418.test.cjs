@@ -1,0 +1,18 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const src=fs.readFileSync('dist/game.js','utf8'),start=src.indexOf('const FEEDBACK_PRESETS='),stop=src.indexOf('// Game options: persisted device vibration toggle',start);
+let now=1000,random=.2;const pulses=[];
+const h=new Function('env',`let cameraKick=0,lastCameraFeedback=0,lastBuzz=0,buzzLockedUntil=0,buzzPriority=0,hapticsEnabled=true;const car=130,PY=584;
+const performance={now:env.now},navigator={vibrate:p=>{env.pulses.push(p);return true}},document={hidden:false},window={};const Math=Object.create(globalThis.Math);Math.random=env.random;
+${src.slice(start,stop)};return {feedback,cameraOffset,heroCameraZoom,screenShake,FEEDBACK_PRESETS}`)({now:()=>now,random:()=>random,pulses});
+h.feedback('critical',true);assert.equal(h.screenShake.until,1084);
+now=1010;h.feedback('serve');assert.equal(h.screenShake.power,9.5);assert.equal(h.screenShake.until,1110);assert(h.screenShake.hero);assert.equal(h.screenShake.focusX,130);
+assert.deepEqual(pulses,[[180,48,210],[205,32,235]]);
+now=1028;const zoom=h.heroCameraZoom();assert(Math.abs(zoom.scale-1.042)<1e-9);assert.equal(zoom.y,599);
+for(now=1029;now<1155;now++){h.feedback('critical',true);h.feedback('racket');h.feedback('car');assert.equal(h.screenShake.started,1010);assert.equal(h.screenShake.until,1110)}
+assert.equal(h.heroCameraZoom(),null);assert.equal(h.cameraOffset(),null);assert.equal(pulses.length,2);
+now=1600;random=.9;h.feedback('racket');now=1618;assert(h.heroCameraZoom().scale>zoom.scale);assert.equal(h.screenShake.until,1700);
+now=2200;h.feedback('car');assert.equal(h.screenShake.power,9.5);assert.equal(h.screenShake.until,2300);
+assert(src.includes("syncMulti();sfx('serve');feedback('serve')"));assert(src.includes("sfx('racket');feedback('racket')"));assert(src.includes("sfx('car');feedback('car')"));
+assert(src.includes('g.scale(zoom.scale,zoom.scale)'));assert(src.includes('drawBubbles();g.restore();drawDanger()'));
+console.log('PASS V418: strike priority, bounded random zoom, strong haptics, unchanged HUD and non-stacking timing.');

@@ -42,6 +42,7 @@ function testZombie(form=0,x=180,y=150,hp=zombieHP(form,0,3)){
 }
 const spare=testZombie(0,360,180,99);
 wave=3;mode='playing';clearSkills();selectedHero=0;
+screenShake.until=0;screenShake.hero=false;cameraKick=0;
 let z=testZombie(0),oldX=z.x,oldY=z.y;
 foes=[z,spare];Math.random=()=>.99;
 hit(z,{x:280,y:-200});

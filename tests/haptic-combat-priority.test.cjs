@@ -18,11 +18,11 @@ const make=new Function('env',`
 `);
 const h=make({now:()=>now,vibrate:pattern=>{patterns.push(pattern);return true}});
 for(const [name,time] of [
- ['car',1000],['hit',1010],['wall',1030],['hit',1180],
- ['critical',1260],['racket',1300],['bossHit',1800],['kill',2250]
+ ['wall',1000],['hit',1010],['wall',1030],['hit',1180],
+ ['critical',1260],['item',1300],['bossHit',1800],['kill',2250]
 ]){now=time;h.feedback(name)}
-assert.deepEqual(patterns,[45,105,105,[180,48,210],145,[115,36,105]],
- 'Zombie hit must override car noise; critical must survive wall/paddle events');
+assert.deepEqual(patterns,[28,105,105,[180,48,210],145,[115,36,105]],
+ 'Zombie hit must override wall noise; critical must survive item events');
 assert.equal(h.stats.hits,5);
 assert.equal(h.stats.hitAccepted,5);
 assert.equal(h.stats.hitBlocked,0);
