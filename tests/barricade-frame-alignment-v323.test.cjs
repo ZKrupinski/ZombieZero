@@ -59,7 +59,7 @@ const mode=fs.readFileSync('dist/fortress-mode.js','utf8');
 assert(mode.includes(asset),'runtime requests the correctly aligned source');
 assert(mode.includes('const BARRICADE_FRAME=56'),'source frame stride is 56px');
 assert(mode.includes('index*frame,0,frame,frame'),'one frame selected without overlap');
-assert(mode.includes('w.x+shakeX,w.y+shakeY,T,T'),'same world-unit size for all damage states');
+assert(mode.includes('w.x+shakeX,w.y+shakeY,structureSize(w),structureSize(w)'),'same world-unit size for all damage states');
 const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('src="fortress-mode.js?v='),'versioned barricade module present');

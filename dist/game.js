@@ -3072,7 +3072,7 @@ function applyKnockback(z,impact,n=1){
 // Only mole launches may propel a zombie toward the player. Reserve a
 // legal landing before the hatch becomes solid and animate the short arc.
 function pushMoleZombie(z,w,dir){
- const tile=fortress?.bounds?.().tile||22;
+ const tile=fortress?.structureSize?.(w)||44;
  const top=w.y-z.h-3,bottom=w.y+tile+3;
  const before=knockVisualPosition(z),bx=before.x,by=before.y;
  for(const sy of [dir,-dir]){

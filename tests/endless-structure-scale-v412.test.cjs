@@ -11,7 +11,7 @@ for(let repeat=0;repeat<50;repeat++){
  for(let row=0;row<rows;row++)for(let col=0;col<columns;col++){const w=f.getStructure(col,row);if(w)all.add(w)}
  assert.equal(all.size,6);
  for(const w of all){
-  const span=w.kind==='wall'||w.kind==='bollard'?1:2,size=tile*span;
+  const span=1,size=tile*span;
   assert.equal(w.x+size<=408,true);assert(w.y+size<=499);
   for(let dy=0;dy<span;dy++)for(let dx=0;dx<span;dx++)assert.equal(f.getStructure(w.col+dx,w.row+dy),w);
   if(w.kind==='bollard')w.raised=true;
@@ -19,8 +19,8 @@ for(let repeat=0;repeat<50;repeat++){
   const b={x:w.x+size+1,y:w.y+size-8,vx:-100,vy:0};
   const hit=f.bounceBall(b,b.x+7,b.y,3);
   assert(hit&&hit.nx===1);assert(b.x>=w.x+size+3);
-  for(const other of all)if(w!==other){const s=other.kind==='wall'||other.kind==='bollard'?44:88;assert(w.x+size<=other.x||other.x+s<=w.x||w.y+size<=other.y||other.y+s<=w.y)}
+  for(const other of all)if(w!==other){const s=44;assert(w.x+size<=other.x||other.x+s<=w.x||w.y+size<=other.y||other.y+s<=w.y)}
  }
 }
 f.reset();assert.equal(f.bounds().tile,22);assert.equal(f.bounds().columns,17);assert.equal(f.getWallCount(),0);
-console.log('PASS V412: normal 44/88px footprints, full-size ball collisions, clear spawn zones and reset to mini 22px.');
+console.log('PASS V412: normal 44px footprints, full-size ball collisions, clear spawn zones and reset to mini 22px.');

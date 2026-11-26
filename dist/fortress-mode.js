@@ -17,7 +17,7 @@ function setStructureGrid(endless){
 }
 const occupied=new Map(); // Each occupied tile points to its single structure.
 const walls=new Map(),pending=new Map();
-// Special devices occupy a two-by-two footprint.
+// V413: every structure occupies the same 44px square (2x2 MINI, 1x1 ENDLESS).
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
  bollard:{name:'두더지 차단봉',cost:2,hp:12,cycle:4.8,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
@@ -37,7 +37,9 @@ let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
 let starting=false,startToken=0,onStartFeedback=null;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
-const span=w=>w.kind&&w.kind!=='wall'&&w.kind!=='bollard'?2:1;
+const span=w=>ENDLESS_TILE/T;
+const structureSize=w=>T*span(w);
+const canDragBuild=()=>selectedBuild==='wall'||selectedBuild==='bollard';
 function footprint(w,visit){
  for(let row=w.row;row<w.row+span(w);row++)for(let col=w.col;col<w.col+span(w);col++)visit(id(col,row));
 }
@@ -98,7 +100,7 @@ function refresh(){
   if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
  }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
-  :placementTip?placementTip:stock?(span({kind:selectedBuild})===1?'':'2×2칸 · 불규칙 가동 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
+  :placementTip?placementTip:stock?('1칸 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
   :'기존 구조물 철거로 자재 확보 가능';
 }
 function addCell(t){
@@ -108,7 +110,11 @@ function addCell(t){
  else if(span({kind:selectedBuild})===2){
   t=cell(Math.min(t.col,COLS-2),Math.min(t.row,ROWS-2));
   let blocked=false;
-  footprint({...t,kind:selectedBuild},key=>{if(occupied.has(key))blocked=true});
+  footprint({...t,kind:selectedBuild},key=>{
+    if(occupied.has(key))blocked=true;
+    const col=key%COLS,row=Math.floor(key/COLS);
+    for(const q of pending.values())if(q.action==='build'&&col>=q.col&&col<q.col+span(q)&&row>=q.row&&row<q.row+span(q))blocked=true;
+   });
   if(blocked){placementTip='설치하려면 빈 2×2칸이 필요합니다';return}
  }
  if(pending.has(t.id))return;
@@ -195,11 +201,11 @@ function down(e,canvas){
  placementTip='';pending.clear();dragging=true;pointer=e.pointerId;last=null;
  const origin=pointerPosition(e,canvas);
  touchStroke=e.pointerType==='touch'?{originX:origin.x,originY:origin.y,anchor:to,axis:null}:null;
- if(span({kind:selectedBuild})===1)lineTo(to);else addCell(to);refresh();
+ if(canDragBuild())lineTo(to);else addCell(to);refresh();
  try{canvas.setPointerCapture(e.pointerId)}catch{}
  return true;
 }
-function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;if(span({kind:selectedBuild})===1)touchLineTo(e,canvas);refresh();return true}
+function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;if(canDragBuild())touchLineTo(e,canvas);refresh();return true}
 function showActionsAt(e,canvas){
  if(!ui||!actions||!actions.style)return;
  const rect=ui.getBoundingClientRect?.()||canvas.getBoundingClientRect?.();
@@ -216,7 +222,7 @@ function up(e,canvas){
  if(!dragging||e.pointerId!==pointer)return false;
  // Finger-lift coordinates are noisy: keep the chosen axis and never
  // reinterpret a tiny release movement as a new corner.
- if(span({kind:selectedBuild})===1)touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
+ if(canDragBuild())touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
  showActionsAt(e,canvas);refresh();return true;
 }
 function cancel(){dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh()}
@@ -261,12 +267,12 @@ function setupEndless(wave,enemies,defenseY=565){
  const maxY=Math.min(Y+ROWS*T,defenseY-66);
  // Distribute the support over alternating thirds of the road. Leave
  // space between each machine and a clear area for the player's ball.
- const order=[...kinds].sort((a,b)=>span({kind:b})-span({kind:a}));
+ const order=[...kinds];
  const laneColumns=Math.random()<.5?[0,3,6]:[6,3,0];
- let largeIndex=0,smallIndex=0;
+ let index=0;
  for(const kind of order){
   const type=BUILD_TYPES[kind],size=T*span({kind}),choices=[];
-  const large=span({kind})===2,index=large?largeIndex++:smallIndex++;
+  const large=kind!=='wall'&&kind!=='bollard';
   const lane=laneColumns[index%laneColumns.length];
   for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
    const t={...cell(col,row),kind};
@@ -274,13 +280,14 @@ function setupEndless(wave,enemies,defenseY=565){
    if(enemies.some(z=>intersects(z.x,z.y,z.w,z.h,t,12)))continue;
    if([...walls.values()].some(w=>intersects(t.x,t.y,size,size,w,12)))continue;
    // Bias devices toward the approaching wave without creating a solid wall.
-   const distance=walls.size?Math.min(...[...walls.values()].map(w=>Math.hypot(t.x+size/2-w.x-T*span(w)/2,t.y+size/2-w.y-T*span(w)/2))):70;
+   const distance=walls.size?Math.min(...[...walls.values()].map(w=>Math.hypot(t.x+size/2-w.x-structureSize(w)/2*span(w)/2,t.y+size/2-w.y-structureSize(w)/2*span(w)/2))):70;
    // Three lanes leave 44px gaps for 33px normal zombies. Small
    // supports prefer the lower row beneath machines, not the open lanes.
    const laneBias=index<3?Math.abs(col-lane)*100:0;
    const depth=large?(t.y-minY):(maxY-t.y-size);
    choices.push({t,score:Math.min(100,distance)*.3-depth*2-laneBias+Math.random()*8});
   }
+  index++;
   if(!choices.length)continue;
   choices.sort((a,b)=>b.score-a.score);
   const t=choices[0].t,w={...t,hp:type.hp,hit:0,biteShake:0,run:null,pulse:0,raised:false,lift:0};
@@ -701,9 +708,8 @@ function upscaleWallIcon(tile){
 }
 function makeDeviceIcons(){
  const resolution=256,artSize=384;
- // 1x1 structures should look smaller than the 2x2 machines. Keep
- // comfortable margins for all five and never normalize to full-bleed.
- const displayScale={wall:.60,bollard:.67,ice:.82,lure:.82,saw:.82};
+ // All five silhouettes fit the same visual envelope and retain aspect ratio.
+ const displayScale={wall:.82,bollard:.82,ice:.82,lure:.82,saw:.82};
  let source=null,ctx=null;
  if(typeof document.createElement==='function'){
   source=document.createElement('canvas');source.width=source.height=artSize;
@@ -757,7 +763,7 @@ const ICE_LATCH=.32,ICE_FREEZE=.62;
 function drawIceArms(g,w){
  const run=w.run,progress=run.time/spec(w).duration;
  const ease=t=>1-(1-Math.max(0,Math.min(1,t)))**2;
- const cx=w.x+T,cy=w.y+T,visualScale=T/MINI_TILE;
+ const cx=w.x+structureSize(w)/2,cy=w.y+structureSize(w)/2,visualScale=structureSize(w)/ENDLESS_TILE;
  for(const z of run.targets){
   const grip=run.grabbed.get(z);
   if(z.hp<=0||(progress>=ICE_LATCH&&!grip))continue;
@@ -819,7 +825,7 @@ function drawDeviceGauge(g,w,glow=null){
  if(w.kind==='bollard'||!w.kind||w.kind==='wall'||!Number.isFinite(w.hp))return;
  const size=T*span(w),x=w.x+size/2;
  {
-  const width=24*T/MINI_TILE,bx=x-width/2,by=w.y+size+1,bw=width*Math.max(0,Math.min(1,w.hp/spec(w).hp));
+  const width=24,bx=x-width/2,by=w.y+size+1,bw=width*Math.max(0,Math.min(1,w.hp/spec(w).hp));
   const color=w.kind==='ice'?'#46cfff':'#ffbf55';
   g.save();g.fillStyle='#172733';g.fillRect(bx-1,by-1,width+2,4);
   g.fillStyle=color;g.fillRect(bx,by,bw,2);g.restore();
@@ -846,8 +852,8 @@ function withinReach(z,w){
 function eligible(z,w,now){
  if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550||!withinReach(z,w))return false;
  if(w.kind==='lure'){
-  const p=deviceTarget(z,w.x+T,duckOriginY(w));
-  const dx=p.x-w.x-T,up=duckOriginY(w)-p.y;
+  const p=deviceTarget(z,w.x+structureSize(w)/2,duckOriginY(w));
+  const dx=p.x-w.x-structureSize(w)/2,up=duckOriginY(w)-p.y;
   return !(z.fortressFrozenUntil>now)&&up>0&&Math.abs(dx)<=up&&Math.hypot(dx,up)<=spec(w).range+12;
  }
  return w.kind!=='ice'||(!(z.fortressIceReady>now)&&!(z.knockTime>0));
@@ -855,15 +861,15 @@ function eligible(z,w,now){
 function reelIceTarget(w,z,prev,progress,now,ops){
  const run=w.run;
  if(prev<ICE_LATCH&&progress>=ICE_LATCH&&eligible(z,w,now)){
-  run.grabbed.set(z,{distance:Math.hypot(w.x+T-z.x-z.w/2,w.y+T-z.y-z.h/2),moved:0});
+  run.grabbed.set(z,{distance:Math.hypot(w.x+structureSize(w)/2-z.x-z.w/2,w.y+structureSize(w)/2-z.y-z.h/2),moved:0});
   const remaining=(ICE_FREEZE-ICE_LATCH)*spec(w).duration;
   z.fortressIceReady=now+remaining;
   z.trashStopUntil=Math.max(z.trashStopUntil||0,now+remaining);
   delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
-  ops.contact?.(z,'ice',w.x+T-z.x-z.w/2,w.y+T-z.y-z.h/2);
+  ops.contact?.(z,'ice',w.x+structureSize(w)/2-z.x-z.w/2,w.y+structureSize(w)/2-z.y-z.h/2);
  }
  if(!run.grabbed.has(z)||prev>=ICE_FREEZE)return false;
- const dx=w.x+T-z.x-z.w/2,dy=w.y+T-z.y-z.h/2;
+ const dx=w.x+structureSize(w)/2-z.x-z.w/2,dy=w.y+structureSize(w)/2-z.y-z.h/2;
  const distance=Math.hypot(dx,dy);
  const pullStart=ICE_LATCH+.085/spec(w).duration;
  const elapsed=Math.max(0,Math.min(progress,ICE_FREEZE)-Math.max(prev,pullStart))*spec(w).duration;
@@ -879,14 +885,14 @@ function reelIceTarget(w,z,prev,progress,now,ops){
  }
  grip.moved=Math.hypot(z.x-startX,z.y-startY);
  if(progress<ICE_FREEZE)return false;
- grip.releaseX=z.x+z.w/2-w.x-T;grip.releaseY=z.y+z.h*.48-w.y-T;
+ grip.releaseX=z.x+z.w/2-w.x-structureSize(w)/2;grip.releaseY=z.y+z.h*.48-w.y-structureSize(w)/2;
  const duration=z.boss?.85:2.8;
  z.fortressFrozenUntil=now+duration;z.fortressIceReady=now+duration+2;
  z.trashStopUntil=Math.max(z.trashStopUntil||0,z.fortressFrozenUntil);
  return true;
 }
 // The centre of the painted duck sits 18/64 down the machine.
-function duckOriginY(w){return w.y+2*T*18/64}
+function duckOriginY(w){return w.y+structureSize(w)*18/64}
 function duckTravel(p){
  if(p<.22)return -4*Math.sin(Math.PI*p/.22);
  if(p<.45)return BUILD_TYPES.lure.range*(1-(1-(p-.22)/.23)**2);
@@ -897,11 +903,11 @@ function strikeDuck(w,enemies,prev,progress,now,ops){
  const run=w.run,start=duckTravel(Math.max(.22,prev)),end=duckTravel(Math.min(.45,progress));
  const steps=Math.max(1,Math.ceil((end-start)/4));
  for(let i=0;i<=steps;i++){
-  const d=start+(end-start)*i/steps,x=w.x+T+run.dx*d,y=duckOriginY(w)+run.dy*d;
+  const d=start+(end-start)*i/steps,x=w.x+structureSize(w)/2+run.dx*d,y=duckOriginY(w)+run.dy*d;
   for(const z of enemies){
    if(run.struck.has(z)||z.hp<=0||(z.arrivalTime||0)<0||z.fortressFrozenUntil>now)continue;
    const ax=Math.max(z.x-x,0,x-z.x-z.w),ay=Math.max(z.y-y,0,y-z.y-z.h);
-   const sizeScale=T/MINI_TILE;
+   const sizeScale=structureSize(w)/ENDLESS_TILE;
     if((ax/(14*sizeScale))**2+(ay/(9*sizeScale))**2>1)continue;
    run.struck.add(z);
    ops.push?.(z,run.dx,run.dy,'lure',run.struck);
@@ -967,10 +973,10 @@ function tryMoleHop(w,dt,enemies,now,ops){
   return !z.boss&&z.hp>0&&(z.arrivalTime||0)>=0&&!z.moleHop&&
     !(z.knockTime>0)&&!(z.hitShakeUntil>now)&&!(z.trashStopUntil>now)&&
     !(z.fortressFrozenUntil>now)&&!(z.moleHopReady>now)&&
-    gap>=-3&&gap<=20&&Math.abs(z.x+z.w/2-w.x-T/2)<T*.65;
+    gap>=-3&&gap<=20&&Math.abs(z.x+z.w/2-w.x-structureSize(w)/2/2)<structureSize(w)*.65;
  }).sort((a,b)=>b.y-a.y);
  const z=candidates[0];if(!z||Math.random()>(late?.94:.48))return;
- const end=w.y+T+3+Math.random()*8;
+ const end=w.y+structureSize(w)+3+Math.random()*8;
  if(end+z.h>549||!ops.canMove(z,z.x,end))return;
  z.moleHop={id:w.id,end,speed:100+Math.random()*75,travel:0,total:end-z.y};
  z.moleHopReady=now+1.5;
@@ -983,8 +989,8 @@ function tickBollard(w,dt,enemies,ops,now=0){
   if(w.raised){
    w.raised=false;w.cooldown=randomRest(w);
   }else{
-   const cx=w.x+T/2,cy=w.y+T/2;
-   const nearby=enemies.filter(z=>z.hp>0&&(z.arrivalTime||0)>=0&&intersects(z.x,z.y,z.w,z.h,w,ops.molePush?2:T))
+   const cx=w.x+structureSize(w)/2,cy=w.y+structureSize(w)/2;
+   const nearby=enemies.filter(z=>z.hp>0&&(z.arrivalTime||0)>=0&&intersects(z.x,z.y,z.w,z.h,w,ops.molePush?2:structureSize(w)))
     .sort((a,b)=>Number(intersects(b.x,b.y,b.w,b.h,w))-Number(intersects(a.x,a.y,a.w,a.h,w)));
    // Clear the hatch before solidifying. Shove away from its centre, favouring
    // sideways escape on the player-facing side to respect the defence line.
@@ -1003,7 +1009,7 @@ function tickBollard(w,dt,enemies,ops,now=0){
     if(!ops.push?.(z,vx/length,vy/length,'bollard')&&intersects(z.x,z.y,z.w,z.h,w)){
      // Try a clear exit for a boss or a zombie pinned on the primary side.
      for(const [sx,sy] of [[0,-1],[-1,0],[1,0]]){
-      const distance=sy<0?z.y+z.h-w.y+2:sx<0?z.x+z.w-w.x+2:w.x+T-z.x+2;
+      const distance=sy<0?z.y+z.h-w.y+2:sx<0?z.x+z.w-w.x+2:w.x+structureSize(w)-z.x+2;
       const steps=Math.ceil(distance/3);
       let clear=true;
       for(let n=1;n<=steps;n++){
@@ -1032,7 +1038,7 @@ function tickDevices(dt,enemies,now,ops){
  for(const w of walls.values()){
   if(!w.kind||w.kind==='wall')continue;
   if(w.kind==='bollard'){tickBollard(w,dt,enemies,ops,now);continue}
-  const type=spec(w),cx=w.x+T,cy=w.y+T;
+  const type=spec(w),cx=w.x+structureSize(w)/2,cy=w.y+T;
   if(!w.run){
    w.cooldown=Math.max(0,w.cooldown-dt);
    if(w.cooldown>0)continue;
@@ -1100,7 +1106,7 @@ function draw(g,building=false,glow=null){
   const shakeY=bite?Math.cos(elapsed*105+w.id*.19)*.7*bite:0;
   g.save();
   if(bite>0)g.filter='brightness('+String((1+1.2*bite).toFixed(2))+') saturate(.85)';
-  g.drawImage(tile,index*frame,0,frame,frame,w.x+shakeX,w.y+shakeY,T,T);
+  g.drawImage(tile,index*frame,0,frame,frame,w.x+shakeX,w.y+shakeY,structureSize(w),structureSize(w));
   g.restore();
  }
  // Draw gauges after sprites so neighboring structures cannot hide them.
@@ -1120,7 +1126,7 @@ function draw(g,building=false,glow=null){
    g.beginPath();g.moveTo(p.x+5,p.y+5);g.lineTo(p.x+size-5,p.y+size-5);
    g.moveTo(p.x+size-5,p.y+5);g.lineTo(p.x+5,p.y+size-5);g.stroke();
   }else{
-   g.globalAlpha=.8;if(p.kind&&p.kind!=='wall')drawDevice(g,p,true);else g.drawImage(tile,0,0,frame,frame,p.x,p.y,T,T);
+   g.globalAlpha=.8;if(p.kind&&p.kind!=='wall')drawDevice(g,p,true);else g.drawImage(tile,0,0,frame,frame,p.x,p.y,size,size);
    g.globalAlpha=1;g.strokeStyle='#ffe78f';
    g.lineWidth=1.8;g.strokeRect(p.x+1,p.y+1,size-2,size-2);
   }
@@ -1134,7 +1140,7 @@ function tick(dt){for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',startWithFeedback);
-window.ZZFortress={duckKnockPlan,reset,setupEndless,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>valid(col,row)?occupied.get(id(col,row)):undefined,isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,startWithFeedback,
+window.ZZFortress={structureSize,duckKnockPlan,reset,setupEndless,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>valid(col,row)?occupied.get(id(col,row)):undefined,isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,startWithFeedback,
  bind(fn,feedback){onReady=fn;onStartFeedback=feedback},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),

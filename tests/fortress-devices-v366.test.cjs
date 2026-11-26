@@ -225,7 +225,7 @@ for(let wave=9;wave<=14;wave++){
  assert.equal(f.getStock(),0);
  assert.equal(nodes['fortress-builder'].hidden,true);
  for(const w of devices){
-  const size=w.kind==='wall'||w.kind==='bollard'?44:88;
+  const size=44;
   assert.equal(f.bounds().tile,44);
   assert(w.y+size<=499);
   for(const z of opening)assert(z.x+z.w<=w.x||z.x>=w.x+size||z.y+z.h<=w.y||z.y>=w.y+size);
