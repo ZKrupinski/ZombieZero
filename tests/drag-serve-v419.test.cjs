@@ -5,6 +5,7 @@ const serve=s.slice(s.indexOf('function serve(){'),s.indexOf('function overlay('
 const input=s.slice(s.indexOf('let inputPointer=null'),s.indexOf("document.addEventListener('pointerdown',inputDown"));
 const make=()=>new Function(`
  const W=450,PY=584,HERO_ATTACK_DURATION=.42,c={getBoundingClientRect:()=>({width:225,left:0}),setPointerCapture(){}};
+ let introFadeAt=Infinity,clock=0;
  let mode='playing',car=225,target=225,touchUsed=false,groggyTime=0,balls=[{held:true}],heroAttackTime=0,swing=0,launches=0;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),heldBallOffset=()=>({x:-12,y:-35}),unlockAudio=()=>{},syncMulti=()=>{},sfx=()=>{},feedback=k=>{if(k==='serve')launches++},hud=()=>{};
  ${serve}
