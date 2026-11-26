@@ -53,6 +53,7 @@
    },
    draw(ctx,z,t){
      if(!pack.ready)return false;
+     if(checkSheets)checkCachedSheets();
      const frame=pack.getFrame(z,t),rect=pack.sourceRect(frame);
      const palette=window.ZZGreenPalette;
      const selected=palette?.paletteFor(z)??0;
@@ -73,11 +74,46 @@
    }
  };
  window.ZZGreenWalk=pack;
- image.onload=()=>{pack.ready=image.naturalWidth===1024&&image.naturalHeight===512;pack.failed=!pack.ready;if(pack.ready){
-    pack.variants=window.ZZGreenPalette?.variants(image)||[image];
-    expressions=window.ZZGreenPalette?.createFaceExpressions?.(image)||{};
-    refreshHairSheets();
-   }};
+ function rebuildSheets(){
+  // Drop derived canvases first. All replacement layers use the file-backed PNG.
+  pack.variants=[image];
+  expressions={};
+  for(const color of Object.keys(hairSheets))delete hairSheets[color];
+  pack.variants=window.ZZGreenPalette?.variants(image)||[image];
+  expressions=window.ZZGreenPalette?.createFaceExpressions?.(image)||{};
+  refreshHairSheets();
+ }
+ let checkSheets=false;
+ function checkOnResume(){checkSheets=true}
+ function missingPixels(sheet,y){
+  if(!sheet||sheet===image)return false;
+  const ctx=sheet.getContext('2d');
+  // First front frame: x=64 lies inside the cap at y=15 and body at y=64.
+  return !ctx||ctx.isContextLost?.()||!ctx.getImageData(64,y,1,1).data[3];
+ }
+ function checkCachedSheets(){
+  checkSheets=false;
+  for(const set of [pack.variants,...Object.values(expressions)]){
+   for(let i=0;i<set.length;i++){
+    // Checking must not allocate the lazy color variants of unused faces.
+    const sheet=Object.getOwnPropertyDescriptor(set,i)?.value;
+    if(missingPixels(sheet,64)){rebuildSheets();return}
+   }
+  }
+  if(Object.values(hairSheets).some(sheet=>missingPixels(sheet,15)))rebuildSheets();
+ }
+ if(typeof document!=='undefined'){
+  document.addEventListener?.('visibilitychange',()=>{if(!document.hidden)checkOnResume()});
+  document.addEventListener?.('resume',checkOnResume);
+  document.addEventListener?.('contextrestored',checkOnResume,true);
+ }
+ window.addEventListener?.('pageshow',checkOnResume);
+ window.addEventListener?.('focus',checkOnResume);
+ image.onload=()=>{
+  pack.ready=image.naturalWidth===1024&&image.naturalHeight===512;
+  pack.failed=!pack.ready;
+  if(pack.ready)rebuildSheets();
+ };
  image.onerror=()=>{pack.failed=true;pack.ready=false};
  image.src='assets/ip/v2/green_zombie.png';
  for(const sheet of Object.values(rawHairSheets))sheet.onload=refreshHairSheets;
