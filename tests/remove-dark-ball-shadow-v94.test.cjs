@@ -14,7 +14,7 @@ assert(draw.includes('drawWorldGroundShadows();drawTrashContact(\'world\');drawC
 const heroRender=s.slice(s.indexOf('function drawHeroStrikePresentation(){'),s.indexOf('function player(){'));
 assert(draw.includes('drawHeroStrikePresentation();')&&heroRender.includes('drawCarGroundShadow()'),'car shadow retained');
 assert(s.includes('drawTrailGroundReflections(b,radius,getBallRenderTrailPath(b,radius))'),'colored wake retained');
-assert(s.includes('baseAlpha*.68*fade*variation,30,.82,true)'),'v93 multiball light cache preserved');
+assert(s.includes('baseAlpha*.68*fade*variation*energy,30,.82,true,undefined,'),'v93 multiball light cache preserved');
 assert(s.includes('drawTrailEdgeHalo(b,r,trailPath,.72)'),'bloom attenuation unchanged');
 assert(s.includes('const BALL_PROJECTION_GAP=24'),'colored light offset unchanged');
 new Function(s);

@@ -79,7 +79,7 @@ for(const len of [170,190]){
  const before=gradients.length;
  vm.runInContext('drawTrailGroundReflections('+JSON.stringify(ball)+','+(len===190?12:8)+','+JSON.stringify(p)+')',ctx);
  const newGlows=gradients.slice(before);
- const expectedSamples=Math.min(20,Math.max(2,Math.ceil((len-4)/11)+1));
+ const expectedSamples=Math.min(20,Math.max(2,Math.ceil((len-4)/16)+1));
  assert(newGlows.length===expectedSamples*2,'every portion of the complete trail receives two soft pools');
  assert(newGlows.every(x=>x.scaleY===.82),'reflections retain thick, non-line oval geometry');
  assert(Math.abs(newGlows.at(-1).y-(p.at(-1).y+30))<.01,

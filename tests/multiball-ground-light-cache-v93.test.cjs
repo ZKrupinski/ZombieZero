@@ -7,7 +7,7 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('game.js?v=93-multiball-light-cache'));
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'));
-assert(code.includes('baseAlpha*.68*fade*variation,30,.82,true)'));
+assert(code.includes('baseAlpha*.68*fade*variation*energy,30,.82,true,undefined,'));
 function part(start,end){
  const a=code.indexOf(start),b=code.indexOf(end,a+start.length);
  assert(a>=0&&b>a,'missing code block '+start);return code.slice(a,b);

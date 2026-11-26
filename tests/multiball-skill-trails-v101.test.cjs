@@ -71,7 +71,7 @@ vm.createContext(floor);vm.runInContext(ground,floor);
 floor.path=path;floor.b={held:false};
 vm.runInContext('drawTrailGroundReflections(b,8,path)',floor);
 const basePools=floorDraws.length;
-assert(basePools>=14,'one/two-ball baseline preserves dense soft floor reflections');
+assert(basePools>=12,'one/two-ball baseline preserves dense soft floor reflections');
 assert(floorDraws.every(a=>a[8]===undefined),'normal pools include double-core halo');
 floorDraws.length=0;floor.balls=[{},{},{}];
 vm.runInContext('drawTrailGroundReflections(b,8,path)',floor);

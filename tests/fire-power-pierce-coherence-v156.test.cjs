@@ -72,7 +72,7 @@ for(const n of [1,3,6]){
  flames.length=0;
  vm.runInContext('drawBurningTrailFlames(b,r,path)',env);
  assert(flames.length>=7,'flames remain recognizable even with many balls');
- assert.equal(flames.length,38,'same complete 2-sided flame samples at every count');
+ assert.equal(flames.length,32,'same complete 2-sided flame samples at every count');
 }
 env.skills=['fire','power','pierce'];env.balls=[ball];env.path=pathOf(170);
 flames.length=0;events.length=0;
@@ -100,7 +100,7 @@ assert.equal(bolt[0][1],'#d9fdff','mixed trail uses bright cyan-white lightning'
 env.balls=[ball,ball,ball,ball,ball,ball];env.skills=['fire','pierce','power'];
 ground.length=0;
 vm.runInContext('drawTrailGroundReflections({held:false},r,path)',env);
-assert.equal(ground.length,17,'combined floor reflection has full density');
+assert.equal(ground.length,12,'combined floor reflection has full density');
 assert(ground.some(e=>e[3].join(',')==='255,247,145'),'triple tail reflects yellow');
 assert(ground.some(e=>e[3].join(',')==='86,22,175'),'triple head reflects violet');
 assert(ground.every(e=>e[8]===undefined),'original full inner light pool retained');

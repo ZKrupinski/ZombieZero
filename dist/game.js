@@ -479,6 +479,20 @@ function activeTrailRamp(){
  return SKILL_TRAIL_RAMPS[(has('fire')?1:0)|(has('pierce')?2:0)|(has('power')?4:0)];
 }
 const BURN_GROUND_COLOR=[255,139,51];
+// V410: normalized flame masks, warmed before a rally. Scaling and rotation
+// reproduce the original cubic silhouette with no per-tongue path rasterization.
+const trailFlameStamps=new Map();
+function trailFlameStamp(color){
+ if(typeof CanvasRenderingContext2D!=='function'||typeof document==='undefined')return null;
+ if(trailFlameStamps.has(color))return trailFlameStamps.get(color);
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
+ const c=canvas.getContext('2d');if(!c)return null;
+ c.setTransform(100,0,0,50,8,64);c.fillStyle=color;c.beginPath();c.moveTo(0,.64);
+ c.bezierCurveTo(.33,.9,.72,.34,1,0);
+ c.bezierCurveTo(.64,-.36,.25,-.9,0,-.64);c.closePath();c.fill();
+ trailFlameStamps.set(color,canvas);return canvas;
+}
+
  const PICKUP_LIGHT_COLORS=Object.fromEntries(Object.entries(typeof SKILLS!=='undefined'?SKILLS:{}).map(([k,v])=>[k,typeof effectLightRGB==='function'?effectLightRGB(v.color):[255,210,112]]));
  const TRAIL_WARM_COLORS=[...TRAIL_GROUND_HERO_COLORS,...HERO_GROUND_RAMPS.flat(),SCARLET_DIAMOND_GROUND_ACCENT,
   ...SKILL_TRAIL_RAMPS.slice(1).flatMap(ramp=>ramp.ground),BURN_GROUND_COLOR,...Object.values(PICKUP_LIGHT_COLORS),
@@ -491,6 +505,9 @@ const BURN_GROUND_COLOR=[255,139,51];
   if(typeof document==='undefined'||typeof document.createElement!=='function')return;
   const rgb=TRAIL_WARM_COLORS[trailWarmIndex++];
   const stamp=trailLightStamp(rgb);
+  const hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
+  const flame=SKILL_TRAIL_RAMPS.some(ramp=>ramp?.stops.includes(hex))?trailFlameStamp(hex):null;
+  if(flame&&g?.drawImage){g.save();g.globalAlpha=0;g.drawImage(flame,0,0,1,1);g.restore()}
   // Touch the texture on the live canvas at zero opacity, before action.
   if(stamp&&g?.drawImage){g.save();g.globalAlpha=0;g.drawImage(stamp,0,0,1,1);g.restore()}
  }
@@ -517,10 +534,11 @@ function drawTrailGroundReflections(b,r,path){
  const colors=ramp?ramp.ground:heroRamp;
  const baseAlpha=(fire||pierce?(power ? .43 : .39):(power ? .42 : .39))*(ramp ? .8 : .6);
  const radius=(fire||pierce?(power?34:28):power?28:24)*(typeof miniBallScale==='function'?miniBallScale():1);
- // Adaptive <=11px spacing produces an unbroken reflected ribbon, with
- // both ends present. One quality profile for every ball count.
+ // V410: 16px maximum spacing, both endpoints retained. Normalize additive
+ // energy by the old/new sample ratio, without enlarging the wake silhouette.
  const start=4;
- const samples=Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1));
+ const samples=Math.min(20,Math.max(2,Math.ceil((length-start)/16)+1));
+ const energy=(Math.min(20,Math.max(2,Math.ceil((length-start)/11)+1))-1)/(samples-1);
  for(let i=0;i<samples;i++){
   const d=start+(length-start)*i/(samples-1);
   const p=sampleBallTrail(path,d);
@@ -535,7 +553,7 @@ function drawTrailGroundReflections(b,r,path){
     colors[Math.round((1-d/length)*(colors.length-1))];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
-     baseAlpha*.68*fade*variation,30,.82,true,undefined,
+     baseAlpha*.68*fade*variation*energy,30,.82,true,undefined,
       1-.88*Math.pow(Math.max(0,(d/length-.25)/.75),2)*(3-2*Math.max(0,(d/length-.25)/.75)));
  }
 }
@@ -4182,7 +4200,10 @@ function buildBallTrailPath(b,r,points){
  for(let i=0;i<trail.length&&total<limit;i++){
   const p=i?trail[i-1]:head,q=trail[i],prev=i>1?trail[i-2]:head,next=trail[Math.min(trail.length-1,i+1)];
   const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy);if(len<.6)continue;
-  const count=Math.ceil(len/2.6),corner=p.corner||q.corner;
+  const corner=p.corner||q.corner;
+  const ax=p.x-prev.x,ay=p.y-prev.y,bx=next.x-q.x,by=next.y-q.y;
+  const curved=!corner&&(Math.abs(ax*dy-ay*dx)>.12*Math.hypot(ax,ay)*len||Math.abs(bx*dy-by*dx)>.12*Math.hypot(bx,by)*len);
+  const count=Math.ceil(len/(curved?2.6:4));
   const m0x=corner?dx:(q.x-prev.x)*.5,m0y=corner?dy:(q.y-prev.y)*.5;
   const m1x=corner?dx:(next.x-p.x)*.5,m1y=corner?dy:(next.y-p.y)*.5;
   const minX=Math.min(p.x,q.x),maxX=Math.max(p.x,q.x),minY=Math.min(p.y,q.y),maxY=Math.max(p.y,q.y);
@@ -4297,7 +4318,7 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
  // bloom capture uses a lower alpha (v92).
  g.globalAlpha=.23*.6*bloomScale;g.strokeStyle=grad||glow;
  g.lineWidth=r*1.55;
- if(typeof Path2D==='function'){
+ if(typeof Path2D==='function'&&typeof Path2D.prototype.moveTo==='function'){
   g.fillStyle=g.strokeStyle;
   g.fill(path.haloRibbon||(path.haloRibbon=makeTaperedTrailRibbon(path,g.lineWidth)));
   g.restore();return;
@@ -4333,7 +4354,7 @@ function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
   gradient.addColorStop(1,color+'ff');
  }
  g.strokeStyle=gradient||color;g.lineWidth=r*1.52;
- if(typeof Path2D==='function'){
+ if(typeof Path2D==='function'&&typeof Path2D.prototype.moveTo==='function'){
   g.fillStyle=g.strokeStyle;
   g.fill(path.elementalRibbon||(path.elementalRibbon=makeTaperedTrailRibbon(path,g.lineWidth)));
   g.restore();return;
@@ -4349,9 +4370,9 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  drawElementalTrailBody(b,r,path,fire,pierce);
  if(fire||pierce)return;
  const colors=activeTrailRamp().stops;
- const len=path[path.length-1].s,step=r>8?6.5:5.5;
+ const len=path[path.length-1].s,step=r>8?8.5:7.5;
  g.save();g.globalCompositeOperation='lighter';g.lineCap='round';g.shadowBlur=0;
- // Short overlapping sparks occur every 5–6.5px (was 11–13px). The
+ // Short overlapping sparks occur every 7.5–8.5px. The
  // continuous core beneath them remains exactly the original trail length.
  for(let d=3,i=0;d<len-1;d+=step,i++){
   const p=sampleBallTrail(path,d),next=sampleBallTrail(path,Math.min(len,d+step+2));
@@ -4366,7 +4387,7 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   if(i%3===0){
    const lateral=r*.72*taper,chip=Math.max(.8,width*.48/taper)*taper;
    for(const side of [-1,1]){
-    g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*.8*fade;
+    g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*.8*fade*(step/(r>8?6.5:5.5));
     g.beginPath();g.arc(p.x+nx*side*lateral,p.y+ny*side*lateral,chip,0,Math.PI*2);g.fill();
    }
   }
@@ -4378,7 +4399,14 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
 // every original render call and visual characteristic intact.
 // No ball-count or performance-dependent visual LOD.
 // Tapered cubic tongues, warm inner cores and a backward-flowing ember ribbon.
-function flameTongue(x,y,dx,dy,width,outer,alpha=1){
+function flameTongue(x,y,dx,dy,width,outer,alpha=1,useStamp=false){
+ if(useStamp&&typeof trailFlameStamp==='function'){
+  const stamp=trailFlameStamp(outer),length=Math.hypot(dx,dy);
+  if(stamp&&length>.001&&width>0){
+   g.save();g.globalAlpha=alpha;g.translate(x,y);g.rotate(Math.atan2(dy,dx));
+   g.drawImage(stamp,-length*.08,-width*1.28,length*1.28,width*2.56);g.restore();return;
+  }
+ }
  const mag=Math.hypot(dx,dy)||1,nx=-dy/mag,ny=dx/mag;
  const len=mag,root=width*.64;
  // Both callers own the canvas state for their entire flame layer.
@@ -4441,7 +4469,7 @@ function drawBurningTrailFlames(b,r,path){
  g.save();g.lineCap='round';g.globalCompositeOperation='lighter';g.shadowBlur=0;
  // Tongues curl and detach from the outer edge of the moving trail,
  // staggered in time instead of one rigid straight beam.
- for(let d=3,i=0;d<maxLen-1;d+=10,i++){
+ for(let d=3,i=0;d<maxLen-1;d+=12,i++){
   const p=sampleBallTrail(path,d),q=sampleBallTrail(path,Math.min(maxLen,d+7));
   if(!p||!q)continue;
   const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
@@ -4450,14 +4478,14 @@ function drawBurningTrailFlames(b,r,path){
   const fade=Math.pow(1-position,1.25);
   const tongueColor=colors[position<.30?2:position<.60?1:0];
   for(const side of [-1,1]){
-   const oscillation=Math.sin(t*13+i*2.2+side*1.5);
+   const oscillation=Math.sin(t*13+((d-3)/10)*2.2+side*1.5);
    const base=r*(.45+.25*oscillation)*taper;
    const x=p.x+nx*side*base,y=p.y+ny*side*base;
    const reach=(8+5*(.5+.5*oscillation))*fade;
    const tx=dx/mag*reach+nx*side*reach*.65*taper;
    const ty=dy/mag*reach+ny*side*reach*.65*taper;
    flameTongue(x,y,tx,ty,Math.max(.7,r*.17*fade)*taper,
-     tongueColor,.78*.8*fade);
+     tongueColor,.78*.8*fade*1.2,true);
   }
  }
  g.restore();

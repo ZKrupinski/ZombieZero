@@ -38,7 +38,7 @@ const c=new Proxy({},{
 });
 const path=Array.from({length:12},(_,i)=>({x:235-i*4,y:135+i*5,s:i*16}));
 const ball={x:235,y:135,held:false};
-const expectedPools=Math.min(20,Math.max(2,Math.ceil((path[path.length-1].s-4)/11)+1))*2;
+const expectedPools=Math.min(20,Math.max(2,Math.ceil((path[path.length-1].s-4)/16)+1))*2;
 let equipped=new Set();
 const ctx={g:c,Math,Number,clock:1.25,fxEnabled:true,selectedHero:0,
  clamp:(x,min,max)=>Math.min(max,Math.max(min,x)),

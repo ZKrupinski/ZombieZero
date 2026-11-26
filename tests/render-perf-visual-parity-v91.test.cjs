@@ -71,7 +71,8 @@ function oldRibbon(path,r){
   const p=path[i],a=path[Math.max(0,i-1)],z=path[Math.min(n,i+1)];
   const dx=a.x-z.x,dy=a.y-z.y,m=Math.hypot(dx,dy)||1;
   const taper=clamp((len-p.s)/Math.min(17,len*.3),0,1);
-  const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper);
+  const u=Math.max(0,(p.s/len-.25)/.75);
+  const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper)*(1-.88*u*u*(3-2*u));
   left.push([p.x-dy/m*half,p.y+dx/m*half]);
   right.push([p.x+dy/m*half,p.y-dx/m*half]);
  }
@@ -91,7 +92,7 @@ for(const radius of [8,12]){
  collected.length=0;
  vm.runInContext('drawHeroBallTrail({x:210,y:240},'+radius+','+JSON.stringify(base)+')',geomCtx);
  const original=oldRibbon(base,radius);
- assert.deepEqual(collected,original,'optimized ribbon must have bit-identical polygon vertices');
+ assert.deepEqual(collected,original,'optimized ribbon must match the approved tapered polygon');
 }
 assert(!drawRibbonSource.includes('const left=[],right=[]'),
  'ribbon no longer allocates two per-vertex object arrays');

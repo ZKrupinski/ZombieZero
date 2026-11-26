@@ -45,7 +45,7 @@ const ctx2d=new Proxy({},{
 });
 const path=Array.from({length:12},(_,i)=>({x:240-i*4,y:180+i*4,s:i*16}));
 const ball={x:240,y:180,held:false,vx:220,vy:-330,trail:path};
-const expectedPools=Math.min(20,Math.max(2,Math.ceil((path[path.length-1].s-4)/11)+1))*2;
+const expectedPools=Math.min(20,Math.max(2,Math.ceil((path[path.length-1].s-4)/16)+1))*2;
 
 let skills=new Set();
 const context={
