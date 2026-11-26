@@ -367,9 +367,9 @@ function trailLightStamp(rgb){
  if(typeof lightColorStamps!=='undefined'){if(lightColorStamps.size>=64)lightColorStamps.delete(lightColorStamps.keys().next().value);lightColorStamps.set(key,stamp)}
  return stamp;
 }
-function drawSoftLightSpill(x,y,r,rgb,alpha=.35,useTrailStamp=false){
+function drawSoftLightSpill(x,y,r,rgb,alpha=.35,useTrailStamp=false,widthScale=1){
  if(!fxEnabled||!Number.isFinite(x)||!Number.isFinite(y)||alpha<=0)return;
- const radius=Math.min(100,Math.max(12,r));
+ const radius=Math.min(100,Math.max(12,r))*widthScale;
  // Every trail wake can use the prebuilt mask, including the first skill pickup. Positions, 5-stop
  // falloff, additive alpha and BOTH outer/core radii stay unchanged.
  if(useTrailStamp&&typeof document!=='undefined'&&typeof document.createElement==='function'){
@@ -414,7 +414,7 @@ function getBallRenderTrailPath(b,r){
 // Projected reflections sit below the effect, while the original flame
 // filaments, electric arcs and hit flashes stay attached to their sources.
 // Transforming BOTH the gradient and its path gives a soft elliptical pool.
-function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=true,drawCore=true){
+function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTrailStamp=true,drawCore=true,widthScale=1){
  if(!fxEnabled||alpha<=0)return;
  g.save();
  g.translate(x+4,y+drop);
@@ -425,18 +425,18 @@ function drawProjectedLightSpill(x,y,r,rgb,alpha=.35,drop=28,vertical=.82,useTra
  // repeated color-cache lookup or repeated blend/shadow state changes.
  const stamp=useTrailStamp&&typeof trailLightStamp==='function'?trailLightStamp(rgb):null;
  if(stamp&&Number.isFinite(x)&&Number.isFinite(y)){
-  const inherited=g.globalAlpha,outer=Math.min(100,Math.max(12,r));
+  const inherited=g.globalAlpha,outer=Math.min(100,Math.max(12,r))*widthScale;
   g.globalCompositeOperation='lighter';g.shadowColor='transparent';g.shadowBlur=0;
   g.globalAlpha=inherited*Math.min(.8,alpha)/.8;
   g.drawImage(stamp,-outer,-outer,outer*2,outer*2);
   if(drawCore){
-   const core=Math.min(100,Math.max(12,r*.52));
+   const core=Math.min(100,Math.max(12,r*.52))*widthScale;
    g.globalAlpha=inherited*Math.min(.8,alpha*.37)/.8;
    g.drawImage(stamp,-core,-core,core*2,core*2);
   }
  }else{
-  drawSoftLightSpill(0,0,r,rgb,alpha,useTrailStamp);
-  if(drawCore)drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp);
+  drawSoftLightSpill(0,0,r,rgb,alpha,useTrailStamp,widthScale);
+  if(drawCore)drawSoftLightSpill(0,0,r*.52,rgb,alpha*.37,useTrailStamp,widthScale);
  }
  g.restore();
 }
@@ -535,7 +535,8 @@ function drawTrailGroundReflections(b,r,path){
     colors[Math.round((1-d/length)*(colors.length-1))];
   // Dense pools overlap; reduce each one's alpha to prevent white blowout.
   drawProjectedLightSpill(p.x,p.y,radius*(.76+.24*fade),rgb,
-     baseAlpha*.68*fade*variation,30,.82,true);
+     baseAlpha*.68*fade*variation,30,.82,true,undefined,
+      1-.88*Math.pow(Math.max(0,(d/length-.25)/.75),2)*(3-2*Math.max(0,(d/length-.25)/.75)));
  }
 }
 // V89: the former single-pixel horizontal stroke read as a loose line,
@@ -4212,6 +4213,33 @@ function sampleBallTrail(path,d){
  const t=clamp((d-a.s)/Math.max(.001,b.s-a.s),0,1);
  return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
 }
+// V409: a single filled variable-width ribbon, cached for the scene and
+// bloom passes. Split at sharp bends so reversing segments never cancel.
+// The front quarter retains the previous diameter; only the wake tapers.
+function makeTaperedTrailRibbon(path,width){
+ const shape=new Path2D(),n=path.length-1,len=path[n].s||1;
+ const half=i=>{const u=Math.max(0,(path[i].s/len-.25)/.75);return width*.5*(1-.88*u*u*(3-2*u))};
+ function strip(start,end){
+  if(end<=start)return;
+  for(let side=1;side>=-1;side-=2){
+   for(let i=side===1?start:end;side===1?i<=end:i>=start;i+=side){
+    const p=path[i],a=path[Math.max(start,i-1)],z=path[Math.min(end,i+1)];
+    let dx=z.x-a.x,dy=z.y-a.y,m=Math.hypot(dx,dy);
+    if(m<.001){const q=i<end?path[i+1]:path[i-1];dx=i<end?q.x-p.x:p.x-q.x;dy=i<end?q.y-p.y:p.y-q.y;m=Math.hypot(dx,dy)||1}
+    const h=half(i)*side,x=p.x+dy/m*h,y=p.y-dx/m*h;
+    if(side===1&&i===start)shape.moveTo(x,y);else shape.lineTo(x,y);
+   }
+  }
+  shape.closePath();
+ }
+ function cap(i){const p=path[i],h=half(i);shape.moveTo(p.x+h,p.y);shape.arc(p.x,p.y,h,0,Math.PI*2);shape.closePath()}
+ let start=0;
+ for(let i=1;i<n;i++){
+  const a=path[i-1],p=path[i],z=path[i+1],ax=p.x-a.x,ay=p.y-a.y,bx=z.x-p.x,by=z.y-p.y;
+  if(ax*bx+ay*by<0){strip(start,i);cap(i);start=i}
+ }
+ strip(start,n);cap(0);cap(n);return shape;
+}
 function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
  if(path.length<2)return;
  const col=HERO_BALL_TRAILS[selectedHero]||HERO_BALL_TRAILS[0];
@@ -4229,7 +4257,8 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
   const p=path[i],a=path[Math.max(0,i-1)],z=path[Math.min(n,i+1)];
   const dx=a.x-z.x,dy=a.y-z.y,m=Math.hypot(dx,dy)||1;
   const taper=clamp((len-p.s)/Math.min(17,len*.3),0,1);
-  const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper);
+  const u=Math.max(0,(p.s/len-.25)/.75);
+   const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper)*(1-.88*u*u*(3-2*u));
   const x=p.x-dy/m*half,y=p.y+dx/m*half;
   if(i===0)g.moveTo(x,y);else g.lineTo(x,y);
  }
@@ -4237,7 +4266,8 @@ function drawHeroBallTrail(b,r,path=buildBallTrailPath(b,r)){
   const p=path[i],a=path[Math.max(0,i-1)],z=path[Math.min(n,i+1)];
   const dx=a.x-z.x,dy=a.y-z.y,m=Math.hypot(dx,dy)||1;
   const taper=clamp((len-p.s)/Math.min(17,len*.3),0,1);
-  const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper);
+  const u=Math.max(0,(p.s/len-.25)/.75);
+   const half=Math.min(r*.76,11)*(1-.2*p.s/len)*(.2+.8*taper)*(1-.88*u*u*(3-2*u));
   g.lineTo(p.x+dy/m*half,p.y-dx/m*half);
  }
  g.closePath();g.fill();g.restore();
@@ -4267,6 +4297,11 @@ function drawTrailEdgeHalo(b,r,path,bloomScale=1){
  // bloom capture uses a lower alpha (v92).
  g.globalAlpha=.23*.6*bloomScale;g.strokeStyle=grad||glow;
  g.lineWidth=r*1.55;
+ if(typeof Path2D==='function'){
+  g.fillStyle=g.strokeStyle;
+  g.fill(path.haloRibbon||(path.haloRibbon=makeTaperedTrailRibbon(path,g.lineWidth)));
+  g.restore();return;
+ }
  g.beginPath();g.moveTo(head.x,head.y);
  for(let i=2;i<path.length;i+=2)g.lineTo(path[i].x,path[i].y);
  if((path.length-1)%2!==0)g.lineTo(end.x,end.y);
@@ -4298,6 +4333,11 @@ function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
   gradient.addColorStop(1,color+'ff');
  }
  g.strokeStyle=gradient||color;g.lineWidth=r*1.52;
+ if(typeof Path2D==='function'){
+  g.fillStyle=g.strokeStyle;
+  g.fill(path.elementalRibbon||(path.elementalRibbon=makeTaperedTrailRibbon(path,g.lineWidth)));
+  g.restore();return;
+ }
  g.beginPath();g.moveTo(head.x,head.y);
  for(let i=1;i<path.length;i++)g.lineTo(path[i].x,path[i].y);
  g.stroke();g.restore();
@@ -4319,11 +4359,12 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
   const dx=next.x-p.x,dy=next.y-p.y,mag=Math.hypot(dx,dy)||1;
   const nx=-dy/mag,ny=dx/mag;
   const fade=1-.78*d/Math.max(1,len);
-  const width=Math.min(2.3,Math.max(1,r*.14));
+  const u=Math.max(0,(d/len-.25)/.75),taper=1-.88*u*u*(3-2*u);
+  const width=Math.min(2.3,Math.max(1,r*.14))*taper;
   g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*.8*fade;
   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(next.x,next.y);g.stroke();
   if(i%3===0){
-   const lateral=r*.72,chip=Math.max(.8,width*.48);
+   const lateral=r*.72*taper,chip=Math.max(.8,width*.48/taper)*taper;
    for(const side of [-1,1]){
     g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*.8*fade;
     g.beginPath();g.arc(p.x+nx*side*lateral,p.y+ny*side*lateral,chip,0,Math.PI*2);g.fill();
@@ -4405,17 +4446,17 @@ function drawBurningTrailFlames(b,r,path){
   if(!p||!q)continue;
   const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
   const nx=-dy/mag,ny=dx/mag;
-  const position=d/maxLen;
+  const position=d/maxLen,u=Math.max(0,(position-.25)/.75),taper=1-.88*u*u*(3-2*u);
   const fade=Math.pow(1-position,1.25);
   const tongueColor=colors[position<.30?2:position<.60?1:0];
   for(const side of [-1,1]){
    const oscillation=Math.sin(t*13+i*2.2+side*1.5);
-   const base=r*(.45+.25*oscillation);
+   const base=r*(.45+.25*oscillation)*taper;
    const x=p.x+nx*side*base,y=p.y+ny*side*base;
    const reach=(8+5*(.5+.5*oscillation))*fade;
-   const tx=dx/mag*reach+nx*side*reach*.65;
-   const ty=dy/mag*reach+ny*side*reach*.65;
-   flameTongue(x,y,tx,ty,Math.max(.7,r*.17*fade),
+   const tx=dx/mag*reach+nx*side*reach*.65*taper;
+   const ty=dy/mag*reach+ny*side*reach*.65*taper;
+   flameTongue(x,y,tx,ty,Math.max(.7,r*.17*fade)*taper,
      tongueColor,.78*.8*fade);
   }
  }
@@ -4510,7 +4551,8 @@ function drawPierceTrailLightning(b,r,path){
   const dx=z.x-a.x,dy=z.y-a.y,m=Math.hypot(dx,dy)||1;
   const wave=1-4*Math.abs((p.s/24)%1-.5);
   const envelope=Math.min(1,p.s/10,(len-p.s)/12);
-  const side=wave*r*.42*envelope*(.88+.12*Math.sin(beat*1.7));
+  const u=Math.max(0,(p.s/len-.25)/.75),taper=1-.88*u*u*(3-2*u);
+  const side=wave*r*.42*envelope*(.88+.12*Math.sin(beat*1.7))*taper;
   g.lineTo(p.x-dy/m*side,p.y+dx/m*side);
  }
  g.stroke();g.restore();
