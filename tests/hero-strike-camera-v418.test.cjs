@@ -6,14 +6,16 @@ const h=new Function('env',`let cameraKick=0,lastCameraFeedback=0,lastBuzz=0,buz
 const performance={now:env.now},navigator={vibrate:p=>{env.pulses.push(p);return true}},document={hidden:false},window={};const Math=Object.create(globalThis.Math);Math.random=env.random;
 ${src.slice(start,stop)};return {feedback,cameraOffset,heroCameraZoom,screenShake,FEEDBACK_PRESETS}`)({now:()=>now,random:()=>random,pulses});
 h.feedback('critical',true);assert.equal(h.screenShake.until,1084);
-now=1010;h.feedback('serve');assert.equal(h.screenShake.power,9.5);assert.equal(h.screenShake.until,1110);assert(h.screenShake.hero);assert.equal(h.screenShake.focusX,130);
+now=1010;h.feedback('serve');assert.equal(h.screenShake.power,12);assert.equal(h.screenShake.until,1110);assert(h.screenShake.hero);assert.equal(h.screenShake.focusX,130);
 assert.deepEqual(pulses,[[180,48,210],[205,32,235]]);
-const zoom=h.heroCameraZoom();assert(Math.abs(zoom.scale-1.136)<1e-9);now=1028;assert(h.heroCameraZoom().scale<zoom.scale);assert.equal(zoom.y,599);
+const zoom=h.heroCameraZoom();assert(Math.abs(zoom.scale-1.044)<1e-9);now=1028;assert(h.heroCameraZoom().scale<zoom.scale);assert.equal(zoom.y,599);
 for(now=1029;now<1155;now++){h.feedback('critical',true);h.feedback('racket');h.feedback('car');assert.equal(h.screenShake.started,1010);assert.equal(h.screenShake.until,1110)}
 assert(h.heroCameraZoom().scale>1);assert.equal(h.cameraOffset(),null);assert.equal(pulses.length,2);
 now=1160;h.feedback('hit');assert(h.heroCameraZoom().scale>1,'ordinary shake must not cancel return');now=1350;assert.equal(h.heroCameraZoom(),null);
-now=1600;random=.9;h.feedback('racket');assert(h.heroCameraZoom().scale>zoom.scale);assert.equal(h.screenShake.until,1700);
-now=2200;h.feedback('car');assert.equal(h.screenShake.power,9.5);assert.equal(h.screenShake.until,2300);
+now=1600;random=.9;h.feedback('racket');assert(Math.abs(h.heroCameraZoom().scale-1.192)<1e-9);assert.equal(h.screenShake.power,9.5);assert.equal(h.screenShake.until,1700);
+now=2200;h.feedback('car');assert(Math.abs(h.heroCameraZoom().scale-1.192)<1e-9);assert.equal(h.screenShake.power,9.5);assert.equal(h.screenShake.until,2300);
+now=2800;random=0;h.feedback('serve');assert.equal(h.screenShake.power,12);assert.equal(h.screenShake.until,2900);assert(Math.abs(h.heroCameraZoom().scale-1.04)<1e-9);
+now=3400;random=.999;h.feedback('serve');assert(h.heroCameraZoom().scale>=1.04&&h.heroCameraZoom().scale<=1.06);
 assert(src.includes("syncMulti();sfx('serve');feedback('serve')"));assert(src.includes("sfx('racket');feedback('racket')"));assert(src.includes("sfx('car');feedback('car')"));
 assert(src.includes('g.scale(zoom.scale,zoom.scale)'));assert(src.includes('drawBubbles();g.restore();drawDanger()'));
 console.log('PASS V418: strike priority, bounded random zoom, strong haptics, unchanged HUD and non-stacking timing.');

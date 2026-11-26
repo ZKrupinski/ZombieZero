@@ -5052,17 +5052,18 @@ const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,z
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
 const CAMERA_AMPLITUDE_SCALE=1.15;
-function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStrike=false){
+function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStrike=false,serveStrike=false){
  if(!(strength>0))return;
  const now=feedbackNow();
  // V418: own strike gets the highest priority, a single bounded pulse and
  // a short zoom toward the hero. Rapid multiball contacts do not accumulate.
  if(heroStrike){
   if(screenShake.hero&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
-  screenShake.power=9.5;screenShake.started=now;screenShake.until=now+100;
+  // V421: a serve uses a wider shake but a much shallower camera cut.
+  screenShake.power=serveStrike?12:9.5;screenShake.started=now;screenShake.until=now+100;
   screenShake.phase=(screenShake.phase+1.41)%6.283;
   screenShake.hero=true;screenShake.critical=false;
-  screenShake.zoom=.12+Math.random()*.08;screenShake.zoomAt=now;
+  screenShake.zoom=serveStrike?.04+Math.random()*.02:.12+Math.random()*.08;screenShake.zoomAt=now;
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
   screenShake.focusY=typeof PY==='number'?PY+15:599;
   cameraKick=screenShake.power;lastCameraFeedback=now;return;
@@ -5134,7 +5135,7 @@ function updateFeedbackDiagnostics(){
 }
 function feedback(kind,criticalLabel=false){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
- if(kind==='serve'||kind==='racket'||kind==='car')cameraFeedback(cfg.s,false,false,true);
+ if(kind==='serve'||kind==='racket'||kind==='car')cameraFeedback(cfg.s,false,false,true,kind==='serve');
  else if(kind==='critical'&&criticalLabel)cameraFeedback(cfg.s,true,true);
  else cameraFeedback(cfg.s,COMBAT_FEEDBACK_KINDS.has(kind));
  const d=feedbackDiagnostics,combat=COMBAT_FEEDBACK_KINDS.has(kind);
