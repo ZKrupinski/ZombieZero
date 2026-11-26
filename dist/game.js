@@ -3442,7 +3442,7 @@ for(let s=0;s<steps;s++){const ox=b.x,oy=b.y;b.hitLock=Math.max(0,b.hitLock-d);b
    break;
   }
  }
-if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.combatStats?.()?.guard||0)+(window.ZZGarage?.masteryDefense?.()||0)){const offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(selectedHero===1?650:600,Math.hypot(b.vx,b.vy)+(selectedHero===1?35:7)),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;if(typeof triggerHeroStrike==='function')triggerHeroStrike(b.x);combo=0;effect(b.x,PY,'#e8ff93',46);burst(b.x,PY,'#e4ff9c',13);sfx('racket');feedback('racket')}
+if(b.vy>0&&oy+radius<=PY&&b.y+radius>=PY&&Math.abs(b.x-car)<hero().paddle+radius/2+growth('sweetSpot')*2+gearBonus('wide')+(window.ZZGarage?.combatStats?.()?.guard||0)+(window.ZZGarage?.masteryDefense?.()||0)){const overhead=overheadReturn(b.vx,b.vy),offset=clamp((b.x-car)/hero().paddle,-1,1),speed=Math.min(selectedHero===1?650:600,Math.hypot(b.vx,b.vy)+(selectedHero===1?35:7)),angle=window.ZZGarage?.strike(b,selectedHero,offset)??offset*1.06;b.vx=Math.sin(angle)*speed;b.vy=-Math.cos(angle)*speed;b.y=PY-radius-1;ballImpact(b,'y',-1,'paddle');swing=.22;heroAttackTime=HERO_ATTACK_DURATION;if(typeof triggerHeroStrike==='function')triggerHeroStrike(b.x);combo=0;effect(b.x,PY,'#e8ff93',46);burst(b.x,PY,'#e4ff9c',13);sfx('racket');feedback('racket',false,overhead)}
 carCollision(b,radius,previousCar+(car-previousCar)*(s+1)/steps);
 if(has('shield')&&b.vy>0&&b.y+radius>=SHIELD_LINE_Y){b.y=SHIELD_LINE_Y-radius;b.vy=-Math.abs(b.vy);ballImpact(b,'y',-1,'shield');sfx('shield');feedback('shield');effect(b.x,SHIELD_LINE_Y,'#a1fbe6',75,'SAVE!');burst(b.x,SHIELD_LINE_Y,'#b9f684',10)}
 if(!has('shield'))citizenCollision(b,radius);
@@ -5203,7 +5203,9 @@ const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,z
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
 const CAMERA_AMPLITUDE_SCALE=1.15;
-function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStrike=false,serveStrike=false){
+// V428: measure the incoming velocity before reflection, not the outgoing shot.
+function overheadReturn(vx,vy){return vy>0&&Math.abs(vx)<=vy}
+function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStrike=false,serveStrike=false,overhead=false){
  if(!(strength>0))return;
  const now=feedbackNow();
  // V418: own strike gets the highest priority, a single bounded pulse and
@@ -5218,7 +5220,8 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
   // V427: frame the action above the hero. The world transform shifts the
   // hero downward on screen while its position, collisions and input stay put.
-  screenShake.focusY=typeof PY==='number'?PY-185:399;
+  const framingLift=!serveStrike&&overhead?365:185;
+  screenShake.focusY=(typeof PY==='number'?PY:584)-framingLift;
   cameraKick=screenShake.power;lastCameraFeedback=now;return;
  }
  if(screenShake.hero&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
@@ -5286,9 +5289,9 @@ function updateFeedbackDiagnostics(){
  }
  hapticDebugTag.textContent='v186 HIT '+d.hits+' / VIBE '+d.hitAccepted+' / BLOCK '+d.hitBlocked+' · '+(feedbackNames[d.lastHit]||d.lastHit)+' · '+d.lastHitResult;
 }
-function feedback(kind,criticalLabel=false){
+function feedback(kind,criticalLabel=false,overhead=false){
  const cfg=FEEDBACK_PRESETS[kind];if(!cfg)return;
- if(kind==='serve'||kind==='racket'||kind==='car')cameraFeedback(cfg.s,false,false,true,kind==='serve');
+ if(kind==='serve'||kind==='racket'||kind==='car')cameraFeedback(cfg.s,false,false,true,kind==='serve',overhead);
  else if(kind==='critical'&&criticalLabel)cameraFeedback(cfg.s,true,true);
  else cameraFeedback(cfg.s,COMBAT_FEEDBACK_KINDS.has(kind));
  const d=feedbackDiagnostics,combat=COMBAT_FEEDBACK_KINDS.has(kind);
@@ -5374,7 +5377,7 @@ if(hapticsToggle){
 }
 function circleRect(x,y,r,box){const dx=x-clamp(x,box.x,box.x+box.w),dy=y-clamp(y,box.y,box.y+box.h);return dx*dx+dy*dy<=r*r}
 function upwardBounce(b,center,half,top,r){const speed=clamp(Math.hypot(b.vx,b.vy),350,600),angle=clamp((b.x-center)/half,-1,1)*.95;b.vx=Math.sin(angle)*speed;b.vy=-Math.max(210,Math.cos(angle)*speed);b.y=top-r-1;b.lastHit=null;b.hitLock=0;combo=0;b.trail=[];ballImpact(b,'y',-1,'citizen')}
-function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;if(typeof triggerHeroStrike==='function')triggerHeroStrike(b.x);effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car');return true}
+function carCollision(b,r,cx=car){const boxes=[{x:cx-52,y:621+VIEW_DELTA,w:104,h:33},{x:cx-57,y:626+VIEW_DELTA,w:13,h:24},{x:cx+44,y:626+VIEW_DELTA,w:13,h:24}];if(!boxes.some(box=>circleRect(b.x,b.y,r,box)))return false;const overhead=overheadReturn(b.vx,b.vy);upwardBounce(b,cx,57,621+VIEW_DELTA,r);swing=.18;heroAttackTime=HERO_ATTACK_DURATION;if(typeof triggerHeroStrike==='function')triggerHeroStrike(b.x);effect(b.x,623+VIEW_DELTA,'#fff49a',38,'NICE SAVE');burst(b.x,625+VIEW_DELTA,'#f8d87d',7);sfx('car');feedback('car',false,overhead);return true}
 function citizenCollision(b,r){if(b.vy<=0)return false;for(const p of citizens){if(!p.alive)continue;const box={x:p.x-10,y:p.y-13,w:20,h:34};if(!circleRect(b.x,b.y,r,box))continue;if(tryCitizenGuard(p)){upwardBounce(b,p.x,16,box.y,r);return true}p.alive=false;p.dying=.8;p.returning=0;p.absent=0;bubbles=bubbles.filter(q=>q.citizen!==p);upwardBounce(b,p.x,16,box.y,r);citizenCue(p,false);effect(p.x,box.y,'#ffb16f',65);burst(p.x,p.y-10,'#ffda86',22);sfx('citizen');feedback('citizen');return true}return false}
 // V124: Short arcade crowd reactions with dynamic speech width.
 // A measured approximation avoids per-frame canvas text measurement.
