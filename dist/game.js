@@ -5216,7 +5216,9 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
   screenShake.hero=true;screenShake.critical=false;
   screenShake.zoom=serveStrike?.10+Math.random()*.04:.04+Math.random()*.02;screenShake.zoomAt=now;screenShake.zoomDuration=serveStrike?200:100;
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
-  screenShake.focusY=typeof PY==='number'?PY+15:599;
+  // V427: frame the action above the hero. The world transform shifts the
+  // hero downward on screen while its position, collisions and input stay put.
+  screenShake.focusY=typeof PY==='number'?PY-185:399;
   cameraKick=screenShake.power;lastCameraFeedback=now;return;
  }
  if(screenShake.hero&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;

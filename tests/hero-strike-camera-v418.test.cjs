@@ -8,7 +8,7 @@ ${src.slice(start,stop)};return {feedback,cameraOffset,heroCameraZoom,screenShak
 h.feedback('critical',true);assert.equal(h.screenShake.until,1084);
 now=1010;h.feedback('serve');assert.equal(h.screenShake.power,12);assert.equal(h.screenShake.until,1110);assert(h.screenShake.hero);assert.equal(h.screenShake.focusX,130);
 assert.deepEqual(pulses,[[180,48,210],[205,32,235]]);
-const zoom=h.heroCameraZoom();assert(Math.abs(zoom.scale-1.108)<1e-9);now=1028;assert(h.heroCameraZoom().scale<zoom.scale);assert.equal(zoom.y,599);
+const zoom=h.heroCameraZoom();assert(Math.abs(zoom.scale-1.108)<1e-9);now=1028;assert(h.heroCameraZoom().scale<zoom.scale);assert.equal(zoom.y,399);assert(Math.abs((zoom.y+(599-zoom.y)*zoom.scale)-599-21.6)<1e-9,'serve framing shifts hero downward without changing world position');
 for(now=1029;now<1155;now++){h.feedback('critical',true);h.feedback('racket');h.feedback('car');assert.equal(h.screenShake.started,1010);assert.equal(h.screenShake.until,1110)}
 assert(h.heroCameraZoom().scale>1);assert.equal(h.cameraOffset(),null);assert.equal(pulses.length,2);
 now=1160;h.feedback('hit');assert(h.heroCameraZoom().scale>1,'ordinary shake must not cancel return');now=1209;assert(h.heroCameraZoom().scale>1);now=1210;assert.equal(h.heroCameraZoom(),null);
@@ -16,7 +16,7 @@ now=1600;random=.9;h.feedback('racket');assert(Math.abs(h.heroCameraZoom().scale
 now=2200;h.feedback('car');assert(Math.abs(h.heroCameraZoom().scale-1.058)<1e-9);assert.equal(h.screenShake.power,9.5);assert.equal(h.screenShake.until,2300);
 now=2800;random=0;h.feedback('serve');assert.equal(h.screenShake.power,12);assert.equal(h.screenShake.until,2900);assert(Math.abs(h.heroCameraZoom().scale-1.10)<1e-9);
 now=3400;random=.999;h.feedback('serve');assert(h.heroCameraZoom().scale>=1.10&&h.heroCameraZoom().scale<=1.14);
-now=4000;random=0;h.feedback('racket');assert.equal(h.heroCameraZoom().scale,1.04);now=4099;assert(h.heroCameraZoom().scale>1);now=4100;assert.equal(h.heroCameraZoom(),null);
+now=4000;random=0;h.feedback('racket');assert.equal(h.heroCameraZoom().scale,1.04);assert.equal(h.heroCameraZoom().y,399);assert(Math.abs((399+(599-399)*h.heroCameraZoom().scale)-599-8)<1e-9,'return framing shifts hero downward');now=4099;assert(h.heroCameraZoom().scale>1);now=4100;assert.equal(h.heroCameraZoom(),null);
 now=4600;random=.999;h.feedback('racket');assert(h.heroCameraZoom().scale>=1.04&&h.heroCameraZoom().scale<=1.06);now=4700;assert.equal(h.heroCameraZoom(),null);
 assert(src.includes("syncMulti();sfx('serve');feedback('serve')"));assert(src.includes("sfx('racket');feedback('racket')"));assert(src.includes("sfx('car');feedback('car')"));
 assert(src.includes('g.scale(zoom.scale,zoom.scale)'));assert(src.includes('drawBubbles();g.restore();drawDanger()'));
