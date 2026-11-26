@@ -20,6 +20,9 @@ const hostileShotSlowRate=()=>has('slow')?SLOW_HOSTILE_SHOT_RATE:1;
 // v232: Independent continuous sprite timeline. Enemy animation frames slow
 // with the enemy's movement, while the ball, hero, UI and combat clocks don't.
 let enemyAnimationClock=0;
+// V424: bounded, reusable 10 Hz pose history; no raster copies or extra assets.
+let slowEchoHistory=new WeakMap(),slowEchoNextSample=-Infinity;
+const SLOW_ECHO_DELAY=3,SLOW_ECHO_INTERVAL=.1,SLOW_ECHO_CAPACITY=32,SLOW_ECHO_ALPHA=.28;
 const SKILLS={bazooka:{name:'시민 바주카',duration:12,color:'#ffd16c',desc:'시민이 3초마다 희귀 광역 로켓 · 피해 8',icon:'<path d="m5 21 15-15 7 7-15 15zM18 8l6 6M6 22l-2 6 6-2M19 3l2-2M28 10l3-1M26 3l3-3"/>'},dual:{name:'더블볼',duration:16,color:'#aee8ff',desc:'공 2개',icon:'<circle cx="9" cy="12" r="5"/><circle cx="23" cy="20" r="5"/>'},triple:{name:'트리플볼',duration:16,color:'#c0a5ff',desc:'공 3개',icon:'<circle cx="16" cy="7" r="4"/><circle cx="7" cy="23" r="4"/><circle cx="25" cy="23" r="4"/>'},power:{name:'파워볼',duration:14,color:'#f5d470',desc:'크기·공격력 ×2',icon:'<circle cx="16" cy="16" r="12"/><path d="m17 6-7 12h6l-1 8 8-13h-6z"/>'},fire:{name:'화염볼',duration:10,color:'#ff9763',desc:'강화할수록 점화·전염 범위 및 연소 대상 증가',icon:'<path d="M17 3c4 9-4 9 2 14l5-6c9 12 1 19-8 18S3 21 8 13l3 5c4-4 0-8 6-15Z"/>'},slow:{name:'슬로우',duration:14,color:'#86f2e0',desc:'좀비와 적 투사체는 질질~ 공은 쌩쌩!',icon:'<circle cx="16" cy="17" r="11"/><path d="M16 10v8l6 3M12 2h8M16 2v4"/>'},pierce:{name:'관통샷',duration:10,color:'#ffe88a',desc:'10초간 적을 관통 · 충돌당 크리티컬 피해 ×2',icon:'<circle cx="7" cy="16" r="4"/><path d="M12 16h17M22 8l7 8-7 8M17 11h7"/>'},shield:{name:'보호막',duration:18,color:'#b9f684',desc:'바닥에서 공 반사',icon:'<path d="m16 3 11 4v10c0 6-11 12-11 12S5 23 5 17V7Z"/><path d="m10 16 4 4 8-9"/>'}};
 let mode='menu',score=0,wave=1,lives=3,best=0,car=225,target=225,balls=[],foes=[],items=[],particles=[],keys={},swing=0,combo=0,ballVanish=[],criticalPopups=[],itemPickupFX=[],clock=0,last=0,active={},sound=true,toastTimer,stageDelay=0,audio,master,musicBus,nextBeat=0,beat=0,lastSkillMarkup='';
 try{best=+(localStorage.getItem('zr-best')||0)}catch{}
@@ -1230,6 +1233,7 @@ function nextBossArtLoading(nextWave){
    sprites.cache?.[form-2]?.loading===true;
 }
 function rack(){
+ if(typeof resetSlowEchoHistory==='function')resetSlowEchoHistory();
  clearWormParade();wormNextAt=clock+4+Math.random()*2.5;
  standRetreat.length=0;standDangerTime=0;resistFlash=0;
  if(window.ZZProgression){lastStandCount=0;lastStandUsed=false;lastStandLastAt=-1e9;}
@@ -2453,6 +2457,7 @@ function beginClear(){
 }
 // Clear transient battle and celebration effects when the arena changes.
 function clearStageVisuals(){
+ if(typeof resetSlowEchoHistory==='function')resetSlowEchoHistory();
  particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];
  enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];
  ballContactFX=[];trashContactFX.length=0;
@@ -4796,7 +4801,94 @@ function drawStruckZombie(z){
  try{zombie(knockVisualPosition(z))}finally{enemyAnimationClock=liveCel;g.restore()}
  if(entering)g.restore();
 }
-function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);const zoom=heroCameraZoom();if(zoom){g.translate(zoom.x,zoom.y);g.scale(zoom.scale,zoom.scale);g.translate(-zoom.x,-zoom.y)}background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
+// Capture only data needed to repaint a historical approved sprite cel.
+// Weak keys let removed enemies/projectiles release their rings immediately.
+function resetSlowEchoHistory(){slowEchoHistory=new WeakMap();slowEchoNextSample=-Infinity}
+function slowEchoSlot(actor){
+ let ring=slowEchoHistory.get(actor);
+ if(!ring){ring={next:0,count:0,slots:new Array(SLOW_ECHO_CAPACITY)};slowEchoHistory.set(actor,ring)}
+ const slot=ring.slots[ring.next]||(ring.slots[ring.next]={});
+ ring.next=(ring.next+1)%SLOW_ECHO_CAPACITY;
+ ring.count=Math.min(SLOW_ECHO_CAPACITY,ring.count+1);
+ slot.at=clock;return slot;
+}
+function recordSlowEchoHistory(){
+ if(mode!=='playing'||clock+1e-8<slowEchoNextSample)return;
+ slowEchoNextSample=clock+SLOW_ECHO_INTERVAL;
+ for(const z of foes){
+  const slot=slowEchoSlot(z),pos=knockVisualPosition(z);
+  let lift=0;
+  if(z.moleLaunch&&z.knockTime>0)lift=12*Math.sin(Math.PI*knockMotionProgress(z));
+  else if(z.moleHop)lift=10*Math.sin(Math.PI*clamp(z.moleHop.travel/Math.max(1,z.moleHop.total),0,1));
+  // The original atlas selects a frame from this saved clock and pose.
+  slot.cel=z.fortressFrozenUntil>clock&&Number.isFinite(z.fortressFrozenFrame)?z.fortressFrozenFrame:
+   Number.isFinite(z.fortressContactCel)?z.fortressContactCel:enemyAnimationClock;
+  slot.alpha=Number.isFinite(z.arrivalTime)?Math.max(0,Math.min(1,z.arrivalTime/.62)):1;
+  const q=slot.z||(slot.z={});
+  q.x=pos.x;q.y=pos.y-lift;q.w=z.w;q.h=z.h;
+  q.boss=z.boss;q.bossForm=z.bossForm;q.form=z.form;q.kind=z.kind;q.eliteKind=z.eliteKind;
+  q.seed=z.seed;q.moveDir=z.moveDir;q.recoil=z.recoil;q.hitHold=z.hitHold;
+  q.expression=z.expression;q.hairColor=z.hairColor;q.paletteVariant=z.paletteVariant;
+  q.miniScale=z.miniScale;q.miniBaseW=z.miniBaseW;q.miniBaseH=z.miniBaseH;
+  q.throwWindup=z.throwWindup;q.spitWindup=z.spitWindup;q.breakoutTime=z.breakoutTime;
+  if(z.eliteMotion){const em=q.eliteMotion||{};em.tag=z.eliteMotion.tag;em.t=z.eliteMotion.t;q.eliteMotion=em}
+  else q.eliteMotion=null;
+  q.flash=0;q.burn=0;
+ }
+ for(const p of bossTrashShots){
+  const slot=slowEchoSlot(p),pos=bossTrashProjectilePosition(p);
+  slot.x=pos.x;slot.y=pos.y;slot.t=pos.t;slot.type=p.type;slot.kind=p.kind;
+  slot.eliteKind=p.eliteKind;slot.enemyScale=p.enemyScale||1;slot.spitScale=p.spitScale||1;
+  slot.angle=p.type==='spit'?Math.atan2(p.ty-p.sy,p.tx-p.sx):pos.t*Math.PI*5;
+ }
+}
+function slowEchoAt(actor){
+ const ring=slowEchoHistory.get(actor);if(!ring?.count)return null;
+ const cutoff=clock-SLOW_ECHO_DELAY+1e-8;
+ let chosen=null;
+ // The oldest sample is normally just before the cutoff. Never show a
+ // younger frame as a fake 3-second echo for newly spawned actors.
+ for(let i=0;i<ring.count;i++){
+  const q=ring.slots[(ring.next-ring.count+SLOW_ECHO_CAPACITY+i)%SLOW_ECHO_CAPACITY];
+  if(q.at>cutoff)break;
+  chosen=q;
+ }
+ return chosen;
+}
+function slowEchoVisible(){
+ return (mode==='playing'||mode==='paused'&&resumeMode==='playing')&&has('slow');
+}
+function drawSlowZombieEchoes(){
+ if(!slowEchoVisible())return;
+ const liveCel=enemyAnimationClock;
+ g.save();g.globalAlpha*=SLOW_ECHO_ALPHA;
+ try{
+  for(const z of foes){
+   const q=slowEchoAt(z);if(!q||q.alpha<=0)continue;
+   enemyAnimationClock=q.cel;
+   g.save();g.globalAlpha*=q.alpha;
+   try{zombie(q.z)}finally{g.restore()}
+  }
+ }finally{enemyAnimationClock=liveCel;g.restore()}
+}
+function drawSlowProjectileEchoes(){
+ if(!slowEchoVisible())return;
+ g.save();g.globalAlpha*=SLOW_ECHO_ALPHA;
+ try{
+  for(const p of bossTrashShots){
+   const q=slowEchoAt(p);if(!q)continue;
+   if(q.type==='spit'){
+    // Reuse the cached neon bitmap but do not add a second bloom pass.
+    paintSpit(spitSprite(Math.round(11+3*Math.sin(Math.PI*q.t))),q.x,q.y,q.angle,1,q.spitScale);
+   }else{
+    const flare=1-Math.abs(2*q.t-1);
+    const size=q.eliteKind===0?22+5*flare:q.eliteKind===1?24+6*flare:29+7*flare;
+    drawThrowable(q.kind,q.x,q.y,size*q.enemyScale,q.angle);
+   }
+  }
+ }finally{g.restore()}
+}
+function draw(){recordSlowEchoHistory();trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);const zoom=heroCameraZoom();if(zoom){g.translate(zoom.x,zoom.y);g.scale(zoom.scale,zoom.scale);g.translate(-zoom.x,-zoom.y)}background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.
@@ -4811,7 +4903,7 @@ function draw(){trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&wind
   g.beginPath();g.moveTo(z.knockFromX+z.w/2,z.knockFromY+z.h/2);
   g.lineTo(visible.x+z.w/2,visible.y+z.h/2);g.stroke();g.restore();
  }
- for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawFireWaves();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
+ drawSlowZombieEchoes();for(const z of foes)drawStruckZombie(z);drawBurningOverlays();drawFireWaves();drawEnemyDeaths();drawImpactFlashes();if(has('shield'))luminous(()=>{g.shadowColor='#b9f684';g.shadowBlur=10;rect(21,SHIELD_LINE_Y,408,3,'#b9f684');g.shadowBlur=0});drawHeroStrikePresentation();drawBazooka();for(const item of items)drawFallingItem(item);drawItemPickupFX();
 drawKillCombo();drawBarrelBlasts();
  // v101: This is set once per render to avoid extra has()/ball-count checks
  // inside each spark and flame loop; standalone legacy tests default to false.
@@ -5706,6 +5798,7 @@ function drawSpitBloom(){
 }
 function drawBossTrashShots(){
  spitBloomDraws.length=0;
+ if(typeof drawSlowProjectileEchoes==='function')drawSlowProjectileEchoes();
  for(const z of foes){
   if(trashThrower(z)&&z.throwWindup>0){
    const total=Math.max(.001,z.throwWindupTotal||z.throwWindup);
