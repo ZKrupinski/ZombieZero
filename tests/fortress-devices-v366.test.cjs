@@ -14,7 +14,7 @@ function place(kind,col,row,cost){
  assert.equal(f.getStructure(col,row).kind,kind);
 }
 f.reset();f.begin([],1);place('lure',2,5,4);place('saw',7,12,5);place('ice',12,5,3);
-assert.equal(f.getStock(),14);assert.equal(f.getWallCount(),3);
+assert.equal(f.getStock(),4);assert.equal(f.getWallCount(),3);
 const actor=(x,y)=>({x,y,w:16,h:22,hp:12});
 const a=actor(38+2*22+28,82+5*22-24),b=actor(38+7*22+6,82+12*22-25),c=actor(38+12*22+6,82+5*22-25);
 const enemies=[a,b,c];let pushes=0,hits=0;
@@ -77,7 +77,7 @@ for(const blocked of [false,true]){
   if(target.x<start&&!target.fortressFrozenUntil)movedBeforeFreeze=true;
  }
  assert(movedBeforeFreeze);assert(target.fortressFrozenUntil>2);
- const edge=trap.x+(blocked?5:2)*22;
+ const edge=trap.x+(blocked?4:2)*22;
  assert(target.x>=edge&&target.x<edge+3.1);
 }
 console.log('PASS long-range claw latches, pulls before freezing and stops at solid surfaces');
@@ -110,7 +110,7 @@ const neighbor=actor(post.x-21,post.y),far=actor(post.x-70,post.y);
 const group=[rider,neighbor,far],bumped=new Set();
 const bump={push(z,dx,dy){bumped.add(z);z.x+=dx*55;z.y+=dy*55;return true}};
 const ballAtPost=()=>f.bounceBall({x:post.x+1,y:post.y+10,vx:60,vy:0},post.x-6,post.y+10,3);
-assert.equal(f.getStructure(15,19),post);assert.equal(f.getStructure(14,19),undefined);
+assert.equal(f.getStructure(15,19),undefined);assert.equal(f.getStructure(14,19),undefined);
 assert(f.isOpen(rider,rider.x,rider.y));assert.equal(ballAtPost(),null);
 post.cooldown=0;f.tickDevices(.02,group,1,bump);
 assert.deepEqual(bumped,new Set([rider,neighbor]));
@@ -124,9 +124,9 @@ assert(!post.raised,'blocked hatch must never trap an overlapping zombie');
 console.log('PASS one-cell retractable bollard, adjacent shove, timed wall and ball collision');
 f.reset();f.begin([],1);f.selectBuild('bollard');
 f.down(p(1,2),canvas);f.move(p(5,2),canvas);f.up(p(5,2),canvas);
-assert.equal(f.getPreview().builds,3);assert.equal(f.getPreview().cost,6);
+assert.equal(f.getPreview().builds,5);assert.equal(f.getPreview().cost,10);
 nodes['fortress-confirm'].click();
-for(let col=1;col<=6;col++)assert.equal(f.getStructure(col,2).kind,'bollard');
+for(let col=1;col<=5;col++)assert.equal(f.getStructure(col,2).kind,'bollard');
 
 // v387: stationary contact damages an exposed mole at real frame intervals.
 f.reset();f.begin([],1);assert(f.selectBuild('bollard'));f.down(p(4,6),canvas);f.up(p(4,6),canvas);nodes['fortress-confirm'].click();f.deploy([]);
@@ -220,18 +220,18 @@ const expected=['wall','bollard','ice','lure','saw'];
 function supportList(){const result=new Set();for(let row=0;row<20;row++)for(let col=0;col<17;col++){const w=f.getStructure(col,row);if(w)result.add(w)}return [...result]}
 for(let wave=1;wave<=14;wave++){
  const count=Math.min(5,Math.ceil(wave/2));
- assert.equal(f.setupEndless(wave,opening,565),count);
+ assert.equal(f.setupEndless(wave,opening,565),count===1?4:8+count-2);
  const devices=supportList(),kinds=new Set(devices.map(w=>w.kind));
  assert.deepEqual(kinds,new Set(expected.slice(0,count)));
  assert.equal(f.getStock(),0);
  assert.equal(nodes['fortress-builder'].hidden,true);
  for(const w of devices){
-  const size=44;
-  assert.equal(f.bounds().tile,44);
+  const size=f.structureSize(w);
+  assert.equal(f.bounds().tile,22);
   assert(w.y>=710/3&&w.y+size<=710*2/3);
   for(const z of opening)assert(z.x+z.w<=w.x||z.x>=w.x+size||z.y+z.h<=w.y||z.y>=w.y+size);
  }
 }
-assert.equal(f.setupEndless(100,opening,565),6);
+assert([12,15].includes(f.setupEndless(100,opening,565)));
 f.reset();assert.equal(f.getWallCount(),0);assert.equal(f.bounds().tile,22);
 console.log('PASS v412: endless support progression, fresh unobstructed placement, bounded count, no construction UI.');

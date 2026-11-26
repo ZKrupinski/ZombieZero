@@ -24,15 +24,15 @@ const win={};new Function('window','document',mod)(win,doc);
 const fort=win.ZZFortress;
 const canvas={getBoundingClientRect:()=>({left:0,top:0,width:450,height:710}),
  setPointerCapture(){}};
-const p=(col,row)=>({clientX:38+col*44+10,
- clientY:82+row*44+10,pointerId:42,button:0});
+const p=(col,row)=>({clientX:38+col*22+10,
+ clientY:82+row*22+10,pointerId:42,button:0});
 function drag(a,b,row){
  assert.equal(fort.down(p(a,row),canvas),true);
  fort.move(p(b,row),canvas);
  assert.equal(fort.up(p(b,row),canvas),true);
 }
 function bite(col,row,count){
- const x=38+col*44+3,y=82+row*44+3;
+ const x=38+col*22+3,y=82+row*22+3;
  const z={x,y,w:15,h:16};
  for(let i=0;i<count;i++){
   z.x=x;z.y=y;fort.resolve(z,x,y-30,.79,()=>{});
@@ -42,22 +42,22 @@ fort.reset();
 const enemies=Array.from({length:12},(_,i)=>({x:50+i*22,y:42,w:16,h:18}));
 fort.begin(enemies,1);
 assert.equal(enemies.length,0,'empty building phase');
-assert.equal(fort.getStock(),26);
-assert.equal(materialNumber.textContent,'0/26');
+assert.equal(fort.getStock(),16);
+assert.equal(materialNumber.textContent,'0/16');
 drag(0,3,0);
 assert.equal(fort.getPreview().builds,4);
-assert.equal(fort.getPreview().balance,22);
-assert.equal(materialNumber.textContent,'4/26');
+assert.equal(fort.getPreview().balance,12);
+assert.equal(materialNumber.textContent,'4/16');
 assert(!nodes['fortress-preview-summary'].textContent.includes('확정 후 자재'),'remaining materials shown only in the unified HUD');
 assert.equal(nodes['fortress-actions'].dataset.side,'below');
 assert.match(nodes['fortress-actions'].style.left,/px/,'actions follow finger X');
 assert.match(nodes['fortress-actions'].style.top,/px/,'actions follow finger Y');
 nodes['fortress-confirm'].click();
 assert.equal(fort.getWallCount(),4);
-assert.equal(fort.getStock(),22);
+assert.equal(fort.getStock(),12);
 drag(0,1,0);
 assert.deepEqual(fort.getPreview().removes,2);
-assert.equal(fort.getPreview().balance,24);
+assert.equal(fort.getPreview().balance,14);
 assert.equal(nodes['fortress-actions'].hidden,false,'floating confirmation displayed');
 assert.equal(nodes['fortress-ready'].hidden,true,'cannot start with pending demolition');
 const colors=[];
@@ -67,54 +67,54 @@ fort.draw(g,true);
 assert(colors.includes('#fc334c'),'existing walls show red removal preview');
 nodes['fortress-cancel'].click();
 assert.equal(fort.getWallCount(),4,'cancel leaves walls untouched');
-assert.equal(fort.getStock(),22,'cancel does not refund');
+assert.equal(fort.getStock(),12,'cancel does not refund');
 drag(0,1,0);nodes['fortress-confirm'].click();
 assert.equal(fort.getWallCount(),2);
-assert.equal(fort.getStock(),24,'refund 1 for each dismantled wall');
+assert.equal(fort.getStock(),14,'refund 1 for each dismantled wall');
 drag(1,3,0);
 assert.deepEqual([fort.getPreview().builds,fort.getPreview().removes],[1,2],
  'mixed blank/existing drag charges builds and credits removals');
 nodes['fortress-confirm'].click();
 assert.equal(fort.getWallCount(),1);
-assert.equal(fort.getStock(),25);
+assert.equal(fort.getStock(),15);
 drag(0,2,3);nodes['fortress-confirm'].click();
-assert.equal(fort.getStock(),22);
+assert.equal(fort.getStock(),12);
 assert.equal(fort.getWallCount(),4);
 fort.ready(); // No bound callback; production uses bind(deploy).
 bite(0,3,30);bite(1,3,30);
 assert.equal(fort.getPendingRefund(),2,'every zombie-destroyed wall counts once');
 assert.equal(fort.getWallCount(),2);
-assert.equal(fort.getStock(),22,'material only refunded on the next stage');
+assert.equal(fort.getStock(),12,'material only refunded on the next stage');
 fort.begin([],2);
-assert.equal(fort.getStock(),32,'22 leftover + 2 destroyed refunded + 8 new');
+assert.equal(fort.getStock(),22,'12 leftover + 2 destroyed refunded + 8 new');
 assert.deepEqual(fort.getSupply(),{refund:2,bonus:8,healed:2});
 
-assert.equal(materialNumber.textContent,'2/34');
+assert.equal(materialNumber.textContent,'2/24');
 assert.equal(fort.getPendingRefund(),0,'stage refund counter resets');
-bite(2,3,3);assert.equal(fort.getWallHP(4,6),27);
-assert.equal(fort.getStock(),32,'no material is spent by zombie hits');
+bite(2,3,3);assert.equal(fort.getWallHP(2,3),27);
+assert.equal(fort.getStock(),22,'no material is spent by zombie hits');
 fort.begin([],3);
-assert.equal(fort.getWallHP(4,6),30,'all surviving walls recover to full automatically');
-assert.equal(fort.getStock(),40,'free repair: only new +8 supply changes stock');
+assert.equal(fort.getWallHP(2,3),30,'all surviving walls recover to full automatically');
+assert.equal(fort.getStock(),30,'free repair: only new +8 supply changes stock');
 assert.deepEqual(fort.getSupply(),{refund:0,bonus:8,healed:2});
 // When stock runs out, construction is blocked but removal is still possible.
 fort.reset();fort.begin([],1);
-for(let row=0;row<3;row++){drag(0,7,row);nodes['fortress-confirm'].click()}
-drag(0,1,3);nodes['fortress-confirm'].click();
+for(let row=0;row<2;row++){drag(0,7,row);nodes['fortress-confirm'].click()}
+
 assert.equal(fort.getStock(),0);
-assert.equal(materialNumber.textContent,'26/26');
+assert.equal(materialNumber.textContent,'16/16');
 drag(0,0,4);
 assert.equal(fort.getPreview().builds,0,'zero-stock construction is not previewed while dragging');
 assert.equal(fort.getPreview().balance,0,'budget never drops below zero');
 assert.equal(nodes['fortress-actions'].hidden,true,'no confirmation for a blocked empty stroke');
-assert.equal(fort.getWallCount(),26);
+assert.equal(fort.getWallCount(),16);
 drag(0,0,0);assert.equal(fort.getPreview().removes,1);
 assert.equal(nodes['fortress-confirm'].disabled,false,'no stock needed to dismantle');
 nodes['fortress-confirm'].click();
 assert.equal(fort.getStock(),1,'recycle one cube to recover one material');
 drag(0,0,4);nodes['fortress-confirm'].click();
 assert.equal(fort.getStock(),0);
-assert.equal(fort.getWallCount(),26);
+assert.equal(fort.getWallCount(),16);
 assert(css.includes('#fortress-actions[data-side="below"]')&&!css.includes('#fortress-tool'),
  'finger-adjacent controls remain; obsolete repair CSS removed');
 for(const id of ['fortress-material','fortress-preview-summary'])

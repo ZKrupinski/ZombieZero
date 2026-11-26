@@ -5,19 +5,20 @@
 // Construction spans [38,412] with 17 whole 22px wall blocks; the original
 // 18-column grid spanned [27,423]. All zombie colliders use this same strip.
 const MINI_TILE=22,ENDLESS_TILE=44,MAX_HP=30,MAX_WALLS=180;
+const INITIAL_MATERIAL=16;
 const FORTRESS_SIDE_INSET=4;
 let X=38,Y=82,T=MINI_TILE,COLS=17,ROWS=20,FIELD_LEFT=42,FIELD_RIGHT=408;
 // V412: normal zombies are 33x44; one normal structure cell is 44x44.
 function setStructureGrid(endless){
- T=endless?ENDLESS_TILE:MINI_TILE;
+ T=MINI_TILE;
  X=endless?49:38;Y=endless?58:82;
- COLS=endless?8:17;ROWS=endless?10:20;
+ COLS=endless?16:17;ROWS=20;
  FIELD_LEFT=endless?42:X+FORTRESS_SIDE_INSET;
  FIELD_RIGHT=endless?408:X+COLS*T-FORTRESS_SIDE_INSET;
 }
 const occupied=new Map(); // Each occupied tile points to its single structure.
 const walls=new Map(),pending=new Map();
-// V413: every structure occupies the same 44px square (2x2 MINI, 1x1 ENDLESS).
+// V442: wall and mole use one 22px cell; other machines retain 44px footprints.
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
  bollard:{name:'두더지 차단봉',cost:2,hp:12,cycle:4.8,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
@@ -39,7 +40,8 @@ const structureDebris=[],structureDebrisArt=new Map();
 let starting=false,startToken=0,onStartFeedback=null;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
-const span=w=>ENDLESS_TILE/T;
+const smallStructure=w=>!w?.kind||w.kind==='wall'||w.kind==='bollard';
+const span=w=>smallStructure(w)?1:2;
 const structureSize=w=>T*span(w);
 const canDragBuild=()=>selectedBuild==='wall'||selectedBuild==='bollard';
 function footprint(w,visit){
@@ -102,7 +104,7 @@ function refresh(){
   if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
  }
  if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
-  :placementTip?placementTip:stock?('1칸 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
+  :placementTip?placementTip:stock?(span({kind:selectedBuild})===1?'1칸 · ':'2×2칸 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
   :'기존 구조물 철거로 자재 확보 가능';
 }
 function addCell(t){
@@ -269,20 +271,20 @@ function setupEndless(wave,enemies,defenseY=565){
  const mapHeight=defenseY+145,front=enemies.reduce((y,z)=>Math.max(y,z.y+z.h),0);
  const minY=Math.max(mapHeight/3,front+12),maxY=Math.min(mapHeight*2/3,defenseY-66);
  const candidates=[];
- for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
-  const t=cell(col,row);
-  if(t.y<minY||t.y+T>maxY)continue;
-  if(enemies.some(z=>intersects(z.x,z.y,z.w,z.h,t,12)))continue;
+ // Preserve 44px layout slots and the 132px boss corridor. Split each
+ // wall/mole slot into four touching, independent 22px structures.
+ const macroCols=COLS/2,macroRows=ROWS/2,slot=ENDLESS_TILE;
+ const overlaps=(x,y,w,h,v,margin=0)=>x<v.x+slot+margin&&x+w>v.x-margin&&y<v.y+slot+margin&&y+h>v.y-margin;
+ for(let row=0;row<macroRows;row++)for(let col=0;col<macroCols;col++){
+  const t=cell(col*2,row*2);
+  if(t.y<minY||t.y+slot>maxY)continue;
+  if(enemies.some(z=>overlaps(z.x,z.y,z.w,z.h,t,12)))continue;
   candidates.push(t);
  }
- // Random uninterrupted 3-column (132px) corridor, enough for the
- // giant 112px boss. All other placements retain a 12px clearance.
- // Search randomized candidates for a full layout instead of forcing a
- // lower-row or fixed hero-front lane; if space is limited, reduce count.
  let best=[];
- const corridors=shuffledEndless(Array.from({length:COLS-2},(_,i)=>i));
+ const corridors=shuffledEndless(Array.from({length:macroCols-2},(_,i)=>i));
  for(const corridor of corridors){
-  const cells=shuffledEndless(candidates.filter(t=>t.col<corridor||t.col>=corridor+3));
+  const cells=shuffledEndless(candidates.filter(t=>t.col/2<corridor||t.col/2>=corridor+3));
   const chosen=[],rowCounts=new Map();
   function search(index){
    if(chosen.length>best.length)best=chosen.slice();
@@ -290,7 +292,7 @@ function setupEndless(wave,enemies,defenseY=565){
    if(chosen.length+cells.length-index<=best.length)return false;
    for(let i=index;i<cells.length;i++){
     const t=cells[i],n=rowCounts.get(t.row)||0;
-    if(n>=3||chosen.some(w=>intersects(t.x,t.y,T,T,w,12)))continue;
+    if(n>=3||chosen.some(w=>overlaps(t.x,t.y,slot,slot,w,12)))continue;
     chosen.push(t);rowCounts.set(t.row,n+1);
     if(search(i+1))return true;
     chosen.pop();rowCounts.set(t.row,n);
@@ -300,21 +302,23 @@ function setupEndless(wave,enemies,defenseY=565){
   if(search(0))break;
  }
  const order=shuffledEndless(best);
- // Introductions have priority over late duplicate support when room is tight.
  for(let i=0;i<Math.min(kinds.length,order.length);i++){
   const kind=kinds[i],type=BUILD_TYPES[kind],t=order[i];
-  const w={...t,kind,hp:type.hp,hit:0,biteShake:0,run:null,pulse:0,raised:false,lift:0};
-  w.cooldown=kind==='wall'?0:kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());
-  walls.set(w.id,w);footprint(w,key=>occupied.set(key,w));
+  const group=smallStructure({kind})?[cell(t.col,t.row),cell(t.col+1,t.row),cell(t.col,t.row+1),cell(t.col+1,t.row+1)]:[t];
+  for(const pos of group){
+   const w={...pos,kind,hp:type.hp,hit:0,biteShake:0,run:null,pulse:0,raised:false,lift:0};
+   w.cooldown=kind==='wall'?0:kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());
+   walls.set(w.id,w);footprint(w,key=>occupied.set(key,w));
+  }
  }
  return walls.size;
 }
 function begin(enemies,wave){
- if(T!==MINI_TILE)reset();
+ if(X!==38)reset();
  starting=false;startToken++;
  placementTip='';structureDebris.length=0;queued=enemies.splice(0,enemies.length);stage=wave;
  if(wave===1){
-  stock=26;lastBonus=26;lastRefund=0;lastHealed=0;destroyedThisStage=0;
+  stock=INITIAL_MATERIAL;lastBonus=INITIAL_MATERIAL;lastRefund=0;lastHealed=0;destroyedThisStage=0;
  }else{
   // Stage survived: every remaining cube heals completely without consuming
   // construction materials; already destroyed cubes stay absent and refund
@@ -1057,7 +1061,7 @@ function tryMoleHop(w,dt,enemies,now,ops){
   return !z.boss&&z.hp>0&&(z.arrivalTime||0)>=0&&!z.moleHop&&
     !(z.knockTime>0)&&!(z.hitShakeUntil>now)&&!(z.trashStopUntil>now)&&
     !(z.fortressFrozenUntil>now)&&!(z.moleHopReady>now)&&
-    gap>=-3&&gap<=20&&Math.abs(z.x+z.w/2-w.x-structureSize(w)/2/2)<structureSize(w)*.65;
+    gap>=-3&&gap<=20&&Math.abs(z.x+z.w/2-w.x-structureSize(w)/2)<structureSize(w)*.65;
  }).sort((a,b)=>b.y-a.y);
  const z=candidates[0];if(!z||Math.random()>(late?.94:.48))return;
  const end=w.y+structureSize(w)+3+Math.random()*8;

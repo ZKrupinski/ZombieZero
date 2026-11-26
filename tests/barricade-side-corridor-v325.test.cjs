@@ -27,10 +27,10 @@ assert.equal(f.down(point(37),canvas),false,'the old leftmost outside column can
 assert.equal(f.down(point(417),canvas),false,'the old rightmost outside column cannot be built');
 assert.equal(f.down(point(49),canvas),true,'new first inboard column builds');
 f.move(point(401),canvas);f.up(point(401),canvas);
-assert.equal(f.getPreview().builds,8,'eight full 2x2 structures fit a construction row');
+assert.equal(f.getPreview().builds,16,'one-cell structures fill the row up to the material limit');
 dom['fortress-confirm'].click();
-assert.equal(f.getWallCount(),8);
-assert.equal(f.getStock(),18);
+assert.equal(f.getWallCount(),16);
+assert.equal(f.getStock(),0);
 f.reset();
 // All 18 lanes of miniature zombies fit in the narrower corridor without
 // shrinking the creatures or changing their per-row count.
