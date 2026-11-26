@@ -25,6 +25,7 @@ vm.createContext(env);
 vm.runInContext(fs.readFileSync('dist/assets/ip/v2/sprite-geometry.js','utf8'),env);
 vm.runInContext(src,env);
 const lib=env.window.ZZObjectSprite;
+lib.request(Object.keys(lib.names));
 const ctx={globalAlpha:1,filter:'none',save(){},restore(){},drawImage(img,...args){painted.push({url:img.src,args})}};
 for(const [form,key] of [[6,'black_brain_cube'],[4,'cardboard_box'],[5,'wooden_crate'],[2,'black_barrel']]){
  for(const critical of [false,true]){

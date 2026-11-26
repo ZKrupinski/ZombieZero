@@ -68,7 +68,7 @@ function cleanBossHDFrame(atlas,frame){
   return canvas;
  }catch{return null;} // Strict fallback to untouched approved HD image.
 }
-for(const key of Object.keys(names)){
+function loadLiving(key){
  const image=new Image(),entry=images[key]={image,ready:false,failed:false,hd:null};
  image.decoding='async';
  image.onload=()=>{entry.ready=image.naturalWidth===1024&&image.naturalHeight===512;entry.failed=!entry.ready};
@@ -79,7 +79,7 @@ for(const key of Object.keys(names)){
  if(highResBosses.has(key)){
   const hiImage=new Image(),hd=entry.hd={image:hiImage,ready:false,failed:false};
   hiImage.decoding='async';
-  hiImage.onload=()=>{hd.ready=hiImage.naturalWidth===2048&&hiImage.naturalHeight===1024;hd.failed=!hd.ready;
+  hiImage.onload=()=>{if(images[key]!==entry)return;hd.ready=hiImage.naturalWidth===2048&&hiImage.naturalHeight===1024;hd.failed=!hd.ready;
    if(hd.ready&&(key==='trash_can'||key==='big_zombie')){
     hd.cleanFrames={};
     const damaged=key==='trash_can'?TRASH_CAN_BLEED_FRAMES:BLUE_BOSS_BLEED_FRAMES;
@@ -243,7 +243,7 @@ function drawP1BrainDeath(ctx,img,z,critical,elapsed,duration){
 const P1_FINISHED_DEATH_KEYS=['yellow_brain_cube','red_brain_cube','red_barrel'];
 const P1_FINISHED_DEATH_CELL=256;
 const p1FinishedDeaths={};
-for(const id of P1_FINISHED_DEATH_KEYS){
+function loadP1(id){
  const pair=p1FinishedDeaths[id]={};
  for(const kind of ['normal','critical']){
   const img=new Image(),asset=pair[kind]={image:img,ready:false,failed:false};
@@ -285,7 +285,7 @@ function drawP1FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
 const P2_FINISHED_DEATH_KEYS=['black_brain_cube','cardboard_box','wooden_crate','black_barrel'];
 const P2_FINISHED_DEATH_CELL=256;
 const p2FinishedDeaths={};
-for(const id of P2_FINISHED_DEATH_KEYS){
+function loadP2(id){
  const pair=p2FinishedDeaths[id]={};
  for(const kind of ['normal','critical']){
   const image=new Image(),entry=pair[kind]={image,ready:false,failed:false};
@@ -327,7 +327,7 @@ function drawP2FinishedDeath(ctx,z,critical,elapsed,duration,livingAtlas){
 const P3_DEATH_NAMES=['big_zombie','trash_can'];
 const P3_DEATH_CELL=512,P3_DEATH_COUNT=12,P3_DEATH_ORIGIN_Y=104;
 const p3AnatomicalDeaths={};
-for(const id of P3_DEATH_NAMES){
+function loadP3(id){
  const clips=p3AnatomicalDeaths[id]={};
  for(const type of ['normal','critical']){
   const image=new Image();
@@ -385,5 +385,33 @@ function drawDeath(ctx,z,critical,elapsed,duration){const img=activeImage(z);if(
  if(blend>0)drawFrame(ctx,img,{...z,flash:0},second,blend);
  return true;
 }
-window.ZZObjectSprite={images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath,p3AnatomicalDeaths,drawP3AnatomicalDeath};
+let stageKeys=new Set(),previewKeys=new Set();
+function request(keys){
+ for(const key of keys){
+  if(!Object.hasOwn(names,key)||images[key])continue;
+  loadLiving(key);
+  if(P1_FINISHED_DEATH_KEYS.includes(key))loadP1(key);
+  else if(P2_FINISHED_DEATH_KEYS.includes(key))loadP2(key);
+  else loadP3(key);
+ }
+}
+function trim(){
+ for(const key of Object.keys(images)){
+  if(stageKeys.has(key)||previewKeys.has(key))continue;
+  delete images[key];delete p1FinishedDeaths[key];delete p2FinishedDeaths[key];delete p3AnatomicalDeaths[key];
+  p1DeathAtlases.delete(key+':normal');p1DeathAtlases.delete(key+':critical');
+ }
+}
+function prefetch(keys){for(const key of keys)stageKeys.add(key);request(keys)}
+function retain(keys){stageKeys=new Set(keys);request(stageKeys);trim()}
+function preview(keys){previewKeys=new Set(keys);request(previewKeys);trim()}
+function loading(keys){
+ for(const key of keys){
+  const live=images[key],clips=p1FinishedDeaths[key]||p2FinishedDeaths[key]||p3AnatomicalDeaths[key];
+  if(live&&(!live.ready&&!live.failed||live.hd&&!live.hd.ready&&!live.hd.failed))return true;
+  if(clips&&Object.values(clips).some(clip=>!clip.ready&&!clip.failed))return true;
+ }
+ return false;
+}
+window.ZZObjectSprite={request,prefetch,retain,preview,loading,images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath,p3AnatomicalDeaths,drawP3AnatomicalDeath};
 })();

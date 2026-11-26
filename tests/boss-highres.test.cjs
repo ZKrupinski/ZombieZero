@@ -49,6 +49,7 @@ function boot(failHD=false){
  vm.createContext(env);
  for(const text of src)vm.runInContext(text,env);
  const ctx={globalAlpha:1,filter:'none',save(){},restore(){},drawImage(...args){calls.push(args)}};
+ env.window.ZZObjectSprite.request(names);
  return {pack:env.window.ZZObjectSprite,geometry:env.window.ZZBossSpriteGeometry,calls,ctx};
 }
 const hi=boot();

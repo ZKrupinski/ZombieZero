@@ -9,9 +9,13 @@ const SPECS=[
 ];
 const COLS=8,ROWS=5,CELL=256;
 const CLIPS={idle:0,down:1,left:2,right:1,hit:3,death:4};
-const cache=SPECS.map(s=>({...s,image:null,ready:false,loading:false,failed:false,
+const fresh=s=>({...s,image:null,ready:false,loading:false,failed:false,
  rightImage:null,rightReady:false,rightLoading:false,rightFailed:false,
- attempts:0,rightAttempts:0}));
+ attempts:0,rightAttempts:0});
+const cache=SPECS.map(fresh);
+function retain(form){
+ for(let i=0;i<cache.length;i++)if(i+2!==form&&cache[i].image)cache[i]=fresh(SPECS[i]);
+}
 function requestRight(entry){
  if(entry.rightReady||entry.rightLoading||entry.rightFailed)return;
  entry.rightLoading=true;entry.rightAttempts++;
@@ -29,7 +33,7 @@ function requestRight(entry){
   entry.rightFailed=true;entry.rightLoading=false;
   // One missing response must not permanently suppress a new species.
   if(entry.rightAttempts<3&&typeof setTimeout==='function')
-   setTimeout(()=>{entry.rightFailed=false;requestRight(entry)},750*entry.rightAttempts);
+   setTimeout(()=>{if(cache[entry.bossForm-2]!==entry)return;entry.rightFailed=false;requestRight(entry)},750*entry.rightAttempts);
  };
  img.src=DIR+entry.rightFile;
 }
@@ -55,7 +59,7 @@ function requestByForm(form){
  img.onerror=()=>{
   entry.failed=true;entry.loading=false;
   if(entry.attempts<3&&typeof setTimeout==='function')
-   setTimeout(()=>{entry.failed=false;requestByForm(form)},750*entry.attempts);
+   setTimeout(()=>{if(cache[form-2]!==entry)return;entry.failed=false;requestByForm(form)},750*entry.attempts);
  };
  img.src=DIR+entry.file;
 }
@@ -94,5 +98,5 @@ function drawDeath(ctx,z,elapsed,duration){
  }else drawFrame(ctx,entry.image,CLIPS.death,col,z,height);
  return true;
 }
-window.ZZLargeBossSprites={SPECS,cache,CLIPS,COLS,ROWS,requestByForm,readyByForm,available,draw,drawDeath};
+window.ZZLargeBossSprites={SPECS,cache,CLIPS,COLS,ROWS,retain,requestByForm,readyByForm,available,draw,drawDeath};
 })();

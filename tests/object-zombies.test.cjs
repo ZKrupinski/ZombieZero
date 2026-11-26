@@ -35,6 +35,7 @@ class ImageMock{
 }
 const context={Image:ImageMock,window:{}};vm.createContext(context);new vm.Script(geometry).runInContext(context);new vm.Script(loader).runInContext(context);
 const cast=context.window.ZZObjectSprite;
+cast.request(Object.keys(cast.names));
 assert(cast,'global object exists');assert.equal(Object.keys(cast.images).length,9);
 assert.equal(cast.normal.length,8);assert.equal(cast.bosses.length,4);
 for(let form=1;form<8;form++)assert(cast.available({form}),'regular form '+form);

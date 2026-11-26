@@ -43,6 +43,7 @@ vm.createContext(realm);
 for(const file of ['sprite-geometry.js','boss-geometry.js','object-zombies.js'])
  vm.runInContext(fs.readFileSync('dist/assets/ip/v2/'+file,'utf8'),realm);
 const sprite=realm.window.ZZObjectSprite;
+sprite.request(Object.keys(sprite.names));
 assert.equal(Object.keys(sprite.p3AnatomicalDeaths).length,2);
 assert.equal(sprite.bosses.join(','),'big_zombie,trash_can,big_zombie,trash_can',
  'all 4 gameplay boss slots');

@@ -27,6 +27,7 @@ vm.createContext(env);
 vm.runInContext(fs.readFileSync('dist/assets/ip/v2/sprite-geometry.js','utf8'),env);
 vm.runInContext(code,env);
 const sprites=env.window.ZZObjectSprite;
+sprites.request(Object.keys(sprites.names));
 assert(sprites.available({form:7}), 'yellow source original loaded');
 assert(sprites.available({form:3}), 'red source original loaded');
 const canvas={globalAlpha:1,save(){},restore(){},

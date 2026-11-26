@@ -31,10 +31,12 @@
   const [side,left,top,width,height,count]=geometry[key];
   const image=new Image();
   image.decoding='async';
-  image.onerror=()=>fallback?.();
+  entry.loading=true;
+  image.onerror=()=>{entry.loading=false;entry.failed=!fallback;fallback?.()};
   image.onload=()=>{
+   entry.loading=false;
    if(image.naturalWidth!==width*count||image.naturalHeight!==height){
-    fallback?.();
+    entry.failed=!fallback;fallback?.();
     return;
    }
    entry.strip={image,side,left,top,width,height};

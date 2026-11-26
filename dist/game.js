@@ -1052,14 +1052,9 @@ const STAGE_SPECIALS=[
 const ELITE_FIRST_STAGES=[3,5,7];
 const ELITE_HP_BONUS=[9,13,7];
 const ELITE_COOLDOWN=[2.7,4.1,1.65];
-function insertEliteZombies(regulars,stage){
- const atlas=window.ZZEliteSprites;
- if(!atlas)return;
- const eligible=ELITE_FIRST_STAGES.map((unlock,i)=>({i,unlock})).filter(e=>stage>=e.unlock&&atlas.cache[e.i]?.ready);
- if(!eligible.length)return;
- const available=regulars.filter(z=>!z.boss&&z.form===0);
- const count=Math.min((stage<5?1:stage<9?2:stage<18?3:4)*(typeof isMiniHorde==='function'&&isMiniHorde()?3:1),Math.floor(regulars.length*.15),available.length);
- if(!count)return;
+function rollEliteKinds(stage,count){
+ const eligible=ELITE_FIRST_STAGES.map((unlock,i)=>({i,unlock})).filter(e=>stage>=e.unlock);
+ if(!eligible.length||!count)return [];
  const newest=eligible.find(e=>e.unlock===stage),picks=newest?[newest.i]:[];
  while(picks.length<count){
    let dice=Math.random()*eligible.reduce((n,e)=>n+(e.i===0?4:e.i===1?3:2),0);
@@ -1067,6 +1062,14 @@ function insertEliteZombies(regulars,stage){
    for(const e of eligible)if((dice-=e.i===0?4:e.i===1?3:2)<0){pick=e.i;break}
    picks.push(pick);
  }
+ return picks;
+}
+function insertEliteZombies(regulars,stage,planned){
+ const atlas=window.ZZEliteSprites;
+ if(!atlas)return;
+ const available=regulars.filter(z=>!z.boss&&z.form===0);
+ const count=Math.min((stage<5?1:stage<9?2:stage<18?3:4)*(typeof isMiniHorde==='function'&&isMiniHorde()?3:1),Math.floor(regulars.length*.15),available.length);
+ const picks=(planned||rollEliteKinds(stage,count)).slice(0,count);
  let free=available.slice();
  for(const kind of picks){
    if(!free.length)break;
@@ -1173,10 +1176,33 @@ function isBossWave(){
 function bossIndex(){
  return runMode==='endless'?Math.floor((endlessWaveNumber()-1)/3):Math.floor(wave/3)-1;
 }
-function requestBossForWave(nextWave){
- const ordinal=runMode==='endless'?nextWave-50:nextWave;
- if(ordinal>0&&ordinal%3===0)
-  window.ZZLargeBossSprites?.requestByForm(Math.floor((ordinal-1)/3)%BOSS_FORMS.length);
+let preparedStage=null;
+function prepareStageArt(number,gameMode=runMode){
+ if(preparedStage?.number===number&&preparedStage.gameMode===gameMode)return preparedStage;
+ const endless=gameMode==='endless',ordinal=endless?number-50:number;
+ const stage=endless?Math.min(50,6+Math.floor(Math.max(0,number-51)*.9)):number;
+ const mini=gameMode==='mini'||gameMode==='fortress';
+ const forms=endless?ENDLESS_CAST:stage<=2?campaignOpeningComicForms(stage,144,mini?4:1):stageRoster(stage,144);
+ const boss=ordinal%3===0?Math.floor((ordinal-1)/3)%BOSS_FORMS.length:-1;
+ const sprites=window.ZZObjectSprite;
+ const keys=sprites?.normal?[...new Set(forms.map(form=>sprites.normal[form]))]:[];
+ if(boss>=0&&boss<2&&sprites?.bosses)keys.push(sprites.bosses[boss]);
+ const elites=rollEliteKinds(stage,(stage<5?1:stage<9?2:stage<18?3:4)*(mini?3:1));
+ preparedStage={number,gameMode,keys,boss,elites};
+ sprites?.prefetch?.(keys);
+ for(const kind of new Set(elites))window.ZZEliteSprites?.request?.(kind);
+ if(boss>=2)window.ZZLargeBossSprites?.requestByForm(boss);
+ return preparedStage;
+}
+function preparedArtLoading(plan){
+ if(!plan)return false;
+ if(window.ZZObjectSprite?.loading?.(plan.keys))return true;
+ for(const i of plan.elites){
+  const e=window.ZZEliteSprites?.cache[i];
+  if(e?.loading||e?.death?.loading)return true;
+ }
+ const boss=window.ZZLargeBossSprites?.cache?.[plan.boss-2];
+ return !!(boss&&(boss.loading||boss.rightLoading||boss.death?.loading));
 }
 // Only hold the short stage transition if this specific new boss is still decoding.
 function nextBossArtLoading(nextWave){
@@ -1198,9 +1224,7 @@ function rack(){
  foes=[];stageDelay=0;fireDropsThisWave=0;stageLootCount=0;stageLootKinds=[];
  supportDropsThisWave=0;endlessEmergencyUsed=false;supportDangerTime=0;
  const stage=combatStage();
- window.ZZEliteSprites?.requestForStage(stage);
- // Prefetch only the imminent boss (including its separate right walk).
- requestBossForWave(wave);requestBossForWave(wave+1);
+ const plan=prepareStageArt(wave);
  // A full four-row, mixed-cast opening; HP and movement scale independently.
  const baseRows=runMode==='endless'
   ?4
@@ -1237,7 +1261,7 @@ function rack(){
      faceRoll<.81?'uneven-jaw':null,seed:Math.random()*20,burn:0,burnTick:0,spreadTick:0});
  }
  setStageForms(foes,stage);
- insertEliteZombies(foes,stage);
+ insertEliteZombies(foes,stage,plan.elites);
  if(bossStage){
   // Tighter boss/elite HP spread: a threat, not the only target left for minutes.
   const baseHP=Math.round(26+Math.min(stage,12)*1.45+Math.max(0,stage-12)*.48);
@@ -1254,6 +1278,13 @@ function rack(){
   // Boss arrival keeps the shock burst, audio and device feedback, but no name caption.
   if(!isFortress()){sfx('boss');feedback('bossSpawn');effect(225,130,'#ff687e',145);}
  }
+ const sprites=window.ZZObjectSprite;
+ if(sprites?.retain){
+  const used=foes.filter(z=>z.boss?z.bossForm<2:z.form>0&&!Number.isInteger(z.eliteKind));
+  sprites.retain(used.map(sprites.keyFor));
+ }
+ window.ZZEliteSprites?.retain?.(foes.filter(z=>Number.isInteger(z.eliteKind)).map(z=>z.eliteKind));
+ window.ZZLargeBossSprites?.retain?.(plan.boss);
  $('encounter').textContent=(runMode==='endless'?'ENDLESS '+endlessWaveNumber():isFortress()?'BARRICADE '+wave:isMiniHorde()?'MINI HORDE '+wave:'STAGE '+wave)
   +' · '+(bossStage?'BOSS WAVE':stageRosterLabel(stage))
   +' / 진군 속도 '+(marchBase()*enemyDisplacementScale()).toFixed(1);
@@ -2384,7 +2415,7 @@ function beginEndlessShift(){
  resetCitizenSpeech();
  window.ZZProgression?.grant?.('wave',wave-50,10,selectedHero);
  mode='endlessShift';endlessShiftTime=0;endlessShiftSpawned=false;
- endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));requestBossForWave(wave+1);
+ endlessBackgroundWait=0;window.ZZStageArt?.load?.(stageArtForWave(wave+1));prepareStageArt(wave+1);
  releaseInput();
  // Clear old-stage pickups, buffs, rockets, and all extra balls.
  clearSkills();resetBalls();junk=[];bossTrashShots.length=0;itemPickupFX=[];
@@ -2397,7 +2428,7 @@ function beginClear(){
  if(mode!=='playing')return;resetCitizenSpeech();window.ZZProgression?.grant?.('wave',wave,10,selectedHero);mode='clearing';clearTime=0;clearBurst=0;items=[];
  // Begin downloading only the next campaign background at STAGE CLEAR.
  // The 2.8s result celebration is the loading/decoding window.
- if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));window.ZZEliteSprites?.requestForStage(wave+1);requestBossForWave(wave+1)}
+ if(wave<50){window.ZZStageArt?.load?.(stageArtForWave(wave+1));prepareStageArt(wave+1)}
  for(const b of balls)retireBall(b,'clear');
  balls=[];junk=[];bossTrashShots.length=0;rockets=[];for(const p of citizens)p.shooting=0;
  active={};score+=500;cheerTime=3;sfx('wave');feedback('wave');
@@ -2499,7 +2530,7 @@ function refillEndlessWave(){
 function updateEndlessShift(dt){
  if(!endlessShiftSpawned&&endlessShiftTime+dt>=ENDLESS_SHIFT_SPAWN_AT&&
     (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||
-     nextBossArtLoading(wave+1))&&endlessBackgroundWait<6){
+     nextBossArtLoading(wave+1)||preparedArtLoading(preparedStage))&&endlessBackgroundWait<6){
   endlessShiftTime=ENDLESS_SHIFT_SPAWN_AT;
   endlessBackgroundWait+=dt;return;
  }
@@ -2532,7 +2563,27 @@ function ensureBallCruiseSpeed(b){
 function resetBalls(){if(typeof heroStrikeVisual!=='undefined')heroStrikeVisual=null;killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;fireWaves.length=0;skillUI()}
 let menuRunChipsAtStart=0;
-function start(selectedMode='campaign'){if(campaignComicSession)return;window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();fortress?.reset();rack();resetBalls();mode='playing';if(isFortress()&&fortress){fortress.begin(foes,wave);mode='building'}$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':isFortress()?'BARRICADE HORDE · 드래그로 방벽을 건설하세요!':isMiniHorde()?'MINI HORDE · 작은 좀비들의 대군!':'STAGE 01 · 준비!');showCampaignComic()}
+let waitingForStart=false;
+function start(selectedMode='campaign'){
+ if(campaignComicSession||waitingForStart)return;
+ const first=selectedMode==='endless'?51:1;
+ preparedStage=null;
+ const plan=prepareStageArt(first,selectedMode),bg=stageArtForWave(first);
+ window.ZZStageArt?.load?.(bg);
+ if(window.ZZObjectSprite?.loading&&(preparedArtLoading(plan)||window.ZZStageArt?.loading?.[bg])){
+  waitingForStart=true;unlockAudio();
+  const button=$(selectedMode==='endless'?'endless':selectedMode==='mini'?'mini-horde':selectedMode==='fortress'?'fortress-horde':'start');
+  const original=button?.innerHTML;if(button)button.textContent='스테이지 준비 중…';
+  const deadline=Date.now()+8000;
+  function wait(){
+   if(Date.now()<deadline&&(preparedArtLoading(plan)||window.ZZStageArt?.loading?.[bg])){requestAnimationFrame(wait);return}
+   waitingForStart=false;if(button)button.innerHTML=original;startPrepared(selectedMode);
+  }
+  requestAnimationFrame(wait);return;
+ }
+ startPrepared(selectedMode);
+}
+function startPrepared(selectedMode){window.ZZGarage?.load(selectedHero,window.ZZProgression?.garage());filterReady=0;menuRunChipsAtStart=window.ZZProgression?.chips?.()??0;window.ZZProgression?.startRun?.(selectedMode);runMode=selectedMode;endlessSurvival=0;endlessRunStarted=false;endlessHudSecond=-1;endlessShiftTime=0;endlessShiftSpawned=false;lastStandUsed=false;resistFlash=0;failureScene=null;lastLostBall=null;lastSupportAt=clock-60;supportDangerTime=0;resetCitizens();window.ZZThrowablesV159?.request?.();releaseInput();$('results').hidden=true;unlockAudio();score=0;wave=runMode==='endless'?51:1;setStageBackground(true);lives=maxHeroLives();car=target=225;clearTime=0;heroAttackTime=0;junk=[];bossTrashShots.length=0;throwableBag.length=0;crowdTimer=3.5;cheerTime=0;particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];ballContactFX=[];trashContactFX.length=0;cameraKick=0;screenShake.until=0;lastFireDropAt=-1e6;lastFireDropWave=0;recentLootKinds=[];clearSkills();fortress?.reset();rack();resetBalls();mode='playing';if(isFortress()&&fortress){fortress.begin(foes,wave);mode='building'}$('overlay').hidden=true;$('heroes').hidden=true;nextBeat=0;beat=0;sfx('start');feedback('start');hud();endlessUI();toast(runMode==='endless'?'ENDLESS · 끝없는 생존 도전!':isFortress()?'BARRICADE HORDE · 드래그로 방벽을 건설하세요!':isMiniHorde()?'MINI HORDE · 작은 좀비들의 대군!':'STAGE 01 · 준비!');showCampaignComic()}
 // Random signed upward launch angle on every serve; retain original ball speed.
 function backToSelection(){
  if(mode!=='over'&&mode!=='paused')return;
@@ -3275,8 +3326,8 @@ if(mode==='clearing'){
  if(clearTime>=2.8){
   // Wait for the specifically requested scene, with a bounded fallback
   // to avoid softlock when the network stops responding.
-  const loading=(runMode==='campaign'||isFortress())&&wave<50&&
-    (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||nextBossArtLoading(wave+1));
+  const loading=wave<50&&
+    (window.ZZStageArt?.loading?.[stageArtForWave(wave+1)]||nextBossArtLoading(wave+1)||preparedArtLoading(preparedStage));
   if(!loading||clearTime>=8.8)advanceStage();
  }
  return;
@@ -3406,7 +3457,7 @@ function updateStageBackground(dt){
  const art=window.ZZStageArt;
  if(previousArtIndex<0||!art?.ready?.[stageArtIndex])return;
  stageArtBlend=Math.min(1,stageArtBlend+dt/STAGE_FADE_SECONDS);
- if(stageArtBlend>=1){previousArtIndex=-1;art.retain?.(stageArtIndex,mode==='endlessShift'&&!endlessShiftSpawned?stageArtForWave(wave+1):-1);}
+ if(stageArtBlend>=1){previousArtIndex=-1;art.retain?.(stageArtIndex,(mode==='clearing'&&wave<50||mode==='endlessShift'&&!endlessShiftSpawned)?stageArtForWave(wave+1):-1);}
 }
 function background(){
  if(stageArtIndex!==stageArtForWave(wave))setStageBackground();

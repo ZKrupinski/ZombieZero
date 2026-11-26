@@ -35,6 +35,7 @@ vm.createContext(realm);
 vm.runInContext(fs.readFileSync('dist/assets/ip/v2/sprite-geometry.js','utf8'),realm);
 vm.runInContext(src,realm);
 const lib=realm.window.ZZObjectSprite;
+lib.request(Object.keys(lib.names));
 assert.equal(Object.keys(lib.p2FinishedDeaths).length,4);
 const ctx={globalAlpha:1,filter:'none',save(){},restore(){},drawImage(img,...args){actual.push({source:img.src,args})}};
 for(const [key,form] of [['black_brain_cube',6],['cardboard_box',4],['wooden_crate',5],['black_barrel',2]]){

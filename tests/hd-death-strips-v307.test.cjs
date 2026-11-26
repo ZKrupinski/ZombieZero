@@ -25,6 +25,19 @@ vm.createContext(world);
 for(const path of ['death-strips-v307.js','green-death-loader.js','v2/object-zombies.js',
  'v2/elite-zombies-v145.js','v2/large-bosses-v146.js'])vm.runInContext(script(path),world);
 const {ZZGreenDeath:green,ZZObjectSprite:object,ZZEliteSprites:elite,ZZLargeBossSprites:boss}=world.window;
+assert.equal(Object.keys(object.images).length,0,'importing the loader requests no object sheets');
+object.retain(['red_barrel','cardboard_box']);
+assert.equal(Object.keys(object.images).length,2);
+const drum=object.images.red_barrel;
+object.prefetch(['big_zombie']);
+object.preview(['trash_can']);object.preview([]);
+assert.equal(object.images.trash_can,undefined);
+assert(object.images.big_zombie,'closing the gallery preserves the upcoming boss');
+assert.equal(object.images.red_barrel,drum,'the shared current sheet survives prefetch');
+object.retain(['big_zombie']);
+assert.equal(object.images.red_barrel,undefined);
+assert.equal(object.p1FinishedDeaths.red_barrel,undefined);
+object.request(Object.keys(object.names));
 const drawn=[];
 const ctx={globalAlpha:1,save(){},restore(){},drawImage(image,sx,sy,sw,sh,x,y,w,h){
  assert(sx>=0&&sy>=0&&sx+sw<=image.naturalWidth&&sy+sh<=image.naturalHeight);

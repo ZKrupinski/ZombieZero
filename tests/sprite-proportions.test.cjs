@@ -12,6 +12,7 @@ class ImageMock{constructor(){this.naturalWidth=1024;this.naturalHeight=512}
 const context={window:{},Image:ImageMock};vm.createContext(context);
 for(const js of [geometry,obj,green])vm.runInContext(js,context);
 const cast=context.window.ZZObjectSprite,mascot=context.window.ZZGreenWalk;
+cast.request(Object.keys(cast.names));
 const data=context.window.ZZSpriteGeometry;
 const canvas={globalAlpha:1,filter:'none',save(){},restore(){},
  drawImage(...args){calls.push(args)},

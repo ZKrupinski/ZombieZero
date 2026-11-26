@@ -14,7 +14,8 @@ const CLIPS={idle:0,down:1,left:2,right:3,attack:4,hit:5,death:6};
 // preceding ATTACK row's bottom (y=153..167 of each 168px cell).
 // Reconstitute their actual source pixels; do not redraw or copy another pose.
 const BOTTLE_HIT_OVERLAP_PX=24;
-const cache=SPECS.map(s=>({...s,image:null,ready:false,failed:false,loading:false}));
+const fresh=s=>({...s,image:null,ready:false,failed:false,loading:false});
+const cache=SPECS.map(fresh);
 
 /* V224: The original water-bottle atlas has some neighboring-frame fragments
    visible along cell edges. Repack ONLY that elite into a transparent canvas.
@@ -169,12 +170,15 @@ function request(kind){
      img.naturalHeight>=896 &&
      Math.abs(img.naturalWidth/img.naturalHeight-ATLAS_COLS/ATLAS_ROWS)<.025;
    if(!valid){s.failed=true;s.loading=false;return}
-   const success=()=>{if(kind===2){try{s.cleanImage=isolateBottleAtlas(img)}catch(error){console.warn('Water-bottle atlas isolation unavailable:',error)}}if(kind===1){try{s.cleanImage=isolateVolumeBagAtlas(img)}catch(error){console.warn('50L bag alpha cleanup unavailable:',error)}}s.ready=true;s.loading=false};
+   const success=()=>{if(cache[kind]!==s)return;if(kind===2){try{s.cleanImage=isolateBottleAtlas(img)}catch(error){console.warn('Water-bottle atlas isolation unavailable:',error)}}if(kind===1){try{s.cleanImage=isolateVolumeBagAtlas(img)}catch(error){console.warn('50L bag alpha cleanup unavailable:',error)}}s.ready=true;s.loading=false};
    if(typeof img.decode==='function')img.decode().then(success,success);
    else success();
  };
  img.onerror=()=>{s.failed=true;s.loading=false};
  img.src=DIR+s.file;
+}
+function retain(kinds){
+ for(let i=0;i<cache.length;i++)if(cache[i].image&&!kinds.includes(i))cache[i]=fresh(SPECS[i]);
 }
 function requestForStage(stage){
  for(let i=0;i<cache.length;i++)if(stage>=cache[i].unlock)request(i);
@@ -228,5 +232,5 @@ function drawDeath(ctx,z,elapsed,duration){
  ctx.restore();
  return true;
 }
-window.ZZEliteSprites={cache,SPECS,CLIPS,request,requestForStage,available,draw,drawDeath};
+window.ZZEliteSprites={cache,SPECS,CLIPS,retain,request,requestForStage,available,draw,drawDeath};
 })();

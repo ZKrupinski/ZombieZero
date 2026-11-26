@@ -55,6 +55,7 @@ for(const file of ['sprite-geometry.js','boss-geometry.js','object-zombies.js'])
  vm.runInContext(fs.readFileSync(root+file,'utf8'),env);
 }
 const lib=env.window.ZZObjectSprite;
+lib.request(Object.keys(lib.names));
 const draws=[];
 const ctx={globalAlpha:1,filter:'none',save(){},restore(){},
  drawImage(img,...args){draws.push({src:img.src,args})}};

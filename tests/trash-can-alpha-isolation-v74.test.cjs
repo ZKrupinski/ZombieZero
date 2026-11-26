@@ -44,6 +44,7 @@ const ctx={window:{},Image:ImageMock,document:{createElement:(name)=>{
 vm.createContext(ctx);
 for(const s of sources)vm.runInContext(s,ctx);
 const art=ctx.window.ZZObjectSprite,trash={boss:true,bossForm:1,x:170,y:80,w:66,h:88,seed:.3,flash:0,recoil:0,moveDir:0};
+art.request(Object.keys(art.names));
 const img=art.activeImage(trash);
 assert(img.src.endsWith('trash_can_hd.png'),'still using approved source image');
 assert.equal(cleaned.length,6,'only four trash frames and two blue boss frames isolated');

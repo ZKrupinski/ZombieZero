@@ -67,5 +67,5 @@ vm.runInContext('insertEliteZombies(actors,stage)',ctx);
 assert.ok(ctx.actors.some(z=>z.eliteKind===2),'water bottle appears at stage 7');
 assert.match(html,/elite-zombies-v145\.js/);
 assert.match(game,/ZZEliteSprites\.drawDeath/);
-assert.match(game,/ZZEliteSprites\?\.requestForStage\(wave\+1\)/);
+assert.match(game,/prepareStageArt\(wave\+1\)/);
 console.log('v145 3-elite loader, front/diagonal sprites, normal death, wave spawn & lazy load OK');

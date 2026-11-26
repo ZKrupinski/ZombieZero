@@ -24,6 +24,7 @@ const mock={window:{},Image:Img,Math,document:{createElement(){
 vm.createContext(mock);vm.runInContext(fs.readFileSync('dist/assets/ip/v2/sprite-geometry.js','utf8'),mock);
 vm.runInContext(src,mock);
 const lib=mock.window.ZZObjectSprite;
+lib.request(Object.keys(lib.names));
 const canvas={globalAlpha:1,save(){},restore(){},drawImage(img,...args){frames.push({src:img.src,args})}};
 assert.equal(Object.keys(lib.p1FinishedDeaths).length,3);
 for(const [id,form] of [['yellow_brain_cube',7],['red_brain_cube',3],['red_barrel',1]])

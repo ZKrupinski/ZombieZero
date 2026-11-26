@@ -6,7 +6,7 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 assert(!game.includes('requestedBossForm%2'),'never replace a new boss with an old one while the image loads');
 assert(game.includes('function nextBossArtLoading('),'boss transition waits for its requested bitmap');
-assert(game.includes('requestBossForWave(wave+1)'),'prefetch exactly the next stage boss');
+assert(game.includes('prepareStageArt(wave+1)'),'prefetch exactly the next stage boss');
 assert(game.includes('function moveElite(z,dt)'),'dedicated elite mobility exists');
 assert(game.includes('eliteCorridorFree(z,dx,dy)'),'every dash/backstep has a swept collision corridor');
 assert(html.includes('v148-elite-tactics-roster'),'new runtime not served from an obsolete script cache');
@@ -40,7 +40,7 @@ vm.createContext(sandbox);
 vm.runInContext(game+`
 function check(ok,msg){if(!ok)throw Error(msg)}
 start();serve();
-wave=8;rack();check(calls.includes(2),'stage 8 queues the actual stage 9 water-jug boss before transition');
+wave=8;rack();check(!calls.includes(2),'boss stays unloaded during preceding stage');beginClear();check(calls.includes(2),'stage 8 queues the actual stage 9 water-jug boss before transition');
 check(nextBossArtLoading(9),'transition sees the missing large-boss bitmap');
 wave=9;rack();let boss=foes.find(z=>z.boss);
 check(boss&&boss.bossForm===2,'campaign stage 9 always spawns water-jug boss, not a substituted big zombie');
@@ -48,7 +48,7 @@ check(boss.hp===39,'stage 9 boss HP eased to 39, original was 60');
 const elite=foes.filter(z=>Number.isInteger(z.eliteKind));
 check(elite.length===3,'high-level roster retains three elite units');
 check(elite.every(z=>z.hp>=10&&z.hp<=29),'elite HP meaningfully raised, remains below boss');
-wave=11;rack();check(calls.includes(3),'stage 11 queues the actual stage 12 large-trash boss');
+wave=11;rack();mode='playing';beginClear();check(calls.includes(3),'stage 11 queues the actual stage 12 large-trash boss');
 wave=12;rack();boss=foes.find(z=>z.boss);
 check(boss.bossForm===3&&boss.hp===155&&boss.w===112&&boss.h===124,
  'stage 12 is a huge, easy-to-hit large-trash tank with 155 HP');

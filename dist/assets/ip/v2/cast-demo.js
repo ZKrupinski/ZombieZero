@@ -32,6 +32,7 @@ function setup(){
   const pageCount=Math.max(1,Math.ceil(canvases.length/PAGE_SIZE));
   page=Math.max(0,Math.min(pageCount-1,page));
   canvases.forEach(({c},i)=>{c.parentElement.hidden=i<page*PAGE_SIZE||i>=(page+1)*PAGE_SIZE});
+  if(dialog.open)atlas.preview(keys.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE));
   status.textContent=(page+1)+' / '+pageCount;
   prev.disabled=page===0;next.disabled=page===pageCount-1;
  }
@@ -102,11 +103,11 @@ function setup(){
   }
   raf=requestAnimationFrame(render);
  }
- function open(){if(!dialog.open){page=0;showPage();dialog.showModal();started=0;raf=requestAnimationFrame(render)}}
+ function open(){if(!dialog.open){page=0;dialog.showModal();showPage();started=0;raf=requestAnimationFrame(render)}}
  function close(){dialog.close();if(raf)cancelAnimationFrame(raf);raf=0}
  trigger.addEventListener('click',open);
  dialog.querySelector('#object-cast-demo-close').onclick=close;
- dialog.addEventListener('close',()=>{if(raf)cancelAnimationFrame(raf);raf=0});
+ dialog.addEventListener('close',()=>{atlas.preview([]);if(raf)cancelAnimationFrame(raf);raf=0});
  if(new URLSearchParams(window.location.search).get('demo')==='cast')requestAnimationFrame(open);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
