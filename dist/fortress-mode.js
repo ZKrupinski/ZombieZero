@@ -1038,7 +1038,7 @@ function tickDevices(dt,enemies,now,ops){
  for(const w of walls.values()){
   if(!w.kind||w.kind==='wall')continue;
   if(w.kind==='bollard'){tickBollard(w,dt,enemies,ops,now);continue}
-  const type=spec(w),cx=w.x+structureSize(w)/2,cy=w.y+T;
+  const type=spec(w),cx=w.x+structureSize(w)/2,cy=w.y+structureSize(w)/2;
   if(!w.run){
    w.cooldown=Math.max(0,w.cooldown-dt);
    if(w.cooldown>0)continue;

@@ -77,7 +77,7 @@ for(const blocked of [false,true]){
   if(target.x<start&&!target.fortressFrozenUntil)movedBeforeFreeze=true;
  }
  assert(movedBeforeFreeze);assert(target.fortressFrozenUntil>2);
- const edge=trap.x+(blocked?4:2)*22;
+ const edge=trap.x+(blocked?5:2)*22;
  assert(target.x>=edge&&target.x<edge+3.1);
 }
 console.log('PASS long-range claw latches, pulls before freezing and stops at solid surfaces');
