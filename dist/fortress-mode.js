@@ -34,6 +34,8 @@ const ui=$('fortress-builder'),actions=$('fortress-actions'),readyButton=$('fort
  previewLabel=$('fortress-preview-summary');
 let stock=0,active=false,dragging=false,pointer=null,last=null,queued=[],stage=1,onReady=null;
 let destroyedThisStage=0,lastRefund=0,lastBonus=0,lastHealed=0;
+// V441: combat-only bitmap debris, independent of removed colliders.
+const structureDebris=[],structureDebrisArt=new Map();
 let starting=false,startToken=0,onStartFeedback=null;
 const id=(col,row)=>row*COLS+col;
 const cell=(col,row)=>({col,row,x:X+col*T,y:Y+row*T,id:id(col,row)});
@@ -245,7 +247,7 @@ function confirm(){
 }
 function reset(){
  starting=false;startToken++;
- occupied.clear();walls.clear();pending.clear();queued=[];stock=0;stage=1;selectedBuild='wall';setStructureGrid(false);
+ occupied.clear();walls.clear();pending.clear();structureDebris.length=0;queued=[];stock=0;stage=1;selectedBuild='wall';setStructureGrid(false);
  active=false;dragging=false;pointer=null;last=null;touchStroke=null;
  destroyedThisStage=0;lastRefund=0;lastBonus=0;lastHealed=0;refresh();
 }
@@ -310,7 +312,7 @@ function setupEndless(wave,enemies,defenseY=565){
 function begin(enemies,wave){
  if(T!==MINI_TILE)reset();
  starting=false;startToken++;
- placementTip='';queued=enemies.splice(0,enemies.length);stage=wave;
+ placementTip='';structureDebris.length=0;queued=enemies.splice(0,enemies.length);stage=wave;
  if(wave===1){
   stock=26;lastBonus=26;lastRefund=0;lastHealed=0;destroyedThisStage=0;
  }else{
@@ -318,7 +320,7 @@ function begin(enemies,wave){
   // construction materials; already destroyed cubes stay absent and refund
   // one material each on top of the regular per-wave supply.
   lastHealed=walls.size;
-  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.run=null;w.pulse=0;w.raised=false;w.lift=0}
+  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.run=null;w.pulse=0;w.raised=false;w.lift=0;w.moleHit=0;w.moleHitSide=0}
   lastRefund=destroyedThisStage;
   lastBonus=Math.min(14,8+Math.floor(wave/5));
   stock+=lastRefund+lastBonus;destroyedThisStage=0;
@@ -566,7 +568,10 @@ function resolve(z,oldX,oldY,dt,onBreak,now=Infinity){
  if(z.fortressBite>=bitePeriod){
   const damage=Math.floor(z.fortressBite/bitePeriod)*(z.boss?8:1);
   // Boss impacts overpower idle cryo armor; ordinary bites do not.
+  const hpBefore=hit.hp;
   z.fortressBite%=bitePeriod;hit.hp-=hit.kind==='ice'&&!hit.run&&!z.boss?damage*.5:damage;hit.hit=.18;hit.biteShake=.18;
+  if(hit.kind==='bollard'){hit.moleHit=.28;hit.moleHitSide=z.x+z.w/2<hit.x+structureSize(hit)/2?1:-1}
+  if(hit.hp<=0)spawnStructureBreak(hit,hpBefore);
   if(hit.hp<=0){removeStructure(hit);destroyedThisStage++;z.fortressTarget=null;z.fortressBite=0;if(onBreak)onBreak(hit.x+T*span(hit)/2,hit.y+T*span(hit)/2)}
  }
  return true;
@@ -642,10 +647,11 @@ function paintMachine(g,kind,time,pulse,offset=null){
   const spring=time>0?Math.sin(time*32)*Math.exp(-time*9)*.32:0;
   // Keep the lower body below the curved inner edge of the rocks, even
   // during the elastic rise. The mole must emerge from a hole, not a flat cut.
-  const height=54*pulse*(1+spring),width=(46*(.70+.30*pulse))/(1+spring*.48);
-  const gaze=Math.sin(time*5);
+  const impact=offset?.moleImpact;
+  const height=54*pulse*(1+spring)*(impact?.height||1),width=(46*(.70+.30*pulse))/(1+spring*.48)*(impact?.width||1);
+  const gaze=impact?.gaze??Math.sin(time*5);
   const face=gaze<-.42?0:gaze>.42?2:1;
-  part(g,face,32-width/2,56-height,width,height);
+  part(g,face,32-width/2+(impact?.x||0),56-height,width,height);
   // Repaint only the original foreground stones, following their irregular
   // U-shaped inner rim in source coordinates. No horizontal crop seam.
   g.save();g.translate(0,22);g.scale(.5,40/128);
@@ -808,6 +814,7 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true){
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
  let offset=run&&w.kind==='ice'?{deployed:true}:null;
+ if(!building&&w.kind==='bollard'&&w.moleHit>0)offset={moleImpact:moleImpactPose(w)};
  if(run&&w.kind==='lure'){
   const travel=duckTravel(progress)*64/size;offset={x:run.dx*travel,y:run.dy*travel};
  }
@@ -846,6 +853,72 @@ function drawDeviceGauge(g,w,glow=null){
    ctx.globalAlpha=.85;ctx.fillStyle=w.kind==='ice'?'#b9f4ff':'#fff0a3';
    ctx.fillRect(bx,by,bw,1);ctx.restore();
   });
+ }
+}
+
+// Directional bitmap flinch: squash, overshoot and return. No collider changes.
+function moleImpactPose(w){
+ const p=1-Math.max(0,Math.min(1,(w.moleHit||0)/.28));
+ const recoil=p<.34?Math.sin(p/.34*Math.PI/2):Math.pow(1-(p-.34)/.66,2);
+ const rebound=p>.34?Math.sin((p-.34)/.66*Math.PI)*.11:0;
+ const side=w.moleHitSide||1;
+ return {x:side*7*recoil,height:1-.42*recoil+rebound,width:1+.23*recoil-rebound*.35,gaze:side};
+}
+// Use slices of the actual bitmap art; cache only the small source surfaces.
+function structureBreakArt(w,hpBefore){
+ const kind=w.kind||'wall';
+ const variant=hpBefore>MAX_HP*.8?0:hpBefore>MAX_HP*.6?1:hpBefore>MAX_HP*.4?2:hpBefore>MAX_HP*.2?3:4;
+ const raised=kind==='bollard'&&(w.raised||(w.lift||0)>.3);
+ const key=kind==='wall'?kind+variant:kind+(raised?'up':'');
+ if(structureDebrisArt.has(key))return structureDebrisArt.get(key);
+ const source=document.createElement('canvas');source.width=64;source.height=64;
+ const ctx=source.getContext?.('2d');if(!ctx)return null;
+ if(kind==='wall'){
+  const bitmap=bitmapTiles();
+  if(bitmap)ctx.drawImage(bitmap,variant*BARRICADE_FRAME,0,BARRICADE_FRAME,BARRICADE_FRAME,0,0,64,64);
+  else return null;
+ }else{
+  if(!parts)return null;
+  paintMachine(ctx,kind,0,raised?1:0);
+ }
+ structureDebrisArt.set(key,source);return source;
+}
+function spawnStructureBreak(w,hpBefore){
+ const art=structureBreakArt(w,hpBefore);if(!art)return;
+ const size=structureSize(w),pieces=[];
+ // Stable visual noise; never consume the simulation's random number stream.
+ const seed=(w.id+1)*17+stage*31;
+ const noise=n=>{const v=Math.sin(seed*12.9898+n*78.233)*43758.5453;return v-Math.floor(v)};
+ for(let row=0;row<4;row++)for(let col=0;col<4;col++){
+  const i=row*4+col,dx=(col-1.5)/1.5,dy=(row-1.5)/1.5;
+  pieces.push({sx:col*16,sy:row*16,x:w.x+(col+.5)*size/4,y:w.y+(row+.5)*size/4,
+   vx:dx*(100+noise(i*4)*110)+(noise(i*4+1)-.5)*80,
+   vy:-80+dy*48+noise(i*4+2)*115,spin:(noise(i*4+3)-.5)*16,
+   size:size/4*(1.05+noise(i*4+4)*.55),life:.95+noise(i*4+5)*.45});
+ }
+ structureDebris.push({art,pieces,t:0});
+}
+function tickStructureDebris(dt){
+ let write=0;
+ for(const burst of structureDebris){
+  burst.t+=dt;
+  if(burst.t<1.4)structureDebris[write++]=burst;
+ }
+ structureDebris.length=write;
+}
+function drawStructureDebris(g){
+ if(!structureDebris.length)return;
+ for(const burst of structureDebris){
+  const t=burst.t;
+  for(const p of burst.pieces){
+   if(t>=p.life)continue;
+   const x=p.x+p.vx*t,y=p.y+p.vy*t+410*t*t;
+   const alpha=Math.min(1,(p.life-t)/.28);
+   g.save();g.translate(x,y);g.rotate(p.spin*t);g.globalAlpha=alpha;
+   if(t<.085)g.filter='brightness('+String((1+1.3*(1-t/.085)).toFixed(2))+')';
+   g.drawImage(burst.art,p.sx,p.sy,16,16,-p.size/2,-p.size/2,p.size,p.size);
+   g.restore();
+  }
  }
 }
 // Devices act only when the real wave is moving. Cooldowns advance on the
@@ -1122,7 +1195,7 @@ function draw(g,building=false,glow=null){
  }
  // Draw gauges after sprites so neighboring structures cannot hide them.
  for(const w of walls.values())drawDeviceGauge(g,w,glow);
- if(!building)return;
+ if(!building){drawStructureDebris(g);return;}
  g.save();g.globalAlpha=.22;g.fillStyle='#a3d1b0';
  for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++)g.fillRect(X+col*T+10,Y+row*T+10,2,2);
  g.globalAlpha=.8;
@@ -1144,9 +1217,10 @@ function draw(g,building=false,glow=null){
  }
  g.restore();
 }
-function tick(dt){for(const w of walls.values()){
+function tick(dt){tickStructureDebris(dt);for(const w of walls.values()){
  w.hit=Math.max(0,(w.hit||0)-dt);
  w.biteShake=Math.max(0,(w.biteShake||0)-dt);
+ if(w.moleHit>0)w.moleHit=Math.max(0,w.moleHit-dt);
 }}
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
