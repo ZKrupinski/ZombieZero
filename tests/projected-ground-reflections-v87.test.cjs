@@ -7,8 +7,8 @@ const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw
 assert(html.includes('game.js?v=93-multiball-light-cache'),'fresh game script URL');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'PWA cache refresh');
 assert(src.includes("has('power')?12:8"),'power ball stays 1.5 times normal');
-assert(src.includes('drawBurningBallFlames(b,r,false)')&&src.includes('drawPierceBallLightning(b,r,true)'),
- 'attached flame and bolt visual layers remain in place');
+assert(src.includes('drawSimpleSkillTrailAccent(b,r,trailPath)')&&src.includes('drawHeroBallSprite(b,r,palette.main)'),
+ 'simple interior accent and bitmap remain in place');
 const fireStart=src.indexOf('function drawBurningBallFlames(');
 const fireEnd=src.indexOf('function drawBurningTrailFlames(',fireStart);
 assert(fireStart>=0&&fireEnd>fireStart,'flame source still exists');
