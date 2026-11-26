@@ -5202,7 +5202,7 @@ const PLAYER_HAPTIC_KINDS=new Set([
  'serve','racket','car','poisonBlock','blocked','groggy','groggyRecover'
 ]);
 // V415: compact real-time camera impulse. No queued or extended shakes.
-const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,zoom:0,zoomAt:-Infinity,zoomDuration:100,springPower:0,springTail:0,focusX:225,focusY:584};
+const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,zoom:0,zoomAt:-Infinity,zoomDuration:100,springPower:0,springTailMs:0,focusX:225,focusY:584};
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
 const CAMERA_AMPLITUDE_SCALE=1.15;
@@ -5221,8 +5221,8 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
   screenShake.hero=true;screenShake.critical=false;
   screenShake.zoom=serveStrike?.10+Math.random()*.04:.04+Math.random()*.02;screenShake.zoomAt=now;screenShake.zoomDuration=serveStrike?200:overhead?180:100;
   // V431: a distinct vertical spring, never a second shake impulse.
-  screenShake.springPower=serveStrike?12:overhead?14:10;
-  screenShake.springTail=serveStrike?12:overhead?14:10;
+  screenShake.springPower=serveStrike?12:overhead?11:8;
+  screenShake.springTailMs=serveStrike?200:150;
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
   // V427: frame the action above the hero. The world transform shifts the
   // hero downward on screen while its position, collisions and input stay put.
@@ -5275,18 +5275,17 @@ function heroCameraZoom(){
 }
 // V431: press downward on impact, recover with the zoom, then overshoot
 // upwards and rebound once at lower amplitude. Fixed time, not frame count.
-const HERO_SPRING_TAIL_MS=200;
 function heroCameraSpring(zoom,height=typeof H==='number'?H:710){
  if(screenShake.zoom<=0||screenShake.until<=0||screenShake.springPower<=0||(typeof mode!=='undefined'&&mode!=='playing'))return null;
  const age=feedbackNow()-screenShake.zoomAt,duration=screenShake.zoomDuration;
- if(age<0||age>=duration+HERO_SPRING_TAIL_MS)return null;
+ if(age<0||age>=duration+screenShake.springTailMs)return null;
  let offset;
  if(age<duration){
   const u=age/duration;
   offset=screenShake.springPower*(1-u)*(1-u);
  }else{
-  const u=(age-duration)/HERO_SPRING_TAIL_MS;
-  offset=-screenShake.springTail*Math.sin(2*Math.PI*u)*(1-u)*(1-u);
+  const u=(age-duration)/screenShake.springTailMs;
+  offset=-screenShake.springPower*Math.sin(2*Math.PI*u)*(1-u)*(1-u);
  }
  if(Math.abs(offset)<.0001)return null;
  // Compose the spring in screen space. A tiny vertical stretch around the
