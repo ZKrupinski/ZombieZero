@@ -19,3 +19,22 @@ assert.equal(canvases,ready,'single-ball skill transition does not allocate ligh
 const activate=section('function activate(','// Support is rare');
 assert(activate.includes('active[k]=SKILLS[k].duration'));assert(activate.includes('syncMulti(true)'));assert(activate.includes("sfx('item');feedback('item')"));assert(!activate.includes('hud()'));
 console.log('PASS: incremental light-mask prewarm, no live allocation on first pickup, unchanged pickup effects');
+
+const tintEnv={document,mode:'menu',balls:[],fxEnabled:true,selectedHero:0,
+ window:{ZZHeroBallsV58:{images:[{naturalWidth:1774,naturalHeight:887}]}},
+ g:{drawImage(){}},has:k=>tintEnv.skills.includes(k),skills:[]};
+let tintCanvases=0;
+tintEnv.document={createElement(){tintCanvases++;return {getContext:()=>({
+ drawImage(){},createRadialGradient(){return {addColorStop(){}}},fillRect(){}
+})}}};
+vm.createContext(tintEnv);
+vm.runInContext(section('const SKILL_TRAIL_RAMPS=','const BURN_GROUND_COLOR=')+
+ section('const skillBallTintCache=','function drawHeroBallSprite('),tintEnv);
+for(let i=0;i<8;i++)tintEnv.warmSelectedBallTint();
+assert.equal(tintCanvases,7);
+tintEnv.mode='playing';
+for(let mask=1;mask<8;mask++){
+ tintEnv.skills=['fire','pierce','power'].filter((_,i)=>mask&(1<<i));
+ assert(tintEnv.drawSkillTintedFrame(tintEnv.window.ZZHeroBallsV58.images[0],0,0,443.5,443.5,0,0,24,24));
+}
+assert.equal(tintCanvases,7,'all seven combinations reuse preloaded art');

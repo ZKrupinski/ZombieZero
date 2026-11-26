@@ -71,3 +71,23 @@ const before=calls.glows;
 vm.runInContext('drawSoftLightSpill(190,290,35,[80,197,255],.23)',context);
 assert(calls.glows>before,'soft diffuse light rendered separately from hard shadows');
 console.log('PASS: clear hard-edged world polygons, soft glow, layered electric arcs, simultaneous skills and fixed gameplay.');
+
+let allocations=0,blits=0;
+context.document={createElement(){allocations++;return{getContext:()=>g}}};
+g.canvas={};g.getTransform=()=>({a:2,d:2,b:0,c:0});
+g.drawImage=()=>{blits++};
+function drawSix(){
+ for(let i=0;i<6;i++)for(const front of [false,true]){
+  context.drawPierceBallLightning({x:100+i*15,y:120},12,front);
+ }
+}
+let baseline=calls.strokes.length;
+drawSix();
+assert.equal(calls.strokes.length-baseline,21,'seven three-stroke bolts shared across six balls');
+assert.equal(allocations,2);assert.equal(blits,12);
+baseline=calls.strokes.length;
+drawSix();
+assert.equal(calls.strokes.length,baseline,'same animation beat reuses both layers');
+context.clock+=.05;
+drawSix();
+assert.equal(calls.strokes.length-baseline,21);assert.equal(allocations,2);

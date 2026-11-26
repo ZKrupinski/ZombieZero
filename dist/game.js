@@ -347,8 +347,10 @@ const TRAIL_LIGHT_STAMP_SIZE=192;
 const trailLightStamps=new WeakMap();
 const lightColorStamps=new Map();
 function trailLightStamp(rgb){
+ const known=trailLightStamps.get(rgb);if(known)return known;
  const key=rgb.join(',');
- const cached=trailLightStamps.get(rgb)||(typeof lightColorStamps!=='undefined'&&lightColorStamps.get(key));if(cached)return cached;
+ const cached=typeof lightColorStamps!=='undefined'&&lightColorStamps.get(key);
+ if(cached){trailLightStamps.set(rgb,cached);return cached}
  if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
  const stamp=document.createElement('canvas');
  stamp.width=stamp.height=TRAIL_LIGHT_STAMP_SIZE;
@@ -4287,14 +4289,14 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
 function flameTongue(x,y,dx,dy,width,outer,alpha=1){
  const mag=Math.hypot(dx,dy)||1,nx=-dy/mag,ny=dx/mag;
  const len=mag,root=width*.64;
- g.save();g.globalAlpha=alpha;g.fillStyle=outer;
+ // Both callers own the canvas state for their entire flame layer.
+ g.globalAlpha=alpha;g.fillStyle=outer;
  g.beginPath();g.moveTo(x+nx*root,y+ny*root);
  g.bezierCurveTo(x+dx*.33+nx*width*.9,y+dy*.33+ny*width*.9,
   x+dx*.72+nx*width*.34,y+dy*.72+ny*width*.34,x+dx,y+dy);
  g.bezierCurveTo(x+dx*.64-nx*width*.36,y+dy*.64-ny*width*.36,
   x+dx*.25-nx*width*.9,y+dy*.25-ny*width*.9,
   x-nx*root,y-ny*root);g.closePath();g.fill();
- g.restore();
 }
 function drawBurningBallFlames(b,r,front=false){
  if(!fxEnabled||!has('fire'))return;
@@ -4387,9 +4389,43 @@ function drawElectricArc(points,alpha=1,scale=1){
 }
 function drawPierceBallLightning(b,r,front=false){
  if(!fxEnabled||!has('pierce'))return;
- const beat=Math.floor(clock*25),count=front?3:4;
- const bright=has('fire')?.86:1;
- g.save();g.translate(b.x,b.y);
+ const beat=Math.floor(clock*25),bright=has('fire')?.86:1;
+ // All balls share the same 25 Hz bolt animation. Keep each layer at
+ // the live backing-store resolution so its blur and line widths match.
+ if(typeof document!=='undefined'&&document.createElement&&g.canvas&&g.getTransform){
+  const transform=g.getTransform();
+  if(transform?.a>0&&transform.d>0&&!transform.b&&!transform.c){
+   const sx=transform.a,sy=transform.d;
+   const cache=drawPierceBallLightning.layers||(drawPierceBallLightning.layers=[]);
+   const index=Number(front);
+   let layer=cache[index];
+   if(!layer){
+    const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+    if(ctx)layer=cache[index]={canvas,ctx};
+   }
+   if(layer){
+    const w=2*Math.ceil(r*2*sx+20),h=2*Math.ceil(r*2*sy+20);
+    if(layer.beat!==beat||layer.r!==r||layer.bright!==bright||layer.sx!==sx||layer.sy!==sy){
+     const {canvas,ctx}=layer;
+     if(canvas.width!==w)canvas.width=w;
+     if(canvas.height!==h)canvas.height=h;
+     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);
+     ctx.setTransform(sx,0,0,sy,w/2,h/2);
+     const target=g;g=ctx;
+     try{paintPierceBallLightning(0,0,r,front,beat,bright)}finally{g=target}
+     Object.assign(layer,{beat,r,bright,sx,sy});
+    }
+    g.save();g.globalCompositeOperation='lighter';
+    g.drawImage(layer.canvas,b.x-w/(2*sx),b.y-h/(2*sy),w/sx,h/sy);
+    g.restore();return;
+   }
+  }
+ }
+ paintPierceBallLightning(b.x,b.y,r,front,beat,bright);
+}
+function paintPierceBallLightning(x,y,r,front,beat,bright){
+ const count=front?3:4;
+ g.save();g.translate(x,y);
  for(let i=0;i<count;i++){
   const a=i*Math.PI*2/count+beat*.43+(front?.22:0);
   const start=r*(front?1.10:1.34),end=r*(front?1.59:1.74);
@@ -4483,6 +4519,11 @@ function drawSkillTintedFrame(img,sx,sy,sw,sh,dx,dy,dw,dh){
  if(typeof document==='undefined'||!document.createElement)return false;
  const ramp=activeTrailRamp();
  if(!ramp)return false;
+ const canvas=skillTintFrame(img,sx,sy,sw,sh,ramp);
+ if(!canvas)return false;
+ g.drawImage(canvas,dx,dy,dw,dh);return true;
+}
+function skillTintFrame(img,sx,sy,sw,sh,ramp){
  const [rim,,tint]=ramp.stops;
  const key=[sx,sy,sw,sh,tint].join(',');
  let frames=skillBallTintCache.get(img);if(!frames){frames=new Map();skillBallTintCache.set(img,frames)}
@@ -4498,7 +4539,20 @@ function drawSkillTintedFrame(img,sx,sy,sw,sh,dx,dy,dw,dh){
   ctx.globalCompositeOperation='source-atop';ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
   frames.set(key,canvas);
  }
- g.drawImage(canvas,dx,dy,dw,dh);return true;
+ return canvas;
+}
+const tintWarmProgress=new WeakMap();
+function warmSelectedBallTint(){
+ if(!fxEnabled||typeof document==='undefined'||!document.createElement)return;
+ if(mode!=='menu'&&mode!=='building'&&!balls[0]?.held)return;
+ const gem=selectedHero===4,steel=selectedHero===3;
+ const img=gem?$('scarlet-ball-art'):steel?$('wrench-ball-art'):window.ZZHeroBallsV58?.images?.[selectedHero];
+ if(!img?.naturalWidth||!img.naturalHeight)return;
+ const frames=gem?8:1,index=tintWarmProgress.get(img)||0;
+ if(index>=frames*7)return;
+ const sw=steel?img.naturalWidth:img.naturalWidth/4,sh=steel?img.naturalHeight:img.naturalHeight/2;
+ const frame=index%frames,ramp=SKILL_TRAIL_RAMPS[1+Math.floor(index/frames)];
+ if(skillTintFrame(img,frame%4*sw,Math.floor(frame/4)*sh,sw,sh,ramp))tintWarmProgress.set(img,index+1);
 }
 function drawHeroBallSprite(b,r,col){
  if(selectedHero===4){
@@ -4713,7 +4767,7 @@ function frame(t){
  try{for(let i=0;i<steps;i++)update(elapsed/steps)}finally{frameUpdating=false}
  if(hudDirty){hudDirty=false;hud()}
  const updated=feedbackNow();
- warmTrailLighting();draw();
+ warmTrailLighting();warmSelectedBallTint();draw();
  const rendered=feedbackNow();
  music();warmCombatSfx();
  updatePerfBudget(t,rawElapsed,updated-begin,rendered-updated,feedbackNow()-begin);
