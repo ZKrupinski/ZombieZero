@@ -29,7 +29,7 @@ now=6400;h.feedback('racket',false,false);assert.equal(h.heroCameraZoom().y,399)
 now=7000;h.feedback('serve',false,true);assert.equal(h.heroCameraZoom().y,399);assert.equal(h.screenShake.zoomDuration,200);
 // Spring remains separate from zoom and haptics. All three timings get
 // an impact press, upward overshoot, smaller downward rebound and rest.
-for(const [kind,overhead,duration,amplitude,tailMs] of [['racket',false,100,8,150],['racket',true,180,11,150],['car',false,100,8,150],['serve',false,200,12,200]]){
+for(const [kind,overhead,duration,amplitude,tailMs] of [['racket',false,100,2.5,95],['racket',true,180,3.5,95],['car',false,100,2.5,95],['serve',false,200,4,120]]){
  now+=1000;const start=now;random=.5;h.feedback(kind,false,overhead);
  assert.equal(h.screenShake.zoomDuration,duration);
  const initial=h.heroCameraSpring(h.heroCameraZoom());assert.equal(initial.offset,amplitude);
@@ -43,7 +43,7 @@ for(const [kind,overhead,duration,amplitude,tailMs] of [['racket',false,100,8,15
   assert(spring.pivotY+(bottom-spring.pivotY)*spring.stretch>=710-1e-7,'no newly exposed bottom edge');
   if(age>=duration){minimum=Math.min(minimum,spring.offset);maximum=Math.max(maximum,spring.offset)}
  }
- assert(minimum<-4&&maximum>0&&maximum<-minimum,'damped upward then smaller downward rebound');
+ assert(minimum<-amplitude*.5&&maximum>0&&maximum<-minimum,'damped upward then smaller downward rebound');
  now=start+duration+tailMs;assert.equal(h.heroCameraSpring(null),null);
 }
 h.screenShake.zoom=0;assert.equal(h.heroCameraSpring(null),null);
