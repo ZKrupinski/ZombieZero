@@ -60,7 +60,7 @@ assert.ok(drawCalls>90,'Expected rendered fireworks, sparks and energized ball s
 // V67: common centerline, physical rebound anchors, no fuzzy replay.
 assert.match(code,/const BALL_TRAIL_NORMAL=170,BALL_TRAIL_POWER=190/);
 assert.match(code,/function recordBallTrail\(b,x,y,corner=false\)/);
-assert.match(code,/function buildBallTrailPath\(b,r,points,path=\[\]\)/);
+assert.match(code,/function buildBallTrailPath\(b,r,points\)/);
 assert.match(code,/function sampleBallTrail\(path,d\)/);
 assert.match(code,/function drawHeroBallTrail\(b,r,path=buildBallTrailPath\(b,r\)\)/);
 assert.match(code,/function drawBallSkillTrail\(b,r,path=buildBallTrailPath\(b,r\)\)/);
