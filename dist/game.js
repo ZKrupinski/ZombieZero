@@ -1297,8 +1297,7 @@ function rack(){
    w:bossWidth*scale,h:bossHeight*scale,miniScale:scale,
    miniBaseW:bossWidth,miniBaseH:bossHeight,hp,max:hp,kind:4,
    form:3,bossForm,boss:true,flash:0,seed:0,burn:0,burnTick:0,spreadTick:0});
-  // Boss arrival keeps the shock burst, audio and device feedback, but no name caption.
-  if(!isFortress()){sfx('boss');feedback('bossSpawn');effect(225,130,'#ff687e',145);}
+  if(!isFortress()){sfx('boss');feedback('bossSpawn');}
  }
  const sprites=window.ZZObjectSprite;
  if(sprites?.retain){
