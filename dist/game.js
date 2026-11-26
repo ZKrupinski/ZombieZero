@@ -5041,25 +5041,22 @@ const FEEDBACK_PRESETS={
 const PLAYER_HAPTIC_KINDS=new Set([
  'serve','racket','car','poisonBlock','blocked','groggy','groggyRecover'
 ]);
-// A real-time 5–9-frame shake envelope independent of the graphics FX switch.
-// Previous v182 shake lost most of its intensity before the render frame.
+// V415: compact real-time camera impulse. No queued or extended shakes.
 const screenShake={power:0,started:0,until:0,phase:0};
-// Browser and VM regression tests use the same clock-safe fallback.
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
-let screenShakeFrame=0;
-// V346: slightly shorter/lighter zombie impacts, with a brief recovery
-// gap during a rapid chain. Hero feedback and device vibration are unchanged.
-let lastZombieShakeAt=-Infinity,lastZombieShakePower=0;
+const CAMERA_REST_MS=45;
 function cameraFeedback(strength,zombieImpact=false){
  if(!(strength>0))return;
  const now=feedbackNow();
- const power=(strength<.5?.8:Math.min(8,1.7+2.4*strength))*(zombieImpact?.82:1);
- const life=(strength>=4?150:strength>=2?120:100)*(zombieImpact?.80:1);
- // A weaker/equal zombie hit cannot restart the envelope continuously.
- // A genuinely stronger hit can still take over immediately.
- if(zombieImpact&&now-lastZombieShakeAt<life+25&&power<=lastZombieShakePower)return;
- if(now<screenShake.until&&power<=screenShake.power&&now-screenShake.started<90)return;
- if(zombieImpact){lastZombieShakeAt=now;lastZombieShakePower=power;}
+ const power=(strength<.5?.45:Math.min(5.2,(1.7+2.4*strength)*.65))*(zombieImpact?.82:1);
+ const life=(strength>=4?90:strength>=2?75:60)*(zombieImpact?.8:1);
+ // Stronger impacts can take over amplitude, never restart phase or extend
+ // the current impulse. Ignore every request during the quiet interval.
+ if(now<screenShake.until){
+  if(power>screenShake.power){screenShake.power=power;cameraKick=power}
+  return;
+ }
+ if(screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
  screenShake.power=power;screenShake.started=now;screenShake.until=now+life;
  screenShake.phase=(screenShake.phase+1.41)%6.283;
  cameraKick=power;lastCameraFeedback=now;
@@ -5068,9 +5065,9 @@ function cameraOffset(){
  const now=feedbackNow(),remaining=screenShake.until-now;
  if(remaining<=0)return null;
  const life=Math.max(1,screenShake.until-screenShake.started);
- const fade=Math.pow(Math.min(1,remaining/life),.65);
+ const fade=Math.pow(Math.min(1,remaining/life),.8);
  const power=screenShake.power*fade;
- const phase=screenShake.phase+(++screenShakeFrame)*2.24;
+ const phase=screenShake.phase+(now-screenShake.started)*.1344;
  return {x:Math.sin(phase)*power*.92,y:Math.cos(phase*1.2)*power*.72};
 }
 // Keep lightweight counters so players can verify that zombie hits reach

@@ -48,7 +48,7 @@ hit(z,{x:280,y:-200});
 check(z.hp===2,'ordinary full-health green survives one hit');
 check(z.x>oldX&&z.y<oldY,'non-lethal hit causes directional knockback with space available');
 check(z.flash>.2&&hitFlashes.length>0,'impact flash is stronger and attached to struck target');
-check(cameraKick>=4.7,'non-lethal hit camera impulse strengthened');
+check(screenShake.power>=2.6&&screenShake.power<=5.2,'non-lethal hit keeps a compact camera impulse');
 let nextHP=z.hp;hit(z,{x:280,y:-200});check(z.hp===nextHP-1,'another ordinary hit subtracts one HP');
 hit(z,{x:280,y:-200});check(!foes.includes(z),'third ordinary hit kills');
 check(enemyDeaths[enemyDeaths.length-1].critical===false,'three-hit death uses normal animation');
