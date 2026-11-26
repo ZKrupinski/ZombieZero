@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('dist/game.js','utf8');
 new vm.Script(source);
-const block=source.slice(source.indexOf('function drawBurningOverlays()'),source.indexOf('function drawBallVanish()'));
+const block=source.slice(source.indexOf('const SKILL_TRAIL_RAMPS='),source.indexOf('const BURN_GROUND_COLOR='))+source.slice(source.indexOf('function drawBurningOverlays()'),source.indexOf('function drawBallVanish()'));
 function render(count,tier,enabled=true,cached=true){
  const log={base:0,bloom:0,blur:0,captures:0,stamps:0,atlasDraws:0,alloc:0,colors:new Set(),images:[]};let pass='base';
  const g={save(){},restore(){},translate(){},scale(){},fillRect(){log[pass]++},
@@ -27,7 +27,7 @@ for(const [count,tier] of [[1,0],[6,0],[3,1],[1,2],[72,2]]){
  const r=render(count,tier);
  assert.equal(r.base,2*count);assert.equal(r.bloom,2*count);
  assert.equal(r.stamps,5);assert.equal(r.atlasDraws,64*35);assert.equal(r.blur,0);
- assert.deepEqual([...r.colors],['#f35a26','#ffb641','#fff4a4']);
+ assert.deepEqual([...r.colors],['#c90009','#ed3503','#ff8610','#ffcb18','#fff15b']);
  assert(r.images.every(a=>a.length===9&&a[3]===80&&a[4]===64));
  const fallback=render(count,tier,true,false);
  assert.equal(fallback.base,35*count);assert.equal(fallback.bloom,35*count);assert(fallback.blur>0);

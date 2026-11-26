@@ -462,13 +462,13 @@ const SCARLET_DIAMOND_GROUND_ACCENT=[245,187,237]; // subtle violet-pink facet
 // Indexed by fire (1), pierce (2), power (4). Stops run from tail to ball.
 const SKILL_TRAIL_RAMPS=[
  null,
- ['#ff792d','#ff3025','#ff1028'],
- ['#5bd2ff','#287bff','#1642ff'],
- ['#935bff','#c938ec','#ff249f'],
- ['#ffb72a','#ffdb16','#fff32a'],
- ['#ffdc26','#ff8619','#ff241d'],
- ['#ffe438','#42ddbf','#215dff'],
- ['#ffe32a','#ff4739','#9150ff']
+ ['#fff15b','#ff8610','#c90009'],
+ ['#c0ffff','#00b8ff','#1824be'],
+ ['#dbcaff','#7130cb','#ff087d'],
+ ['#964200','#ffb409','#ffff94'],
+ ['#fffba0','#ffb000','#ac0b00'],
+ ['#fff9a6','#17dbbe','#152da6'],
+ ['#fff791','#ff5423','#5616af']
 ].map(stops=>stops&&{
  stops,
  ground:stops.map(hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)))
@@ -3855,7 +3855,7 @@ function drawBurningOverlays(){
   }else{
    // Canvas-less environments retain all original pixels, not a sparse LOD.
    g.translate(cx,base);g.scale(scale,scale);g.translate(-cx,-base);
-   g.shadowColor='#ff822d';g.shadowBlur=9;
+   g.shadowBlur=9;
    paintOriginalBurningFlame(g,!!z.boss,cx,base,clock,z.seed||0,fade);
   }
   g.restore();
@@ -3876,9 +3876,10 @@ function burningFlameGeometry(boss,cx,base,time,seed,emit){
   }
  }
 }
+const ZOMBIE_FLAME_COLORS=[SKILL_TRAIL_RAMPS[1].stops[2],'#ed3503',SKILL_TRAIL_RAMPS[1].stops[1],'#ffcb18',SKILL_TRAIL_RAMPS[1].stops[0]];
 function paintOriginalBurningFlame(ctx,boss,cx,base,time,seed,fade){
  burningFlameGeometry(boss,cx,base,time,seed,(x,y,w,h,step)=>{
-  ctx.fillStyle=step>3?'#fff4a4':step>1?'#ffb641':'#f35a26';
+  ctx.shadowColor=ctx.fillStyle=ZOMBIE_FLAME_COLORS[step];
   ctx.globalAlpha=fade*(1-step*.11);ctx.fillRect(x,y,w,h);
  });
 }
@@ -3899,8 +3900,8 @@ function burningFlameAtlas(boss){
    const stamp=document.createElement('canvas');stamp.width=stamp.height=40;
    const sc=stamp.getContext('2d');
    if(!sc||typeof sc.fillRect!=='function')return cache[key]=null;
-   sc.shadowColor='#ff822d';sc.shadowBlur=9;
-   sc.fillStyle=step>3?'#fff4a4':step>1?'#ffb641':'#f35a26';
+   sc.shadowBlur=9;
+   sc.shadowColor=sc.fillStyle=ZOMBIE_FLAME_COLORS[step];
    sc.globalAlpha=1-step*.11;
    sc.fillRect(16,16,Math.ceil(Math.max(2,(boss?7:5)-step*.65)),boss?8:5);
    stamps.push(stamp);
@@ -4238,8 +4239,10 @@ function drawElementalTrailBody(b,r,path,fire,pierce,bloomScale=1){
  const useGradient=displacement>Math.min(24,path[path.length-1].s*.33);
  const gradient=useGradient&&g.createLinearGradient?.(tail.x,tail.y,head.x,head.y);
  if(gradient&&typeof gradient.addColorStop==='function'){
-  gradient.addColorStop(0,tailColor+'00');gradient.addColorStop(.35,tailColor+'95');
-  gradient.addColorStop(.68,middle+'dc');gradient.addColorStop(1,color+'ff');
+  gradient.addColorStop(0,tailColor+'00');gradient.addColorStop(.18,tailColor+'95');
+  gradient.addColorStop(.40,tailColor+'b8');
+  gradient.addColorStop(.66,middle+'dc');gradient.addColorStop(.90,color+'f2');
+  gradient.addColorStop(1,color+'ff');
  }
  g.strokeStyle=gradient||color;g.lineWidth=r*1.52;
  g.beginPath();g.moveTo(head.x,head.y);
@@ -4323,8 +4326,8 @@ function drawBurningBallFlames(b,r,front=false){
   const dy=ay*length*.75+windY*length*.46;
   const width=fxRadius*(front?.085:.14)*(1+.2*wave);
   const alpha=front?.47:.73;
-  flameTongue(bx,by,dx,dy,width,i%3===0?'#ffe393':i%2?'#ffad48':'#ff6428',alpha);
-  if(!front)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#fff4bf',.46);
+  flameTongue(bx,by,dx,dy,width,i%3===0?'#ff8610':i%2?'#f43c04':'#c90009',alpha);
+  if(!front)flameTongue(bx,by,dx*.62,dy*.62,width*.46,'#ffca25',.46);
  }
  if(front){
   // Surface heat should glimmer over, but not obscure, the three ball designs.
@@ -4339,6 +4342,7 @@ function drawBurningBallFlames(b,r,front=false){
 function drawBurningTrailFlames(b,r,path){
  if(!fxEnabled||!has('fire')||!path||path.length<2)return;
  const t=clock,maxLen=path[path.length-1].s;
+ const colors=activeTrailRamp().stops;
  if(maxLen<4)return;
  g.save();g.lineCap='round';g.globalCompositeOperation='lighter';g.shadowBlur=0;
  // Tongues curl and detach from the outer edge of the moving trail,
@@ -4348,7 +4352,9 @@ function drawBurningTrailFlames(b,r,path){
   if(!p||!q)continue;
   const dx=q.x-p.x,dy=q.y-p.y,mag=Math.hypot(dx,dy)||1;
   const nx=-dy/mag,ny=dx/mag;
-  const fade=Math.pow(1-d/maxLen,1.25);
+  const position=d/maxLen;
+  const fade=Math.pow(1-position,1.25);
+  const tongueColor=colors[position<.30?2:position<.60?1:0];
   for(const side of [-1,1]){
    const oscillation=Math.sin(t*13+i*2.2+side*1.5);
    const base=r*(.45+.25*oscillation);
@@ -4357,7 +4363,7 @@ function drawBurningTrailFlames(b,r,path){
    const tx=dx/mag*reach+nx*side*reach*.65;
    const ty=dy/mag*reach+ny*side*reach*.65;
    flameTongue(x,y,tx,ty,Math.max(.7,r*.17*fade),
-     (i+side)%3===0?'#fff1b5':i%2?'#ff9e41':'#ff3829',.78*.8*fade);
+     tongueColor,.78*.8*fade);
   }
  }
  g.restore();

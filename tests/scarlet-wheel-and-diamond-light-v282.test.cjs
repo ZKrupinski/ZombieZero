@@ -42,7 +42,7 @@ assert(context.calls.some(x=>x.rgb.join(',')==='245,187,237'),'diamond accent re
 context.calls=[];context.compactBallFX=()=>false;
 context.has=kind=>kind==='fire';
 draw();
-assert(context.calls.some(x=>x.rgb.join(',')==='255,16,40'),
+assert(context.calls.some(x=>x.rgb.join(',')==='201,0,9'),
  'the fire skill still uses red fire light');
 
 // Layout: anchor actual portrait (not the whole reel) by its bottom wheel line.

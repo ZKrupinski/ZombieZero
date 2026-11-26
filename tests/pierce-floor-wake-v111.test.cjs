@@ -14,7 +14,7 @@ for(const len of [10,170,190])for(const r of [8,12]){
  assert(calls.every(a=>a[7]===true&&a[8]===undefined),'cached full outer and core');
  assert(calls.every(a=>a[5]===30&&a[6]===.82),'floor offset and full depth');
  assert(calls[0][4]>calls.at(-1)[4]&&calls.at(-1)[4]>0,'visible tail fade');
- assert(calls[0][3][2]===255&&calls[0][3][1]<calls.at(-1)[3][1],'deep blue toward ball, cyan at tail');
+ assert(calls[0][3][2]>calls[0][3][0]*5&&calls[0][3][1]<calls.at(-1)[3][1],'deep blue toward ball, cyan at tail');
  for(let i=1;i<calls.length;i++)assert(calls[i-1][0]-calls[i][0]<=11.01,'dense full spacing');
 }
 calls.length=0;env.fxEnabled=false;
