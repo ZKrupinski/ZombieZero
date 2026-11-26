@@ -72,7 +72,13 @@ class Canvas{
   const owner=this;
   return {
    drawImage(image){owner.pixels=new Uint8ClampedArray(image.pixels);},
-   getImageData(){return {data:new Uint8ClampedArray(owner.pixels)};},
+   getImageData(x,y,w,h){
+    if(w===1&&h===1){
+     const at=(y*owner.width+x)*4;
+     return {data:owner.pixels.slice(at,at+4)};
+    }
+    return {data:new Uint8ClampedArray(owner.pixels)};
+   },
    createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)};},
    putImageData(data){owner.pixels=new Uint8ClampedArray(data.data);}
   };
@@ -202,3 +208,33 @@ for(const name of ['slack-jaw','uneven-jaw']){
 }
 
 console.log('PASS v297: tooth sprites inside actual black mouth in all 24 front/side frames; red noses unchanged; alpha preserved');
+
+// Simulate mobile canvas eviction while the URL-backed source image survives.
+const resumeEvents=new EventTarget();
+sandbox.window.addEventListener=resumeEvents.addEventListener.bind(resumeEvents);
+sandbox.document.addEventListener=sandbox.window.addEventListener;
+sandbox.Image=class {
+ constructor(){Object.assign(this,img)}
+ set src(url){this.onload?.()}
+};
+vm.runInContext(walkCode,sandbox);
+const pack=sandbox.window.ZZGreenWalk;
+const actor={x:0,y:0,w:44,h:44,paletteVariant:2,expression:'heart-eyes',hairColor:'red'};
+function livingLayers(){
+ const layers=[];
+ pack.draw({save(){},restore(){},drawImage(sheet){layers.push(sheet)}},actor,0);
+ assert.equal(layers.length,2);
+ return layers;
+}
+const [body,hair]=livingLayers();
+const expectedBody=body.pixels.slice(),expectedHair=hair.pixels.slice();
+resumeEvents.dispatchEvent(new Event('focus'));
+assert.strictEqual(livingLayers()[0],body,'healthy sheets survive resume');
+for(const [layer,event] of [[0,'visibilitychange'],[1,'pageshow']]){
+ livingLayers()[layer].pixels.fill(0);
+ resumeEvents.dispatchEvent(new Event(event));
+ const restored=livingLayers();
+ assert.deepEqual(restored[0].pixels,expectedBody);
+ assert.deepEqual(restored[1].pixels,expectedHair);
+}
+console.log('PASS: foreground draw restores lost expression, palette and overlay pixels');
