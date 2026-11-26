@@ -4950,7 +4950,7 @@ function drawSlowProjectileEchoes(){
   }
  }finally{g.restore()}
 }
-function draw(){recordSlowEchoHistory();trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);const zoom=heroCameraZoom();if(zoom){g.translate(zoom.x,zoom.y);g.scale(zoom.scale,zoom.scale);g.translate(-zoom.x,-zoom.y)}background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
+function draw(){recordSlowEchoHistory();trailRenderFrame++;if((!fxRenderer||fxRenderer.height!==H)&&window.FXRenderer)fxRenderer=new window.FXRenderer(W,H);if(fxRenderer&&fxEnabled){fxRenderer.begin()}g.clearRect(0,0,W,H);g.save();drawStrikeSpring();const shakeOffset=cameraOffset();if(shakeOffset)g.translate(shakeOffset.x,shakeOffset.y);const zoom=heroCameraZoom();if(zoom){g.translate(zoom.x,zoom.y);g.scale(zoom.scale,zoom.scale);g.translate(-zoom.x,-zoom.y)}background();drawWorldGroundShadows();drawTrashContact('world');drawCrowd();drawDodgeGhosts();if(isFortress()||(typeof hasEndlessStructures==='function'&&hasEndlessStructures()))fortress?.draw(g,mode==='building'||mode==='paused'&&resumeMode==='building',fxEnabled?paint=>{paint(g);captureBloom(()=>paint(g))}:null);
  // Visible afterimage and impact line show actual displacement and chain hits.
  if(fxEnabled)for(const z of foes)if((z.knockTime||0)>0&&knockMotionProgress(z)>0){
   // A ghost streak must not be drawn straight through a barricade either.
@@ -5258,6 +5258,23 @@ function cameraOffset(){
  const power=screenShake.power*fade;
  const phase=screenShake.phase+(now-screenShake.started)*.1344;
  return {x:Math.sin(phase)*power*.92,y:Math.cos(phase*1.2)*power*.72};
+}
+// Stretch from the opposite screen edge so the vertical recoil keeps the
+// playfield covered. The second, smaller pulse starts as the strike zoom ends.
+function drawStrikeSpring(){
+ if(screenShake.zoom<=0||mode!=='playing')return;
+ const age=feedbackNow()-screenShake.zoomAt;
+ const release=age-screenShake.zoomDuration;
+ if(age<0||release>=260)return;
+ const serve=screenShake.zoomDuration===200;
+ const strength=serve?1:screenShake.zoomDuration===180?.88:.72;
+ const impact=age<90?Math.sin(Math.PI*age/90)**2:0;
+ const t=Math.max(0,release)/260;
+ const rebound=-Math.sin(t*Math.PI*3)*(1-t)**2;
+ const stretch=(impact*.027+rebound*(rebound<0?.068:.033))*strength;
+ if(!stretch)return;
+ if(stretch<0)g.translate(0,H*stretch);
+ g.scale(1,1+Math.abs(stretch));
 }
 // The zoom only transforms the world render. HUD, collision space and input
 // stay in their original coordinates. Bloom captures the same world matrix.
