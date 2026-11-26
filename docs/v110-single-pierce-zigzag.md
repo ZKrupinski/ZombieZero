@@ -1,5 +1,0 @@
-# v110: branchless piercing trail at every ball count
-
-The single-ball path still drew the costly layered electrical branches. All piercing trails now use one cyan stroke with alternating triangular teeth and no forks, secondary stroke or shadow blur. Every cached trajectory vertex is retained, including reversals, and both endpoints meet the physical history. Single piercing shots also use the existing lightweight ball arcs and single floor pool. Fire-only behavior and Big Zombie assets are unchanged.
-
-Validation: previous 89 test files pass; the new zigzag regression passes for two radii and straight/reversal trajectories, asserting one stroke, zero blur, alternating teeth, finite coordinates and exact endpoints. Single piercing now participates in compact-mode budget tests. Native Canvas effect-only single piercing benchmark: approximately 0.60 ms at v109 versus 0.19 ms at v110, excluding floor glow, game logic and device/browser GPU behavior. This does not establish phone FPS. Raster inspection covers fire, pierce and overlap.

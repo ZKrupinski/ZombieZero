@@ -1,154 +1,60 @@
-## 스킬 성장 시스템 v0.2 — 실제 게임 구현 (2026-11-20)
+# ZOMBIE ZERO — IP design guide original assets
 
-- **[ZOMBIE ZERO 성장 시스템 기준 기획서 · 설계 v0.1 → 구현 v0.2](docs/15-skill-growth-system-v0.1.md)** — **영구 성장 구현**: 기존 8종 스킬 지속시간, 시민 복귀·방어훈련·투척 크리티컬·바주카, Last Stand 거리/횟수, 중독 저항·해독·그로기와 추가 패시브. Z-CHIP 획득 및 구매, WEAPON/CITIZEN/SURVIVAL 성장 UI, 캠페인·무한 모드 공통 적용. 실제 구현 내용·기획 대비 차이·QA는 기획서 **13절**에 기록합니다. 초안 파일 경로는 기존 링크를 보존하기 위해 유지합니다.
+Source snapshot: 59d5d862871753e92c0aa7838419f929e467ef64
 
-## 좀비 전체 사망 / 크리티컬 사망 제작 로드맵 (2026-11-16)
+Original bytes preserved by Git blob SHA. Snapshot files are reference assets, not a new approval. Game runtime/main remains unchanged.
 
-- **[실제 10종 명단·팔레트 공유 분류·보스 포함 일반/크리티컬 제작 우선순위·검수 체크리스트](docs/12-death-animation-production-plan.md)** — 그린 v95 2시퀀스만 완료. 그 외 일반 7종 + 고유 보스 2종은 신규 18시퀀스 제작 예정입니다. 본 변경은 문서 기록용이며 실행 리소스는 바꾸지 않습니다.
+Guide: https://chatgpt.com/space/page_059f948dc0d48191824439ff7ea7a8ff
 
-
-## 화염 아이템 가시성 · 중복 드롭 제한 · 연쇄 넉백 (2026-11-14)
-
-- **화염 아이템이 지나치게 희귀해진 문제 개선:** 기존 조건부 2.5%에서 **일반 드롭 추첨의 12%**로 조정합니다. 스테이지 간격 최소 2, 마지막 출현 후 24초 제한, 최대 한 스테이지 1개. **3스테이지 연속으로 화염이 나오지 않으면 다음 적격 좀비 처치에서 1회 보장**해 게임에서 사실상 사라지지 않도록 했습니다. 화염 10초/전염 1단계/동시 화상 5마리/낮춘 화상 피해는 유지합니다.
-- **중복 아이템 정리:** 일반 적 드롭 기본 확률 **45% → 26%**, 한 스테이지에 일반 아이템 최대 4개, 게임 화면에는 최대 2개. 이미 진행 중인 스킬이나 화면에 떠 있는 같은 스킬 종류는 드롭하지 않고, 최근 등장한 2종도 가능하면 피합니다. 38×38 아이콘 간격 최소 48px, 아이템이 겹칠 경우 주변 위치로 분산합니다. **보스 보상은 우선**하며 화면이 가득 찼으면 오래된 미획득 아이템을 교체합니다.
-- **실제 밀침 피드백:** 일반 적이 피격되면 기존 최대 14px 대신 **26~34px** 전진 방향으로 넉백을 시도하고, 부딪힌 일반 적도 연쇄적으로 밀려납니다(최대 5개 연결 개체, 벽/보스/방어선은 통과 불가). 이동 가능한 연쇄 위치를 전부 계산한 뒤 한꺼번에 이동해 콜라이더가 겹치지 않습니다. 밀려난 자리에는 **0.2초 잔상**과 이웃 피격 반응을 추가합니다.
-- 대각선 돌진이 이미 다른 적이 있는 자리에 닿으면 실제 이동을 취소하고, 이동 이후 콜라이더 겹침이 감지되면 제한적으로 다시 분리합니다. 기존 9열 구성/개체별 하강 속도/크리티컬 사망/보스 HP 및 비트맵 스프라이트는 유지합니다.
-- 테스트: 화염 출현 확률 및 보장, 아이템 중복·수량/화면 겹침, 보스 보상, 벽/보스 밀림 차단, 연쇄 넉백·잔상·비중첩 및 50스테이지 회귀. PWA 캐시 `shell-v21-visible-loot-chain-knock`.
-
-## 기본 녹색 좀비의 비트맵 색상 베리에이션 (2026-11-14)
-
-- 기존 승인된 **녹색 좀비 1024×512 투명 PNG 8프레임 정면·좌하·우하·피격**을 사용합니다. 동작, 체형, 얼굴, 눈, 빨간 의상, 외곽선, 알파를 유지하면서 **녹색 피부/몸통 픽셀만** 저채도 다른 색으로 교체한 게임 내 캐시 시트를 만듭니다. 새로운 동작을 생성하거나 단순 전체 Hue Rotate로 눈·의상을 변색시키지 않습니다.
-- 5종: **기본 녹색(55%)**, 모스그린(18%), 씨글라스 민트(14%), 스모키 블루(9%), 더스티 라벤더(4%). 각 개체의 기존 시드로 고정되어 한 웨이브 동안 색이 바뀌지 않고, 크리티컬/일반 사망에서도 같은 색을 유지합니다.
-- `assets/ip/v2/green-palette.js`는 로딩 시 한 번씩 원본 비트맵을 기반으로 Canvas 알파 보존 재색상화를 수행합니다. `green-walk.js`와 `green-death-loader.js`가 동일 팔레트를 사용하므로 이동·피격·일반/크리티컬 사망 모두 같은 피부색입니다. 저사양/캔버스 접근 실패 시 원본 녹색으로 자동 대체합니다.
-- 기존 황/적/흑 브레인 큐브, 빨간 드럼통, 보스, HP, 확률형 한 방 크리티컬, 물리/게임 속도, 9열 대열 구성은 변경하지 않았습니다.
-- 같은 배포에 포함된 화염 아이템 하향: 10초, 드롭 2.5% 조건부/웨이브 1개/30초 쿨타임, 동시 화상 5마리, 전염 1차까지만, 지속 2.4초·1.05초마다 0.75HP, 빨간 드럼통 폭발 최대 3명 점화. 이펙트는 유지.
-- PWA `shell-v20-zombie-tones-controlled-fire`로 캐시를 갱신합니다.
-
-## 화염 아이템 빈도 및 전염 제한 (2026-11-14)
-
-- 화염 아이템이 일반 드롭 풀에서 지나치게 자주 등장하던 문제를 수정했습니다. 일반 좀비의 아이템 드롭 확률 45%는 유지하되, 드롭된 일반 아이템이 **화염볼로 바뀔 확률은 2.5%**로 낮췄습니다(일반 좀비 처치당 이론상 약 1.125%, 다른 자격 조건 미반영). **한 웨이브에서 최대 1개**, 드롭 사이 **30초 쿨타임**, 화염 효과 사용 중이거나 미수령 화염볼이 이미 존재하면 중복 드롭하지 않습니다. 보스의 확정 아이템 드롭은 유지합니다.
-- 화염볼 지속시간은 **14초에서 10초**로 줄였으며, 각 타격의 직접 점화는 **최대 2개 대상**으로 제한했습니다.
-- 전염은 한 발화원에서 주변 **52px 내 1개체로 딱 한 번만** 가능하고, 전염된 좀비는 다시 옮기지 못합니다(최대 전파 깊이 1). 동시에 불붙어 있을 수 있는 좀비도 **5마리로 제한**합니다. 이미 불붙은 좀비를 다시 때려도 화상 시간이 무한 연장되지 않습니다.
-- 화상 피해는 기존 약 **3초 동안 0.75초마다 HP 1**에서 **2.4초 동안 1.05초마다 HP 0.75**로 낮췄습니다(최대 약 1.5HP).
-- 빨간 드럼통은 계속 사망 시 폭발하며, 반경 86px 이내 **가까운 최대 3개체만 직접 점화**합니다. 기존 불꽃·ADD/Bloom 폭발 연출은 유지합니다. 이때도 동시 5마리 제한과 단일 1회 전염 제한을 똑같이 적용합니다.
-- 게임/드롭/드럼통/화상 50스테이지 회귀 테스트와 한도·중복 방지 전용 자동 테스트를 추가했습니다. PWA 캐시 `shell-v19-controlled-fire`.
-
-## 개체별 움직임 · 체력/크리티컬 · 피격 및 드럼통 폭발 개선 (2026-11-14)
-
-- 일반 녹색 좀비 체력: **초반 최소 3HP**, 20스테이지 이후 기본 +1, 38스테이지 이후 +1이며 등급에 따라 추가 +0~2. 기본 캐릭터는 일반 공을 최소 세 번 맞아야 죽습니다. 특수 좀비는 종류별 기본 체력 +2~4(등급 추가 체력 포함)로 녹색보다 강하지만 보스처럼 수십 HP를 가지지는 않습니다. 기존 보스 HP 규칙 유지.
-- **크리티컬:** 온전한 체력의 일반 좀비를 공격할 때 녹색 **11%**, 특수 **6.5%**의 확률로 즉시 처치합니다. **한 타격만으로 잡은 확률 크리티컬에서만** 크리티컬 사망 애니메이션을 사용합니다. 이미 피격된 좀비·지속 화상·일반 과잉 피해·보스에는 크리티컬 사망을 적용하지 않습니다. 노멀 사망은 그대로 유지.
-- 개체별 하강 속도를 고유 시드 기반 **약 0.8~1.23배**로 다양화하고, 개별 박동 ±14%를 추가해 줄 단위로 모두 같은 속도로 내려오지 않게 했습니다. 스테이지별 평균 난이도/보스 배율/슬로우 스킬은 유지합니다.
-- 대각선 돌출은 대열 일부가 비기 시작한 이후(최소 3마리 사망, 생존율 86% 이하) **0.8~1.5초마다 최대 82% 확률로 판정**합니다. 밀도에 따라 1~3마리가 서로 다른 줄에서 나서며, 좌/우 **1~2열** 이동과 가속(0.30~0.72초), 전진(22~64px), 개체별 쿨다운(약 1.5~3.7초)을 다양하게 사용합니다. 실제 이동 방향일 때만 좌하/우하 스프라이트를 사용합니다. 빈 칸·보스 회피·방어선 안전거리 조건 유지.
-- 피격 시 **밝은 중앙 섬광 + 4방향 빛줄기**를 별도 FX 소스로 렌더링하여 기존 ADD/Bloom 셰이더에 합성합니다. 좀비 자체의 피격 밝기는 2.1배, 피격 이펙트 0.22초(크리티컬 0.32초), 흔들림 4.7(보스 6, 크리티컬 7.5), 짧은 진동을 적용합니다. 주변과 충돌하지 않는 경우 탄착 방향으로 최대 약 14px 넉백합니다.
-- 빨간 드럼통 사망 폭발은 **0.58초의 불꽃 외곽 + 뜨거운 중심 섬광 + 확산 충격파 + 불꽃 파편**으로 크게 강화했습니다. 불이 붙은 개체에는 윤곽 광채와 몸통을 타고 오르는 불꽃을 상시 표시해 화염 전이가 보이도록 했습니다. 기존 반경 86px 화염 전이/DoT 규칙은 유지합니다.
-- 스테이지별 바닥은 이전의 밝은 회색 대신, FX/좀비 실루엣이 돋보이는 **중간 명도의 저채도 회청·회갈·회녹**으로 어둡게 조정했습니다. 완전한 검정 바닥으로 돌아가지는 않습니다.
-- 자동 테스트: HP 및 크리티컬 분리, 특수 유형 내구도, 조건부 넉백, 불꽃/피격 렌더링, 대각선 개수/거리/안전성, 기존 50스테이지/보스/아이템 회귀 검증. PWA 캐시 `shell-v18-dynamic-impact`.
-
-## 녹색 대열 중심의 스테이지 등장 순서 · 드럼통 화염 폭발 (2026-11-14)
-
-- 모든 스테이지에서 **기본 녹색 좀비가 일반 적의 58% 이상**을 차지하도록 구성했습니다. 9열 대열·기존 보스 3스테이지 간격·개체별 걷기 애니메이션·대각선 돌출 AI는 유지합니다.
-- **노란 브레인 큐브 → 빨간 브레인 큐브 → 검정 브레인 큐브** 등장 순서로 합류합니다. 노랑: 4·8·15스테이지에서 1→2→3마리, 빨강: 9·16·23스테이지에서 1→2→3마리, 검정: 16·25·35스테이지에서 1→2→3마리로 늘어납니다. 그 수를 초과해 한 스테이지에 무작위 다수가 등장하지 않습니다.
-- **빨간 드럼통 좀비**는 6스테이지부터 1마리, 18스테이지부터 최대 2마리로만 등장합니다. 맨 앞줄보다는 후열에서 출현하고, 둘이 한 자리에 붙지 않도록 초기 배치를 제한했습니다. 검정 드럼통(32스테이지), 포장 박스(24), 나무 상자(28)는 각각 최대 1마리의 소규모 특별 출현으로 기존 리소스를 유지합니다.
-- 폴더블 등 플레이필드가 짧아 적이 18~31마리만 배치되는 경우에는 희귀형을 42% 이하로 제한하고 녹색 대다수를 우선 보장합니다. 보스는 희귀형 수량에서 제외합니다.
-- **빨간 드럼통 사망 시** 폭발 반경 86 게임 좌표 안에 있는 좀비에게 즉시 **3초 화상**을 부여합니다. 기존 화상 규칙(0.75초마다 피해 1, 인접 적에게 0.8초마다 화염 전이)을 그대로 사용하며, 화상으로 드럼통이 죽어도 폭발합니다. 직접 폭발 피해를 덧씌우지는 않아 공·기존 난이도에 영향을 최소화합니다. 플레이어 및 시민은 폭발 화염 대상으로 하지 않습니다.
-- 주황빛 확산 링·불꽃 파편, 폭발 사운드와 가벼운 진동을 추가했습니다. 단발 폭발은 0.46초 내로 끝나고 게임 일시정지 중에는 정지합니다.
-- 레어 적 등장 마리 수는 웨이브별로 고정하고, 등장 위치만 섞습니다. 새 테스트로 단계별 정확한 출현 수, 녹색 우세, 화상 전이·폭발 지속시간·다른 좀비 오폭발 방지를 검사합니다.
-- 설치형 PWA 캐시는 `shell-v17-green-horde-fire-barrel`입니다.
-
-## 좀비 정면 큐브 비율 미세 보정 (2026-11-14)
-
-- **그린 기본좀비:** 정면 걷기 8프레임의 실제 그림 폭을 약 7% 넓혀 세로로 길어 보이던 실루엣을 조정했습니다.
-- **브레인 큐브 3종:** 빨강 +4.5%, 검정 +6.5%, 노랑 +6%로 정면 폭을 조정해 좌하·우하 모션의 체형과 차이를 줄였습니다.
-- **빅 좀비:** 128px 기본 소스와 256px 고해상도 소스 모두 정면 폭 +3.5%. 고해상도 이미지의 선명도와 기존 화면상 높이·발 피벗을 유지합니다.
-- 원본을 다른 그림체로 다시 그리지 않았습니다. 정면 8프레임만 비트맵 가로 비율을 조절하고, 나머지 좌하/우하·피격·일반 사망·크리티컬 프레임은 모두 원본 RGBA 픽셀 그대로 유지했습니다.
-- `sprite-geometry.js` 및 `boss-geometry.js`에서 수정된 정면 알파 영역만 다시 맞췄습니다. 게임의 실제 충돌 크기, 이동 속도, 6.4fps 애니메이션, 대각선 돌진 AI와 다른 5종 좀비는 변경하지 않았습니다.
-- 설치형 PWA 새 리소스 버전: `shell-v16-front-cube-width`.
-
-## 보스 고해상도 원화 · 저채도 바닥 (2026-11-14)
-
-- 빅 좀비·쓰레기통 보스 2종의 기존 게임용 **128×128 프레임**을, 원본 6열×5행 **229×229 원화 30프레임**에서 직접 다시 추출했습니다. 8열×4행, **256×256 셀 / 2048×1024 PNG**로 정리했으며 주변 배경 노이즈 알파를 제거했습니다. 단순 2배 보간 확대가 아니라 더 큰 원본 이미지 픽셀을 사용합니다.
-- `assets/ip/v2/big_zombie_hd.png`, `trash_can_hd.png`를 우선 로드합니다. 두 보스가 게임 안에서 차지하는 크기·발 위치·충돌 박스·이동 애니메이션 fps는 기존과 동일합니다. HD 로딩에 실패하면 자동으로 기존 128px 원본으로 렌더링합니다.
-- `assets/ip/v2/boss-geometry.js`의 256px 알파 영역을 이미지 크기에 따라 적용합니다. 일반/피격/사망/크리티컬·검수창 모두 고해상도 프레임을 사용합니다.
-- 바닥은 3가지 스테이지 팔레트를 **밝고 저채도의 중성 회녹·회갈·회청**으로 바꾸고, 타일/균열/중앙 차선/잔광의 대비를 낮췄습니다. 좀비 자체의 색과 이펙트 색은 건드리지 않습니다.
-- 로딩·알파·프레임 비율·피벗·기존 128px 자동 대체·배경 명도/채도 테스트를 추가했습니다. PWA 캐시는 `shell-v15-boss-hd-muted-floor`입니다.
-
-## 좀비 걷기 애니메이션 완급 조절 (2026-11-14)
-- 기존 약 **9fps**에서 정면/좌하/우하 이동 8프레임을 **평균 6.4fps**로 낮췄습니다(한 주기 약 1.25초).
-- 각 좀비에 이미 저장돼 있던 고유 seed를 활용해 프레임 시작 시점을 0~7프레임만큼 어긋나게 하고 재생 속도는 개체마다 약 **±8%** 차이를 줍니다. 같은 캐릭터가 한꺼번에 똑같이 발을 움직이지 않습니다.
-- 애니메이션 재생속도만 변경하며 **실제 전진 속도, 공격/피격/사망, 대각선 돌출 AI와 물리 충돌**은 변경하지 않습니다.
-- 좀비 10종 검수창도 실제 게임과 동일한 이동 재생 속도를 사용합니다. PWA 캐시 `shell-v14-staggered-walk`.
-
-## 희소 대열 돌출 AI · 발밑 표시 제거 (2026-11-13)
-- **기본은 모든 좀비가 정면으로 하강**합니다. 기존의 반복 좌우 흔들림과 실제 이동 없이 좌하/우하를 남발하던 동작을 제거했습니다.
-- **조건부 돌출**: 같은 웨이브의 일반 좀비가 최소 6마리 죽고 생존 비율이 **60% 이하**가 됐을 때만, 2.3~3.4초마다 한 차례 발동을 판정합니다(발동 확률 약 55%). 죽은 좀비로 생긴 인접 빈 열이 있어야 이동하며, 이동 방향과 스프라이트 방향이 일치합니다.
-- 돌출은 빈 열 하나(가로 **약 46.4 논리 px**)를 향해 **0.42~0.56초** 빠르게 대각선 전진하며, 그 사이 세로 28~38px를 더 이동합니다. 끝나면 다시 정면 하강하고 개체별 **4초** 쿨타임을 적용합니다.
-- 대부분 **한 마리**만 움직이고, 밀도가 극단적으로 낮아진 경우(생존 비율 35% 이하) 낮은 확률로 **서로 다른 줄의 두 마리**까지 동시에 허용합니다. 보스, 대열 맨 윗줄, 피격 중인 좀비, 방어선 110px 이내는 제외합니다.
-- 최후의 저항으로 좀비가 뒤로 밀릴 때 돌출을 즉시 취소해 불합리하게 다시 돌진하지 않도록 했습니다. 기존 9열 밀집배치·전체화면·50스테이지·충돌·공 반사 규칙은 유지합니다.
-- **모든 일반 좀비의 발밑 미니 게이지/등급 점 표시를 제거**했습니다. 보스의 머리 위 HP 바는 전투 정보로 유지합니다.
-- 설치형 PWA 캐시 버전: `shell-v13-sparse-breakout`.
-
-## 전체 폭 게임 화면 · 하단 버튼 제거 (2026-11-13)
-- 스마트폰과 펼친 폴더블의 **세로·정사각형 화면에서 캔버스가 실제 화면 너비와 높이를 모두 사용**합니다. 이전에는 높이/너비가 1.3 미만인 폴더블에서 게임판이 좁게 표시됐습니다.
-- 게임 밖 하단의 음악·효과·전체화면·도움말·설치·공유·조작 안내·스테이지 배너를 제거하고, 기능 버튼은 상단 **☰ 옵션** 내부로 이동합니다. 필요한 하트·스킬 정보만 게임 화면 위에 겹쳐 표시합니다.
-- 키보드와 터치 조작, 스테이지·보스·좀비 9열 밀집 대형은 그대로 사용합니다. 세로 월드 높이를 화면 비율대로 조정하므로 캐릭터가 가로로 늘어나지 않습니다. 정사각형처럼 짧은 화면에서는 방어선 뒤에 적이 나타나지 않게 줄 수를 조정합니다.
-- **가로로 긴 브라우저 창**에서는 기존 세로형 게임 규칙을 유지하기 위해 게임판의 원본 비율을 보존한 상태로 최대 높이에 맞춥니다. 밖으로 나온 하단 버튼은 동일하게 표시하지 않습니다. 가로형 플레이필드 전체를 사용하는 완전한 가로 게임 모드는 별도 설계 대상입니다.
-- 캐시 버전 `shell-v12-full-width-game`로 갱신되어 이전 설치 버전의 화면 제한이 사라집니다.
-
-## 가로폭 완전 밀착 · 스프라이트 크기 보정 (2026-11-13)
-- 9열의 실제 충돌 좌표를 **x=23~394, 열 간격 46.375**로 조정하여 원작 좀비 몸체가 도로 좌우 끝(x≈20~430)을 채우도록 했습니다.
-- 그린 좀비는 **화면상 높이 약 66 논리 px**로, 나머지 일반 적은 원본 형태를 살리며 최대 66px 높이·56px 폭으로 균일 배율을 적용했습니다. 스프라이트를 세로/가로로 각각 늘려 찌그러뜨리지 않습니다.
-- 전후 줄 간격을 **58px**로 줄이고, 같은 열·앞뒤 줄의 전진 제한 여유를 10px로 조정했습니다. 보스 자리와 공 충돌·50스테이지 밸런스는 유지합니다.
-- 세로 전체화면 UI 및 설정 메뉴는 앞선 배포 그대로 유지합니다. PWA 캐시 버전은 `shell-v11-edge-packed`입니다.
-
-# ZOMBIE ZERO · 좀비 제로
-
-아케이드 공 반사로 사물 좀비를 막는 모바일·PC 웹 게임. 플레이 영역은 450×710이고 50스테이지 이후 무한 모드가 제공됩니다.
-
-## 실행 · 미리보기
-- 공개 플레이: https://zkrupinski.github.io/ZombieZero/
-- 게임 안에서 원작 좀비 애니메이션 10종 미리보기: https://zkrupinski.github.io/ZombieZero/?demo=cast
-- 기존 그린 좀비 사망 모션 검수: https://zkrupinski.github.io/ZombieZero/?demo=death
-- 로컬: `python3 -m http.server 8000 --directory dist` → http://localhost:8000
-- 자동 테스트: `node tools/test.cjs`
-
-## 좀비 진형 가로 밀집 적용 (2026-11-13)
-
-- 게임의 논리적 450px 도로에 **9열(기존 7열)**로 좀비를 배치해 좌우를 빈 공간 없이 가득 채웁니다. 첫 적 충돌 영역 X=34, 마지막 적 X=386(너비 33)이며 원작 128px 소스를 균일한 비율로 표시합니다.
-- 열 간격은 **44px(기존 55px)**. 큐브 캐릭터의 눈·형태를 유지하면서 가로로 다닥다닥 보이게 배치합니다.
-- 스테이지별 행 수를 3~4행으로 조정하여 9열 도입 후에도 후반 스테이지의 적 총수와 난이도가 기존 7열 구성에서 크게 늘지 않도록 했습니다. 1스테이지 27마리(기존 21), 4스테이지 36마리(기존 35).
-- 보스 스테이지는 중앙 3열(앞쪽 2행)만 비우고 좌우는 9열 폭을 유지합니다. 적 행번호를 관리해 같은 행 이웃끼리는 충돌 회피 때문에 전진이 멈추지 않게 했습니다.
-- 대각선 보행은 유지하되 한 열에서 흔들리는 폭을 최대 ±4px로 제한해 충돌 영역이 겹치지 않도록 했습니다.
-- 플레이 영역, UI, 스프라이트 리소스 해상도, 점수·공 반사·스킬·50스테이지/무한 모드 규칙은 유지합니다.
-
-## 세로 전체화면 · 밀착 크롭 (2026-11-13)
-
-- 휴대폰 **세로 플레이 화면 100% 활용**: 좌우 450 논리 단위를 유지하면서 기기 화면비에 따라 월드 세로 길이를 확장합니다. 캐릭터와 공의 가로/세로 비율을 억지로 늘리지 않습니다.
-- 화면 상단에는 작은 점수·스테이지·일시정지·옵션 버튼만 반투명하게 겹쳐 표시합니다. 하단 목숨·스킬 표시도 플레이 화면 위에 겹칩니다.
-- 전체화면·음악·효과·설치·공유·도움말·스프라이트 검수는 **☰ 옵션**으로 이동합니다. PC와 가로 방향에서는 기존 UI 구도를 유지합니다.
-- 자동차·라켓·방어선·시민·실드·아이템 수집·볼 아웃 판정은 확장된 화면 높이와 함께 이동합니다. 50스테이지/무한 모드의 규칙 자체는 변경하지 않습니다.
-- **10종 전부 128px 소스의 실제 캐릭터 알파영역 기준으로 크롭**: 방향별 공통 바운딩 박스를 사용해 프레임 깜빡임/흔들림을 줄이고, 검수창에서는 화면을 가득 쓰되 머리·발은 절대 잘리지 않게 표시합니다.
-- 앱 내부 브라우저의 주소창·시스템바는 웹 페이지에서 강제 숨길 수 없습니다. 가능한 경우 게임의 `⛶ 전체화면` 또는 홈 화면 설치(PWA)를 사용하면 더 넓게 볼 수 있습니다.
-
-## 원작 아트 복원 현황 (2026-11-13)
-- 사물 좀비 10종: **그린 좀비도 128px 원본 정면·좌하·우하 8프레임**, 나머지 9종도 128px 투명 PNG 아틀라스로 실제 게임 렌더러에 연결.
-- 신규 9종은 각 128×128 프레임 30장(총 **270프레임**). 기본 하강/좌하/우하 각 8프레임, 피격 2, 일반 사망 2, 크리티컬 사망 2.
-- 8개 일반 적 외형과 2개 보스 외형(빅 좀비 / 쓰레기통 좀비)에 매핑. 고유색을 체력 색으로 덮지 않고 등급은 작은 별도 표시 사용.
-- 기본 그린 좀비를 포함한 일반 적들이 작은 폭(대략 ±3~4px)의 실제 횡이동과 함께 좌하/우하 8프레임을 재생. 충돌 및 체력 계산은 기존 시스템 유지.
-- 강한 공격으로 죽을 때 캐릭터별 크리티컬 키프레임을 사용. 그린 좀비는 기존 8프레임 일반 사망 / 10프레임 작은 뇌 '뿅' 크리티컬 사망을 유지.
-- 프레임 주변 색상 노이즈 및 발밑 그림자 제거, 브라우저 이미지 로드 실패 시 Canvas 폴백 유지.
-- **비율 교정(2026-11-13):** 기존 코드는 정사각형 128px 프레임을 가로 41px × 세로 58px 사각형으로 찌그러뜨렸습니다. 이제 모든 10종은 원본 가로·세로 같은 배율로 렌더링하며, 128px 기준 발 피벗 (64,120)을 캐릭터 충돌 박스의 발 기준에 정렬합니다. 일반 적 시각 높이는 약 52px, 빅 좀비 약 98px, 쓰레기통 보스 약 92px로 보정합니다. 원작 스프라이트의 개별 입체 형태/색상은 유지하고 충돌 판정은 그대로입니다.
-- 생존자 3인과 기존 아이소메트릭 원본은 도감 레퍼런스용으로 보존. 3인의 실제 플레이 신규 애니메이션은 향후 별도 작업입니다.
-
-## 주요 파일
-- `dist/game.js` 게임 로직/적 렌더링.
-- `dist/assets/ip/v2/*.png` 10종 원작풍 이동·피격·사망 시트(프레임당 128×128).
-- `dist/assets/ip/v2/object-zombies.js`, `green-walk.js` 실제 이동·피격 로더와 방향별 프레임 재생.
-- `dist/assets/ip/v2/cast-demo.js` 게임 내 캐릭터 검수 화면.
-- `dist/assets/ip/green-death.png`, `green-death-loader.js` 승인된 그린 좀비 사망 연출.
-- `dist/sw.js` 오프라인 PWA 캐시.
-- `docs/11-original-object-zombies-2026.md` 아트 스펙/프레임 매핑/제약.
-
-## 품질 검수와 IP
-자동 테스트는 리소스 파일 무결성, 프레임 매핑, 기존 전투·스테이지 진행을 검사합니다. 실제 모바일 환경에서 FPS/가독성 최종 QA가 별도로 필요합니다.
-
-ZOMBIE ZERO 2026 원작 자료는 NOVALIGHT / Artist Andante 크레딧을 포함합니다. 상업적 배포/라이선싱 범위는 별도 확인해야 합니다.
+| Source path | Archive image | Blob SHA | Bytes |
+|---|---|---|---:|
+| `dist/assets/ip/deaths-v307/trash_bag-death.webp` | [trash_bag-death.webp](originals/ip/deaths-v307/trash_bag-death.webp) | `96f3391c58677c398f915c7897473909a14163f9` | 82202 |
+| `dist/assets/ip/deaths-v307/volume_bag-death.webp` | [volume_bag-death.webp](originals/ip/deaths-v307/volume_bag-death.webp) | `d908f8d0711603cb64ee00565086cc1fbb83be20` | 73522 |
+| `dist/assets/ip/deaths-v307/water_bottle-death.webp` | [water_bottle-death.webp](originals/ip/deaths-v307/water_bottle-death.webp) | `7720c8fa6fd33117ae4830598d282c1374c513bd` | 81400 |
+| `dist/assets/ip/hero-attack-v55.png` | [hero-attack-v55.png](originals/ip/hero-attack-v55.png) | `a26d0ab8564c1787e27357d3d9f47598802eba21` | 1048593 |
+| `dist/assets/ip/hero-ball-baseball-v58.png` | [hero-ball-baseball-v58.png](originals/ip/hero-ball-baseball-v58.png) | `3a044867789ba071768d38b636f9978bf34e967e` | 1818683 |
+| `dist/assets/ip/hero-ball-tennis-v58.png` | [hero-ball-tennis-v58.png](originals/ip/hero-ball-tennis-v58.png) | `60b46fce12e409f54d4e66f070a7152cf80b87dd` | 1515399 |
+| `dist/assets/ip/hero-ball-toy-v58.png` | [hero-ball-toy-v58.png](originals/ip/hero-ball-toy-v58.png) | `2a47b38846375779c112abd818c68c528d2b4b00` | 1261383 |
+| `dist/assets/ip/hero-idle-v55.png` | [hero-idle-v55.png](originals/ip/hero-idle-v55.png) | `1db86a444827c805d4ed68704cf8ce240f963f47` | 994920 |
+| `dist/assets/ip/scarlet-attack-v280.webp` | [scarlet-attack-v280.webp](originals/ip/scarlet-attack-v280.webp) | `b23cb626a08edd74c1ad327692a32813719004fe` | 345216 |
+| `dist/assets/ip/scarlet-diamond-v275.webp` | [scarlet-diamond-v275.webp](originals/ip/scarlet-diamond-v275.webp) | `d18d0461d40604a7ed848be5782ef12b2548600c` | 29468 |
+| `dist/assets/ip/scarlet-idle-v278.webp` | [scarlet-idle-v278.webp](originals/ip/scarlet-idle-v278.webp) | `6886c25f14a4b430139d414f7bd11df4e7afd046` | 107978 |
+| `dist/assets/ip/v2/big_zombie.png` | [big_zombie.png](originals/ip/v2/big_zombie.png) | `95d7761c8dcc737f6d01af1751ddc0d704f39f32` | 182523 |
+| `dist/assets/ip/v2/big_zombie_hd.png` | [big_zombie_hd.png](originals/ip/v2/big_zombie_hd.png) | `5e6ebe4b72de3db15c6d4cfed6a2a36da3fa6c90` | 1110186 |
+| `dist/assets/ip/v2/black_barrel.png` | [black_barrel.png](originals/ip/v2/black_barrel.png) | `7a39a794f248ea1330c4c4afaf410f1c190528f4` | 29412 |
+| `dist/assets/ip/v2/black_brain_cube.png` | [black_brain_cube.png](originals/ip/v2/black_brain_cube.png) | `c099ed733288280f819d4b8afca1aa642fcb6b3c` | 98405 |
+| `dist/assets/ip/v2/bosses/large_trash-right-v147.webp` | [large_trash-right-v147.webp](originals/ip/v2/bosses/large_trash-right-v147.webp) | `6d9642319adb098f9c91d64eb4b94923f748f609` | 118550 |
+| `dist/assets/ip/v2/bosses/large_trash-v146.png` | [large_trash-v146.png](originals/ip/v2/bosses/large_trash-v146.png) | `27301399cacd644777fc4135a82bf800f2ea26a3` | 2677045 |
+| `dist/assets/ip/v2/bosses/water_jug-right-v147.webp` | [water_jug-right-v147.webp](originals/ip/v2/bosses/water_jug-right-v147.webp) | `ea42adec4c7172420442628722114798c912a870` | 106888 |
+| `dist/assets/ip/v2/bosses/water_jug-v146.png` | [water_jug-v146.png](originals/ip/v2/bosses/water_jug-v146.png) | `13df498fddaa2c6821b6283eec48fc5cd8e7d1da` | 2038731 |
+| `dist/assets/ip/v2/cardboard_box.png` | [cardboard_box.png](originals/ip/v2/cardboard_box.png) | `20ae0126ec20196f32b1827c99a7be376ceb7344` | 50429 |
+| `dist/assets/ip/v2/elites/trash-bag-v145.png` | [trash-bag-v145.png](originals/ip/v2/elites/trash-bag-v145.png) | `f10a7eb15f41b3e8f325747ba4fd952d881a5386` | 1537571 |
+| `dist/assets/ip/v2/elites/volume-bag-v145.png` | [volume-bag-v145.png](originals/ip/v2/elites/volume-bag-v145.png) | `9424f489c180bba872f723b581e5866ccf4ba1b5` | 1693436 |
+| `dist/assets/ip/v2/elites/water-bottle-v145.png` | [water-bottle-v145.png](originals/ip/v2/elites/water-bottle-v145.png) | `fd28244b4b9123a38914d2337a9c5bd1c8b5bcae` | 1529756 |
+| `dist/assets/ip/v2/green_zombie-blond.webp` | [green_zombie-blond.webp](originals/ip/v2/green_zombie-blond.webp) | `1a14e5f49a5fa851d85a5bf933800759efcb882b` | 55366 |
+| `dist/assets/ip/v2/green_zombie-chestnut.webp` | [green_zombie-chestnut.webp](originals/ip/v2/green_zombie-chestnut.webp) | `c27e49de472ba128f35e1abf8f9473b8f83265db` | 57440 |
+| `dist/assets/ip/v2/green_zombie-half-lid.webp` | [green_zombie-half-lid.webp](originals/ip/v2/green_zombie-half-lid.webp) | `57c756124277e3ffcbca3a4f9221ce229591451b` | 359386 |
+| `dist/assets/ip/v2/green_zombie-raised-brow.webp` | [green_zombie-raised-brow.webp](originals/ip/v2/green_zombie-raised-brow.webp) | `001ef4a40b5cd423851a337e69b45ac0c6e6aa3c` | 366920 |
+| `dist/assets/ip/v2/green_zombie-red.webp` | [green_zombie-red.webp](originals/ip/v2/green_zombie-red.webp) | `edfd2d76edb8a891d841442f9434635eb0fccab2` | 55504 |
+| `dist/assets/ip/v2/green_zombie.png` | [green_zombie.png](originals/ip/v2/green_zombie.png) | `7d3628f634dacbd332a625fe420a2213a1a7fdfe` | 454980 |
+| `dist/assets/ip/v2/red_barrel.png` | [red_barrel.png](originals/ip/v2/red_barrel.png) | `c8064ce2def5d55c0c4fd838dde18a0efc0bd820` | 36447 |
+| `dist/assets/ip/v2/red_brain_cube.png` | [red_brain_cube.png](originals/ip/v2/red_brain_cube.png) | `fa0dd751d0d152638c9ccd85a4a29a8eeb2c92eb` | 149847 |
+| `dist/assets/ip/v2/trash_can.png` | [trash_can.png](originals/ip/v2/trash_can.png) | `7240f854815010622712be9a513e6c3a90280b00` | 49733 |
+| `dist/assets/ip/v2/trash_can_hd.png` | [trash_can_hd.png](originals/ip/v2/trash_can_hd.png) | `dae83d36e74bc56c58b5e8947e41e564a668dc8d` | 1049283 |
+| `dist/assets/ip/v2/wooden_crate.png` | [wooden_crate.png](originals/ip/v2/wooden_crate.png) | `2559e112160657a90923febdd20a4793c4911787` | 51723 |
+| `dist/assets/ip/v2/yellow_brain_cube.png` | [yellow_brain_cube.png](originals/ip/v2/yellow_brain_cube.png) | `efee49be059eef4b45709f1480b1fb3574cd73e2` | 181967 |
+| `dist/assets/ip/wrench-idle-v264.webp` | [wrench-idle-v264.webp](originals/ip/wrench-idle-v264.webp) | `6f79f6913dd49fc102a80ea04dc1033174c3a1ee` | 101336 |
+| `dist/assets/ip/wrench-steel-ball-v265.webp` | [wrench-steel-ball-v265.webp](originals/ip/wrench-steel-ball-v265.webp) | `c55d04d73c28770db6bcd12d23b2c60626c4322f` | 4576 |
+| `dist/assets/ip/wrench-swing-v306.webp` | [wrench-swing-v306.webp](originals/ip/wrench-swing-v306.webp) | `c45fcf8492bf6d830fc1646e6eee71a4a2860d57` | 337878 |
+| `dist/assets/stages/comics/stage-01.jpg` | [stage-01.jpg](originals/stages/comics/stage-01.jpg) | `5443b6fa5f05cfa95cb5c97711ab27b6e738986c` | 335465 |
+| `dist/assets/stages/comics/stage-02.jpg` | [stage-02.jpg](originals/stages/comics/stage-02.jpg) | `f6a1ba5e42fef694548e447fb721a376d951730f` | 355774 |
+| `dist/assets/stages/comics/stage-03.jpg` | [stage-03.jpg](originals/stages/comics/stage-03.jpg) | `9a7ee0c4737ff3f469df8471ddf87cf34f1d8bcc` | 317205 |
+| `dist/assets/stages/comics/stage-04.jpg` | [stage-04.jpg](originals/stages/comics/stage-04.jpg) | `5bf21883264d6434d53318b63b58bc8f55157342` | 310915 |
+| `dist/assets/stages/comics/stage-05.jpg` | [stage-05.jpg](originals/stages/comics/stage-05.jpg) | `2e27c97ba69b0e8ae20f803a81385f0767262110` | 320384 |
+| `dist/assets/stages/comics/stage-06.jpg` | [stage-06.jpg](originals/stages/comics/stage-06.jpg) | `be013e63a40850de2dd65d531b39b76bc09c109d` | 332483 |
+| `dist/assets/stages/comics/stage-07.jpg` | [stage-07.jpg](originals/stages/comics/stage-07.jpg) | `60e9822d3e0a8454019824fe1201aec3dc99baaa` | 325400 |
+| `dist/assets/stages/comics/stage-08.jpg` | [stage-08.jpg](originals/stages/comics/stage-08.jpg) | `1285927eadfeb1f3fb2841fc37c3f5dcc9cd8374` | 322671 |
+| `dist/assets/stages/comics/stage-09.jpg` | [stage-09.jpg](originals/stages/comics/stage-09.jpg) | `45cf3f97d2a64e8b2c3d70d25c38bdff5fd1c01a` | 342147 |
+| `dist/assets/stages/comics/stage-10.png` | [stage-10.png](originals/stages/comics/stage-10.png) | `689d0363ca66c76142b8fb7c6450441f303c5e6d` | 2520878 |
+| `dist/assets/stages/comics/stage-11.png` | [stage-11.png](originals/stages/comics/stage-11.png) | `5516116ff987a986eb5dcb70574c88b1a17bea7d` | 2561012 |
+| `dist/assets/stages/comics/stage-12.jpg` | [stage-12.jpg](originals/stages/comics/stage-12.jpg) | `41e73fb1f8e920860df0ca492a5c3524e8301b3a` | 336402 |
