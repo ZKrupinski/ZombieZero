@@ -2402,12 +2402,8 @@ function beginClear(){
  effect(225,340,'#edfc8d',130);
  $('toast').style.opacity=0;hud();$('status').textContent='';
 }
-// BARRICADE HORDE returns to a frozen construction view after each clear.
-// FX timers do not tick in "building", so discard every transient queue at
-// the boundary instead of leaving final hits, corpses and fireworks on screen.
-// Existing barricade blocks and construction materials live in ZZFortress and
-// must NOT be reset here.
-function clearFortressStageVisuals(){
+// Clear transient battle and celebration effects when the arena changes.
+function clearStageVisuals(){
  particles=[];ballVanish=[];criticalPopups=[];itemPickupFX=[];fx=[];
  enemyDeaths=[];enemyPieces=[];barrelBlasts=[];hitFlashes=[];
  ballContactFX=[];trashContactFX.length=0;
@@ -2474,12 +2470,11 @@ function advanceStage(){
  resetCitizenSpeech();
  if(runMode==='endless'){beginEndlessShift();return}
  if(runMode!=='endless'&&wave===50){finishCampaign();return}
+ clearStageVisuals();
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  mode='playing';clearTime=0;clearSkills();rack();resetBalls();crowdTimer=3.5;
  if(isFortress()&&fortress){
-  // A new planning phase must not inherit the previous battle's frozen FX.
-  clearFortressStageVisuals();
   fortress.begin(foes,wave);mode='building';
  }
  toast(isFortress()?'방벽 보강 · STAGE '+wave:isBossWave()?'WARNING':'STAGE '+String(wave).padStart(2,'0')+' · '+stageRosterLabel(combatStage()));
@@ -2490,6 +2485,7 @@ function advanceStage(){
 function refillEndlessWave(){
  if(runMode!=='endless'||mode!=='endlessShift'||endlessShiftSpawned!==true)return;
  resetCitizenSpeech();
+ clearStageVisuals();
  wave++;setStageBackground();
  if((wave-1)%5===0)lives=Math.min(maxHeroLives(),lives+1);
  rack();

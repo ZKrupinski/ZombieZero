@@ -6,7 +6,7 @@ const html=fs.readFileSync('dist/index.html','utf8');
 const sw=fs.readFileSync('dist/sw.js','utf8');
 // The builder freezes the combat update loop, so queues must be erased
 // before mode='building', rather than relying on natural FX expiration.
-const anchor='function clearFortressStageVisuals(){';
+const anchor='function clearStageVisuals(){';
 const a=game.indexOf(anchor),b=game.indexOf('\nfunction advanceStage(){',a);
 assert(a>0&&b>a,'intermission cleanup helper exists');
 const helper=game.slice(a,b);
@@ -22,7 +22,7 @@ const state=new Function(`
  const citizens=[{shooting:3},{shooting:2}];
  const fortressWalls={count:5},fortressStock=17;
  ${helper}
- clearFortressStageVisuals();
+ clearStageVisuals();
  return {
   queues:[particles,ballVanish,criticalPopups,itemPickupFX,fx,
    enemyDeaths,enemyPieces,barrelBlasts,hitFlashes,ballContactFX,trashContactFX,
@@ -41,9 +41,9 @@ assert.deepEqual(state.fortressWalls,{count:5},'existing barricades persist');
 assert.equal(state.fortressStock,17,'barricade materials remain untouched');
 const advance=game.slice(game.indexOf('function advanceStage(){'),
  game.indexOf('// Switch the background',game.indexOf('function advanceStage(){')));
-assert(advance.indexOf('clearFortressStageVisuals()')>advance.indexOf('rack()'));
-assert(advance.indexOf('clearFortressStageVisuals()')<advance.indexOf('fortress.begin(foes,wave)'));
-assert(advance.includes("if(isFortress()&&fortress){"),'only barricade mode receives special cleanup');
+assert(advance.indexOf('clearStageVisuals()')>=0 && advance.indexOf('clearStageVisuals()')<advance.indexOf('wave++;'));
+assert(advance.indexOf('clearStageVisuals()')<advance.indexOf('fortress.begin(foes,wave)'));
+assert(advance.includes("if(isFortress()&&fortress){"),'barricade mode still prepares construction');
 assert(mod.includes('MAX_HP=30'),'walls have 2.5x the original 12 HP');
 const ids=['fortress-builder','fortress-actions','fortress-confirm','fortress-cancel',
  'fortress-ready','fortress-stock','fortress-tip','fortress-build-count',

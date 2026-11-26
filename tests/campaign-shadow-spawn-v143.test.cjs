@@ -7,6 +7,7 @@ class AudioMock{constructor(){this.currentTime=0;this.sampleRate=44100;this.dest
 const window={AudioContext:AudioMock,addEventListener:noop,shadowOps:[],spriteOps:[]};
 const sandbox={navigator:{},document:{getElementById:el,addEventListener:noop},window,localStorage:{getItem:()=>null,setItem:noop},Path2D:class{},requestAnimationFrame:noop,setTimeout:()=>0,clearTimeout:noop,Math:Object.create(Math),console};
 vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync('dist/fortress-mode.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('dist/game.js','utf8'),sandbox);
 const run=code=>vm.runInContext(code,sandbox);
 run("drawHardGroundShadow=function(...args){window.shadowOps.push(args)};zombie=function(z){window.spriteOps.push(z)}");
@@ -33,6 +34,13 @@ assertCampaignStage(2,false);
 run("mode='clearing';advanceStage()");
 assert.equal(run('wave'),3);
 assertCampaignStage(3,true);
+for(const mode of ['campaign','mini','fortress','endless']){
+ run("start("+JSON.stringify(mode)+")");
+ run("particles.push({t:.5});fx.push({t:0,life:1});enemyDeaths.push({t:0});hitFlashes.push({t:0});ballContactFX.push({t:0});cameraKick=4");
+ if(mode==='endless')run("mode='endlessShift';endlessShiftSpawned=true;refillEndlessWave()");
+ else run("mode='clearing';advanceStage()");
+ assert.equal(run('particles.length+fx.length+enemyDeaths.length+hitFlashes.length+ballContactFX.length+cameraKick'),0,mode+' starts with a clean arena');
+}
 run("start('endless');mode='endlessShift';endlessShiftSpawned=true;refillEndlessWave()");
 assert.equal(run("foes.some(z=>Number.isFinite(z.arrivalTime))"),true,'endless alone uses delayed fade');
 window.shadowOps.length=0;
