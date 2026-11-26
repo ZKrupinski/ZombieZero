@@ -27,12 +27,9 @@ assert(render.includes('drawHeroStrikePresentation();')&&
  'car shadow uses measured wheel contact before body render');
 assert(render.includes('fxRenderer.composite(g);drawEffectLightSpills()'),
  'smooth light spill renders after sprite/effect composite, below the HUD');
-assert(render.includes('drawPierceTrailLightning(b,r,trailPath)'),
- 'jagged cyan electricity follows path');
-assert(render.includes('drawPierceBallLightning(b,r,false);\n  drawHeroBallSprite'),
- 'rear arcs behind unchanged ball bitmap');
-assert(render.includes('drawPierceBallLightning(b,r,true)'),
- 'foreground arcs wrap over unchanged ball bitmap');
+assert(render.includes('drawSimpleSkillTrailAccent(b,r,trailPath)'),'simplified electricity follows path');
+assert(!render.includes('drawPierceBallLightning('),'no ball lightning ornament');
+assert(render.includes('drawHeroBallSprite(b,r,palette.main)'),'ball bitmap remains');
 assert(code.includes('drawHardGroundShadow(p.x,p.y+21'),
  'citizen shadows retain foot anchors');
 assert(code.includes('drawHardGroundShadow(item.x+2,item.y+FALLING_ITEM_SIZE*.48'),

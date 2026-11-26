@@ -6,11 +6,10 @@ const src=fs.readFileSync('dist/game.js','utf8');
 const html=fs.readFileSync('dist/index.html','utf8'),sw=fs.readFileSync('dist/sw.js','utf8');
 assert(html.includes('game.js?v=93-multiball-light-cache'),'game script cache version');
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'offline cache version');
-assert(src.includes('drawBurningBallFlames(b,r,false);\n  drawPierceBallLightning(b,r,false);\n  drawHeroBallSprite(b,r,palette.main);'),
- 'rear fire layer is underneath unchanged physical ball');
-assert(src.includes('drawBallStatusForeground(b,r);\n  drawBurningBallFlames(b,r,true);\n  drawPierceBallLightning(b,r,true);'),
- 'fire highlights are above physical ball');
-assert(src.includes('drawBurningTrailFlames(b,r,trailPath);'),'fire follows sampled trailing centerline');
+const live=src.slice(src.indexOf('function draw(){'),src.indexOf('function frame('));
+assert(live.includes('drawHeroBallSprite(b,r,palette.main);'),'physical bitmap retained');
+assert(!live.includes('drawBurningBallFlames(')&&!live.includes('drawBallStatusForeground('),'no ball vector decorations');
+assert(live.includes('drawSimpleSkillTrailAccent(b,r,trailPath);'),'fire uses one interior stroke');
 
 const noop=()=>{},elements={},drawCount={flame:0,fill:0,arc:0};
 const ctx=new Proxy({createRadialGradient:()=>({addColorStop:noop})},{

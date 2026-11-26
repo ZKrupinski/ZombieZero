@@ -17,16 +17,14 @@ for(const skills of [['fire'],['pierce'],['power'],['power','fire'],['power','pi
   env.balls=Array.from({length:count},()=>env.b);env.perfTier=tier;ops=[];
   g.globalAlpha=1;g.shadowBlur=0;ops=[];
   vm.runInContext(`
-   drawBallSkillTrail(b,12,path);drawBurningTrailFlames(b,12,path);drawPierceTrailLightning(b,12,path);
-   drawBallStateAura(b,12);drawBurningBallFlames(b,12,false);drawPierceBallLightning(b,12,false);
-   drawBallStatusForeground(b,12);drawBurningBallFlames(b,12,true);drawPierceBallLightning(b,12,true);
+   drawBallSkillTrail(b,12,path);drawSimpleSkillTrailAccent(b,12,path);
    drawTrailGroundReflections(b,12,path);`,env);
   const serial=JSON.stringify(ops);
   if(reference===null)reference=serial;else assert.equal(serial,reference,skills+' must retain exact full detail');
   const floors=ops.filter(x=>x[0]==='floor');
   assert.equal(floors.length,Math.ceil((env.path.at(-1).s-4)/16)+1);assert(floors.every(a=>a[9]===undefined),'full core layer retained');
-  if(skills.includes('fire'))assert(ops.some(x=>x[0]==='bezierCurveTo'),'full fire tongues retained');
-  if(skills.includes('pierce'))assert(ops.some(x=>x[0]==='strokeStyle'&&x[1]==='#45c8ff'),'outer electric glow retained');
+  assert(!ops.some(x=>['bezierCurveTo','quadraticCurveTo','arc'].includes(x[0])),'no vector ornaments');
+  assert.equal(ops.filter(x=>x[0]==='stroke').length,skills.includes('fire')||skills.includes('pierce')?2:1,'ribbon plus at most one interior stroke');
  }
 }
 console.log('PASS v400: 84 skill/count/load combinations preserve identical paint operations and complete floor wake.');

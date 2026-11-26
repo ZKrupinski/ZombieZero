@@ -13,8 +13,7 @@ assert(html.includes('fx-renderer.js?v=91-texture-sub-upload'),
 assert(code.includes('luminous(()=>drawTrailEdgeHalo(b,r,trailPath),\n    ()=>drawTrailEdgeHalo(b,r,trailPath,.72))'),
  'main render calls original trail draw and softer FX-only capture');
 assert(code.includes('drawEffectLightSpills()'),'existing floor reflection pass retained');
-assert(code.includes('drawPierceTrailLightning(b,r,trailPath)'),'electric trail retained');
-assert(code.includes('drawBurningTrailFlames(b,r,trailPath)'),'fire trail retained');
+assert(code.includes('drawSimpleSkillTrailAccent(b,r,trailPath)'),'single interior elemental accent retained');
 assert(shader.includes('bloom:1,radius:12'),'global bloom and radius unchanged');
 function part(a,b){
  const start=code.indexOf(a),end=code.indexOf(b,start+a.length);

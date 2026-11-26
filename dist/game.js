@@ -505,9 +505,6 @@ function trailFlameStamp(color){
   if(typeof document==='undefined'||typeof document.createElement!=='function')return;
   const rgb=TRAIL_WARM_COLORS[trailWarmIndex++];
   const stamp=trailLightStamp(rgb);
-  const hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
-  const flame=SKILL_TRAIL_RAMPS.some(ramp=>ramp?.stops.includes(hex))?trailFlameStamp(hex):null;
-  if(flame&&g?.drawImage){g.save();g.globalAlpha=0;g.drawImage(flame,0,0,1,1);g.restore()}
   // Touch the texture on the live canvas at zero opacity, before action.
   if(stamp&&g?.drawImage){g.save();g.globalAlpha=0;g.drawImage(stamp,0,0,1,1);g.restore()}
  }
@@ -4368,31 +4365,36 @@ function drawBallSkillTrail(b,r,path=buildBallTrailPath(b,r)){
  const fire=has('fire'),pierce=has('pierce'),power=has('power');
  if(!fire&&!pierce&&!power)return;
  drawElementalTrailBody(b,r,path,fire,pierce);
- if(fire||pierce)return;
- const colors=activeTrailRamp().stops;
- const len=path[path.length-1].s,step=r>8?8.5:7.5;
- g.save();g.globalCompositeOperation='lighter';g.lineCap='round';g.shadowBlur=0;
- // Short overlapping sparks occur every 7.5–8.5px. The
- // continuous core beneath them remains exactly the original trail length.
- for(let d=3,i=0;d<len-1;d+=step,i++){
-  const p=sampleBallTrail(path,d),next=sampleBallTrail(path,Math.min(len,d+step+2));
-  if(!p||!next)continue;
-  const dx=next.x-p.x,dy=next.y-p.y,mag=Math.hypot(dx,dy)||1;
-  const nx=-dy/mag,ny=dx/mag;
-  const fade=1-.78*d/Math.max(1,len);
-  const u=Math.max(0,(d/len-.25)/.75),taper=1-.88*u*u*(3-2*u);
-  const width=Math.min(2.3,Math.max(1,r*.14))*taper;
-  g.strokeStyle=colors[i%3];g.lineWidth=width;g.globalAlpha=.36*.8*fade;
-  g.beginPath();g.moveTo(p.x,p.y);g.lineTo(next.x,next.y);g.stroke();
-  if(i%3===0){
-   const lateral=r*.72*taper,chip=Math.max(.8,width*.48/taper)*taper;
-   for(const side of [-1,1]){
-    g.fillStyle=colors[(i+1+(side>0?1:0))%3];g.globalAlpha=.32*.8*fade*(step/(r>8?6.5:5.5));
-    g.beginPath();g.arc(p.x+nx*side*lateral,p.y+ny*side*lateral,chip,0,Math.PI*2);g.fill();
-   }
-  }
+}
+// V411: at most ONE interior stroke, no detached ornaments. Fire is a
+// fine warm centerline; pierce is a subdued, widely spaced zigzag.
+// The ribbon/Bloom pass and physical ball tint remain unchanged.
+function drawSimpleSkillTrailAccent(b,r,path){
+ if(!fxEnabled||!path||path.length<2)return;
+ const fire=has('fire'),pierce=has('pierce');
+ if(!fire&&!pierce)return;
+ const n=path.length-1,len=path[n].s;if(len<5)return;
+ const head=path[0],tail=path[n],color=pierce?'#d9fdff':'#ffe19a';
+ g.save();g.globalCompositeOperation='lighter';g.shadowBlur=0;
+ g.lineCap='round';g.lineJoin='round';
+ g.lineWidth=Math.max(.65,r*(pierce?.115:.09));g.globalAlpha=pierce?.68:.44;
+ const distance=Math.hypot(head.x-tail.x,head.y-tail.y);
+ const grad=distance>Math.min(24,len*.33)&&g.createLinearGradient?.(tail.x,tail.y,head.x,head.y);
+ if(grad&&typeof grad.addColorStop==='function'){
+  grad.addColorStop(0,color+'00');grad.addColorStop(.25,color+'45');grad.addColorStop(.60,color+'cc');grad.addColorStop(1,color+'ff');
  }
- g.restore();
+ g.strokeStyle=grad||color;
+ g.beginPath();g.moveTo(head.x,head.y);
+ for(let i=1;i<=n;i++){
+  const p=path[i];
+  if(!pierce||i===n){g.lineTo(p.x,p.y);continue}
+  const a=path[i-1],z=path[i+1],dx=z.x-a.x,dy=z.y-a.y,mag=Math.hypot(dx,dy)||1;
+  const u=Math.max(0,(p.s/len-.25)/.75),taper=1-.88*u*u*(3-2*u);
+  const wave=1-4*Math.abs((p.s/36)%1-.5);
+  const side=wave*r*.22*taper*Math.min(1,p.s/12,(len-p.s)/12);
+  g.lineTo(p.x-dy/mag*side,p.y+dx/mag*side);
+ }
+ g.stroke();g.restore();
 }
 // V83: fire is a living secondary layer, never a replacement for the ball bitmap.
 // v101: scope-limited multi-ball fast mode. Ordinary 1/2 ball effects keep
@@ -4822,15 +4824,8 @@ drawKillCombo();drawBarrelBlasts();
   }
   // Capture only the single continuous ribbon, not all fire ornaments.
   if(elementalTrail&&trailPath.length>=2)captureBloom(()=>drawElementalTrailBody(b,r,trailPath,has('fire'),has('pierce'),.46));
-  drawBurningTrailFlames(b,r,trailPath);
-  drawPierceTrailLightning(b,r,trailPath);
-  drawBallStateAura(b,r);
-  drawBurningBallFlames(b,r,false);
-  drawPierceBallLightning(b,r,false);
+  if(elementalTrail)drawSimpleSkillTrailAccent(b,r,trailPath);
   drawHeroBallSprite(b,r,palette.main);
-  drawBallStatusForeground(b,r);
-  drawBurningBallFlames(b,r,true);
-  drawPierceBallLightning(b,r,true);
  }
  drawBallVanish();
   if(particles.length)luminous(()=>{

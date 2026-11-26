@@ -24,9 +24,8 @@ assert(render.includes('luminous(()=>drawTrailEdgeHalo(b,r,trailPath),')&&
  render.includes('()=>drawTrailEdgeHalo(b,r,trailPath,.72)'),
  'same soft halo is captured into existing FX-only bloom at reduced strength');
 assert(render.includes('drawBallSkillTrail(b,r,trailPath)')&&
- render.includes('drawBurningTrailFlames(b,r,trailPath)')&&
- render.includes('drawPierceTrailLightning(b,r,trailPath)'),
- 'existing skill layers are retained');
+ render.includes('drawSimpleSkillTrailAccent(b,r,trailPath)'),
+ 'single interior accent replaces the old skill ornaments');
 assert(!skills.includes('d+=r>8?13:11'),'legacy 11/13px dotted skill spacing removed');
 assert(!flame.includes('Math.min(path[path.length-1].s,170)'),
  'flame effect does not stop before original powered trail');

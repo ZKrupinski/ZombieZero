@@ -7,7 +7,8 @@ assert(html.includes('game.js?v=93-multiball-light-cache'),'current gameplay ass
 assert(sw.includes('zombie-zero-shell-v93-multiball-light-cache'),'PWA cache refreshes skill art');
 assert(code.includes("carAtBirth:car,event:text?"),'support dialogue anchors at creation');
 assert(code.includes('const q={citizen:p,x,y,w,carAtBirth:car}')&&code.includes('bubbles.push({...chosen,t:0,life:1.6,text:said})'),'staggered everyday cheering still anchors the car at creation');
-assert(code.includes("drawBallStatusForeground(b,r);"),'status highlights actually render after bitmap');
+const live=code.slice(code.indexOf('function draw(){'),code.indexOf('function frame('));
+assert(!live.includes('drawBallStatusForeground(b,r);')&&live.includes('drawHeroBallSprite(b,r,palette.main)'),'bitmap tint replaces vector foreground');
 const take=(start,end)=>{
  const i=code.indexOf(start),j=code.indexOf(end,i+start.length);
  assert(i>=0&&j>i,'missing code section '+start);
@@ -54,5 +55,5 @@ for(const [skills,minDraws,tag] of [[['pierce'],4,'blue'],[['fire'],14,'fire'],[
  if(tag==='power')assert(count.stroke>3,'power has orbital gold bands');
  assert(drawState.shadowBlur===0,'FX remain soft-edged but contain no oversized particle bloom');
 }
-assert(code.includes('const lateral=r*.72'),'skill trail chips are visible on either side of the beam');
+assert(!code.includes('const lateral=r*.72'),'side chips removed');
 console.log('PASS: stable speech anchored at creation, 16px bounded pointer; bold piercing/fire/power ball auras and larger trail pixels');

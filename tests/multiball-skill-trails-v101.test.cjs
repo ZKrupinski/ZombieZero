@@ -12,12 +12,12 @@ assert(!draw.includes('multiSkillFastRender='),'no adaptive loss of artwork');
 assert(draw.includes('if(!elementalTrail){\n   drawHeroBallTrail(b,r,trailPath);'),
  'elemental body replaces duplicate base consistently');
 assert(draw.includes('drawBallSkillTrail(b,r,trailPath)'));
-assert(draw.includes('drawBurningTrailFlames(b,r,trailPath)'));
-assert(draw.includes('drawPierceTrailLightning(b,r,trailPath)'));
+assert(draw.includes('drawSimpleSkillTrailAccent(b,r,trailPath)'));
+assert(!draw.includes('drawBurningTrailFlames(b,r,trailPath)'));
 assert(draw.includes('drawHeroBallSprite(b,r,palette.main)'),'ball sprite still painted');
-assert(draw.includes('drawBallStatusForeground(b,r)'),'surface state still readable');
+assert(!draw.includes('drawBallStatusForeground(b,r)'),'no vector foreground ornament');
 assert(draw.includes('drawTrailEdgeHalo(b,r,trailPath,.72)'),'unchanged 1/2-ball halo');
-assert(src.includes('if(i%3===0)'),'skill sparks keep full density');
+assert(!section('function drawBallSkillTrail(','// V83:').includes('g.arc('),'no power-ball chips');
 assert(src.includes("if(drawCore)drawSoftLightSpill"),'multi-ball omits duplicate floor core');
 const path=Array.from({length:35},(_,i)=>({x:300-i*5,y:140,s:i*5}));
 const gStats={strokes:0,fills:0,arcs:0,blurs:0,images:0};
