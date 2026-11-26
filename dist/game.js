@@ -5048,7 +5048,7 @@ const PLAYER_HAPTIC_KINDS=new Set([
  'serve','racket','car','poisonBlock','blocked','groggy','groggyRecover'
 ]);
 // V415: compact real-time camera impulse. No queued or extended shakes.
-const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,zoom:0,zoomAt:-Infinity,focusX:225,focusY:584};
+const screenShake={power:0,started:0,until:0,phase:0,critical:false,hero:false,zoom:0,zoomAt:-Infinity,zoomDuration:100,focusX:225,focusY:584};
 const feedbackNow=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
 const CAMERA_REST_MS=45;
 const CAMERA_AMPLITUDE_SCALE=1.15;
@@ -5059,11 +5059,11 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
  // a short zoom toward the hero. Rapid multiball contacts do not accumulate.
  if(heroStrike){
   if(screenShake.hero&&screenShake.until>0&&now<screenShake.until+CAMERA_REST_MS)return;
-  // V421: a serve uses a wider shake but a much shallower camera cut.
+  // V423: serve and return have independent zoom ranges and recovery times.
   screenShake.power=serveStrike?12:9.5;screenShake.started=now;screenShake.until=now+100;
   screenShake.phase=(screenShake.phase+1.41)%6.283;
   screenShake.hero=true;screenShake.critical=false;
-  screenShake.zoom=serveStrike?.04+Math.random()*.02:.10+Math.random()*.06;screenShake.zoomAt=now;
+  screenShake.zoom=serveStrike?.10+Math.random()*.04:.04+Math.random()*.02;screenShake.zoomAt=now;screenShake.zoomDuration=serveStrike?200:100;
   screenShake.focusX=typeof car==='number'?Math.max(45,Math.min(405,car)):225;
   screenShake.focusY=typeof PY==='number'?PY+15:599;
   cameraKick=screenShake.power;lastCameraFeedback=now;return;
@@ -5104,10 +5104,10 @@ function cameraOffset(){
 function heroCameraZoom(){
  if(screenShake.zoom<=0||screenShake.until<=0||(typeof mode!=='undefined'&&mode!=='playing'))return null;
  const age=feedbackNow()-screenShake.zoomAt;
- if(age<0||age>=260)return null;
+ if(age<0||age>=screenShake.zoomDuration)return null;
  // Hard cut to the close shot on frame zero, then ease back smoothly.
  // Independent of the shorter shake, so subsequent enemy hits never cut it off.
- const u=age/260,t=1-u*u*(3-2*u);
+ const u=age/screenShake.zoomDuration,t=1-u*u*(3-2*u);
  return {scale:1+screenShake.zoom*t,x:screenShake.focusX,y:screenShake.focusY};
 }
 // Keep lightweight counters so players can verify that zombie hits reach
