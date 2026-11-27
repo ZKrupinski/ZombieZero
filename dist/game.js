@@ -163,7 +163,7 @@ function queueContact(queue,x,y,nx,ny,kind,target,sizeMultiplier=1){
  // V459: seed visual-only motion once per contact, including pooled entries.
  const serial=++contactMotionSerial,seed=Math.sin(serial*78.233+x*12.9898+y*37.719)*43758.5453;
  const random=seed-Math.floor(seed),phase=random*Math.PI*2;
- Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,angle:(random-.5)*.28,phase,
+ Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,angle:(random-.5)*.64,phase,exitAngle:(random<.5?1:-1)*(.36+.18*Math.abs(random-.5)*2),
   variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:queue===trashContactFX?.42:kind==='enemy'?.30:kind==='ceiling'?.25:.27});queue.push(entry);
 }
 function contactFace(b,z,r,ox,oy){
@@ -188,54 +188,47 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null,captureOnly=false
  const cell=hdReady?384:64;
  for(const f of queue){
   if(target!==null&&f.target!==target)continue;
+  if(f.t>=f.life)continue;
   const img=hdReady?contactAtlasHD:atlasReady?contactAtlasImage:contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
-  const u=Math.max(0,Math.min(1,f.t/f.life));
-  // Hold the bitmap at full strength for several frames before a soft fade.
-  // V119 faded from the first tick, making a nominal 0.16s hit nearly invisible.
-  const trash=queue===trashContactFX,hold=trash?.4:.28;
-  const fade=u<=hold?1:Math.pow(Math.max(0,(1-u)/(1-hold)),.86);
-  if(fade<=0)continue;
-  // V459: short damped local shake and a small per-burst tilt, independent
-  // of travel direction. Identical transforms in the visible and bloom passes.
-  const shakeTime=Math.min(1,Math.max(0,f.t/.115));
-  const damping=(1-shakeTime)*(1-shakeTime);
+  const trash=queue===trashContactFX;
   const motionScale=trash?(f.kind==='ground'?.68:.2175)*f.sizeMultiplier:f.sizeMultiplier;
+  // V460: hard-cut pop, visible alternating local shake and stepped exit.
+  // Full alpha throughout the main hold; no entrance or exit alpha curve.
+  const exit=f.t>=f.life-.050;
+  const tick=Math.floor(Math.max(0,f.t)/.033);
+  const damping=exit?0:Math.max(0,1-f.t/.165);
+  const sign=tick%2===0?1:-1;
   const phase=f.phase||0,tilt=f.angle||0;
-  const dx=2.8*motionScale*damping*Math.sin(f.t*112+phase);
-  const dy=2.1*motionScale*damping*Math.cos(f.t*137+phase);
+  const amplitude=Math.max(2.4,6.5*motionScale);
+  const dx=sign*amplitude*damping*(Math.cos(phase)>=0?1:-1);
+  const dy=sign*amplitude*.70*damping*(Math.sin(phase)>=0?1:-1);
+  const angle=tilt+(exit?(f.exitAngle||.42):sign*.19*damping);
+  const frame=contactAtlasIndex(f),sx=(frame%4)*cell,sy=Math.floor(frame/4)*cell;
+  const w=(f.kind==='enemy'?75:f.kind==='ceiling'?67:72)*1.02;
+  const fallbackScale=(f.kind==='enemy'?1.44:f.kind==='ceiling'?1.34:1.40);
   g.save();g.translate(f.x+dx,f.y+dy);
-  g.rotate(tilt+Math.sin(f.t*93+phase)*.042*damping);
-  if(trash){
-   const impactScale=f.kind==='ground'?.68:.2175;
-   const size=impactScale*f.sizeMultiplier;
-   g.scale(size,size);
-  }else if(f.sizeMultiplier!==1){
-   // Player-ball sparks shrink only in Mini Horde; citizen shots are never
-   // part of ballContactFX and keep their original bitmap dimensions.
-   g.scale(f.sizeMultiplier,f.sizeMultiplier);
+  g.scale(motionScale,motionScale);
+  g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+  // The brief trailing silhouette is a fixed-alpha previous-angle stamp,
+  // not a fade. The last pose snaps to 64% at a distinctly different angle.
+  if(exit&&!captureOnly){
+   g.save();g.rotate(tilt);g.scale(.83,.83);
+   g.globalCompositeOperation='source-over';g.globalAlpha=.23*bloom;
+   if(atlasReady)g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);
+   else {g.scale(fallbackScale,fallbackScale);g.drawImage(img,-22,-32,64,64);}
+   g.restore();
   }
-  g.globalCompositeOperation=captureOnly?'lighter':trash&&u<.18?'lighter':'source-over';
-  const baseAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
-  g.globalAlpha=baseAlpha;
-  // Restrained ADD overlay, with the dark ink retained in the base pass.
-  const addAlpha=fxEnabled&&!captureOnly?fade*(.06+.08*damping):0;
-  if(atlasReady){
-   const frame=contactAtlasIndex(f);
-   // 40-50% more screen coverage than V119; centered on the trail bend.
-   const base=f.kind==='enemy'?75:f.kind==='ceiling'?67:72;
-   const scale=1.02-.10*u;
-   const w=base*scale;
-   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-   const sx=(frame%4)*cell,sy=Math.floor(frame/4)*cell;
-   g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);
-   if(addAlpha>0){g.globalCompositeOperation='lighter';g.globalAlpha=addAlpha;g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);}
-  }else{
-   // Retain the previous procedural art if the asset is still loading.
-   const size=f.kind==='enemy'?1.44:f.kind==='ceiling'?1.34:1.40;
-   g.scale(size*(.97+.07*u),size*(.97+.07*u));
-   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-   g.drawImage(img,-22,-32,64,64);
-   if(addAlpha>0){g.globalCompositeOperation='lighter';g.globalAlpha=addAlpha;g.drawImage(img,-22,-32,64,64);}
+  g.rotate(angle);
+  if(exit)g.scale(.64,.64);
+  if(!atlasReady)g.scale(fallbackScale,fallbackScale);
+  g.globalCompositeOperation=captureOnly?'lighter':'source-over';
+  g.globalAlpha=bloom;
+  if(atlasReady)g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);
+  else g.drawImage(img,-22,-32,64,64);
+  if(fxEnabled&&!captureOnly){
+   g.globalCompositeOperation='lighter';g.globalAlpha=.09;
+   if(atlasReady)g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);
+   else g.drawImage(img,-22,-32,64,64);
   }
   g.restore();
  }
