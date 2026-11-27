@@ -163,7 +163,7 @@ function queueContact(queue,x,y,nx,ny,kind,target,sizeMultiplier=1){
  // V459: seed visual-only motion once per contact, including pooled entries.
  const serial=++contactMotionSerial,seed=Math.sin(serial*78.233+x*12.9898+y*37.719)*43758.5453;
  const random=seed-Math.floor(seed),phase=random*Math.PI*2;
- Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,angle:(random-.5)*.64,phase,exitAngle:(random<.5?1:-1)*(.36+.18*Math.abs(random-.5)*2),
+ Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,angle:(random-.5)*Math.PI/3,phase,exitAngle:(random<.5?1:-1)*(.28+.12*Math.abs(random-.5)*2),
   variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:queue===trashContactFX?.42:kind==='enemy'?.30:kind==='ceiling'?.25:.27});queue.push(entry);
 }
 function contactFace(b,z,r,ox,oy){
@@ -192,17 +192,17 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null,captureOnly=false
   const img=hdReady?contactAtlasHD:atlasReady?contactAtlasImage:contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
   const trash=queue===trashContactFX;
   const motionScale=trash?(f.kind==='ground'?.68:.2175)*f.sizeMultiplier:f.sizeMultiplier;
-  // V460: hard-cut pop, visible alternating local shake and stepped exit.
+  // V462: stronger local hit shake, hard-cut full-opacity hold and stepped exit.
   // Full alpha throughout the main hold; no entrance or exit alpha curve.
-  const exit=f.t>=f.life-.050;
+  const exit=f.t>=f.life-.034;
   const tick=Math.floor(Math.max(0,f.t)/.033);
   const damping=exit?0:Math.max(0,1-f.t/.165);
   const sign=tick%2===0?1:-1;
   const phase=f.phase||0,tilt=f.angle||0;
-  const amplitude=Math.max(2.4,6.5*motionScale);
+  const amplitude=Math.min(12,Math.max(3,12*motionScale))/Math.hypot(1,.70);
   const dx=sign*amplitude*damping*(Math.cos(phase)>=0?1:-1);
   const dy=sign*amplitude*.70*damping*(Math.sin(phase)>=0?1:-1);
-  const angle=tilt+(exit?(f.exitAngle||.42):sign*.19*damping);
+  const angle=tilt+(exit?(f.exitAngle||.42):sign*(Math.PI/9)*damping);
   const frame=contactAtlasIndex(f),sx=(frame%4)*cell,sy=Math.floor(frame/4)*cell;
   const w=(f.kind==='enemy'?75:f.kind==='ceiling'?67:72)*1.02;
   const fallbackScale=(f.kind==='enemy'?1.44:f.kind==='ceiling'?1.34:1.40);
@@ -210,7 +210,7 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null,captureOnly=false
   g.scale(motionScale,motionScale);
   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
   // The brief trailing silhouette is a fixed-alpha previous-angle stamp,
-  // not a fade. The last pose snaps to 64% at a distinctly different angle.
+  // not a fade. The last pose snaps to 60% at a distinctly different angle.
   if(exit&&!captureOnly){
    g.save();g.rotate(tilt);g.scale(.83,.83);
    g.globalCompositeOperation='source-over';g.globalAlpha=.23*bloom;
@@ -219,14 +219,14 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null,captureOnly=false
    g.restore();
   }
   g.rotate(angle);
-  if(exit)g.scale(.64,.64);
+  if(exit)g.scale(.60,.60);
   if(!atlasReady)g.scale(fallbackScale,fallbackScale);
   g.globalCompositeOperation=captureOnly?'lighter':'source-over';
   g.globalAlpha=bloom;
   if(atlasReady)g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);
   else g.drawImage(img,-22,-32,64,64);
   if(fxEnabled&&!captureOnly){
-   g.globalCompositeOperation='lighter';g.globalAlpha=.09;
+   g.globalCompositeOperation='lighter';g.globalAlpha=.15;
    if(atlasReady)g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);
    else g.drawImage(img,-22,-32,64,64);
   }
@@ -5106,7 +5106,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.22,ballContactFX,null,true));if(trashContactFX.length)captureBloom(()=>drawContactFX(.18,trashContactFX,null,true));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.32,ballContactFX,null,true));if(trashContactFX.length)captureBloom(()=>drawContactFX(.26,trashContactFX,null,true));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  drawStageIntro();
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}

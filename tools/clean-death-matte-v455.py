@@ -238,11 +238,11 @@ def bump_green_cache():
     index=Path("dist/index.html")
     data=index.read_text()
     data=re.sub(r'(green-death-loader\.js\?v=[^"]+)',r'\1-v458-specks',data)
-    data=re.sub(r'(game\.js\?v=[^"]+)',r'\1-v460-contact-snap',data,count=1)
+    data=re.sub(r'(game\.js\?v=[^"]+)',r'\1-v462-contact-punch',data,count=1)
     index.write_text(data)
     sw=Path("dist/sw.js")
     data=sw.read_text()
-    data=re.sub(r"(const CACHE='[^']+)(')",r"\1-v458-specks-v460-contact-snap\2",data,count=1)
+    data=re.sub(r"(const CACHE='[^']+)(')",r"\1-v458-specks-v462-contact-punch\2",data,count=1)
     sw.write_text(data)
 
 def verify():

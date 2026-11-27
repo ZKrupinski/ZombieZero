@@ -18,13 +18,13 @@ assert.deepEqual(Array.from(vm.runInContext('contactFace(b,z,8,125,68)',env)),[1
 vm.runInContext("spawnContact(b,100,100,-1,0,'enemy')",env);
 vm.runInContext("spawnContact(b,100,100,-1,0,'enemy')",env);
 assert.equal(vm.runInContext('ballContactFX.length',env),1,'repeat hits are throttled per ball');
-vm.runInContext('drawContactFX(1);drawContactFX(.22,ballContactFX,null,true)',env);
+vm.runInContext('drawContactFX(1);drawContactFX(.32,ballContactFX,null,true)',env);
 assert.equal(created.length,1,'same transparent sprite is generated only once');
 assert.equal(created[0].width,256);assert.equal(created[0].height,256);
 assert.equal(drawn.length,3,'base, restrained ADD and bloom share a single cached bitmap');
 assert(drawn.every(a=>a[0]===drawn[0][0]),'all passes share the identical bitmap');
 assert.equal(angles.length,2,'base and bloom use the same local tilt');
-assert.equal(angles[0],angles[1]);assert(Math.abs(angles[0])<=.51);
+assert.equal(angles[0],angles[1]);assert(Math.abs(angles[0])<=Math.PI*5/18+1e-9);
 assert(scales.every(([x,y])=>x===y&&(x===1||(x>=1.25&&x<1.55))),'fallback retains size and proportions');
 const stampCode=src.slice(src.indexOf('function contactStamp('),src.indexOf('function spawnContact('));
 assert(stampCode.includes('const spike=()=>'),'jagged starburst is a single closed comic silhouette');
@@ -43,7 +43,7 @@ assert(src.includes("spawnContact(b,b.x,b.y,1,0,'wall')"),'left wall collision f
 assert(src.includes("spawnContact(b,b.x,b.y,-1,0,'wall')"),'right wall collision feeds FX');
 assert(src.includes("spawnContact(b,b.x,b.y,0,1,'ceiling')"),'ceiling uses vertical face');
 assert(src.includes("const f=contactFace(b,z,radius,ox,oy);spawnContact("),'enemy collision uses correct collider face');
-assert(src.includes("luminous(()=>drawContactFX(1),()=>drawContactFX(.22,ballContactFX,null,true))"),'monochrome comic balloons use minimal bloom');
+assert(src.includes("luminous(()=>drawContactFX(1),()=>drawContactFX(.32,ballContactFX,null,true))"),'monochrome comic balloons use minimal bloom');
 assert(src.includes('compactVisualQueue(ballContactFX,visualAlive)'),'effects expire');
 // LITE must still get this essential readable feedback, while Bloom is optional.
 env.fxEnabled=false;env.clock+=.2;
