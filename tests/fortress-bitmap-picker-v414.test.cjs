@@ -57,3 +57,6 @@ assert(!html.includes('id="fortress-confirm"')&&!html.includes('id="fortress-can
 assert(css.includes('touch-action:none;user-select:none'));
 assert(fs.readFileSync('dist/game.js','utf8').includes('fortress?.finish(e,c)'));
 console.log('PASS V468: direct picker drag, single drop, occupied/outside/cancel safety and instant field strokes.');
+
+assert(css.includes('#fortress-preview-summary[hidden]{display:none!important}'));
+assert(html.includes('id="fortress-preview-summary" hidden'));
