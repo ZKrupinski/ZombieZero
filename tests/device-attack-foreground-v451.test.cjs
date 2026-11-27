@@ -24,3 +24,13 @@ assert(draw.indexOf('drawStruckZombie(z)')<draw.indexOf('fortress?.drawAttackFor
 assert(draw.indexOf('fortress?.drawAttackForeground?.(g)')<draw.indexOf('drawImpactFlashes()'));
 assert(src.includes("!building&&splitAttacks&&frontAttack(w)?'base':'all'"));
 console.log('PASS v451: attack-only moving parts above enemies, intact idle/building/base and impact layers.');
+
+// V471: both expressions keep the same bottom anchor and unsquashed proportions.
+const duckDraws=[];env.part=(g,...args)=>duckDraws.push(args);
+vm.runInContext("paintMachine(g,'lure',0,0,null,'attack')",env);
+assert.deepEqual(duckDraws.at(-1),[4,11,-11,43,47,0]);
+vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12},'attack')",env);
+assert.deepEqual(duckDraws.at(-1),[4,19,-23,43,47,1]);
+assert.equal(duckDraws.at(-1)[2]+duckDraws.at(-1)[4],24);
+assert(src.includes('duck-faces-v471.png'));
+console.log('PASS v471: taller original duck, distinct attack expression and stable foot anchor.');

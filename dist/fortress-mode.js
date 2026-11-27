@@ -667,8 +667,12 @@ function tiles(){
 
 // Twelve transparent, separately articulated voxel sprite parts, 128px per cell.
 const partsURL='assets/ip/v2/barricades/fortress-voxels-v373.png';
-let parts=null;
-function part(g,index,x,y,w,h){
+let parts=null,duckFaces=null;
+function part(g,index,x,y,w,h,expression=0){
+ // V471: the original duck head is rounded vertically offline. Select
+ // the authored expression bitmap without altering the spring or collider.
+ if(index===4&&duckFaces){g.drawImage(duckFaces,expression?128:0,0,128,140,x,y,w,h);return}
+ if(index===4){y+=h-w;h=w} // same original duck, square aspect fallback
  if(parts)g.drawImage(parts,(index%4)*128,Math.floor(index/4)*128,128,128,x,y,w,h);
 }
 function linkage(g,index,x,y,dx,dy,width){
@@ -713,7 +717,8 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
   if(layer!=='attack')part(g,5,2,27,60,36);
   if(layer!=='base'){
    linkage(g,10,32,36,x,y-13,12);
-   part(g,4,11+x,1+y,43,35);
+   // Keep the feet at the previous y=36; no horizontal squash.
+   part(g,4,11+x,-11+y,43,47,pulse>0&&pulse<.48?1:0);
   }
  }else if(kind==='saw'){
   if(layer!=='attack')part(g,6,2,20,60,43);
@@ -812,6 +817,9 @@ if(typeof Image==='function'){
  const image=new Image();image.onload=()=>{
   if(image.naturalWidth===512&&image.naturalHeight===384){parts=image;makeDeviceIcons()}
  };image.src=partsURL;
+ const faces=new Image();faces.onload=()=>{
+  if(faces.naturalWidth===256&&faces.naturalHeight===140){duckFaces=faces;makeDeviceIcons()}
+ };faces.src='assets/ip/v2/barricades/duck-faces-v471.png';
 }
 function selectBuild(kind){
  if(!active||dragging||starting||pending.size||!BUILD_TYPES[kind])return false;

@@ -334,6 +334,52 @@ def verify():
     assert out.getpixel((6,6))[3]==0
     assert out.getpixel((13,13))==jug.getpixel((13,13))
 
+def build_duck_faces():
+    # Preserve the approved faceted yellow duck. Only its head section is
+    # lengthened; the lower body and feet retain the source pixel geometry.
+    root=Path("dist/assets/ip/v2/barricades")
+    with Image.open(root/"fortress-voxels-v373.png") as src:
+        assert src.size==(512,384)
+        duck=src.convert("RGBA").crop((0,128,128,256))
+    # Face and neck: source rows 0..66 -> 0..78; body is copied unchanged.
+    head=duck.crop((0,0,128,67)).resize((128,79),Image.Resampling.LANCZOS)
+    body=duck.crop((0,67,128,128))
+    rounded=Image.new("RGBA",(128,140))
+    rounded.paste(head,(0,0))
+    rounded.paste(body,(0,79))
+    assert rounded.crop((0,79,128,140)).tobytes()==body.tobytes()
+    # Raster expressions, painted only over original opaque head pixels.
+    # Source eyes/beak are untouched; the relaxed brow becomes a determined
+    # inward-slanting brow on the attack cel.
+    def face(attack):
+        overlay=Image.new("RGBA",(256,280))
+        d=ImageDraw.Draw(overlay)
+        def line(coords,color,width):
+            d.line([(round(x*2),round(y*79/67*2)) for x,y in coords],fill=color,width=width*2,joint="curve")
+        if attack:
+            line([(73,17),(78,16),(88,22)],(111,65,14,255),5)
+            line([(99,17),(107,12),(114,11)],(111,65,14,255),5)
+            line([(74,16),(78,15),(87,20)],(158,99,17,255),2)
+            line([(100,15),(107,10),(113,10)],(158,99,17,255),2)
+        else:
+            line([(74,18),(79,15),(85,16)],(171,111,20,255),3)
+            line([(100,13),(105,11),(111,12)],(171,111,20,255),3)
+        overlay=overlay.resize(rounded.size,Image.Resampling.LANCZOS)
+        # Keep AA and silhouette identical; do not paint outside the head.
+        mask=rounded.getchannel("A")
+        result=Image.alpha_composite(rounded,overlay)
+        result.putalpha(mask)
+        return result
+    idle,attack=face(False),face(True)
+    assert idle.getchannel("A").tobytes()==attack.getchannel("A").tobytes()
+    assert idle.tobytes()!=attack.tobytes()
+    for cel in (idle,attack):
+        assert cel.crop((0,79,128,140)).tobytes()==body.tobytes()
+    atlas=Image.new("RGBA",(256,140))
+    atlas.paste(idle,(0,0));atlas.paste(attack,(128,0))
+    atlas.save(root/"duck-faces-v471.png",optimize=True)
+    print("V471: original duck, taller rounded head, relaxed and attack faces",flush=True)
+
 def embed_boss_standby():
     # Original front-walk frames only. No substitute character or generated art.
     # Embed into the already-loaded JS shell, not a second network dependency.
@@ -398,6 +444,7 @@ def main():
     clean_green_fallbacks()
     bump_green_cache()
     embed_boss_standby()
+    build_duck_faces()
     if args.preview:
         tw,th=96,110
         sheet=Image.new("RGB",(tw*8, len(preview)*(th*2+28)),"#21354a")
