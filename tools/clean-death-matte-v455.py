@@ -335,50 +335,111 @@ def verify():
     assert out.getpixel((13,13))==jug.getpixel((13,13))
 
 def build_duck_faces():
-    # Preserve the approved faceted yellow duck. Only its head section is
-    # lengthened; the lower body and feet retain the source pixel geometry.
+    """V472: five directional bitmap cels, relaxed and comic rage.
+    Source facets, orange bill and lower body come from the approved atlas.
+    The head is retouched as a separate raster so expressions read at 29px.
+    """
+    import math
+    from PIL import ImageOps
     root=Path("dist/assets/ip/v2/barricades")
     with Image.open(root/"fortress-voxels-v373.png") as src:
         assert src.size==(512,384)
         duck=src.convert("RGBA").crop((0,128,128,256))
-    # Face and neck: source rows 0..66 -> 0..78; body is copied unchanged.
-    head=duck.crop((0,0,128,67)).resize((128,79),Image.Resampling.LANCZOS)
-    body=duck.crop((0,67,128,128))
-    rounded=Image.new("RGBA",(128,140))
-    rounded.paste(head,(0,0))
-    rounded.paste(body,(0,79))
-    assert rounded.crop((0,79,128,140)).tobytes()==body.tobytes()
-    # Raster expressions, painted only over original opaque head pixels.
-    # Source eyes/beak are untouched; the relaxed brow becomes a determined
-    # inward-slanting brow on the attack cel.
-    def face(attack):
-        overlay=Image.new("RGBA",(256,280))
-        d=ImageDraw.Draw(overlay)
-        def line(coords,color,width):
-            d.line([(round(x*2),round(y*79/67*2)) for x,y in coords],fill=color,width=width*2,joint="curve")
-        if attack:
-            line([(73,17),(78,16),(88,22)],(111,65,14,255),5)
-            line([(99,17),(107,12),(114,11)],(111,65,14,255),5)
-            line([(74,16),(78,15),(87,20)],(158,99,17,255),2)
-            line([(100,15),(107,10),(113,10)],(158,99,17,255),2)
-        else:
-            line([(74,18),(79,15),(85,16)],(171,111,20,255),3)
-            line([(100,13),(105,11),(111,12)],(171,111,20,255),3)
-        overlay=overlay.resize(rounded.size,Image.Resampling.LANCZOS)
-        # Keep AA and silhouette identical; do not paint outside the head.
-        mask=rounded.getchannel("A")
-        result=Image.alpha_composite(rounded,overlay)
-        result.putalpha(mask)
-        return result
-    idle,attack=face(False),face(True)
-    assert idle.getchannel("A").tobytes()==attack.getchannel("A").tobytes()
-    assert idle.tobytes()!=attack.tobytes()
-    for cel in (idle,attack):
-        assert cel.crop((0,79,128,140)).tobytes()==body.tobytes()
-    atlas=Image.new("RGBA",(256,140))
-    atlas.paste(idle,(0,0));atlas.paste(attack,(128,0))
-    atlas.save(root/"duck-faces-v471.png",optimize=True)
-    print("V471: original duck, taller rounded head, relaxed and attack faces",flush=True)
+    # Reconstruct a clean rounded face from the eye-free left portion of
+    # the source head. Symmetric central face, separate source bill.
+    raw_head=Image.new("RGBA",(84,67))
+    left=duck.crop((32,0,74,67))
+    raw_head.paste(left,(0,0));raw_head.paste(ImageOps.mirror(left),(42,0))
+    # Exclude the body silhouette below the cheek on either side.
+    for y in range(49,67):
+        inset=round((y-49)*.58)
+        for x in range(84):
+            if x<inset or x>=84-inset:
+                raw_head.putpixel((x,y),(0,0,0,0))
+    head=raw_head.resize((84,79),Image.Resampling.LANCZOS)
+    # Isolate the real bill from the source; keep warm 3D shading.
+    bill=duck.crop((76,36,128,67))
+    bp=[]
+    for r,g,b,a in bill.getdata():
+        bp.append((r,g,b,a if r>g*1.36 and r>b*1.65 and g<185 else 0))
+    bill.putdata(bp)
+    bbox=bill.getbbox()
+    assert bbox and bbox[2]-bbox[0]>20, bbox
+    bill=bill.crop(bbox)
+    # Retain the lower original body, including wing and original shading.
+    base=Image.new("RGBA",(128,140))
+    base.paste(duck.crop((0,67,128,128)),(0,79))
+    side=duck.crop((0,36,32,67)).resize((32,37),Image.Resampling.LANCZOS)
+    base.paste(side,(0,42))
+    atlas=Image.new("RGBA",(640,280))
+    for direction in range(5):
+        turn=(direction-2)/2
+        side_turn=abs(turn)
+        # Use mirrored body art on left; the front cel has a centered head.
+        body=ImageOps.mirror(base) if turn<0 else base.copy()
+        hx=round(22+10*turn)
+        hw=round(84-4*side_turn)
+        h=head.resize((hw,79),Image.Resampling.LANCZOS)
+        face=Image.new("RGBA",(128,140))
+        face.alpha_composite(h,(hx,0))
+        center=hx+hw/2
+        # Both pupils and bill shift together toward the facing direction.
+        billw=round(38+10*side_turn)
+        billh=round(bill.height*billw/bill.width*1.12)
+        billx=round(center+24*turn-billw/2)
+        billy=54
+        b=bill.resize((billw,billh),Image.Resampling.LANCZOS)
+        if turn<0:b=ImageOps.mirror(b)
+        for angry in (False,True):
+            cel=face.copy()
+            if angry:
+                # Warm red gradient on head only, strongest around forehead
+                # and cheeks, preserve the low-poly luminance/facets.
+                px=cel.load()
+                for y in range(79):
+                    for x in range(128):
+                        r,g,bl,a=px[x,y]
+                        if not a:continue
+                        strength=.78*max(0,1-((x-center-8*turn)/51)**2-((y-29)/52)**2)
+                        px[x,y]=(round(r+(255-r)*strength),round(g*(1-.77*strength)),round(bl*(1-.35*strength)),a)
+            # Eyes and brows are baked at 2x for antialiasing, not runtime
+            # vector overlays. Position and silhouette differ by facing cel.
+            detail=Image.new("RGBA",(256,280))
+            d=ImageDraw.Draw(detail)
+            def ellipse(cx,cy,rx,ry,fill,outline=None,width=1):
+                d.ellipse(tuple(round(v*2) for v in (cx-rx,cy-ry,cx+rx,cy+ry)),fill=fill,outline=outline,width=width*2)
+            def line(points,color,width):
+                d.line([(round(x*2),round(y*2)) for x,y in points],fill=color,width=width*2,joint="curve")
+            eyes=[(center-13+13*turn,37+3*turn,1 if turn>=0 else 1-.25*side_turn),
+                  (center+13+13*turn,37-3*turn,1 if turn<=0 else 1-.25*side_turn)]
+            for i,(ex,ey,scale) in enumerate(eyes):
+                if angry:
+                    ellipse(ex,ey,11*scale,12,(255,250,228,255),(96,42,15,255),2)
+                    ellipse(ex+turn*2.5,ey+1,4.8*scale,5.5,(34,22,20,255))
+                    ellipse(ex+turn*2.5-1,ey-1.5,1.5,1.5,(255,255,255,255))
+                    # Heavy inward-pointing brows. Near/far eye size follows turn.
+                    slope=6 if i==0 else -6
+                    line([(ex-11*scale,ey-13-slope/2),(ex,ey-11),(ex+11*scale,ey-13+slope/2)],(80,32,12,255),7)
+                else:
+                    ellipse(ex,ey,5.2*scale,8.2,(52,35,14,255))
+                    ellipse(ex-1,ey-3,1.6,2.1,(255,255,236,255))
+                    line([(ex-6*scale,ey-13),(ex,ey-16),(ex+6*scale,ey-13)],(122,70,12,255),5)
+            detail=detail.resize(cel.size,Image.Resampling.LANCZOS)
+            # Restore head alpha so artwork stays clean at its silhouette.
+            mask=cel.getchannel("A")
+            cel=Image.alpha_composite(cel,detail);cel.putalpha(mask)
+            cel.alpha_composite(b,(billx,billy))
+            final=body.copy();final.alpha_composite(cel)
+            atlas.paste(final,(direction*128,int(angry)*140))
+    assert atlas.size==(640,280)
+    for i in range(5):
+        idle=atlas.crop((i*128,0,(i+1)*128,140))
+        attack=atlas.crop((i*128,140,(i+1)*128,280))
+        assert idle.getbbox() and attack.getbbox()
+        assert idle.tobytes()!=attack.tobytes()
+        assert idle.getchannel("A").tobytes()==attack.getchannel("A").tobytes()
+    atlas.save(root/"duck-faces-v472.png",optimize=True)
+    print("V472: 5 directional original-art ducks, 5 red comic attack expressions",flush=True)
 
 def embed_boss_standby():
     # Original front-walk frames only. No substitute character or generated art.

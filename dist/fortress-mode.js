@@ -668,11 +668,10 @@ function tiles(){
 // Twelve transparent, separately articulated voxel sprite parts, 128px per cell.
 const partsURL='assets/ip/v2/barricades/fortress-voxels-v373.png';
 let parts=null,duckFaces=null;
-function part(g,index,x,y,w,h,expression=0){
- // V471: the original duck head is rounded vertically offline. Select
- // the authored expression bitmap without altering the spring or collider.
- if(index===4&&duckFaces){g.drawImage(duckFaces,expression?128:0,0,128,140,x,y,w,h);return}
- if(index===4){y+=h-w;h=w} // same original duck, square aspect fallback
+function part(g,index,x,y,w,h,expression=0,direction=2){
+ // V472: 5 directional cels x 2 expressions, original-art raster atlas.
+ if(index===4&&duckFaces){g.drawImage(duckFaces,direction*128,expression*140,128,140,x,y,w,h);return}
+ if(index===4){y+=h-w;h=w}
  if(parts)g.drawImage(parts,(index%4)*128,Math.floor(index/4)*128,128,128,x,y,w,h);
 }
 function linkage(g,index,x,y,dx,dy,width){
@@ -716,9 +715,11 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
  if(kind==='lure'){
   if(layer!=='attack')part(g,5,2,27,60,36);
   if(layer!=='base'){
-   linkage(g,10,32,36,x,y-13,12);
-   // Keep the feet at the previous y=36; no horizontal squash.
-   part(g,4,11+x,-11+y,43,47,pulse>0&&pulse<.48?1:0);
+   const expression=offset?.angry?1:0,direction=offset?.direction??2;
+   const bob=offset?.bob||0,jx=offset?.jitterX||0,jy=offset?.jitterY||0;
+   linkage(g,10,32,36,x,y-13+bob,12);
+   // Only the duck bobs or shakes; its metal base and collision stay fixed.
+   part(g,4,11+x+jx,-11+y+bob+jy,43,47,expression,direction);
   }
  }else if(kind==='saw'){
   if(layer!=='attack')part(g,6,2,20,60,43);
@@ -818,8 +819,8 @@ if(typeof Image==='function'){
   if(image.naturalWidth===512&&image.naturalHeight===384){parts=image;makeDeviceIcons()}
  };image.src=partsURL;
  const faces=new Image();faces.onload=()=>{
-  if(faces.naturalWidth===256&&faces.naturalHeight===140){duckFaces=faces;makeDeviceIcons()}
- };faces.src='assets/ip/v2/barricades/duck-faces-v471.png';
+  if(faces.naturalWidth===640&&faces.naturalHeight===280){duckFaces=faces;makeDeviceIcons()}
+ };faces.src='assets/ip/v2/barricades/duck-faces-v472.png';
 }
 function selectBuild(kind){
  if(!active||dragging||starting||pending.size||!BUILD_TYPES[kind])return false;
@@ -874,14 +875,28 @@ function devicePunch(w,building=false){
  const windup=w.run?Math.max(0,1-w.run.time/.14)*.55:0;
  return Math.max(impact,pop,windup);
 }
+// Five real directional bitmap frames; attack uses actual target direction,
+// not the direction of the retracting spring. Animation is visual only.
+function duckPose(w,run,progress,building=false){
+ const age=(w.duckIdleTime||0)+(w.id||0)*.071;
+ if(building)return {direction:3,bob:0,angry:false,jitterX:0,jitterY:0};
+ if(!run)return {direction:Math.max(0,Math.min(4,2+Math.round(2*Math.sin(age*2.25)))),
+  bob:-4.2*Math.pow(Math.sin(age*5.2),2),angry:false,jitterX:0,jitterY:0};
+ const direction=Math.max(0,Math.min(4,2+Math.round(2*(run.dx||0)/.7071)));
+ const angry=progress<.79;
+ const tick=Math.floor(run.time*60),strength=angry?(progress<.22?.55:progress<.53?1:.45):0;
+ return {direction,bob:0,angry,jitterX:(tick%2?1:-1)*4.8*strength,
+  jitterY:[-2.8,1.8,-1.2,2.5][tick%4]*strength};
+}
 function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  if(!parts)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
  let offset=run&&w.kind==='ice'?{deployed:true}:null;
  if(!building&&w.kind==='bollard'&&w.moleHit>0)offset={moleImpact:moleImpactPose(w)};
- if(run&&w.kind==='lure'){
-  const travel=duckTravel(progress)*64/size;offset={x:run.dx*travel,y:run.dy*travel};
+ if(w.kind==='lure'){
+  const travel=run?duckTravel(progress)*64/size:0;
+  offset={...duckPose(w,run,progress,building),x:run?run.dx*travel:0,y:run?run.dy*travel:0};
  }
  if(run&&w.kind==='saw'){
   const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
@@ -905,10 +920,10 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  if(run&&offset&&layer!=='base'&&(w.kind==='lure'||w.kind==='saw')&&
     Math.hypot(offset.x||0,offset.y||0)>12){
   g.save();g.globalAlpha=.32;g.globalCompositeOperation='lighter';
-  paintMachine(g,w.kind,Math.max(0,time-.12),pulse,{x:offset.x*.79,y:offset.y*.79},'attack');
+  paintMachine(g,w.kind,Math.max(0,time-.12),pulse,{...offset,x:offset.x*.79,y:offset.y*.79,jitterX:0,jitterY:0},'attack');
   g.restore();
  }
- if(bite>0||punch>0)g.filter='brightness('+String((1+Math.max(1.7*bite,1.1*punch)).toFixed(2))+') saturate(.95)';
+ if(bite>0||punch>0)g.filter='brightness('+String((1+Math.max(1.7*bite,(w.kind==='lure'&&offset?.angry?.25:1.1)*punch)).toFixed(2))+') saturate(.95)';
  if(punch&&layer!=='attack'){
   g.translate(32,40);g.scale(1+.09*punch,1-.10*punch);g.translate(-32,-40);
  }
@@ -1308,6 +1323,7 @@ function draw(g,building=false,glow=null,splitAttacks=false){
 }
 function tick(dt){tickStructureDebris(dt);for(const w of walls.values()){
  w.hit=Math.max(0,(w.hit||0)-dt);w.fxImpact=Math.max(0,(w.fxImpact||0)-dt);
+ if(w.kind==='lure'&&!w.run)w.duckIdleTime=((w.duckIdleTime||0)+dt)%120;
  w.biteShake=Math.max(0,(w.biteShake||0)-dt);
  if(w.moleHit>0)w.moleHit=Math.max(0,w.moleHit-dt);
 }}
