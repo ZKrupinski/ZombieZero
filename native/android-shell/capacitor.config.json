@@ -1,0 +1,13 @@
+{
+  "appId": "com.rebeltree.zombieballs",
+  "appName": "ZOMBIE BALLS",
+  "webDir": "www",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "disable",
+    "backgroundColor": "#101326"
+  },
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "zombie-balls-android",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/core": "7.4.4",
+    "@capacitor/android": "7.4.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.4.4"
+  }
+}
