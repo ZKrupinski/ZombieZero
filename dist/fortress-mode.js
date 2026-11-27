@@ -908,8 +908,9 @@ function spawnStructureBreak(w,hpBefore){
  for(let row=0;row<4;row++)for(let col=0;col<4;col++){
   const i=row*4+col,dx=(col-1.5)/1.5,dy=(row-1.5)/1.5;
   pieces.push({sx:col*16,sy:row*16,x:w.x+(col+.5)*size/4,y:w.y+(row+.5)*size/4,
-   vx:dx*(100+noise(i*4)*110)+(noise(i*4+1)-.5)*80,
-   vy:-80+dy*48+noise(i*4+2)*115,spin:(noise(i*4+3)-.5)*16,
+   // V463: compact local shatter; keep the original launch distribution and spin.
+   vx:(dx*(100+noise(i*4)*110)+(noise(i*4+1)-.5)*80)*.42,
+   vy:(-80+dy*48+noise(i*4+2)*115)*.28,spin:(noise(i*4+3)-.5)*16,
    size:size/4*(1.05+noise(i*4+4)*.55),life:.95+noise(i*4+5)*.45});
  }
  structureDebris.push({art,pieces,t:0});
@@ -928,7 +929,7 @@ function drawStructureDebris(g){
   const t=burst.t;
   for(const p of burst.pieces){
    if(t>=p.life)continue;
-   const x=p.x+p.vx*t,y=p.y+p.vy*t+410*t*t;
+   const x=p.x+p.vx*t,y=p.y+p.vy*t+114.8*t*t;
    const alpha=Math.min(1,(p.life-t)/.28);
    g.save();g.translate(x,y);g.rotate(p.spin*t);g.globalAlpha=alpha;
    if(t<.085)g.filter='brightness('+String((1+1.3*(1-t/.085)).toFixed(2))+')';
