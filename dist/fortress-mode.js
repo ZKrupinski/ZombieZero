@@ -667,9 +667,10 @@ function tiles(){
 
 // Twelve transparent, separately articulated voxel sprite parts, 128px per cell.
 const partsURL='assets/ip/v2/barricades/fortress-voxels-v373.png';
-let parts=null,duckFaces=null;
+let parts=null,duckFaces=null,duckChassis=null;
 function part(g,index,x,y,w,h,expression=0,direction=2){
  // V472: 5 directional cels x 2 expressions, original-art raster atlas.
+ if(index===5&&duckChassis){g.drawImage(duckChassis,x,y,w,h);return}
  if(index===4&&duckFaces){g.drawImage(duckFaces,direction*128,expression*140,128,140,x,y,w,h);return}
  if(index===4){y+=h-w;h=w}
  if(parts)g.drawImage(parts,(index%4)*128,Math.floor(index/4)*128,128,128,x,y,w,h);
@@ -713,7 +714,7 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
  }
  const x=offset?.x||0,y=offset?.y||0;
  if(kind==='lure'){
-  if(layer!=='attack')part(g,5,2,27,60,36);
+  if(layer!=='attack')part(g,5,2,21,60,42);
   if(layer!=='base'){
    const expression=offset?.angry?1:0,direction=offset?.direction??2;
    const bob=offset?.bob||0,jx=offset?.jitterX||0,jy=offset?.jitterY||0;
@@ -821,6 +822,8 @@ if(typeof Image==='function'){
  const faces=new Image();faces.onload=()=>{
   if(faces.naturalWidth===640&&faces.naturalHeight===280){duckFaces=faces;makeDeviceIcons()}
  };faces.src='assets/ip/v2/barricades/duck-faces-v472.png';
+ const chassis=new Image();chassis.onload=()=>{if(chassis.naturalWidth===128&&chassis.naturalHeight===128){duckChassis=chassis;structureDebrisArt.delete('lure');makeDeviceIcons()}};
+ chassis.src='assets/ip/v2/barricades/duck-chassis-v473.png';
 }
 function selectBuild(kind){
  if(!active||dragging||starting||pending.size||!BUILD_TYPES[kind])return false;

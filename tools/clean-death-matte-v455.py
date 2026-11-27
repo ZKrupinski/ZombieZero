@@ -441,6 +441,27 @@ def build_duck_faces():
     atlas.save(root/"duck-faces-v472.png",optimize=True)
     print("V472: 5 directional original-art ducks, 5 red comic attack expressions",flush=True)
 
+def build_duck_chassis():
+    # Reuse original metal and spring; composite isolated generated red tires.
+    # Tires are source bitmaps, not runtime shapes; preserve the original pivot.
+    from PIL import ImageOps
+    root=Path("dist/assets/ip/v2/barricades")
+    with Image.open(root/"fortress-voxels-v373.png") as source:
+        old=source.convert("RGBA").crop((128,128,256,256))
+    with Image.open(root/"duck-tire-v473.webp") as source:
+        wheel=source.convert("RGBA")
+    assert wheel.size==(46,48)
+    # Narrow the motor housing enough to expose the thick wheel shoulders.
+    # Wheels overlap the lower front only; the spring and top stay visible.
+    base=Image.new("RGBA",(128,128))
+    base.alpha_composite(old.resize((103,108),Image.Resampling.LANCZOS),(12,4))
+    tire=wheel.resize((46,60),Image.Resampling.LANCZOS)
+    base.alpha_composite(ImageOps.mirror(tire),(0,65))
+    base.alpha_composite(tire,(82,65))
+    assert base.getchannel("A").getbbox()
+    base.save(root/"duck-chassis-v473.png",optimize=True)
+    print("V473: round red tires and original spring chassis composited",flush=True)
+
 def embed_boss_standby():
     # Original front-walk frames only. No substitute character or generated art.
     # Embed into the already-loaded JS shell, not a second network dependency.
@@ -506,6 +527,7 @@ def main():
     bump_green_cache()
     embed_boss_standby()
     build_duck_faces()
+    build_duck_chassis()
     if args.preview:
         tw,th=96,110
         sheet=Image.new("RGB",(tw*8, len(preview)*(th*2+28)),"#21354a")

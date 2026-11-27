@@ -44,3 +44,12 @@ for(const [dx,d] of [[-.7071,0],[-.35,1],[0,2],[.35,3],[.7071,4]]){
 assert(!pose({},{dx:0,time:.8},.95).angry);
 assert(src.includes('duck-faces-v472.png'));
 console.log('PASS v472: five directions, idle bob, direction-specific angry cels and local attack shake.');
+
+// V473: the chassis has its own bitmap and stays on the ground during a lunge.
+duckDraws.length=0;
+vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,angry:true,direction:4},'base')",env);
+assert.deepEqual(duckDraws,[ [5,2,21,60,42] ]);
+assert.equal(duckDraws[0][2]+duckDraws[0][4],63);
+assert(src.includes('duck-chassis-v473.png'));
+assert(fs.existsSync('dist/assets/ip/v2/barricades/duck-tire-v473.webp'));
+console.log('PASS v473: red tire source committed, independent chassis and unchanged ground anchor.');
