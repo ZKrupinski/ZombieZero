@@ -51,7 +51,9 @@ jobs:
         working-directory: native/android-shell
         run: |
           npm install --no-audit --no-fund
+          node native-performance.test.cjs
           python prepare.py web
+          node --check www/game.js
           npx cap add android
           python prepare.py android
           npx cap sync android

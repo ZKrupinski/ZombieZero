@@ -39,6 +39,28 @@ def prepare_web():
     js.write_text(content, encoding="utf-8")
     # The native asset server provides all files, so no browser SW cache is needed.
     (WWW / "sw.js").unlink(missing_ok=True)
+    # Native-only render budget and diagnostic UI; never modify the Pages copy.
+    shutil.copyfile(HERE / "native-performance.js", WWW / "native-performance.js")
+    html = WWW / "index.html"
+    markup = html.read_text(encoding="utf-8")
+    markup = replace_once(markup, '<script src="game.js?', '<script src="native-performance.js"></script><script src="game.js?')
+    html.write_text(markup, encoding="utf-8")
+    game = WWW / "game.js"
+    text = game.read_text(encoding="utf-8")
+    text = replace_once(text, "function resizeCanvas(){", "function resizeCanvas(drawNow=true){")
+    text = replace_once(text,
+        "const width=Math.max(1,Math.round(widthCss*dpr));\n const height=Math.max(1,Math.round(heightCss*dpr));",
+        "const {width,height}=window.ZZNativePerf.backingSize(widthCss,heightCss,dpr);")
+    text = replace_once(text,
+        "g.imageSmoothingEnabled=true;\n draw();\n}",
+        "g.imageSmoothingEnabled=true;\n if(drawNow!==false)draw();\n}")
+    text = replace_once(text,
+        "warmTrailLighting();warmSelectedBallTint();draw();",
+        "if(window.ZZNativePerf.takeResize())resizeCanvas(false);\n warmTrailLighting();warmSelectedBallTint();draw();")
+    text = replace_once(text,
+        "Object.assign(perfStats,{tier:perfTier,updateMs,drawMs,workMs});",
+        "Object.assign(perfStats,{tier:perfTier,updateMs,drawMs,workMs});\n window.ZZNativePerf.observe(t,elapsed,perfStats,mode,c,fxRenderer);")
+    game.write_text(text, encoding="utf-8")
 
 def prepare_android():
     src = APP / "src" / "main"
@@ -55,6 +77,8 @@ def prepare_android():
     if activity is None:
         raise RuntimeError("Missing Android launcher activity")
     activity.set(ns+"screenOrientation", "portrait")
+    root.find("application").set(ns+"hardwareAccelerated", "true")
+    activity.set(ns+"hardwareAccelerated", "true")
     if not any(p.get(ns+"name")=="android.permission.VIBRATE" for p in root.findall("uses-permission")):
         ET.SubElement(root, "uses-permission", {ns+"name":"android.permission.VIBRATE"})
     tree.write(manifest, encoding="utf-8", xml_declaration=True)

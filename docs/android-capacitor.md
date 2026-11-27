@@ -27,3 +27,7 @@ PWA의 로컬 저장 데이터와 Android 앱의 저장 공간은 다르다. 자
 - 터치/공 타격/카메라/사운드/진동/모든 모드
 - 비행기 모드에서 내장 이미지/만화/스테이지 로딩
 - 저장 데이터 유지 및 동일 키 APK 업데이트
+
+## Android 성능 진단 v452
+
+APK 전용 GPU 가속 명시 및 WebView 검사 모드 비활성화. 공통 게임 소스/웹 렌더링에는 변경 없음. Canvas backing width는 최대 1080px, 지속 프레임 저하 시 최대 2단계로 점진 조절 (일반적으로 900~780px, 720px 미만으로 강제 축소하지 않음). 해상도는 게임 로직이나 CSS 크기를 바꾸지 않음. 게임 모드에서 옵션 → FPS 진단으로 FPS, JS update/draw 시간, backing resolution, Bloom WebGL/fallback 상태 표시. 실제 GPU 시간/기기 FPS 향상은 기기 검증 필요. 모든 스프라이트, 트레일, Bloom, 그림자, 애니메이션은 기존 유지.
