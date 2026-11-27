@@ -88,7 +88,7 @@ function recycleVisual(pool,v){if(pool.length<320)pool.push(v)}
 // No skill tint, directional spirals, glow or smoke. A monochrome fallback
 // stays available until this 6KB sprite atlas has loaded.
 const contactAtlasHD=typeof Image!=='undefined'?new Image():null;
-if(contactAtlasHD){contactAtlasHD.decoding='async';contactAtlasHD.src='assets/fx/impact-bursts-mono-v456-hd.png';}
+if(contactAtlasHD){contactAtlasHD.decoding='async';contactAtlasHD.src='assets/fx/impact-bursts-v457-approved.png';}
 const contactAtlasImage=typeof Image!=='undefined'?new Image():null;
 if(contactAtlasImage){contactAtlasImage.decoding='async';contactAtlasImage.src='assets/fx/impact-bursts-mono-v123.png';}
 function contactAtlasIndex(f){return f.variant%12;}
@@ -179,9 +179,9 @@ function drawTrashContact(target){
  if(trashContactFX.length)drawContactFX(1,trashContactFX,target);
 }
 function drawContactFX(bloom=1,queue=ballContactFX,target=null){
- const hdReady=!!(contactAtlasHD&&contactAtlasHD.complete&&contactAtlasHD.naturalWidth===1024&&contactAtlasHD.naturalHeight===768);
+ const hdReady=!!(contactAtlasHD&&contactAtlasHD.complete&&contactAtlasHD.naturalWidth===1536&&contactAtlasHD.naturalHeight===1152);
  const atlasReady=hdReady||!!(contactAtlasImage&&contactAtlasImage.complete&&contactAtlasImage.naturalWidth===256&&contactAtlasImage.naturalHeight===192);
- const cell=hdReady?256:64;
+ const cell=hdReady?384:64;
  for(const f of queue){
   if(target!==null&&f.target!==target)continue;
   const img=hdReady?contactAtlasHD:atlasReady?contactAtlasImage:contactStamp(f.kind,f.tone,f.variant);if(!img)continue;

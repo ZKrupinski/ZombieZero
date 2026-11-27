@@ -35,7 +35,7 @@ jobs:
           python -m pip install 'Pillow>=10,<12'
           python tools/clean-green-death-fringe-v360.py
           python tools/clean-death-matte-v455.py --preview "$RUNNER_TEMP/death-matte-v455.png"
-          python tools/upscale-contact-atlas-v456.py
+          python tools/pack-contact-atlas-v457.py
       - name: Save death sprite QA preview
         uses: actions/upload-artifact@v4
         with:

@@ -11,12 +11,16 @@ assert(pal>0&&trns>0,'indexed PNG must retain real transparent alpha');
 const palSize=png.readUInt32BE(pal-4);
 for(let i=0;i<palSize;i+=3){const p=pal+4+i;assert.equal(png[p],png[p+1],'neutral RGB R=G');assert.equal(png[p+1],png[p+2],'neutral RGB G=B');}
 const source=fs.readFileSync('dist/game.js','utf8');
+const approved=fs.readFileSync('art-source/impact-bursts-v457-approved.png');
+assert.equal(approved.readUInt32BE(16),1536);assert.equal(approved.readUInt32BE(20),1024);
+assert.equal(approved[25],6,'approved original RGBA source');
+assert.equal(require('node:crypto').createHash('sha1').update('blob '+approved.length+'\0').update(approved).digest('hex'),'5caa050ea68bb18c601a17684e16a845131dc6ab');
 const start=source.indexOf('let ballContactFX=[];'),end=source.indexOf('// Nine nearly touching lanes',start);
 assert(start>=0&&end>start,'hit FX source is accessible');
 let skill='fire',calls=[],rotations=[],alphas=[],loadedSource='';
 class MockImage{
  constructor(){this.complete=true;this.naturalWidth=256;this.naturalHeight=192;}
- set src(s){loadedSource=s;if(s.includes('v456-hd')){this.naturalWidth=1024;this.naturalHeight=768}}
+ set src(s){loadedSource=s;if(s.includes('v457-approved')){this.naturalWidth=1536;this.naturalHeight=1152}}
  get src(){return loadedSource}
 }
 const g={save(){},restore(){},translate(){},rotate(r){rotations.push(r)},scale(){},
@@ -30,12 +34,12 @@ vm.runInContext("spawnContact(b,100,100,1,0,'enemy');drawContactFX(1)",ctx);
 assert.equal(calls.length,1,'one real sprite draw on hit');
 const a=calls[0];
 assert.equal(a.length,9,'source-cell bitmap blit, not a generated line image');
-assert.equal(a[0].naturalWidth,1024,'uses preloaded bitmap atlas');
+assert.equal(a[0].naturalWidth,1536,'uses preloaded bitmap atlas');
 const selected=vm.runInContext('contactAtlasIndex(ballContactFX[0])',ctx);
 assert.equal(selected,9,'sample collision chooses one of all 12 varied bursts');
-assert.equal(a[1],(selected%4)*256,'source column matches selected collision silhouette');
-assert.equal(a[2],Math.floor(selected/4)*256,'source row matches selected collision silhouette');
-assert.equal(a[3],256);assert.equal(a[4],256);
+assert.equal(a[1],(selected%4)*384,'source column matches selected collision silhouette');
+assert.equal(a[2],Math.floor(selected/4)*384,'source row matches selected collision silhouette');
+assert.equal(a[3],384);assert.equal(a[4],384);
 assert(a[7]>=73&&a[7]<=79,'V120 bitmap hit prominently covers trail bend without changing source artwork');
 assert.equal(a[7],a[8],'proportions preserved');
 assert.equal(vm.runInContext('ballContactFX[0].life',ctx),.30,'enemy contact stays visible for 0.30s');
