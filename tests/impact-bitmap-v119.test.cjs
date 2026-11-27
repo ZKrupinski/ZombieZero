@@ -16,7 +16,7 @@ assert(start>=0&&end>start,'hit FX source is accessible');
 let skill='fire',calls=[],rotations=[],alphas=[],loadedSource='';
 class MockImage{
  constructor(){this.complete=true;this.naturalWidth=256;this.naturalHeight=192;}
- set src(s){loadedSource=s}
+ set src(s){loadedSource=s;if(s.includes('v456-hd')){this.naturalWidth=1024;this.naturalHeight=768}}
  get src(){return loadedSource}
 }
 const g={save(){},restore(){},translate(){},rotate(r){rotations.push(r)},scale(){},
@@ -30,12 +30,12 @@ vm.runInContext("spawnContact(b,100,100,1,0,'enemy');drawContactFX(1)",ctx);
 assert.equal(calls.length,1,'one real sprite draw on hit');
 const a=calls[0];
 assert.equal(a.length,9,'source-cell bitmap blit, not a generated line image');
-assert.equal(a[0].naturalWidth,256,'uses preloaded bitmap atlas');
+assert.equal(a[0].naturalWidth,1024,'uses preloaded bitmap atlas');
 const selected=vm.runInContext('contactAtlasIndex(ballContactFX[0])',ctx);
 assert.equal(selected,9,'sample collision chooses one of all 12 varied bursts');
-assert.equal(a[1],(selected%4)*64,'source column matches selected collision silhouette');
-assert.equal(a[2],Math.floor(selected/4)*64,'source row matches selected collision silhouette');
-assert.equal(a[3],64);assert.equal(a[4],64);
+assert.equal(a[1],(selected%4)*256,'source column matches selected collision silhouette');
+assert.equal(a[2],Math.floor(selected/4)*256,'source row matches selected collision silhouette');
+assert.equal(a[3],256);assert.equal(a[4],256);
 assert(a[7]>=73&&a[7]<=79,'V120 bitmap hit prominently covers trail bend without changing source artwork');
 assert.equal(a[7],a[8],'proportions preserved');
 assert.equal(vm.runInContext('ballContactFX[0].life',ctx),.30,'enemy contact stays visible for 0.30s');

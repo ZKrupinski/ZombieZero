@@ -87,6 +87,8 @@ function recycleVisual(pool,v){if(pool.length<320)pool.push(v)}
 // V123: 12 asymmetric hand-inked impact shapes with tapered variable-weight lines.
 // No skill tint, directional spirals, glow or smoke. A monochrome fallback
 // stays available until this 6KB sprite atlas has loaded.
+const contactAtlasHD=typeof Image!=='undefined'?new Image():null;
+if(contactAtlasHD){contactAtlasHD.decoding='async';contactAtlasHD.src='assets/fx/impact-bursts-mono-v456-hd.png';}
 const contactAtlasImage=typeof Image!=='undefined'?new Image():null;
 if(contactAtlasImage){contactAtlasImage.decoding='async';contactAtlasImage.src='assets/fx/impact-bursts-mono-v123.png';}
 function contactAtlasIndex(f){return f.variant%12;}
@@ -95,8 +97,9 @@ function contactStamp(kind,tone,variant){
  const key=kind+tone+variant;
  if(contactStampCache.has(key))return contactStampCache.get(key);
  if(typeof document==='undefined'||!document.createElement)return null;
- const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
  const p=canvas.getContext('2d');if(!p)return null;
+ p.scale(4,4); // same fallback drawing, rasterized at 4x only once
  // V118: comic starburst silhouette based on the upper-right ink/halftone
  // reference; cached once. No independent straight motion rays.
  const paper='#ffffff';
@@ -176,10 +179,12 @@ function drawTrashContact(target){
  if(trashContactFX.length)drawContactFX(1,trashContactFX,target);
 }
 function drawContactFX(bloom=1,queue=ballContactFX,target=null){
- const atlasReady=!!(contactAtlasImage&&contactAtlasImage.complete&&contactAtlasImage.naturalWidth===256&&contactAtlasImage.naturalHeight===192);
+ const hdReady=!!(contactAtlasHD&&contactAtlasHD.complete&&contactAtlasHD.naturalWidth===1024&&contactAtlasHD.naturalHeight===768);
+ const atlasReady=hdReady||!!(contactAtlasImage&&contactAtlasImage.complete&&contactAtlasImage.naturalWidth===256&&contactAtlasImage.naturalHeight===192);
+ const cell=hdReady?256:64;
  for(const f of queue){
   if(target!==null&&f.target!==target)continue;
-  const img=atlasReady?contactAtlasImage:contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
+  const img=hdReady?contactAtlasHD:atlasReady?contactAtlasImage:contactStamp(f.kind,f.tone,f.variant);if(!img)continue;
   const u=Math.max(0,Math.min(1,f.t/f.life));
   // Hold the bitmap at full strength for several frames before a soft fade.
   // V119 faded from the first tick, making a nominal 0.16s hit nearly invisible.
@@ -206,12 +211,14 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
    const base=f.kind==='enemy'?75:f.kind==='ceiling'?67:72;
    const scale=1.02-.10*u;
    const w=base*scale;
-   g.drawImage(img,(frame%4)*64,Math.floor(frame/4)*64,64,64,-w/2,-w/2,w,w);
+   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+   g.drawImage(img,(frame%4)*cell,Math.floor(frame/4)*cell,cell,cell,-w/2,-w/2,w,w);
   }else{
    // Retain the previous procedural art if the asset is still loading.
    const size=f.kind==='enemy'?1.44:f.kind==='ceiling'?1.34:1.40;
    g.scale(size*(.97+.07*u),size*(.97+.07*u));
-   g.drawImage(img,-22,-32);
+   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+   g.drawImage(img,-22,-32,64,64);
   }
   g.restore();
  }
