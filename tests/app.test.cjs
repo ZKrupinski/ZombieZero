@@ -55,11 +55,15 @@ await el('fullscreen').onclick();assert.equal(s.document.fullscreenElement,null)
 s.window.matchMedia=q=>({matches:q==='(display-mode: standalone)'});
 await el('start').handlers.click();await el('endless').handlers.click();await el('fullscreen').onclick();
 assert.equal(calls,2,'installed app never requests native fullscreen');
+s.window.matchMedia=q=>({matches:q==='(display-mode: fullscreen)'});
+await el('start').handlers.click();await el('endless').handlers.click();await el('fullscreen').onclick();
+assert.equal(calls,2,'immersive PWA launches without native fullscreen requests');
+assert.equal(el('overlay-fullscreen').hidden,true,'immersive PWA hides manual entry shortcut');
 s.window.matchMedia=q=>({matches:q==='(pointer: coarse)'});
 s.navigator.userAgent='Android';s.navigator.maxTouchPoints=1;
 let prompted=0;listeners.beforeinstallprompt({preventDefault(){},prompt:async()=>prompted++,userChoice:Promise.resolve({outcome:'accepted'})});await el('install').onclick();assert.equal(prompted,1);assert.match(el('install').textContent,/설치됨/);
 s.navigator.userAgent='iPhone';await el('install').onclick();assert.match(el('app-message').textContent,/Safari/);
 let prevented=0;listeners.touchmove({target:{closest:()=>null},preventDefault:()=>prevented++});listeners.touchmove({target:{closest:()=>({})},preventDefault:()=>prevented++});assert.equal(prevented,1);
-const manifest=JSON.parse(fs.readFileSync('dist/manifest.webmanifest'));assert.equal(manifest.display,'standalone');for(const i of manifest.icons)assert(fs.existsSync('dist/'+i.src));assert(fs.readFileSync('dist/index.html','utf8').includes('manifest.webmanifest'));
+const manifest=JSON.parse(fs.readFileSync('dist/manifest.webmanifest'));assert.equal(manifest.display,'fullscreen');for(const i of manifest.icons)assert(fs.existsSync('dist/'+i.src));assert(fs.readFileSync('dist/index.html','utf8').includes('manifest.webmanifest'));
 console.log('PASS: all portrait and square viewports fill width/height, no bottom controls, options pause/resume and fullscreen/install');
 })().catch(e=>{console.error(e);process.exit(1)});
