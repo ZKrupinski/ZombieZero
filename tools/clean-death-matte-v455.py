@@ -129,6 +129,121 @@ def clean_frame(im, mode, frame):
     result=Image.new("RGBA",im.size);result.putdata(out)
     return result,count
 
+def clean_green_specks(im):
+    """V458: remove residual tiny exposed matte components without eroding art."""
+    w,h=im.size
+    pixels=list(im.getdata())
+    n=w*h
+    alpha=[p[3] for p in pixels]
+    def neighbors(i):
+        x,y=i%w,i//w
+        for yy in range(max(0,y-1),min(h,y+2)):
+            for xx in range(max(0,x-1),min(w,x+2)):
+                j=yy*w+xx
+                if j!=i: yield j
+    def pale(p):
+        return p[3]>0 and min(p[:3])>=155 and max(p[:3])-min(p[:3])<=48
+    mask=bytearray(pale(p) for p in pixels)
+    visited=bytearray(n)
+    remove=bytearray(n)
+    # A diagonal connection counts, and even a one-pixel component is tested.
+    # Only a small exposed neutral cluster is removed; enclosed eyes/teeth and
+    # larger white highlights are outside this pass.
+    limit=11 if w>=200 else 4
+    for start in range(n):
+        if not mask[start] or visited[start]: continue
+        visited[start]=1
+        queue=deque([start])
+        comp=[]
+        exposed=[]
+        while queue:
+            i=queue.popleft()
+            comp.append(i)
+            ns=list(neighbors(i))
+            if any(alpha[j]<=12 for j in ns) or len(ns)<8:
+                exposed.append(i)
+            for j in ns:
+                if mask[j] and not visited[j]:
+                    visited[j]=1
+                    queue.append(j)
+        if len(comp)<=limit and exposed and len(exposed)*2>=len(comp):
+            for i in comp:
+                # Preserve an opaque white detail supported by surrounding art.
+                ns=list(neighbors(i))
+                solid=sum(alpha[j]>=220 and not mask[j] for j in ns)
+                if alpha[i]<220 or solid<=3:
+                    remove[i]=1
+    # Faint, neutral, anti-aliased dots on the actual perimeter can belong to
+    # a larger component. Remove only those lacking a nearby opaque white core.
+    for i,p in enumerate(pixels):
+        if not mask[i] or p[3]>=190: continue
+        ns=list(neighbors(i))
+        if not (len(ns)<8 or any(alpha[j]<=12 for j in ns)): continue
+        if any(mask[j] and alpha[j]>=220 and not remove[j] for j in ns): continue
+        remove[i]=1
+    out=Image.new("RGBA",im.size)
+    out.putdata([(p[0],p[1],p[2],0) if remove[i] else p for i,p in enumerate(pixels)])
+    return out,sum(remove)
+
+def verify_green_specks():
+    img=Image.new("RGBA",(240,320),(0,0,0,0))
+    d=ImageDraw.Draw(img)
+    d.rectangle((40,40,100,100),fill=(43,158,62,255))
+    d.rectangle((60,60,65,65),fill=(255,255,255,255))
+    d.rectangle((41,41,45,45),fill=(250,230,205,255))
+    d.point((39,55),fill=(240,241,240,255))
+    d.point((38,56),fill=(208,212,211,170))
+    d.point((32,32),fill=(220,220,220,255))
+    d.point((31,31),fill=(180,181,180,12))
+    d.point((120,120),fill=(255,205,35,255))
+    fixed,count=clean_green_specks(img)
+    assert count==4, count
+    for xy in ((39,55),(38,56),(32,32),(31,31)):
+        assert fixed.getpixel(xy)[3]==0
+    for xy in ((62,62),(42,42),(40,55),(120,120)):
+        assert fixed.getpixel(xy)==img.getpixel(xy)
+    assert all(p==q or (p[:3]==q[:3] and q[3]==0)
+               for p,q in zip(img.getdata(),fixed.getdata()))
+
+def clean_green_fallbacks():
+    # The actual loader can fall back to v95 normal/critical or hair sheets.
+    for kind in ("normal","critical"):
+        paths=[ROOT.parent/("green-death-"+kind+"-v95.png")]
+        paths += [ROOT.parent/("green-death-"+kind+"-v95-"+hair+".webp")
+                  for hair in ("chestnut","blond","red")]
+        for path in paths:
+            if not path.exists(): continue
+            with Image.open(path) as source: im=source.convert("RGBA")
+            if im.size!=(768,128): continue
+            out=im.copy()
+            total=0
+            for f in range(8):
+                frame=im.crop((f*96,0,(f+1)*96,128))
+                fixed,changed=clean_green_specks(frame)
+                out.paste(fixed,(f*96,0))
+                total+=changed
+            if total:
+                if path.suffix==".webp": out.save(path,"WEBP",lossless=True,method=4,exact=True)
+                else: out.save(path,"PNG")
+            print(f"V458 fallback {path.name}: {total} pixels",flush=True)
+
+def bump_green_cache():
+    # These are build-output files; both Android and Pages run this same tool.
+    loader=ROOT.parent/"green-death-loader.js"
+    data=loader.read_text()
+    data=data.replace("v=360-v455","v=360-v455-v458")
+    data=data.replace("?v=112-sharp-alpha","?v=112-sharp-alpha-v458")
+    data=data.replace("+'-v95-'+color+'.webp'","+'-v95-'+color+'.webp?v=458'")
+    loader.write_text(data)
+    index=Path("dist/index.html")
+    data=index.read_text()
+    data=re.sub(r'(green-death-loader\.js\?v=[^"]+)',r'\1-v458-specks',data)
+    index.write_text(data)
+    sw=Path("dist/sw.js")
+    data=sw.read_text()
+    data=re.sub(r"(const CACHE='[^']+)(')",r"\1-v458-specks\2",data,count=1)
+    sw.write_text(data)
+
 def verify():
     # Exterior checker, interior colored body, eye, yellow explosion ray.
     img=Image.new("RGBA",(64,64),(0,0,0,0))
@@ -166,6 +281,7 @@ def main():
     parser.add_argument("--preview",type=Path)
     args=parser.parse_args()
     verify()
+    verify_green_specks()
     geometry=json.loads(re.search(r"const geometry=(\{.*?\});",GEO.read_text(),re.S).group(1))
     preview=[]
     for name,mode in TARGETS.items():
@@ -179,6 +295,10 @@ def main():
         for f in range(count):
             cell=im.crop((f*fw,0,(f+1)*fw,fh))
             fixed,changed=clean_frame(cell,mode,f)
+            if mode=="green":
+                fixed,extra=clean_green_specks(fixed)
+                changed+=extra
+                print(f"V458 {name} frame {f}: {extra} residual specks",flush=True)
             assert fixed.size==cell.size
             # The repair is alpha-only; no new pixels, poses, or RGB changes.
             assert all(p==q or (p[:3]==q[:3] and q[3]==0)
@@ -189,6 +309,8 @@ def main():
         print(f"V455 {name}: removed {sum(counts)} additional matte pixels; frames {counts}",flush=True)
         if args.preview and name not in [n for n in GREEN if n.endswith(("-chestnut","-blond","-red"))]:
             preview.append((name,im,out,fw,fh,count))
+    clean_green_fallbacks()
+    bump_green_cache()
     if args.preview:
         tw,th=96,110
         sheet=Image.new("RGB",(tw*8, len(preview)*(th*2+28)),"#21354a")
@@ -203,7 +325,7 @@ def main():
                     sheet.paste(cell,(f*tw+(tw-cell.width)//2,top+22+k*th+(th-cell.height)//2),cell)
         args.preview.parent.mkdir(parents=True,exist_ok=True)
         sheet.save(args.preview)
-    print("V455 death matte verification passed",flush=True)
+    print("V455/V458 death matte verification passed",flush=True)
 
 if __name__=="__main__":
     main()
