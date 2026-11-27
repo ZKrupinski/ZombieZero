@@ -82,6 +82,7 @@ function ballImpact(b,axis,dir=1,kind='wall'){
 // V114: Reusable tiny 48px transparent impact bitmaps (no per-frame gradients).
 const trashContactFX=[];
 let ballContactFX=[];const contactStampCache=new Map();
+let contactMotionSerial=0;
 const particlePool=[],contactPool=[],flashPool=[];
 function recycleVisual(pool,v){if(pool.length<320)pool.push(v)}
 // V123: 12 asymmetric hand-inked impact shapes with tapered variable-weight lines.
@@ -159,7 +160,10 @@ function spawnContact(b,x,y,nx,ny,kind){
 }
 function queueContact(queue,x,y,nx,ny,kind,target,sizeMultiplier=1){
  const entry=typeof contactPool!=='undefined'?(contactPool.pop()||{}):{};
- Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,
+ // V459: seed visual-only motion once per contact, including pooled entries.
+ const serial=++contactMotionSerial,seed=Math.sin(serial*78.233+x*12.9898+y*37.719)*43758.5453;
+ const random=seed-Math.floor(seed),phase=random*Math.PI*2;
+ Object.assign(entry,{x,y,nx,ny,kind,target,sizeMultiplier,tone:0,angle:(random-.5)*.28,phase,
   variant:Math.floor(Math.abs(x*7+y*3+clock*41))%12,t:0,life:queue===trashContactFX?.42:kind==='enemy'?.30:kind==='ceiling'?.25:.27});queue.push(entry);
 }
 function contactFace(b,z,r,ox,oy){
@@ -178,7 +182,7 @@ function contactFace(b,z,r,ox,oy){
 function drawTrashContact(target){
  if(trashContactFX.length)drawContactFX(1,trashContactFX,target);
 }
-function drawContactFX(bloom=1,queue=ballContactFX,target=null){
+function drawContactFX(bloom=1,queue=ballContactFX,target=null,captureOnly=false){
  const hdReady=!!(contactAtlasHD&&contactAtlasHD.complete&&contactAtlasHD.naturalWidth===1536&&contactAtlasHD.naturalHeight===1152);
  const atlasReady=hdReady||!!(contactAtlasImage&&contactAtlasImage.complete&&contactAtlasImage.naturalWidth===256&&contactAtlasImage.naturalHeight===192);
  const cell=hdReady?384:64;
@@ -191,9 +195,16 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
   const trash=queue===trashContactFX,hold=trash?.4:.28;
   const fade=u<=hold?1:Math.pow(Math.max(0,(1-u)/(1-hold)),.86);
   if(fade<=0)continue;
-  g.save();g.translate(f.x,f.y);
-  // Point-symmetric balloon shapes do not rotate with the travel direction.
-  // The center still covers the exact ball/trail-bend collision vertex.
+  // V459: short damped local shake and a small per-burst tilt, independent
+  // of travel direction. Identical transforms in the visible and bloom passes.
+  const shakeTime=Math.min(1,Math.max(0,f.t/.115));
+  const damping=(1-shakeTime)*(1-shakeTime);
+  const motionScale=trash?(f.kind==='ground'?.68:.2175)*f.sizeMultiplier:f.sizeMultiplier;
+  const phase=f.phase||0,tilt=f.angle||0;
+  const dx=2.8*motionScale*damping*Math.sin(f.t*112+phase);
+  const dy=2.1*motionScale*damping*Math.cos(f.t*137+phase);
+  g.save();g.translate(f.x+dx,f.y+dy);
+  g.rotate(tilt+Math.sin(f.t*93+phase)*.042*damping);
   if(trash){
    const impactScale=f.kind==='ground'?.68:.2175;
    const size=impactScale*f.sizeMultiplier;
@@ -203,8 +214,11 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
    // part of ballContactFX and keep their original bitmap dimensions.
    g.scale(f.sizeMultiplier,f.sizeMultiplier);
   }
-  g.globalCompositeOperation=trash&&u<.18?'lighter':'source-over';
-  g.globalAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
+  g.globalCompositeOperation=captureOnly?'lighter':trash&&u<.18?'lighter':'source-over';
+  const baseAlpha=fade*(f.kind==='enemy'?.98:.95)*bloom;
+  g.globalAlpha=baseAlpha;
+  // Restrained ADD overlay, with the dark ink retained in the base pass.
+  const addAlpha=fxEnabled&&!captureOnly?fade*(.06+.08*damping):0;
   if(atlasReady){
    const frame=contactAtlasIndex(f);
    // 40-50% more screen coverage than V119; centered on the trail bend.
@@ -212,13 +226,16 @@ function drawContactFX(bloom=1,queue=ballContactFX,target=null){
    const scale=1.02-.10*u;
    const w=base*scale;
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-   g.drawImage(img,(frame%4)*cell,Math.floor(frame/4)*cell,cell,cell,-w/2,-w/2,w,w);
+   const sx=(frame%4)*cell,sy=Math.floor(frame/4)*cell;
+   g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);
+   if(addAlpha>0){g.globalCompositeOperation='lighter';g.globalAlpha=addAlpha;g.drawImage(img,sx,sy,cell,cell,-w/2,-w/2,w,w);}
   }else{
    // Retain the previous procedural art if the asset is still loading.
    const size=f.kind==='enemy'?1.44:f.kind==='ceiling'?1.34:1.40;
    g.scale(size*(.97+.07*u),size*(.97+.07*u));
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
    g.drawImage(img,-22,-32,64,64);
+   if(addAlpha>0){g.globalCompositeOperation='lighter';g.globalAlpha=addAlpha;g.drawImage(img,-22,-32,64,64);}
   }
   g.restore();
  }
@@ -5096,7 +5113,7 @@ drawKillCombo();drawBarrelBlasts();
   g.restore();
  });
  
-drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.10));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
+drawJunk();drawBossTrashShots();if(fx.length)luminous(()=>drawEffects());if(ballContactFX.length)luminous(()=>drawContactFX(1),()=>drawContactFX(.22,ballContactFX,null,true));if(trashContactFX.length)captureBloom(()=>drawContactFX(.18,trashContactFX,null,true));if(fxEnabled&&fxRenderer)fxRenderer.composite(g);drawEffectLightSpills();// Badges are above Bloom and shield, but citizen dialogue must be the front layer.
 drawEffects(true);drawCriticalPopups();drawActiveItemIcons();drawBubbles();g.restore();drawDanger();drawOutcome();
  drawStageIntro();
  if(runMode!=='endless'&&(mode==='clearing'||mode==='paused'&&resumeMode==='clearing'))drawClear();}
