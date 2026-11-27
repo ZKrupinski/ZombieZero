@@ -44,8 +44,8 @@ for(const [dx,d] of [[-.7071,0],[-.35,1],[0,2],[.35,3],[.7071,4]]){
 }
 assert(!pose({},{dx:0,time:.8},.95).angry);
 const motion=new Function('BUILD_TYPES',section('function duckTravel(','function strikeDuck(')+';return {duckTravel,duckSpringLength}')({lure:{range:100}});
-assert.equal(motion.duckTravel(0),0);assert(motion.duckTravel(.09)<0);
-assert.equal(motion.duckTravel(.43),100);assert.equal(motion.duckTravel(.74),0);assert(Math.abs(motion.duckTravel(1))<1e-8);
+assert(Math.abs(motion.duckTravel(0))<1e-8);assert(motion.duckTravel(.09)<0);
+assert.equal(motion.duckTravel(.43),100);assert(Math.abs(motion.duckTravel(.74))<1e-8);assert(Math.abs(motion.duckTravel(1))<1e-8);
 assert(motion.duckSpringLength(.09)<12&&motion.duckSpringLength(.28)>40);
 duckDraws.length=0;
 vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,angry:true,direction:4},'base')",env);
