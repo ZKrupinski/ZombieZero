@@ -909,7 +909,7 @@ function spawnStructureBreak(w,hpBefore){
   const i=row*4+col,dx=(col-1.5)/1.5,dy=(row-1.5)/1.5;
   pieces.push({sx:col*16,sy:row*16,x:w.x+(col+.5)*size/4,y:w.y+(row+.5)*size/4,
    // V463: compact local shatter; keep the original launch distribution and spin.
-   vx:(dx*(100+noise(i*4)*110)+(noise(i*4+1)-.5)*80)*.42,
+   vx:(dx*(100+noise(i*4)*110)+(noise(i*4+1)-.5)*80)*.30,
    vy:(-80+dy*48+noise(i*4+2)*115)*.28,spin:(noise(i*4+3)-.5)*16,
    size:size/4*(1.05+noise(i*4+4)*.55),life:.95+noise(i*4+5)*.45});
  }
