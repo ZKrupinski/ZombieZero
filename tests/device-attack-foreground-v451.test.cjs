@@ -25,31 +25,34 @@ assert(draw.indexOf('fortress?.drawAttackForeground?.(g)')<draw.indexOf('drawImp
 assert(src.includes("!building&&splitAttacks&&frontAttack(w)?'base':'all'"));
 console.log('PASS v451: attack-only moving parts above enemies, intact idle/building/base and impact layers.');
 
-// V472: all five directional poses and red rage bitmap row preserve feet.
+// V475: exact approved bitmap layers; every direction has its rage counterpart.
 const duckDraws=[];env.part=(g,...args)=>duckDraws.push(args);
 vm.runInContext("paintMachine(g,'lure',0,0,null,'attack')",env);
-assert.deepEqual(duckDraws.at(-1),[4,11,-11,43,47,0,2]);
+assert.deepEqual(duckDraws.at(-1),[4,11,-11,43,43,0,2]);
 for(let direction=0;direction<5;direction++){
  vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,angry:true,direction:"+direction+"},'attack')",env);
- assert.deepEqual(duckDraws.at(-1),[4,19,-23,43,47,1,direction]);
+ // Even a diagonal offset may never translate the duck horizontally.
+ assert.deepEqual(duckDraws.at(-1),[4,11,-23,43,43,1,direction]);
 }
 const pose=new Function(section('function duckPose(','function drawDevice(')+';return duckPose')();
 const directions=new Set();
 for(let i=0;i<180;i++){const p=pose({id:0,duckIdleTime:i/60},null,0);directions.add(p.direction);assert(p.bob<=0&&p.bob>=-4.2&&!p.angry)}
 assert.equal(directions.size,5);
 for(const [dx,d] of [[-.7071,0],[-.35,1],[0,2],[.35,3],[.7071,4]]){
- const a=pose({},{dx,time:.3},.35),b=pose({},{dx,time:.32},.35);
+ const a=pose({},{dx:0,aimDx:dx,time:.3},.35),b=pose({},{dx:0,aimDx:dx,time:.32},.35);
  assert.equal(a.direction,d);assert(a.angry&&b.angry&&a.jitterX===-b.jitterX);
 }
 assert(!pose({},{dx:0,time:.8},.95).angry);
-assert(src.includes('duck-faces-v472.png'));
-console.log('PASS v472: five directions, idle bob, direction-specific angry cels and local attack shake.');
-
-// V473: the chassis has its own bitmap and stays on the ground during a lunge.
+const motion=new Function('BUILD_TYPES',section('function duckTravel(','function strikeDuck(')+';return {duckTravel,duckSpringLength}')({lure:{range:100}});
+assert.equal(motion.duckTravel(0),0);assert(motion.duckTravel(.09)<0);
+assert.equal(motion.duckTravel(.43),100);assert.equal(motion.duckTravel(.74),0);assert(Math.abs(motion.duckTravel(1))<1e-8);
+assert(motion.duckSpringLength(.09)<12&&motion.duckSpringLength(.28)>40);
 duckDraws.length=0;
 vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,angry:true,direction:4},'base')",env);
-assert.deepEqual(duckDraws,[ [5,2,21,60,42] ]);
-assert.equal(duckDraws[0][2]+duckDraws[0][4],63);
-assert(src.includes('duck-chassis-v473.png'));
-assert(fs.existsSync('dist/assets/ip/v2/barricades/duck-tire-v473.webp'));
-console.log('PASS v473: red tire source committed, independent chassis and unchanged ground anchor.');
+assert.deepEqual(duckDraws,[[5,2,3,60,60]]);
+const approved=fs.readFileSync('dist/assets/ip/v2/barricades/duck-approved-v475.webp');
+assert.equal(approved.toString('ascii',0,4),'RIFF');assert.equal(approved.toString('ascii',8,12),'WEBP');
+assert.equal(approved[24]+(approved[25]<<8)+(approved[26]<<16)+1,1152);
+assert.equal(approved[27]+(approved[28]<<8)+(approved[29]<<16)+1,384);
+assert(src.includes('duck-approved-v475.webp'));
+console.log('PASS v475: original approved directional cels, fixed base, vertical jump and spring compression/landing.');

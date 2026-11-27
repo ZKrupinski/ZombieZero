@@ -93,17 +93,21 @@ assert(fs.readFileSync('dist/index.html','utf8').includes('꽁꽁 포획기</spa
 f.reset();f.begin([],1);place('lure',5,10,4);f.deploy([]);
 const duck=f.getStructure(5,10),origin={x:duck.x+22,y:duck.y+44*18/64};
 const front=actor(origin.x+14,origin.y-55),side=actor(origin.x-50,origin.y-59);
-const behind=actor(origin.x,origin.y+33),contacts=[];
+const behind=actor(origin.x,origin.y+33),outside=actor(origin.x-80,origin.y-43),far=actor(origin.x-8,origin.y-150),contacts=[];
 duck.cooldown=0;
-for(let i=0;i<60;i++)f.tickDevices(.01,[front,side,behind],i*.01,{push(z,dx,dy){contacts.push(z);assert(dx>0&&dy<0&&dx<=-dy);return true}});
-assert.deepEqual(contacts,[front]);
+for(let i=0;i<90;i++){
+ f.tickDevices(.01,[front,side,behind,outside,far],i*.01,{push(z,dx,dy){contacts.push(z);assert(dy<0&&Math.abs(dx)<=-dy+1e-9);return true}});
+ if(duck.run){assert.equal(duck.run.dx,0);assert.equal(duck.run.dy,-1)}
+}
+assert.deepEqual(contacts,[front,side],'both inside fan, neither side/back nor distant target, no repeated hit');
+assert(!duck.run&&duck.cooldown>0,'lands and returns to idle');
 const lead=actor(132,205),second=actor(144,179),third=actor(156,153);
 const spare=actor(200,195),plans=f.duckKnockPlan(lead,.45,-Math.sqrt(1-.45**2),[lead,second,third,spare],()=>true);
 assert.equal(plans.size,3);
 for(const [depth,z] of [lead,second,third].entries()){
  const pos=plans.get(z);assert.equal(pos.chainDepth,depth);assert(pos.x>z.x+12&&pos.y<z.y-25);
 }
-console.log('PASS directional spring contact, off-axis exclusion and three-body diagonal chain');
+console.log('PASS vertical spring jump, forward 90-degree fan exclusion and three-body diagonal chain');
 f.reset();f.begin([],1);place('bollard',16,19,2);f.deploy([]);
 const post=f.getStructure(16,19),rider=actor(post.x+2,post.y-1);
 const neighbor=actor(post.x-21,post.y),far=actor(post.x-70,post.y);

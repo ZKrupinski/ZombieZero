@@ -526,8 +526,12 @@ def main():
     clean_green_fallbacks()
     bump_green_cache()
     embed_boss_standby()
-    build_duck_faces()
-    build_duck_chassis()
+    # V475 uses the committed, approved directional sprite atlas directly.
+    with Image.open(Path('dist/assets/ip/v2/barricades/duck-approved-v475.webp')) as duck:
+        assert duck.size==(1152,384) and duck.mode=='RGBA'
+        for row in range(2):
+            for col in range(6):
+                assert duck.crop((col*192,row*192,(col+1)*192,(row+1)*192)).getchannel('A').getbbox()
     if args.preview:
         tw,th=96,110
         sheet=Image.new("RGB",(tw*8, len(preview)*(th*2+28)),"#21354a")

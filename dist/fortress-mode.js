@@ -22,7 +22,7 @@ const walls=new Map(),pending=new Map();
 const BUILD_TYPES={
  wall:{name:'방벽',cost:1,hp:30,desc:'연속 드래그 설치 · 적과 공 차단'},
  bollard:{name:'두더지 차단봉',cost:2,hp:12,cycle:4.8,desc:'드래그 연속 설치 · 솟을 때 밀치고 길을 막음'},
- lure:{name:'꽥꽥 유인기',cost:4,hp:12,range:100,duration:.84,cycle:4.5,desc:'위쪽 90° 스프링 돌진 · 충돌 시 연쇄 넉백'},
+ lure:{name:'꽥꽥 유인기',cost:4,hp:12,range:100,duration:.84,cycle:4.5,desc:'수직 스프링 점프 · 위쪽 90° 부채꼴 넉백'},
  saw:{name:'빙글 톱날',cost:5,hp:14,range:34,duration:1.1,cycle:1.65,desc:'주변 좀비 최대 3마리에 반복 피해'},
  ice:{name:'꽁꽁 포획기',cost:3,hp:16,range:126,duration:.85,cycle:3.5,desc:'최대 4마리 당겨 결빙 · 대기 중 피해 절반'}
 };
@@ -667,11 +667,14 @@ function tiles(){
 
 // Twelve transparent, separately articulated voxel sprite parts, 128px per cell.
 const partsURL='assets/ip/v2/barricades/fortress-voxels-v373.png';
-let parts=null,duckFaces=null,duckChassis=null;
+let parts=null,duckApproved=null;
 function part(g,index,x,y,w,h,expression=0,direction=2){
- // V472: 5 directional cels x 2 expressions, original-art raster atlas.
- if(index===5&&duckChassis){g.drawImage(duckChassis,x,y,w,h);return}
- if(index===4&&duckFaces){g.drawImage(duckFaces,direction*128,expression*140,128,140,x,y,w,h);return}
+ // V475: the approved sheet is directly cropped into 192px transparent
+ // cels: five idle, five rage, fixed red-wheel chassis and separate spring.
+ if(duckApproved&&(index===4||index===5||index===10)){
+  const col=index===4?direction:5,row=index===4?expression:index===10?1:0;
+  g.drawImage(duckApproved,col*192,row*192,192,192,x,y,w,h);return;
+ }
  if(index===4){y+=h-w;h=w}
  if(parts)g.drawImage(parts,(index%4)*128,Math.floor(index/4)*128,128,128,x,y,w,h);
 }
@@ -714,13 +717,15 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
  }
  const x=offset?.x||0,y=offset?.y||0;
  if(kind==='lure'){
-  if(layer!=='attack')part(g,5,2,21,60,42);
+  // The chassis stays fixed; its approved red tires are not part of the duck cel.
+  if(layer!=='attack')part(g,5,2,3,60,60);
   if(layer!=='base'){
    const expression=offset?.angry?1:0,direction=offset?.direction??2;
    const bob=offset?.bob||0,jx=offset?.jitterX||0,jy=offset?.jitterY||0;
-   linkage(g,10,32,36,x,y-13+bob,12);
-   // Only the duck bobs or shakes; its metal base and collision stay fixed.
-   part(g,4,11+x+jx,-11+y+bob+jy,43,47,expression,direction);
+   // The spring compresses and releases under the jumper, then settles while
+   // the duck is airborne. Only the duck gets the attack afterimage.
+   if(!offset?.ghost)linkage(g,10,32,36,0,-(offset?.spring??(12-bob)),24);
+   part(g,4,11+jx,-11+y+bob+jy,43,43,expression,direction);
   }
  }else if(kind==='saw'){
   if(layer!=='attack')part(g,6,2,20,60,43);
@@ -819,11 +824,12 @@ if(typeof Image==='function'){
  const image=new Image();image.onload=()=>{
   if(image.naturalWidth===512&&image.naturalHeight===384){parts=image;makeDeviceIcons()}
  };image.src=partsURL;
- const faces=new Image();faces.onload=()=>{
-  if(faces.naturalWidth===640&&faces.naturalHeight===280){duckFaces=faces;makeDeviceIcons()}
- };faces.src='assets/ip/v2/barricades/duck-faces-v472.png';
- const chassis=new Image();chassis.onload=()=>{if(chassis.naturalWidth===128&&chassis.naturalHeight===128){duckChassis=chassis;structureDebrisArt.delete('lure');makeDeviceIcons()}};
- chassis.src='assets/ip/v2/barricades/duck-chassis-v473.png';
+ const approved=new Image();approved.onload=()=>{
+  if(approved.naturalWidth===1152&&approved.naturalHeight===384){
+   duckApproved=approved;structureDebrisArt.delete('lure');makeDeviceIcons();
+  }
+ };
+ approved.src='assets/ip/v2/barricades/duck-approved-v475.webp';
 }
 function selectBuild(kind){
  if(!active||dragging||starting||pending.size||!BUILD_TYPES[kind])return false;
@@ -885,9 +891,9 @@ function duckPose(w,run,progress,building=false){
  if(building)return {direction:3,bob:0,angry:false,jitterX:0,jitterY:0};
  if(!run)return {direction:Math.max(0,Math.min(4,2+Math.round(2*Math.sin(age*2.25)))),
   bob:-4.2*Math.pow(Math.sin(age*5.2),2),angry:false,jitterX:0,jitterY:0};
- const direction=Math.max(0,Math.min(4,2+Math.round(2*(run.dx||0)/.7071)));
- const angry=progress<.79;
- const tick=Math.floor(run.time*60),strength=angry?(progress<.22?.55:progress<.53?1:.45):0;
+ const direction=Math.max(0,Math.min(4,2+Math.round(2*(run.aimDx??run.dx??0)/.7071)));
+ const angry=progress<.74;
+ const tick=Math.floor(run.time*60),strength=angry?(progress<.18?.55:progress<.43?1:.40):0;
  return {direction,bob:0,angry,jitterX:(tick%2?1:-1)*4.8*strength,
   jitterY:[-2.8,1.8,-1.2,2.5][tick%4]*strength};
 }
@@ -899,7 +905,9 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  if(!building&&w.kind==='bollard'&&w.moleHit>0)offset={moleImpact:moleImpactPose(w)};
  if(w.kind==='lure'){
   const travel=run?duckTravel(progress)*64/size:0;
-  offset={...duckPose(w,run,progress,building),x:run?run.dx*travel:0,y:run?run.dy*travel:0};
+  const pose=duckPose(w,run,progress,building);
+  // Vertical screen motion only; target direction selects face, not movement.
+  offset={...pose,x:0,y:-travel,spring:run?duckSpringLength(progress):12-pose.bob};
  }
  if(run&&w.kind==='saw'){
   const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
@@ -912,9 +920,9 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  // Same impact envelope as barricades, applied only to the bitmap.
  const bite=building?0:Math.min(1,Math.max(0,(w.biteShake||0)/.18));
  const elapsed=.18-Math.min(.18,w.biteShake||0);
- const punch=devicePunch(w,building);
- const shakeX=(bite?Math.sin(elapsed*124+w.id*.31)*3*bite:0)+(punch?Math.sin((w.fxImpact||w.moleTime||0)*100+w.id)*2.8*punch:0);
- const shakeY=(bite?Math.cos(elapsed*105+w.id*.19)*1.5*bite:0)-(punch?2.2*punch:0);
+ const punch=devicePunch(w,building),bodyPunch=w.kind==='lure'?0:punch;
+ const shakeX=(bite?Math.sin(elapsed*124+w.id*.31)*3*bite:0)+(bodyPunch?Math.sin((w.fxImpact||w.moleTime||0)*100+w.id)*2.8*bodyPunch:0);
+ const shakeY=(bite?Math.cos(elapsed*105+w.id*.19)*1.5*bite:0)-(bodyPunch?2.2*bodyPunch:0);
  const time=w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0;
  const pulse=w.kind==='bollard'?(building?1:w.lift||0):progress;
  g.save();g.translate(w.x+shakeX,w.y+shakeY);g.scale(size/64,size/64);
@@ -923,12 +931,12 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  if(run&&offset&&layer!=='base'&&(w.kind==='lure'||w.kind==='saw')&&
     Math.hypot(offset.x||0,offset.y||0)>12){
   g.save();g.globalAlpha=.32;g.globalCompositeOperation='lighter';
-  paintMachine(g,w.kind,Math.max(0,time-.12),pulse,{...offset,x:offset.x*.79,y:offset.y*.79,jitterX:0,jitterY:0},'attack');
+  paintMachine(g,w.kind,Math.max(0,time-.12),pulse,{...offset,x:offset.x*.79,y:offset.y*.79,jitterX:0,jitterY:0,ghost:w.kind==='lure'},'attack');
   g.restore();
  }
  if(bite>0||punch>0)g.filter='brightness('+String((1+Math.max(1.7*bite,(w.kind==='lure'&&offset?.angry?.25:1.1)*punch)).toFixed(2))+') saturate(.95)';
- if(punch&&layer!=='attack'){
-  g.translate(32,40);g.scale(1+.09*punch,1-.10*punch);g.translate(-32,-40);
+ if(bodyPunch&&layer!=='attack'){
+  g.translate(32,40);g.scale(1+.09*bodyPunch,1-.10*bodyPunch);g.translate(-32,-40);
  }
  paintMachine(g,w.kind,time,pulse,offset,layer);
  g.restore();
@@ -1033,11 +1041,7 @@ function withinReach(z,w){
 }
 function eligible(z,w,now){
  if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550||!withinReach(z,w))return false;
- if(w.kind==='lure'){
-  const p=deviceTarget(z,w.x+structureSize(w)/2,duckOriginY(w));
-  const dx=p.x-w.x-structureSize(w)/2,up=duckOriginY(w)-p.y;
-  return !(z.fortressFrozenUntil>now)&&up>0&&Math.abs(dx)<=up&&Math.hypot(dx,up)<=spec(w).range+12;
- }
+ if(w.kind==='lure')return !!duckFanTarget(w,z,now);
  return w.kind!=='ice'||(!(z.fortressIceReady>now)&&!(z.knockTime>0));
 }
 function reelIceTarget(w,z,prev,progress,now,ops){
@@ -1075,28 +1079,48 @@ function reelIceTarget(w,z,prev,progress,now,ops){
  w.fxImpact=.20;ops.freezeFX?.(z,w);
  return true;
 }
-// The centre of the painted duck sits 18/64 down the machine.
+// V475: jump directly toward the top of the screen, not diagonally toward a target.
+// Preserve the old attack origin and reach. The 90-degree fan opens as the
+// jumper advances; each eligible body receives one outward/upward shove.
 function duckOriginY(w){return w.y+structureSize(w)*18/64}
+function duckFanTarget(w,z,now){
+ if(z.hp<=0||(z.arrivalTime||0)<0||z.y+z.h>550||z.fortressFrozenUntil>now)return null;
+ const cx=w.x+structureSize(w)/2,cy=duckOriginY(w),p=deviceTarget(z,cx,cy);
+ const dx=p.x-cx,up=cy-p.y,distance=Math.hypot(dx,up);
+ if(up<=0||Math.abs(dx)>up||distance>spec(w).range+12)return null;
+ return {dx,up,distance};
+}
 function duckTravel(p){
- if(p<.22)return -4*Math.sin(Math.PI*p/.22);
- if(p<.45)return BUILD_TYPES.lure.range*(1-(1-(p-.22)/.23)**2);
- return BUILD_TYPES.lure.range*(1-(p-.45)/.55)**2;
+ const range=BUILD_TYPES.lure.range;
+ if(p<.18)return -5*Math.sin(Math.PI*p/.18);
+ if(p<.43){const t=(p-.18)/.25;return range*(1-(1-t)**2)}
+ if(p<.74){const t=(p-.43)/.31;return range*(1-t*t)}
+ const t=Math.max(0,Math.min(1,(p-.74)/.26));
+ return -4*Math.sin(t*Math.PI*3)*Math.exp(-t*4)*(1-t);
+}
+function duckSpringLength(p){
+ if(p<.18)return 12-8*Math.sin(Math.PI*p/.18);
+ if(p<.38)return 12+34*Math.sin(Math.PI*(p-.18)/.20);
+ if(p<.74)return 12;
+ const t=Math.max(0,Math.min(1,(p-.74)/.26));
+ return 12-7*Math.sin(t*Math.PI*3)*Math.exp(-t*3)*(1-t);
 }
 function strikeDuck(w,enemies,prev,progress,now,ops){
- if(progress<=.22||prev>=.45)return;
- const run=w.run,start=duckTravel(Math.max(.22,prev)),end=duckTravel(Math.min(.45,progress));
- const steps=Math.max(1,Math.ceil((end-start)/4));
- for(let i=0;i<=steps;i++){
-  const d=start+(end-start)*i/steps,x=w.x+structureSize(w)/2+run.dx*d,y=duckOriginY(w)+run.dy*d;
-  for(const z of enemies){
-   if(run.struck.has(z)||z.hp<=0||(z.arrivalTime||0)<0||z.fortressFrozenUntil>now)continue;
-   const ax=Math.max(z.x-x,0,x-z.x-z.w),ay=Math.max(z.y-y,0,y-z.y-z.h);
-   const sizeScale=structureSize(w)/ENDLESS_TILE;
-    if((ax/(14*sizeScale))**2+(ay/(9*sizeScale))**2>1)continue;
-   run.struck.add(z);
-   w.fxImpact=.20;
-   ops.push?.(z,run.dx,run.dy,'lure',run.struck);
-  }
+ if(progress<=.18||prev>=.43)return;
+ const run=w.run,reach=duckTravel(Math.min(.43,progress))+12;
+ // Near targets react first. A directly hit target is never hit twice;
+ // existing collision-safe chain knockback remains intact.
+ const candidates=[];
+ for(const z of enemies){
+  if(run.struck.has(z))continue;
+  const target=duckFanTarget(w,z,now);
+  if(target&&target.distance<=reach)candidates.push({z,...target});
+ }
+ candidates.sort((a,b)=>a.distance-b.distance);
+ for(const {z,dx,up,distance} of candidates){
+  if(run.struck.has(z))continue;
+  run.struck.add(z);w.fxImpact=.20;
+  ops.push?.(z,dx/distance,-up/distance,'lure',run.struck);
  }
 }
 // Plan small, swept displacements. Each touching neighbour joins the same
@@ -1236,7 +1260,7 @@ function tickDevices(dt,enemies,now,ops){
    if(w.kind==='lure'){
     const target=deviceTarget(targets[0],cx,duckOriginY(w)),dx=target.x-cx,dy=target.y-duckOriginY(w);
     const length=Math.hypot(dx,dy)||1;
-    Object.assign(w.run,{dx:dx/length,dy:dy/length,struck:new Set()});
+    Object.assign(w.run,{dx:0,dy:-1,aimDx:dx/length,struck:new Set()});
    }
   }
   const run=w.run,prev=run.time/type.duration;
