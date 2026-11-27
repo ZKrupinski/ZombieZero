@@ -141,7 +141,7 @@ assert.equal(f.getPendingRefund(),1);
 f.reset();f.begin([],1);place('ice',4,6,3);f.deploy([]);
 const trap=f.getStructure(4,6),victim=actor(trap.x+125,trap.y+4),events=[];
 trap.cooldown=0;
-for(let i=1;i<=85;i++)f.tickDevices(.01,[victim],i*.01,{canMove:(z,x,y)=>f.isPathClear(z,z.x,z.y,x,y),contact:(z,k)=>events.push([z,k])});
+for(let i=1;i<=85;i++)f.tickDevices(.01,[victim],i*.01,{canMove:(z,x,y)=>f.isPathClear(z,z.x,z.y,x,y),contact:(z,k)=>events.push([z,k]),freezeFX:(z,w)=>{assert.equal(z,victim);assert.equal(w,trap);assert(z.fortressFrozenUntil>0);assert.equal(w.fxImpact,.20);}});
 assert.equal(events.length,1);assert.deepEqual(events[0],[victim,'ice']);assert(victim.fortressFrozenUntil>0);
 console.log('PASS v386: vulnerable long-exposure mole, single capture contact and freeze.');
 
@@ -235,3 +235,15 @@ for(let wave=1;wave<=14;wave++){
 {const count=f.setupEndless(100,opening,565);assert(count>=12&&count<=21);}
 f.reset();assert.equal(f.getWallCount(),0);assert.equal(f.bounds().tile,22);
 console.log('PASS v412: endless support progression, fresh unobstructed placement, bounded count, no construction UI.');
+
+// V469: actual hit events set an independent visual timer without changing HP or cooldown.
+assert(source.includes('w.fxImpact=.20;ops.damage?.('));
+assert(source.includes('w.fxImpact=.20;ops.freezeFX?.(z,w)'));
+assert(source.includes('w.fxImpact=Math.max(0,(w.fxImpact||0)-dt)'));
+const punchSrc=source.slice(source.indexOf('function devicePunch('),source.indexOf('function drawDevice(',source.indexOf('function devicePunch(')));
+const punch=new Function(punchSrc+';return devicePunch')();
+assert.equal(punch({kind:'bollard',raised:true,moleTime:0}),1);
+assert.equal(punch({kind:'saw',fxImpact:.20}),1);
+assert.equal(punch({kind:'saw',fxImpact:.20},true),0);
+assert.equal(punch({kind:'ice',run:{time:0}}),.55);
+console.log('PASS v469: local visual impact envelopes, building isolation and unchanged hit callbacks.');

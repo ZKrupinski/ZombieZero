@@ -362,7 +362,7 @@ function begin(enemies,wave){
   // construction materials; already destroyed cubes stay absent and refund
   // one material each on top of the regular per-wave supply.
   lastHealed=walls.size;
-  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.run=null;w.pulse=0;w.raised=false;w.lift=0;w.moleHit=0;w.moleHitSide=0}
+  for(const w of walls.values()){w.hp=spec(w).hp;w.hit=0;w.biteShake=0;w.cooldown=0;w.run=null;w.pulse=0;w.fxImpact=0;w.raised=false;w.lift=0;w.moleHit=0;w.moleHitSide=0}
   lastRefund=destroyedThisStage;
   lastBonus=Math.min(14,8+Math.floor(wave/5));
   stock+=lastRefund+lastBonus;destroyedThisStage=0;
@@ -550,7 +550,7 @@ function deploy(target){
   placed.push(z);
  }
  for(const w of walls.values())if(w.kind&&w.kind!=='wall'){
-  w.run=null;w.cooldown=w.kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());
+  w.run=null;w.fxImpact=0;w.cooldown=w.kind==='ice'?.3+.45*Math.random():randomRest(w)*(.25+.45*Math.random());
  }
  target.push(...queued);queued=[];active=false;cancel();refresh();
  return true;
@@ -686,7 +686,7 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
  if(kind==='bollard'){
   part(g,3,0,22,64,40);
   if(pulse<=0||!parts)return;
-  const spring=time>0?Math.sin(time*32)*Math.exp(-time*9)*.32:0;
+  const spring=time>0?Math.sin(time*30)*Math.exp(-time*6.5)*.56:0;
   // Keep the lower body below the curved inner edge of the rocks, even
   // during the elastic rise. The mole must emerge from a hole, not a flat cut.
   const impact=offset?.moleImpact;
@@ -719,7 +719,7 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
   if(layer!=='attack')part(g,6,2,20,60,43);
   if(layer!=='base'){
    linkage(g,11,32,38,x,y-16,7);
-   g.save();g.translate(32+x,22+y);g.rotate(time*8+.3);
+   g.save();g.translate(32+x,22+y);g.rotate(time*17+.3);
    part(g,7,-22,-22,44,44);g.restore();
   }
  }else if(kind==='ice'){
@@ -841,19 +841,30 @@ function drawIceArms(g,w){
   if(length<8)continue;
   g.save();g.translate(cx,cy);g.rotate(angle);
   // A compact dark cable with a narrow cold highlight; no oversized arrows.
-  linkage(g,11,0,0,length,0,3.4*visualScale);
-  g.globalAlpha=.75;g.strokeStyle='#b5e5f5';g.lineWidth=.9;
+  linkage(g,11,0,0,length,0,5.2*visualScale);
+  g.globalCompositeOperation='lighter';g.globalAlpha=.9;g.strokeStyle='#86e8ff';g.lineWidth=1.8;
   g.beginPath();g.moveTo(5,-.7);g.lineTo(length,-.7);g.stroke();
   if(grip&&!retract&&grip.moved>0.4){
    const shift=(run.time*120)%16;
-   g.strokeStyle='#e2f9ff';g.lineWidth=1.5;g.globalAlpha=.85;
+   g.strokeStyle='#e2f9ff';g.lineWidth=2.8;g.globalAlpha=1;
    g.beginPath();
    for(let pos=length-shift;pos>12;pos-=16){g.moveTo(pos-3,-1);g.lineTo(pos+1,-1)}
    g.stroke();
   }
-  g.globalAlpha=1;
-  part(g,9,length-7*visualScale,-6*visualScale,14*visualScale,12*visualScale);g.restore();
+  g.globalCompositeOperation='source-over';g.globalAlpha=1;
+  const claw=progress<ICE_LATCH?1.18:grip&&!retract?1.35:1;
+  part(g,9,length-7*visualScale*claw,-6*visualScale*claw,14*visualScale*claw,12*visualScale*claw);
+  g.globalCompositeOperation='lighter';g.globalAlpha=.28;
+  part(g,9,length-7*visualScale*claw,-6*visualScale*claw,14*visualScale*claw,12*visualScale*claw);g.restore();
  }
+}
+// V469: presentation envelope only; never feeds movement or collision.
+function devicePunch(w,building=false){
+ if(building)return 0;
+ const impact=Math.max(0,Math.min(1,(w.fxImpact||0)/.20));
+ const pop=w.kind==='bollard'&&w.raised?Math.max(0,1-(w.moleTime||0)/.20):0;
+ const windup=w.run?Math.max(0,1-w.run.time/.14)*.55:0;
+ return Math.max(impact,pop,windup);
 }
 function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  if(!parts)return;
@@ -875,12 +886,25 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  // Same impact envelope as barricades, applied only to the bitmap.
  const bite=building?0:Math.min(1,Math.max(0,(w.biteShake||0)/.18));
  const elapsed=.18-Math.min(.18,w.biteShake||0);
- const shakeX=bite?Math.sin(elapsed*124+w.id*.31)*1.5*bite:0;
- const shakeY=bite?Math.cos(elapsed*105+w.id*.19)*.7*bite:0;
- g.save();
- if(bite>0)g.filter='brightness('+String((1+1.2*bite).toFixed(2))+') saturate(.85)';
- g.translate(w.x+shakeX,w.y+shakeY);g.scale(size/64,size/64);
- paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset,layer);
+ const punch=devicePunch(w,building);
+ const shakeX=(bite?Math.sin(elapsed*124+w.id*.31)*3*bite:0)+(punch?Math.sin((w.fxImpact||w.moleTime||0)*100+w.id)*2.8*punch:0);
+ const shakeY=(bite?Math.cos(elapsed*105+w.id*.19)*1.5*bite:0)-(punch?2.2*punch:0);
+ const time=w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0;
+ const pulse=w.kind==='bollard'?(building?1:w.lift||0):progress;
+ g.save();g.translate(w.x+shakeX,w.y+shakeY);g.scale(size/64,size/64);
+ // A single original-art afterimage follows each rapidly moving head,
+ // never the stationary base. No new canvases or per-frame assets.
+ if(run&&offset&&layer!=='base'&&(w.kind==='lure'||w.kind==='saw')&&
+    Math.hypot(offset.x||0,offset.y||0)>12){
+  g.save();g.globalAlpha=.32;g.globalCompositeOperation='lighter';
+  paintMachine(g,w.kind,Math.max(0,time-.12),pulse,{x:offset.x*.79,y:offset.y*.79},'attack');
+  g.restore();
+ }
+ if(bite>0||punch>0)g.filter='brightness('+String((1+Math.max(1.7*bite,1.1*punch)).toFixed(2))+') saturate(.95)';
+ if(punch&&layer!=='attack'){
+  g.translate(32,40);g.scale(1+.09*punch,1-.10*punch);g.translate(-32,-40);
+ }
+ paintMachine(g,w.kind,time,pulse,offset,layer);
  g.restore();
  if(drawGauge)drawDeviceGauge(g,w,glow);
 }
@@ -998,6 +1022,7 @@ function reelIceTarget(w,z,prev,progress,now,ops){
   z.fortressIceReady=now+remaining;
   z.trashStopUntil=Math.max(z.trashStopUntil||0,now+remaining);
   delete z.wormParade;delete z.breakoutTime;delete z.eliteMotion;
+  w.fxImpact=.20;
   ops.contact?.(z,'ice',w.x+structureSize(w)/2-z.x-z.w/2,w.y+structureSize(w)/2-z.y-z.h/2);
  }
  if(!run.grabbed.has(z)||prev>=ICE_FREEZE)return false;
@@ -1021,6 +1046,7 @@ function reelIceTarget(w,z,prev,progress,now,ops){
  const duration=z.boss?.85:2.8;
  z.fortressFrozenUntil=now+duration;z.fortressIceReady=now+duration+2;
  z.trashStopUntil=Math.max(z.trashStopUntil||0,z.fortressFrozenUntil);
+ w.fxImpact=.20;ops.freezeFX?.(z,w);
  return true;
 }
 // The centre of the painted duck sits 18/64 down the machine.
@@ -1042,6 +1068,7 @@ function strikeDuck(w,enemies,prev,progress,now,ops){
    const sizeScale=structureSize(w)/ENDLESS_TILE;
     if((ax/(14*sizeScale))**2+(ay/(9*sizeScale))**2>1)continue;
    run.struck.add(z);
+   w.fxImpact=.20;
    ops.push?.(z,run.dx,run.dy,'lure',run.struck);
   }
  }
@@ -1155,7 +1182,7 @@ function tickBollard(w,dt,enemies,ops,now=0){
    if(enemies.some(z=>z.hp>0&&intersects(z.x,z.y,z.w,z.h,w))){
     w.cooldown=.8+Math.random();return;
    }
-   w.raised=true;w.moleTime=0;w.cooldown=4.5+Math.random()*2.5;
+   w.raised=true;w.moleTime=0;w.fxImpact=.20;w.cooldown=4.5+Math.random()*2.5;
    if(ops.molePush)ops.pulse?.('bollard',cx,cy,launched);
    else if(!nearby.length)ops.pulse?.('bollard',cx,cy,0);
   }
@@ -1204,7 +1231,7 @@ function tickDevices(dt,enemies,now,ops){
    if(!eligible(z,w,now))continue;
    const impact=(i+.5)/run.targets.length;
    if(prev>=impact||progress<impact)continue;
-   ops.damage?.(z,z.boss?3:2,w.kind,cx,cy);hit++;
+   w.fxImpact=.20;ops.damage?.(z,z.boss?3:2,w.kind,cx,cy);hit++;
   }
   if(hit&&w.kind==='ice')ops.pulse?.(w.kind,cx,cy,hit);
   if(progress>=1){w.run=null;w.cooldown=randomRest(w)}
@@ -1240,10 +1267,10 @@ function draw(g,building=false,glow=null,splitAttacks=false){
   // shake and no collision/HP displacement; the PNG itself is jittered.
   const bite=Math.min(1,Math.max(0,(w.biteShake||0)/.18));
   const elapsed=.18-Math.min(.18,w.biteShake||0);
-  const shakeX=bite?Math.sin(elapsed*124+w.id*.31)*1.5*bite:0;
-  const shakeY=bite?Math.cos(elapsed*105+w.id*.19)*.7*bite:0;
+  const shakeX=bite?Math.sin(elapsed*124+w.id*.31)*3*bite:0;
+  const shakeY=bite?Math.cos(elapsed*105+w.id*.19)*1.6*bite:0;
   g.save();
-  if(bite>0)g.filter='brightness('+String((1+1.2*bite).toFixed(2))+') saturate(.85)';
+  if(bite>0)g.filter='brightness('+String((1+1.8*bite).toFixed(2))+') saturate(.95)';
   g.drawImage(tile,index*frame,0,frame,frame,w.x+shakeX,w.y+shakeY,structureSize(w),structureSize(w));
   g.restore();
  }
@@ -1272,7 +1299,7 @@ function draw(g,building=false,glow=null,splitAttacks=false){
  g.restore();
 }
 function tick(dt){tickStructureDebris(dt);for(const w of walls.values()){
- w.hit=Math.max(0,(w.hit||0)-dt);
+ w.hit=Math.max(0,(w.hit||0)-dt);w.fxImpact=Math.max(0,(w.fxImpact||0)-dt);
  w.biteShake=Math.max(0,(w.biteShake||0)-dt);
  if(w.moleHit>0)w.moleHit=Math.max(0,w.moleHit-dt);
 }}

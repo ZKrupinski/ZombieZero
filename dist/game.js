@@ -2341,10 +2341,11 @@ function march(dt){
   molePush:pushMoleZombie,
   push:(z,x,y,kind,struck)=>{fortressContact(z,kind,x,y);if(z.boss)return pushFortressBoss(z,x,y);return applyKnockback(z,{x,y,duck:true,structure:kind,struck},2)},
   contact:fortressContact,
+  freezeFX:(z)=>{const p=knockVisualPosition(z);queueContact(ballContactFX,p.x+z.w/2,p.y+z.h*.48,0,-1,'enemy',null,z.boss?.95:.66);},
   damage:(z,n,kind,cx,cy)=>{
    if(kind==='saw'){
     const px=Math.max(z.x,Math.min(z.x+z.w,cx)),py=Math.max(z.y,Math.min(z.y+z.h,cy));
-    queueContact(ballContactFX,px,py,0,-1,'enemy',null,z.boss?.86:.48);
+    queueContact(ballContactFX,px,py,0,-1,'enemy',null,z.boss?.95:.70);
     if(z.boss)z.fortressBossFlashUntil=clock+.19;
    }
    damage(z,n,false,{x:0,y:-1,push:.25});
@@ -2353,7 +2354,7 @@ function march(dt){
    // A localized pop at the hatch, not a group-wide explosion.
    // Successful launches have their own larger contact stamps on each zombie.
    // Keep the hatch pop small and only when no victim was launched.
-   if(!count)queueContact(ballContactFX,x,y-8,0,-1,'enemy',null,.32);
+   if(!count)queueContact(ballContactFX,x,y-8,0,-1,'enemy',null,.46);
    if(count)sfx('wall');
   }}
  });
