@@ -5249,8 +5249,8 @@ try{
 let hapticsEnabled=hapticsMode!=='off';
 const FEEDBACK_PRESETS={
  wall:{v:28,s:0.28,p:0},
- racket:{v:[205,32,235],s:0.9,p:13},
- car:{v:[205,32,235],s:1.3,p:13},
+ racket:{v:55,s:0.9,p:13},
+ car:{v:55,s:1.3,p:13},
  hit:{v:105,s:1.4,p:5},
  powerHit:{v:140,s:2.15,p:7},
  kill:{v:[115,36,105],s:2.6,p:8},
@@ -5272,7 +5272,7 @@ const FEEDBACK_PRESETS={
  blocked:{v:40,s:0.85,p:3},
  bossSpawn:{v:[85,32,105],s:2.8,p:8},
  item:{v:40,s:0.55,p:2},
- serve:{v:[205,32,235],s:0.4,p:13},
+ serve:{v:70,s:0.4,p:13},
  start:{v:25,s:0,p:1},
  wave:{v:[45,30,45],s:1.15,p:3},
  victory:{v:[55,35,110],s:2,p:6},
@@ -5303,7 +5303,7 @@ function cameraFeedback(strength,zombieImpact=false,criticalLabel=false,heroStri
   screenShake.power=serveStrike?12:9.5;screenShake.started=now;screenShake.until=now+100;
   screenShake.phase=(screenShake.phase+1.41)%6.283;
   screenShake.hero=true;screenShake.critical=false;
-  screenShake.zoom=serveStrike?.10+Math.random()*.04:.04+Math.random()*.02;screenShake.zoomAt=now;screenShake.zoomDuration=serveStrike?200:overhead?180:100;
+  screenShake.zoom=serveStrike?.10+Math.random()*.04:.03+Math.random()*.015;screenShake.zoomAt=now;screenShake.zoomDuration=serveStrike?200:overhead?180:100;
   // V431: a distinct vertical spring, never a second shake impulse.
   screenShake.springPower=serveStrike?4:overhead?3.5:2.5;
   screenShake.springTailMs=serveStrike?120:95;
@@ -5446,7 +5446,9 @@ function feedback(kind,criticalLabel=false,overhead=false){
   const ok=navigator.vibrate(cfg.v);
   if(ok){
    lastBuzz=now;buzzPriority=cfg.p;
-   buzzLockedUntil=now+Math.max(95,Math.min(550,length+14));
+   // V453: separate strike debounce prevents continuous motor buzzing.
+   const ownStrike=kind==='serve'||kind==='racket'||kind==='car';
+   buzzLockedUntil=now+Math.max(ownStrike?145:95,Math.min(550,length+14));
    d.accepted++;if(combat)d.hitAccepted++;
    report('요청 수락');
   }else report('요청 거부');
