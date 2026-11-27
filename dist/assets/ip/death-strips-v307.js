@@ -42,7 +42,7 @@
    entry.strip={image,side,left,top,width,height};
    entry.ready=true;
   };
-  image.src=root+key+'.webp';
+  image.src=root+key+'.webp?v=455';
  }
  function draw(ctx,strip,frame,x,y,side){
   const scale=side/strip.side;

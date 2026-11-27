@@ -125,7 +125,7 @@
      const fallback=()=>{sheet.onerror=null;sheet.src='assets/ip/green-death-'+kind+'-v95-'+color+'.webp'};
      if(window.ZZDeathStrips){
        sheet.onerror=fallback;
-       sheet.src=window.ZZDeathStrips.root+'green-'+kind+'-'+color+'.webp?v=360';
+       sheet.src=window.ZZDeathStrips.root+'green-'+kind+'-'+color+'.webp?v=360-v455';
      }else fallback();
      part.hairSheets[color]=sheet;
    }
@@ -157,7 +157,7 @@
    };
    if(window.ZZDeathStrips){
      part.image.onerror=fallback;
-     part.image.src=window.ZZDeathStrips.root+'green-'+kind+'.webp?v=360';
+     part.image.src=window.ZZDeathStrips.root+'green-'+kind+'.webp?v=360-v455';
    }else fallback();
  }
 

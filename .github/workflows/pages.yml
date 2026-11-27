@@ -34,6 +34,13 @@ jobs:
         run: |
           python -m pip install 'Pillow>=10,<12'
           python tools/clean-green-death-fringe-v360.py
+          python tools/clean-death-matte-v455.py --preview "$RUNNER_TEMP/death-matte-v455.png"
+      - name: Save death sprite QA preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: death-matte-v455-before-after
+          path: ${{ runner.temp }}/death-matte-v455.png
+          if-no-files-found: error
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

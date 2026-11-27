@@ -37,6 +37,7 @@ jobs:
           node tools/test.cjs
           python -m pip install 'Pillow>=10,<12'
           python tools/clean-green-death-fringe-v360.py
+          python tools/clean-death-matte-v455.py
       - name: Set up Android SDK command-line tools
         uses: android-actions/setup-android@v3
         with:
