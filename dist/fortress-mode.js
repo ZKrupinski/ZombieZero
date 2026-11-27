@@ -648,7 +648,7 @@ function linkage(g,index,x,y,dx,dy,width){
  else part(g,index,0,-width/2,length,width);
  g.restore();
 }
-function paintMachine(g,kind,time,pulse,offset=null){
+function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
  if(kind==='wall'){
   const tile=bitmapTiles();if(tile)g.drawImage(tile,0,0,56,56,0,0,64,64);
   return;
@@ -680,14 +680,18 @@ function paintMachine(g,kind,time,pulse,offset=null){
  }
  const x=offset?.x||0,y=offset?.y||0;
  if(kind==='lure'){
-  part(g,5,2,27,60,36);
-  linkage(g,10,32,36,x,y-13,12);
-  part(g,4,11+x,1+y,43,35);
+  if(layer!=='attack')part(g,5,2,27,60,36);
+  if(layer!=='base'){
+   linkage(g,10,32,36,x,y-13,12);
+   part(g,4,11+x,1+y,43,35);
+  }
  }else if(kind==='saw'){
-  part(g,6,2,20,60,43);
-  linkage(g,11,32,38,x,y-16,7);
-  g.save();g.translate(32+x,22+y);g.rotate(time*8+.3);
-  part(g,7,-22,-22,44,44);g.restore();
+  if(layer!=='attack')part(g,6,2,20,60,43);
+  if(layer!=='base'){
+   linkage(g,11,32,38,x,y-16,7);
+   g.save();g.translate(32+x,22+y);g.rotate(time*8+.3);
+   part(g,7,-22,-22,44,44);g.restore();
+  }
  }else if(kind==='ice'){
   const spread=Math.sin(Math.PI*pulse)*5;
   if(!offset?.deployed)for(const side of [-1,1]){
@@ -821,7 +825,7 @@ function drawIceArms(g,w){
   part(g,9,length-7*visualScale,-6*visualScale,14*visualScale,12*visualScale);g.restore();
  }
 }
-function drawDevice(g,w,building=false,glow=null,drawGauge=true){
+function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  if(!parts)return;
  const size=T*span(w),x=w.x+size/2,y=w.y+size/2;
  const run=building?null:w.run,progress=run?run.time/spec(w).duration:0;
@@ -846,7 +850,7 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true){
  g.save();
  if(bite>0)g.filter='brightness('+String((1+1.2*bite).toFixed(2))+') saturate(.85)';
  g.translate(w.x+shakeX,w.y+shakeY);g.scale(size/64,size/64);
- paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset);
+ paintMachine(g,w.kind,w.kind==='bollard'?(building?0:w.moleTime||0):run?run.time*3:0,w.kind==='bollard'?(building?1:w.lift||0):progress,offset,layer);
  g.restore();
  if(drawGauge)drawDeviceGauge(g,w,glow);
 }
@@ -1183,13 +1187,19 @@ function tickDevices(dt,enemies,now,ops){
 for(const {kind,el} of buildButtons)el?.addEventListener?.('click',()=>selectBuild(kind));
 makeDeviceIcons();
 
-function draw(g,building=false,glow=null){
+// v451: only the animated duck/blade and its extending linkage cross above enemies.
+function frontAttack(w){return !!w.run&&(w.kind==='lure'||w.kind==='saw')}
+function drawAttackForeground(g){
+ if(!parts)return;
+ for(const w of walls.values())if(frontAttack(w))drawDevice(g,w,false,null,false,'attack');
+}
+function draw(g,building=false,glow=null,splitAttacks=false){
  const bitmap=bitmapTiles();
  const tile=bitmap||tiles();if(!tile)return;
  const frame=bitmap?BARRICADE_FRAME:MINI_TILE;
  if(!building&&parts)for(const w of walls.values())if(w.kind==='ice'&&w.run)drawIceArms(g,w);
  for(const w of walls.values()){
-  if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building,glow,false);continue}
+  if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building,glow,false,!building&&splitAttacks&&frontAttack(w)?'base':'all');continue}
   // The five authored PNG states are switched by actual remaining HP.
   const variant=w.hp>MAX_HP*.8?0:w.hp>MAX_HP*.6?1:
     w.hp>MAX_HP*.4?2:w.hp>MAX_HP*.2?3:4;
@@ -1237,7 +1247,7 @@ function tick(dt){tickStructureDebris(dt);for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',startWithFeedback);
-window.ZZFortress={structureSize,duckKnockPlan,reset,setupEndless,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>valid(col,row)?occupied.get(id(col,row)):undefined,isOpen,isPathClear,escapeWall,bounceBall,draw,tick,down,move,up,cancel,ready,startWithFeedback,
+window.ZZFortress={structureSize,duckKnockPlan,reset,setupEndless,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>valid(col,row)?occupied.get(id(col,row)):undefined,isOpen,isPathClear,escapeWall,bounceBall,draw,drawAttackForeground,tick,down,move,up,cancel,ready,startWithFeedback,
  bind(fn,feedback){onReady=fn;onStartFeedback=feedback},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),

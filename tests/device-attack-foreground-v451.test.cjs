@@ -1,0 +1,26 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const src=fs.readFileSync('dist/fortress-mode.js','utf8'),game=fs.readFileSync('dist/game.js','utf8');
+const calls=[];const g={save(){},restore(){},translate(){},rotate(){}};
+const env={g,part:(g,n)=>calls.push(n),linkage:(g,n)=>calls.push(n)};
+const section=(a,b)=>src.slice(src.indexOf(a),src.indexOf(b,src.indexOf(a)+a.length));
+vm.createContext(env);vm.runInContext(section('function paintMachine(','// Dedicated high-DPI')+section('function frontAttack(','function draw(g,building'),env);
+for(const [kind,base,attack] of [['lure',[5],[10,4]],['saw',[6],[11,7]]]){
+ for(const [layer,expected] of [['base',base],['attack',attack],['all',[...base,...attack]]]){
+  calls.length=0;env.kind=kind;env.layer=layer;
+  vm.runInContext("paintMachine(g,kind,.3,.4,{x:8,y:-12},layer)",env);
+  assert.deepEqual(calls,expected);
+ }
+ assert.equal(env.frontAttack({kind,run:{}}),true);
+ assert.equal(env.frontAttack({kind,run:null}),false);
+}
+for(const kind of ['ice','bollard','wall'])assert.equal(env.frontAttack({kind,run:{}}),false);
+env.parts={};env.walls=new Map([['duck',{kind:'lure',run:{}}],['idle',{kind:'saw'}],['saw',{kind:'saw',run:{}}],['ice',{kind:'ice',run:{}}]]);
+const painted=[];env.drawDevice=(g,w,building,glow,gauge,layer)=>painted.push([w.kind,building,gauge,layer]);env.drawAttackForeground(g);
+assert.deepEqual(painted,[['lure',false,false,'attack'],['saw',false,false,'attack']]);
+const draw=game.slice(game.indexOf('function draw(){recordSlowEchoHistory()'));
+assert(draw.indexOf('fortress?.draw(g,')<draw.indexOf('drawStruckZombie(z)'));
+assert(draw.indexOf('drawStruckZombie(z)')<draw.indexOf('fortress?.drawAttackForeground?.(g)'));
+assert(draw.indexOf('fortress?.drawAttackForeground?.(g)')<draw.indexOf('drawImpactFlashes()'));
+assert(src.includes("!building&&splitAttacks&&frontAttack(w)?'base':'all'"));
+console.log('PASS v451: attack-only moving parts above enemies, intact idle/building/base and impact layers.');
