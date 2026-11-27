@@ -1,0 +1,48 @@
+name: Publish public Android test APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-public.yml'
+  workflow_run:
+    workflows: ['Build ZOMBIE BALLS Android APK']
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: zombie-balls-public-android
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Download newest successful main APK
+        run: |
+          run="$(gh run list --workflow android.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          test -n "$run" && test "$run" != null
+          gh run download "$run" --name ZOMBIE-BALLS-Android-APK --dir public-apk
+          cd public-apk
+          sha256sum -c SHA256SUMS.txt
+          test -s ZOMBIE-BALLS-debug.apk
+          echo "SOURCE_RUN=$run" >> "$GITHUB_ENV"
+      - name: Publish rolling public test release
+        run: |
+          tag=android-test-latest
+          commit="$(sed -n 's/^commit=//p' public-apk/build-info.txt)"
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]]
+          notes="$(printf 'Public Android test APK (debug-signed; not a Play Store release).\n\nSource commit: %s\nBuild: https://github.com/%s/actions/runs/%s\n\nThis rolling prerelease is updated after successful main Android builds. Download the APK directly; no ZIP is needed.\n' "$commit" "$GH_REPO" "$SOURCE_RUN")"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" public-apk/ZOMBIE-BALLS-debug.apk public-apk/SHA256SUMS.txt public-apk/build-info.txt --clobber
+            gh release edit "$tag" --title "ZOMBIE BALLS Android Test" --notes "$notes" --prerelease --latest=false
+          else
+            gh release create "$tag" public-apk/ZOMBIE-BALLS-debug.apk public-apk/SHA256SUMS.txt public-apk/build-info.txt --target "$commit" --title "ZOMBIE BALLS Android Test" --notes "$notes" --prerelease --latest=false
+          fi
+          gh release view "$tag" --json url,assets
