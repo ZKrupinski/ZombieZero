@@ -2351,7 +2351,9 @@ function march(dt){
   },
   pulse:(kind,x,y,count)=>{if(kind==='ice')sfx('item');else if(kind==='bollard'){
    // A localized pop at the hatch, not a group-wide explosion.
-   queueContact(ballContactFX,x,y-8,0,-1,'enemy',null,count?.58:.32);
+   // Successful launches have their own larger contact stamps on each zombie.
+   // Keep the hatch pop small and only when no victim was launched.
+   if(!count)queueContact(ballContactFX,x,y-8,0,-1,'enemy',null,.32);
    if(count)sfx('wall');
   }}
  });
@@ -3220,7 +3222,8 @@ function pushFortressBoss(z,x,y){
 }
 function fortressContact(z,kind,x=0,y=-1,freeze=null){
  if(!foes.includes(z)||z.hp<=0)return;
- if(clock<(z.fortressContactReady||0))return;
+ // A successful mole launch is a distinct collision, even just after another hit.
+ if(clock<(z.fortressContactReady||0)&&kind!=='bollard')return;
  z.fortressContactReady=clock+.14;
  const position=knockVisualPosition(z);
  enemyReaction(z,1,{x,y},true);
@@ -3235,7 +3238,8 @@ function fortressContact(z,kind,x=0,y=-1,freeze=null){
   const side=kind==='ice'?1:-1;
   const px=position.x+z.w/2+side*dx*z.w*.38;
   const py=position.y+z.h/2+side*dy*z.h*.32;
-  const scale=Math.max(.28,Math.min(.72,Math.max(z.w,z.h)/52))*(kind==='ice'?.85:1);
+  const scale=kind==='bollard'?Math.max(.58,Math.min(.92,Math.max(z.w,z.h)/42)):
+   Math.max(.28,Math.min(.72,Math.max(z.w,z.h)/52))*(kind==='ice'?.85:1);
   queueContact(ballContactFX,px,py,side*dx,side*dy,'enemy',null,scale);
   feedback(z.boss?'bossHit':'hit');sfx(z.boss?'bosshit':'hit');return;
  }
