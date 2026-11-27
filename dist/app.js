@@ -2,7 +2,7 @@
 (()=>{
 const root=document.documentElement,main=document.querySelector('main'),machine=document.querySelector('.machine'),stage=document.querySelector('.stage'),bar=document.querySelector('.app-bar'),button=id=>document.getElementById(id);
 let installPrompt=null;
-const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
+const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||(window.matchMedia('(display-mode: fullscreen)').matches&&!document.fullscreenElement)||navigator.standalone===true;
 function inform(title,message){if(mode==='playing'||mode==='clearing')pause();button('app-title').textContent=title;button('app-message').textContent=message;button('app-dialog').showModal()}
 const options=button('options-dialog'),optionsActions=button('options-actions');
 // No bottom app bar or independent sound/FX row during play.
@@ -35,7 +35,7 @@ if(typeof MutationObserver!=='undefined'&&optionsActions.querySelector){
    if(id==='haptics-toggle')state=el.dataset?.mode==='off'?'진동 없음':
      el.dataset?.mode==='full'?'풀 진동':'플레이어 중심';
    if(id==='fx')state=off?'가벼운 효과':'전체 효과';
-   if(id==='fullscreen')state=raw.includes('복귀')?'기본 화면으로':'화면 가득 보기';
+   if(id==='fullscreen')state=raw.includes('앱 화면')?'설치형 화면 유지':raw.includes('복귀')?'기본 화면으로':'화면 가득 보기';
    if(id==='install')state=/설치됨|실행 중/.test(raw)?'설치 완료':'홈 화면에 추가';
    el.classList.add('option-tile');
    el.dataset.state=id==='haptics-toggle'?(el.dataset.mode==='off'?'off':'on'):
@@ -100,7 +100,7 @@ function placeOverlayFullscreen(){
  retry.style.setProperty('--logo-fullscreen-top',y+'px');
 }
 function updateLabels(){
- button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':'⛶ 전체화면';
+ button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':standalone()?'✓ 앱 화면':'⛶ 전체화면';
  button('install').textContent=standalone()?'✓ 설치 실행 중':'↓ 앱 설치';
  // Android in-app browsers can revoke native fullscreen on game end.
  // Offer a visible one-tap, user-gesture retry rather than claiming success.
@@ -109,27 +109,28 @@ function updateLabels(){
  placeOverlayFullscreen();
 }
 
- // Native mobile fullscreen requires a real user gesture. The game-start
- // button supplies that gesture; never try to request fullscreen on load.
- // Unsupported WebViews / iOS Safari keep the existing immersive CSS layout.
+ // v445: one automatic fullscreen attempt per page lifetime. Leaving native
+ // fullscreen never re-arms it; only the explicit fullscreen controls may retry.
+ // Installed PWAs already have browser-chrome-free display and never call the API.
  const mobileDevice=()=>navigator.maxTouchPoints>0||
    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
- function enterMobileFullscreen(force=false){
-  if((!mobileDevice()&&!force)||document.fullscreenElement||standalone())return;
+ let automaticFullscreenAttempted=false,fullscreenPending=false;
+ async function enterMobileFullscreen(force=false){
+  if(standalone()||(!force&&!mobileDevice())||(!force&&automaticFullscreenAttempted))return false;
+  automaticFullscreenAttempted=true;
+  if(document.fullscreenElement||fullscreenPending)return false;
   const fn=root.requestFullscreen||root.webkitRequestFullscreen;
-  if(typeof fn!=='function')return;
+  if(typeof fn!=='function')return false;
+  fullscreenPending=true;
   try{
-   const result=fn.call(root,{navigationUI:'hide'});
-   result?.catch?.(()=>{}); // permission/platform refusal is nonfatal
-  }catch{
-   try{const fallback=fn.call(root);fallback?.catch?.(()=>{})}catch{}
-  }
+   await fn.call(root,{navigationUI:'hide'});
+   return true;
+  }catch{return false}
+  finally{fullscreenPending=false;fit();updateLabels()}
  }
  for(const id of ['start','endless'])
   button(id)?.addEventListener('click',()=>enterMobileFullscreen(),{capture:true});
  button('overlay-fullscreen')?.addEventListener('click',()=>enterMobileFullscreen(true),{capture:true});
- // Dedicated first-launch attract screen. Native fullscreen is requested
- // in the *same click gesture*, before revealing the existing hero picker.
 
  // v80: A genuine standalone title scene. The game board remains visually
  // hidden until every asset needed by the hero picker and first play frame is
@@ -223,7 +224,7 @@ function updateLabels(){
   bootStart.addEventListener('click',async()=>{
    if(sceneLoading||boot.hidden)return;
    sceneLoading=true;
-   enterMobileFullscreen(true); // Must happen before the first await.
+   enterMobileFullscreen(); // One automatic attempt, before the first await.
    root.classList.remove('zz-scene-title');
    root.classList.add('zz-scene-loading');
    bootStart.disabled=true;
@@ -257,10 +258,22 @@ function updateLabels(){
  button('overlay-fullscreen')?.addEventListener('click',()=>{fit();updateLabels()});
 
 
-button('fullscreen').onclick=async()=>{try{if(document.fullscreenElement){await document.exitFullscreen()}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen({navigationUI:'hide'})}else{inform('주소창 없이 플레이','이 브라우저에서는 전체화면 버튼을 지원하지 않습니다. Safari는 공유 → 홈 화면에 추가, Android Chrome은 메뉴 → 앱 설치 또는 홈 화면에 추가를 사용해 주세요.')}}catch{inform('전체화면 실행 안내','현재 브라우저에서 전체화면 요청이 허용되지 않았습니다. Chrome 또는 Safari에서 이 링크를 직접 열고, 홈 화면에 추가한 아이콘으로 실행해 주세요.')}fit();updateLabels()};
+button('fullscreen').onclick=async()=>{
+ if(standalone()){inform('설치형 앱 화면','이미 주소창 없는 설치형 앱으로 실행 중입니다. 시스템 전체화면 전환을 다시 요청하지 않습니다.');return}
+ if(fullscreenPending)return;
+ automaticFullscreenAttempted=true;
+ if(document.fullscreenElement){
+  fullscreenPending=true;
+  try{await document.exitFullscreen()}catch{}finally{fullscreenPending=false;fit();updateLabels()}
+ }else if(!(root.requestFullscreen||root.webkitRequestFullscreen)){
+  inform('주소창 없이 플레이','이 브라우저에서는 전체화면 버튼을 지원하지 않습니다. Safari는 공유 → 홈 화면에 추가, Android Chrome은 메뉴 → 앱 설치 또는 홈 화면에 추가를 사용해 주세요.');
+ }else if(!await enterMobileFullscreen(true)){
+  inform('전체화면 실행 안내','현재 브라우저에서 전체화면 요청이 허용되지 않았습니다. Chrome 또는 Safari에서 이 링크를 직접 열고, 홈 화면에 추가한 아이콘으로 실행해 주세요.');
+ }
+};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;button('install').textContent='↓ 앱 설치'});
 window.addEventListener('appinstalled',()=>{installPrompt=null;button('install').textContent='✓ 설치됨'});
-button('install').onclick=async()=>{if(mode==='playing'||mode==='clearing')pause();if(standalone()){inform('설치형으로 실행 중','현재 주소창 없는 앱 모드입니다. 홈 화면의 ZOMBIE ZERO 아이콘으로 다시 실행할 수 있습니다.');return}if(installPrompt){const prompt=installPrompt;installPrompt=null;try{await prompt.prompt();const choice=await prompt.userChoice;if(choice.outcome==='accepted')button('install').textContent='✓ 설치됨'}catch{inform('앱 설치 안내','브라우저 메뉴에서 앱 설치 또는 홈 화면에 추가를 선택해 주세요.')}return}const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;inform('홈 화면에 설치',ios?'Safari에서 게임 링크를 열고 공유 버튼 → 홈 화면에 추가 → 추가를 누르세요. 생성된 아이콘으로 실행하면 주소창 없이 플레이합니다.':'Android Chrome에서 게임 링크를 직접 열고 ⋮ 메뉴 → 앱 설치 또는 홈 화면에 추가를 선택하세요. PC Chrome/Edge는 주소창의 설치 아이콘을 사용할 수 있습니다. 앱 내부 브라우저라면 먼저 외부 브라우저로 열어 주세요.')};
+button('install').onclick=async()=>{if(mode==='playing'||mode==='clearing')pause();if(standalone()){inform('설치형으로 실행 중','현재 주소창 없는 앱 모드입니다. 홈 화면의 ZOMBIE BALLS 아이콘으로 다시 실행할 수 있습니다. 설치형 앱은 전체화면 전환을 반복 요청하지 않습니다.');return}if(installPrompt){const prompt=installPrompt;installPrompt=null;try{await prompt.prompt();const choice=await prompt.userChoice;if(choice.outcome==='accepted')button('install').textContent='✓ 설치됨'}catch{inform('앱 설치 안내','브라우저 메뉴에서 앱 설치 또는 홈 화면에 추가를 선택해 주세요.')}return}const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;inform('홈 화면에 설치',ios?'Safari에서 게임 링크를 열고 공유 버튼 → 홈 화면에 추가 → 추가를 누르세요. 생성된 아이콘으로 실행하면 주소창 없이 플레이합니다.':'Android Chrome에서 게임 링크를 직접 열고 ⋮ 메뉴 → 앱 설치 또는 홈 화면에 추가를 선택하세요. PC Chrome/Edge는 주소창의 설치 아이콘을 사용할 수 있습니다. 앱 내부 브라우저라면 먼저 외부 브라우저로 열어 주세요.')};
 let resumeAfterOptions=false;
 button('options-toggle').onclick=()=>{
  if(options.open)return;

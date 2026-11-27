@@ -31,14 +31,31 @@ assert.equal(s.mode,'paused');assert(el('options-dialog').open);
 el('options-close').onclick();assert.equal(s.mode,'playing');
 await el('fullscreen').onclick();assert.equal(el('app-dialog').open,true);assert.equal(s.mode,'paused');assert.match(el('app-message').textContent,/지원하지/);
 root.requestFullscreen=async()=>s.document.fullscreenElement=root;s.document.exitFullscreen=async()=>s.document.fullscreenElement=null;await el('fullscreen').onclick();assert(s.document.fullscreenElement);await el('fullscreen').onclick();assert.equal(s.document.fullscreenElement,null);
-// A real user click on Play requests fullscreen before the game starts.
-assert.equal(typeof el('start').handlers.click,'function','mobile play has a fullscreen click handler');
-s.navigator.userAgent='Android';s.navigator.maxTouchPoints=1;
-await el('start').handlers.click();assert.equal(s.document.fullscreenElement,root,'tap Start enters mobile fullscreen');
+// Explicit fullscreen use consumes the automatic attempt for this page.
+assert.equal(typeof el('start').handlers.click,'function');
+let calls=0;
+root.requestFullscreen=async()=>{calls++;s.document.fullscreenElement=root};
+await el('start').handlers.click();await el('endless').handlers.click();
+assert.equal(calls,0,'manual exit never re-arms automatic fullscreen');
+// A fresh page permits exactly one auto request, including simultaneous taps.
+vm.runInContext(fs.readFileSync('dist/app.js','utf8'),s);
+let resolveRequest;
+root.requestFullscreen=()=>{calls++;return new Promise(resolve=>{resolveRequest=()=>{s.document.fullscreenElement=root;resolve()}})};
+const first=el('start').handlers.click();
+await el('endless').handlers.click();
+assert.equal(calls,1,'pending fullscreen requests cannot overlap');
+resolveRequest();await first;
 s.document.fullscreenElement=null;
-await el('endless').handlers.click();assert.equal(s.document.fullscreenElement,root,'tap Endless also enters fullscreen');
-s.document.fullscreenElement=null;s.navigator.userAgent='Desktop';s.navigator.maxTouchPoints=0;
-await el('start').handlers.click();assert.equal(s.document.fullscreenElement,null,'desktop start does not force fullscreen');
+await el('start').handlers.click();await el('endless').handlers.click();
+assert.equal(calls,1,'no automatic re-entry after native exit');
+root.requestFullscreen=async()=>{calls++;s.document.fullscreenElement=root};
+await el('fullscreen').onclick();assert.equal(calls,2,'manual retry still works');
+await el('fullscreen').onclick();assert.equal(s.document.fullscreenElement,null);
+// Installed PWA must not request fullscreen even through explicit controls.
+s.window.matchMedia=q=>({matches:q==='(display-mode: standalone)'});
+await el('start').handlers.click();await el('endless').handlers.click();await el('fullscreen').onclick();
+assert.equal(calls,2,'installed app never requests native fullscreen');
+s.window.matchMedia=q=>({matches:q==='(pointer: coarse)'});
 s.navigator.userAgent='Android';s.navigator.maxTouchPoints=1;
 let prompted=0;listeners.beforeinstallprompt({preventDefault(){},prompt:async()=>prompted++,userChoice:Promise.resolve({outcome:'accepted'})});await el('install').onclick();assert.equal(prompted,1);assert.match(el('install').textContent,/설치됨/);
 s.navigator.userAgent='iPhone';await el('install').onclick();assert.match(el('app-message').textContent,/Safari/);
