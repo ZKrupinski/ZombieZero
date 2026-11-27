@@ -6233,12 +6233,12 @@ function drawClear(){if(enemyDeaths.some(d=>!d.done))return;drawStageAnnouncemen
 let inputPointer=null,inputX=0,armedServeBall=null;
 function releaseInput(){inputPointer=null;armedServeBall=null}
 function blocksInput(e){return !!e.target?.closest?.('button,a,input,select,textarea,summary,[role="button"],.overlay,.guide')}
-function inputDown(e){if(mode==='building'){if(e.target===c&&fortress?.down(e,c))e.preventDefault?.();return}if(mode!=='playing'||blocksInput(e)||inputPointer!==null||(e.button!==undefined&&e.button!==0))return;inputPointer=e.pointerId;inputX=e.clientX;touchUsed=e.pointerType==='touch';target=car;e.preventDefault?.();try{c.setPointerCapture?.(e.pointerId)}catch{}armedServeBall=balls[0]?.held?balls[0]:null;unlockAudio()}
+function inputDown(e){if(mode==='building'){const pick=e.target?.closest?.('button[id^="build-pick-"]');if(pick){if(fortress?.iconDown(pick.id.slice(11),e,c))e.preventDefault?.();}else if(e.target===c&&fortress?.down(e,c))e.preventDefault?.();return}if(mode!=='playing'||blocksInput(e)||inputPointer!==null||(e.button!==undefined&&e.button!==0))return;inputPointer=e.pointerId;inputX=e.clientX;touchUsed=e.pointerType==='touch';target=car;e.preventDefault?.();try{c.setPointerCapture?.(e.pointerId)}catch{}armedServeBall=balls[0]?.held?balls[0]:null;unlockAudio()}
 function inputMove(e){if(mode==='building'){if(fortress?.move(e,c))e.preventDefault?.();return}if(mode!=='playing')return;if(inputPointer===e.pointerId){const r=c.getBoundingClientRect(),width=r.width||W;target=clamp(target+(e.clientX-inputX)*W/width,72,W-72);inputX=e.clientX;
  if(armedServeBall===balls[0]&&armedServeBall?.held&&groggyTime<=0){car=target;const o=heldBallOffset();armedServeBall.x=car+o.x;armedServeBall.y=PY+o.y}
  e.preventDefault?.()}else if(inputPointer===null&&e.pointerType==='mouse'&&e.target===c){const r=c.getBoundingClientRect();target=clamp((e.clientX-r.left)/(r.width||W)*W,72,W-72)}}
 function inputEnd(e){
- if(mode==='building')fortress?.up(e,c);
+ if(mode==='building')fortress?.finish(e,c);
  if(e.pointerId!==inputPointer)return;
  const launch=e.type==='pointerup'&&mode==='playing'&&armedServeBall===balls[0]&&armedServeBall?.held;
  // Consume a final movement sample if the pointer was released between

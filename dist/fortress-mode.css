@@ -304,3 +304,6 @@
  font-size:clamp(7px,1.2cqh,11px);line-height:1.1;
  white-space:nowrap;overflow:hidden;text-shadow:0 1px 1px #06151b;
 }
+
+/* V468: picker gestures are captured for direct battlefield placement. */
+.zz-fortress-top .zz-build-picker button{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}

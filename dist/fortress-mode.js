@@ -78,7 +78,7 @@ function refresh(){
  if(!ui)return;
  ui.hidden=!active;
  const hasPreview=pending.size>0,summary=totals();
- actions.hidden=!active||!hasPreview||dragging;
+ if(actions)actions.hidden=!active||!hasPreview||dragging;
  readyButton.hidden=!active||hasPreview||dragging;
  readyButton.disabled=starting;
  if(readyButton.dataset)readyButton.dataset.starting=String(starting);
@@ -103,13 +103,14 @@ function refresh(){
   el.disabled=hasPreview||dragging||starting;
   if(el.dataset)el.dataset.affordable=String(stock>=BUILD_TYPES[kind].cost);
  }
- if(helpLabel)helpLabel.textContent=hasPreview?'미리보기만 적용 중 · 확인 또는 취소'
-  :placementTip?placementTip:stock?(span({kind:selectedBuild})===1?'1칸 · ':'2×2칸 · ')+BUILD_TYPES[selectedBuild].desc+' · 기존 구조물 터치: 철거'
+ if(helpLabel)helpLabel.textContent=hasPreview?'놓으면 즉시 적용 · 전장 밖으로 놓으면 아이콘 설치 취소'
+  :placementTip?placementTip:stock?(span({kind:selectedBuild})===1?'1칸 · ':'2×2칸 · ')+BUILD_TYPES[selectedBuild].desc+' · 아이콘 직접 드래그 · 기존 구조물 터치: 철거'
   :'기존 구조물 철거로 자재 확보 가능';
 }
-function addCell(t){
+function addCell(t,buildOnly=false){
  if(!t)return;
  const current=occupied.get(t.id);
+ if(buildOnly&&current)return;
  if(current)t=cell(current.col,current.row);
  else if(span({kind:selectedBuild})===2){
   t=cell(Math.min(t.col,COLS-2),Math.min(t.row,ROWS-2));
@@ -151,7 +152,7 @@ function lineTo(to){
 const TOUCH_DIRECTION_START=T*.82;
 const TOUCH_AXIS_RATIO=1.42;
 const TOUCH_CORNER_DEADZONE=T*1.35;
-let touchStroke=null;
+let touchStroke=null,iconStroke=false;
 function touchLineTo(e,canvas,allowCorner=true){
  if(!touchStroke){lineTo(pointerCell(e,canvas));return}
  const p=pointerPosition(e,canvas);
@@ -202,14 +203,33 @@ function down(e,canvas){
  if(e.button!==undefined&&e.button!==0)return false;
  const to=pointerCell(e,canvas);
  if(!to)return false;
- placementTip='';pending.clear();dragging=true;pointer=e.pointerId;last=null;
+ placementTip='';pending.clear();dragging=true;pointer=e.pointerId;last=null;iconStroke=false;
  const origin=pointerPosition(e,canvas);
  touchStroke=e.pointerType==='touch'?{originX:origin.x,originY:origin.y,anchor:to,axis:null}:null;
  if(canDragBuild())lineTo(to);else addCell(to);refresh();
  try{canvas.setPointerCapture(e.pointerId)}catch{}
  return true;
 }
-function move(e,canvas){if(!active||!dragging||e.pointerId!==pointer)return false;if(canDragBuild())touchLineTo(e,canvas);refresh();return true}
+// V468: dragging a picker icon previews one structure; never demolish on drop.
+function iconDown(kind,e,canvas){
+ if(!active||dragging||starting||!BUILD_TYPES[kind]||(e.button!==undefined&&e.button!==0))return false;
+ if(!selectBuild(kind))return false;
+ if(stock<BUILD_TYPES[kind].cost)return false;
+ pending.clear();dragging=true;pointer=e.pointerId;last=null;touchStroke=null;iconStroke=true;
+ try{canvas.setPointerCapture(e.pointerId)}catch{}
+ refresh();return true;
+}
+function previewIcon(e,canvas){
+ pending.clear();placementTip='';
+ const to=pointerCell(e,canvas);
+ if(to)addCell(to,true);
+}
+function move(e,canvas){
+ if(!active||!dragging||e.pointerId!==pointer)return false;
+ if(iconStroke)previewIcon(e,canvas);
+ else if(canDragBuild())touchLineTo(e,canvas);
+ refresh();return true;
+}
 function showActionsAt(e,canvas){
  if(!ui||!actions||!actions.style)return;
  const rect=ui.getBoundingClientRect?.()||canvas.getBoundingClientRect?.();
@@ -226,10 +246,20 @@ function up(e,canvas){
  if(!dragging||e.pointerId!==pointer)return false;
  // Finger-lift coordinates are noisy: keep the chosen axis and never
  // reinterpret a tiny release movement as a new corner.
- if(canDragBuild())touchLineTo(e,canvas,false);dragging=false;pointer=null;last=null;touchStroke=null;
+ if(iconStroke)previewIcon(e,canvas);
+ else if(canDragBuild())touchLineTo(e,canvas,false);
+ dragging=false;pointer=null;last=null;touchStroke=null;iconStroke=false;
  showActionsAt(e,canvas);refresh();return true;
 }
-function cancel(){dragging=false;pointer=null;last=null;touchStroke=null;pending.clear();refresh()}
+function cancel(){dragging=false;pointer=null;last=null;touchStroke=null;iconStroke=false;pending.clear();refresh()}
+// Real pointer releases commit immediately. A cancelled gesture is never charged.
+function finish(e,canvas){
+ if(!dragging||e.pointerId!==pointer)return false;
+ if(e.type&&e.type!=='pointerup'){cancel();return true}
+ if(!iconStroke&&!pointerCell(e,canvas)){cancel();return true}
+ if(!up(e,canvas))return false;
+ confirm();return true;
+}
 function confirm(){
  if(!active||dragging||!pending.size)return 0;
  const summary=totals();
@@ -1249,7 +1279,7 @@ function tick(dt){tickStructureDebris(dt);for(const w of walls.values()){
 if(confirmButton)confirmButton.addEventListener('click',confirm);
 if(cancelButton)cancelButton.addEventListener('click',cancel);
 if(readyButton)readyButton.addEventListener('click',startWithFeedback);
-window.ZZFortress={structureSize,duckKnockPlan,reset,setupEndless,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>valid(col,row)?occupied.get(id(col,row)):undefined,isOpen,isPathClear,escapeWall,bounceBall,draw,drawAttackForeground,tick,down,move,up,cancel,ready,startWithFeedback,
+window.ZZFortress={structureSize,duckKnockPlan,reset,setupEndless,begin,deploy,resolve,selectBuild,tickDevices,getBuildType:()=>selectedBuild,getStructure:(col,row)=>valid(col,row)?occupied.get(id(col,row)):undefined,isOpen,isPathClear,escapeWall,bounceBall,draw,drawAttackForeground,tick,down,iconDown,move,up,finish,cancel,ready,startWithFeedback,
  bind(fn,feedback){onReady=fn;onStartFeedback=feedback},getStock:()=>stock,getWallCount:()=>walls.size,
  getQueueCount:()=>queued.length,getPendingRefund:()=>destroyedThisStage,
  getSupply:()=>({refund:lastRefund,bonus:lastBonus,healed:lastHealed}),
