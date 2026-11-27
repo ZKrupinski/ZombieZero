@@ -37,7 +37,7 @@ assert(boot.includes('NOVALIGHT x AHNDANTE x BLACKRAIN')&&boot.includes('2027 Al
 assert(boot.includes('id="boot-start" class="boot-start" type="button" aria-label="START GAME"'),
  'native start button unchanged');
 assert(app.includes("bootStart.addEventListener('click',async()=>")&&
- app.includes('enterMobileFullscreen(true); // Must happen before the first await.'),
+ app.includes('enterMobileFullscreen(); // One automatic attempt, before the first await.'),
  'click / fullscreen / image-loading flow unchanged');
 assert(html.includes('style.css?v=90-reduced-title-logo-v125-arcade-title-v126-hero-to-zero-glow'),
  'CSS cache-bust ensures updated visuals on mobile');

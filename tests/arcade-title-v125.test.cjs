@@ -40,7 +40,7 @@ assert(v125.includes('@media(prefers-reduced-motion:reduce)'),
 assert(v125.includes('.boot-arcade-start{opacity:1!important}')&&v125.includes('.boot-arcade-coin{opacity:0!important}'),
  'reduced motion leaves START GAME visible');
 assert(app.includes("bootStart.addEventListener('click',async()=>"),'native boot click retained');
-assert(app.includes("enterMobileFullscreen(true); // Must happen before the first await."),
+assert(app.includes("enterMobileFullscreen(); // One automatic attempt, before the first await."),
  'mobile fullscreen gesture remains synchronous');
 assert(app.includes("bootStart.textContent='LOADING...'"),'existing asset decode/loading sequence retained');
 assert(sw.includes('-v125-arcade-title'),'PWA cache version invalidates stale CSS');
