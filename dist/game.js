@@ -4784,22 +4784,36 @@ function drawSkillTintedFrame(img,sx,sy,sw,sh,dx,dy,dw,dh){
  if(!ramp)return false;
  const canvas=skillTintFrame(img,sx,sy,sw,sh,ramp);
  if(!canvas)return false;
- g.drawImage(canvas,dx,dy,dw,dh);return true;
+ // Preserve the physical bitmap; only its alpha-masked light layer is additive.
+ g.drawImage(img,sx,sy,sw,sh,dx,dy,dw,dh);
+ const paint=(gain)=>{
+  g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=gain;
+  g.drawImage(canvas,dx,dy,dw,dh);g.restore();
+ };
+ paint(1);
+ // The existing shared FX pass supplies soft bloom from light only, not base art.
+ captureBloom(()=>paint(.48));
+ return true;
 }
 function skillTintFrame(img,sx,sy,sw,sh,ramp){
  const [rim,,tint]=ramp.stops;
- const key=[sx,sy,sw,sh,tint].join(',');
+ const key=[sx,sy,sw,sh,...ramp.stops].join(',');
  let frames=skillBallTintCache.get(img);if(!frames){frames=new Map();skillBallTintCache.set(img,frames)}
  let canvas=frames.get(key);
  if(!canvas){
   canvas=document.createElement('canvas');canvas.width=Math.ceil(sw);canvas.height=Math.ceil(sh);
   const ctx=canvas.getContext('2d');if(!ctx||typeof ctx.drawImage!=='function'||typeof ctx.createRadialGradient!=='function')return false;
   const w=canvas.width,h=canvas.height;
-  ctx.drawImage(img,sx,sy,sw,sh,0,0,w,h);
+  // v449: cached emission only, clipped to the bitmap silhouette.
+  // Use the bright mid-ramp as well as the saturated head color; a dark
+  // blue/red head is a light source here, never a replacement for base RGB.
+  const mid=ramp.stops[1];
   const grad=ctx.createRadialGradient(w*.5,h*.48,0,w*.5,h*.48,Math.min(w,h)*.48);
   if(!grad||typeof grad.addColorStop!=='function')return false;
-  grad.addColorStop(0,tint+'a0');grad.addColorStop(.55,tint+'75');grad.addColorStop(1,rim+'35');
-  ctx.globalCompositeOperation='source-atop';ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+  grad.addColorStop(0,mid+'78');grad.addColorStop(.48,tint+'68');grad.addColorStop(.78,mid+'48');grad.addColorStop(1,rim+'25');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+  ctx.globalCompositeOperation='destination-in';ctx.drawImage(img,sx,sy,sw,sh,0,0,w,h);
+  ctx.globalCompositeOperation='source-over';
   frames.set(key,canvas);
  }
  return canvas;
