@@ -8,7 +8,7 @@ vm.createContext(env);vm.runInContext(section('function paintMachine(','// Dedic
 for(const [kind,base,attack] of [['lure',[5],[10,4]],['saw',[6],[11,7]]]){
  for(const [layer,expected] of [['base',base],['attack',attack],['all',[...base,...attack]]]){
   calls.length=0;env.kind=kind;env.layer=layer;
-  vm.runInContext("paintMachine(g,kind,.3,.4,{x:8,y:-12},layer)",env);
+  vm.runInContext("paintMachine(g,kind,.3,.4,{x:8,y:-12,combat:true,airborne:true,spring:12},layer)",env);
   assert.deepEqual(calls,expected);
  }
  assert.equal(env.frontAttack({kind,run:{}}),true);
@@ -28,11 +28,11 @@ console.log('PASS v451: attack-only moving parts above enemies, intact idle/buil
 // V475: exact approved bitmap layers; every direction has its rage counterpart.
 const duckDraws=[];env.part=(g,...args)=>duckDraws.push(args);
 vm.runInContext("paintMachine(g,'lure',0,0,null,'attack')",env);
-assert.deepEqual(duckDraws.at(-1),[4,11,-11,43,43,0,2]);
+assert.deepEqual(duckDraws,[ [4,11,-11,43,43,0,1] ],'picker/build ducks face chassis with unchanged compact height');
 for(let direction=0;direction<5;direction++){
- vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,angry:true,direction:"+direction+"},'attack')",env);
+ vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,combat:true,airborne:true,spring:12,angry:true,direction:"+direction+"},'attack')",env);
  // Even a diagonal offset may never translate the duck horizontally.
- assert.deepEqual(duckDraws.at(-1),[4,11,-23,43,43,1,direction]);
+ assert.deepEqual(duckDraws.at(-1),[4,11,1.5-43*188/192,43,43,1,direction]);
 }
 const pose=new Function(section('function duckPose(','function drawDevice(')+';return duckPose')();
 const directions=new Set();
@@ -48,8 +48,24 @@ assert(Math.abs(motion.duckTravel(0))<1e-8);assert(motion.duckTravel(.09)<0);
 assert.equal(motion.duckTravel(.43),100);assert(Math.abs(motion.duckTravel(.74))<1e-8);assert(Math.abs(motion.duckTravel(1))<1e-8);
 assert(motion.duckSpringLength(.09)<12&&motion.duckSpringLength(.28)>40);
 duckDraws.length=0;
-vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,angry:true,direction:4},'base')",env);
-assert.deepEqual(duckDraws,[[5,2,3,60,60]]);
+vm.runInContext("paintMachine(g,'lure',.3,.3,{x:8,y:-12,combat:true,angry:true,direction:4},'base')",env);
+assert.deepEqual(duckDraws,[[5,2,3,60,60,1]]);
+// V477: the cap and duck share the same anchor at all idle and rebound heights.
+for(const spring of [4,8,12,14,16.2,30,46]){
+ duckDraws.length=0;
+ vm.runInContext("paintMachine(g,'lure',0,0,{combat:true,spring:"+spring+",direction:3},'all')",env);
+ const [base,cap,duck]=duckDraws;
+ assert.deepEqual(base,[5,2,3,60,60,1]);
+ assert.equal(cap[0],10);assert.equal(cap[2],24-spring-5);
+ assert.equal(cap[4],spring+12);
+ assert(Math.abs(duck[2]+43*188/192-(cap[2]+6.5))<1e-9,'duck is seated on cap throughout the bounce');
+}
+duckDraws.length=0;
+vm.runInContext("paintMachine(g,'lure',0,0,{combat:false,direction:4},'all')",env);
+assert.deepEqual(duckDraws,[[5,2,3,60,60,0],[4,11,-11,43,43,0,1]]);
+assert.equal(pose({},null,0,true).direction,1);
+assert(src.includes("combat:!building,airborne:!!run&&progress>=.18&&progress<.74"));
+console.log('PASS v477: compact build pose and shared dynamic spring-cap seat, fixed chassis.');
 const approved=fs.readFileSync('dist/assets/ip/v2/barricades/duck-approved-v475.webp');
 assert.equal(approved.toString('ascii',0,4),'RIFF');assert.equal(approved.toString('ascii',8,12),'WEBP');
 assert.equal(approved[24]+(approved[25]<<8)+(approved[26]<<16)+1,1152);

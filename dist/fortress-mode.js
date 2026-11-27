@@ -672,7 +672,22 @@ function part(g,index,x,y,w,h,expression=0,direction=2){
  // V475: the approved sheet is directly cropped into 192px transparent
  // cels: five idle, five rage, fixed red-wheel chassis and separate spring.
  if(duckApproved&&(index===4||index===5||index===10)){
-  const col=index===4?direction:5,row=index===4?expression:index===10?1:0;
+  // V477: combat chassis omits the old fixed top plate. Preserve the
+  // wheels, deck and outer shoulders from the original approved bitmap.
+  if(index===5&&expression===1){
+   g.drawImage(duckApproved,960,70,192,122,x,y+h*70/192,w,h*122/192);
+   for(const [left,right] of [[0,47],[145,192]]){
+    g.drawImage(duckApproved,960+left,58,right-left,12,x+w*left/192,y+h*58/192,w*(right-left)/192,h*12/192);
+   }
+   return;
+  }
+  if(index===10){
+   // The original cap remains round: stretch only the coil below it.
+   g.drawImage(duckApproved,960+42,192+68,108,120,x+w*6/32,y+12,w*20/32,Math.max(1,h-12));
+   g.drawImage(duckApproved,960+16,192,160,70,x,y,w,14);
+   return;
+  }
+  const col=index===4?direction:5,row=index===4?expression:0;
   g.drawImage(duckApproved,col*192,row*192,192,192,x,y,w,h);return;
  }
  if(index===4){y+=h-w;h=w}
@@ -717,15 +732,20 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
  }
  const x=offset?.x||0,y=offset?.y||0;
  if(kind==='lure'){
-  // The chassis stays fixed; its approved red tires are not part of the duck cel.
-  if(layer!=='attack')part(g,5,2,3,60,60);
+  const combat=offset?.combat===true;
+  // Picker, build preview and placed structures share the compact pose.
+  // The chassis faces down-left, so use the matching left diagonal duck.
+  if(layer!=='attack')part(g,5,2,3,60,60,combat?1:0);
   if(layer!=='base'){
+   if(!combat){part(g,4,11,-11,43,43,0,1);return}
    const expression=offset?.angry?1:0,direction=offset?.direction??2;
-   const bob=offset?.bob||0,jx=offset?.jitterX||0,jy=offset?.jitterY||0;
-   // The spring compresses and releases under the jumper, then settles while
-   // the duck is airborne. Only the duck gets the attack afterimage.
-   if(!offset?.ghost)linkage(g,10,32,36,0,-(offset?.spring??(12-bob)),24);
-   part(g,4,11+jx,-11+y+bob+jy,43,43,expression,direction);
+   const mount=duckMount(offset);
+   // Cap and duck use one shared seat coordinate. Only the spring coil
+   // changes length; the metal platform and red tires retain their shape.
+   if(!offset?.ghost)part(g,10,16,mount.seat-5,32,mount.spring+12);
+   const jx=offset?.airborne?(offset.jitterX||0):0;
+   const jy=offset?.airborne?(offset.jitterY||0):0;
+   part(g,4,11+jx,mount.foot+1.5-43*188/192+jy,43,43,expression,direction);
   }
  }else if(kind==='saw'){
   if(layer!=='attack')part(g,6,2,20,60,43);
@@ -743,6 +763,16 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
   part(g,8,3,9,58,54);
  }
 }
+// V477: surface of the circular cap, in the 64px machine coordinates.
+function duckMount(offset){
+ const spring=Math.max(3,offset.spring??(12-(offset.bob||0)));
+ const seat=24-spring;
+ // A flying duck may detach above the cap. During wind-up, idle and
+ // landing it is always seated, including every spring rebound.
+ const foot=offset.airborne?Math.min(seat,12+(offset.y||0)):seat;
+ return {spring,seat,foot};
+}
+
 // Dedicated high-DPI picker artwork: render the original bitmap parts
 // directly into a 256px UI canvas, never enlarge the old 64px composite.
 // Gameplay sprites and their animation geometry are deliberately untouched.
@@ -888,7 +918,7 @@ function devicePunch(w,building=false){
 // not the direction of the retracting spring. Animation is visual only.
 function duckPose(w,run,progress,building=false){
  const age=(w.duckIdleTime||0)+(w.id||0)*.071;
- if(building)return {direction:3,bob:0,angry:false,jitterX:0,jitterY:0};
+ if(building)return {direction:1,bob:0,angry:false,jitterX:0,jitterY:0};
  if(!run)return {direction:Math.max(0,Math.min(4,2+Math.round(2*Math.sin(age*2.25)))),
   bob:-4.2*Math.pow(Math.sin(age*5.2),2),angry:false,jitterX:0,jitterY:0};
  const direction=Math.max(0,Math.min(4,2+Math.round(2*(run.aimDx??run.dx??0)/.7071)));
@@ -907,7 +937,8 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
   const travel=run?duckTravel(progress)*64/size:0;
   const pose=duckPose(w,run,progress,building);
   // Vertical screen motion only; target direction selects face, not movement.
-  offset={...pose,x:0,y:-travel,spring:run?duckSpringLength(progress):12-pose.bob};
+  offset={...pose,combat:!building,airborne:!!run&&progress>=.18&&progress<.74,
+   x:0,y:-travel,spring:run?duckSpringLength(progress):12-pose.bob};
  }
  if(run&&w.kind==='saw'){
   const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
