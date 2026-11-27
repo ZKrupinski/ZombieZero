@@ -13,7 +13,7 @@ assert.match(css,/#overlay\[data-screen="selection"\] > #overlay-fullscreen:not\
 assert.match(css,/position:absolute!important/,'button is removed from flex flow');
 assert.match(css,/top:var\(--logo-fullscreen-top/,'align to computed logo bottom');
 assert.match(css,/#overlay \.overlay-fullscreen\[hidden\]\{display:none!important\}/,'fullscreen hides retry');
-assert.match(app,/retry\.hidden=!!document\.fullscreenElement\|\|standalone\(\)/,'native fullscreen and installed app hide retry');
+assert.match(app,/retry\.hidden=!!document\.fullscreenElement\|\|immersivePWA\(\)/,'native fullscreen and immersive PWA hide retry');
 assert.match(app,/placementObserver\.observe\(selectionOverlay/,'reposition on selection state change');
 assert.match(app,/placementSizer\.observe\(selectionLogo\)/,'reposition after the logo resizes');
 const a=app.indexOf('function placeOverlayFullscreen(){');

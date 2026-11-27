@@ -51,14 +51,24 @@ assert.equal(calls,1,'no automatic re-entry after native exit');
 root.requestFullscreen=async()=>{calls++;s.document.fullscreenElement=root};
 await el('fullscreen').onclick();assert.equal(calls,2,'manual retry still works');
 await el('fullscreen').onclick();assert.equal(s.document.fullscreenElement,null);
-// Installed PWA must not request fullscreen even through explicit controls.
+// An older standalone install still needs native immersive mode.
+// Repeated start after manual exit must not re-enter; explicit retry must work.
 s.window.matchMedia=q=>({matches:q==='(display-mode: standalone)'});
-await el('start').handlers.click();await el('endless').handlers.click();await el('fullscreen').onclick();
-assert.equal(calls,2,'installed app never requests native fullscreen');
+listeners.pageshow();
+assert.equal(el('overlay-fullscreen').hidden,false,'standalone retains manual fullscreen shortcut');
+await el('start').handlers.click();await el('endless').handlers.click();
+assert.equal(calls,2,'no automatic reentry in standalone after exit');
+await el('fullscreen').onclick();assert.equal(calls,3,'standalone explicit fullscreen works');
+await el('fullscreen').onclick();assert.equal(s.document.fullscreenElement,null);
+vm.runInContext(fs.readFileSync('dist/app.js','utf8'),s);
+await el('start').handlers.click();await el('endless').handlers.click();
+assert.equal(calls,4,'fresh standalone launch requests fullscreen once');
+s.document.fullscreenElement=null;
+await el('start').handlers.click();assert.equal(calls,4,'standalone exit does not rearm');
 s.window.matchMedia=q=>({matches:q==='(display-mode: fullscreen)'});
 listeners.pageshow(); // Apply installed display mode on launch.
 await el('start').handlers.click();await el('endless').handlers.click();await el('fullscreen').onclick();
-assert.equal(calls,2,'immersive PWA launches without native fullscreen requests');
+assert.equal(calls,4,'immersive PWA launches without native fullscreen requests');
 assert.equal(el('overlay-fullscreen').hidden,true,'immersive PWA hides manual entry shortcut');
 s.window.matchMedia=q=>({matches:q==='(pointer: coarse)'});
 s.navigator.userAgent='Android';s.navigator.maxTouchPoints=1;

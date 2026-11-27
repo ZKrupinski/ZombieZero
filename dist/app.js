@@ -2,7 +2,8 @@
 (()=>{
 const root=document.documentElement,main=document.querySelector('main'),machine=document.querySelector('.machine'),stage=document.querySelector('.stage'),bar=document.querySelector('.app-bar'),button=id=>document.getElementById(id);
 let installPrompt=null;
-const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||(window.matchMedia('(display-mode: fullscreen)').matches&&!document.fullscreenElement)||navigator.standalone===true;
+const immersivePWA=()=>window.matchMedia('(display-mode: fullscreen)').matches&&!document.fullscreenElement;
+const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||immersivePWA()||navigator.standalone===true;
 function inform(title,message){if(mode==='playing'||mode==='clearing')pause();button('app-title').textContent=title;button('app-message').textContent=message;button('app-dialog').showModal()}
 const options=button('options-dialog'),optionsActions=button('options-actions');
 // No bottom app bar or independent sound/FX row during play.
@@ -100,23 +101,24 @@ function placeOverlayFullscreen(){
  retry.style.setProperty('--logo-fullscreen-top',y+'px');
 }
 function updateLabels(){
- button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':standalone()?'✓ 앱 화면':'⛶ 전체화면';
+ button('fullscreen').textContent=document.fullscreenElement?'⛶ 화면 복귀':immersivePWA()?'✓ 앱 화면':'⛶ 전체화면';
  button('install').textContent=standalone()?'✓ 설치 실행 중':'↓ 앱 설치';
  // Android in-app browsers can revoke native fullscreen on game end.
  // Offer a visible one-tap, user-gesture retry rather than claiming success.
  const retry=button('overlay-fullscreen');
- if(retry)retry.hidden=!!document.fullscreenElement||standalone();
+ if(retry)retry.hidden=!!document.fullscreenElement||immersivePWA();
  placeOverlayFullscreen();
 }
 
  // v445: one automatic fullscreen attempt per page lifetime. Leaving native
  // fullscreen never re-arms it; only the explicit fullscreen controls may retry.
- // Installed PWAs already have browser-chrome-free display and never call the API.
+ // Older standalone installs may still show Android system bars: permit one
+ // native request on launch, and an explicit retry. Immersive installs skip it.
  const mobileDevice=()=>navigator.maxTouchPoints>0||
    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
  let automaticFullscreenAttempted=false,fullscreenPending=false;
  async function enterMobileFullscreen(force=false){
-  if(standalone()||(!force&&!mobileDevice())||(!force&&automaticFullscreenAttempted))return false;
+  if(immersivePWA()||(!force&&!mobileDevice())||(!force&&automaticFullscreenAttempted))return false;
   automaticFullscreenAttempted=true;
   if(document.fullscreenElement||fullscreenPending)return false;
   const fn=root.requestFullscreen||root.webkitRequestFullscreen;
@@ -259,7 +261,7 @@ function updateLabels(){
 
 
 button('fullscreen').onclick=async()=>{
- if(standalone()){inform('설치형 앱 화면','이미 주소창 없는 설치형 앱으로 실행 중입니다. 시스템 전체화면 전환을 다시 요청하지 않습니다.');return}
+ if(immersivePWA()){inform('설치형 전체화면','이미 설치형 전체화면 모드입니다. 시스템 바가 남아 있다면 Android 또는 브라우저의 표시 정책에 의해 제한된 상태일 수 있습니다.');return}
  if(fullscreenPending)return;
  automaticFullscreenAttempted=true;
  if(document.fullscreenElement){
@@ -273,7 +275,7 @@ button('fullscreen').onclick=async()=>{
 };
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;button('install').textContent='↓ 앱 설치'});
 window.addEventListener('appinstalled',()=>{installPrompt=null;button('install').textContent='✓ 설치됨'});
-button('install').onclick=async()=>{if(mode==='playing'||mode==='clearing')pause();if(standalone()){inform('설치형으로 실행 중','현재 주소창 없는 앱 모드입니다. 홈 화면의 ZOMBIE BALLS 아이콘으로 다시 실행할 수 있습니다. 설치형 앱은 전체화면 전환을 반복 요청하지 않습니다.');return}if(installPrompt){const prompt=installPrompt;installPrompt=null;try{await prompt.prompt();const choice=await prompt.userChoice;if(choice.outcome==='accepted')button('install').textContent='✓ 설치됨'}catch{inform('앱 설치 안내','브라우저 메뉴에서 앱 설치 또는 홈 화면에 추가를 선택해 주세요.')}return}const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;inform('홈 화면에 설치',ios?'Safari에서 게임 링크를 열고 공유 버튼 → 홈 화면에 추가 → 추가를 누르세요. 생성된 아이콘으로 실행하면 주소창 없이 플레이합니다.':'Android Chrome에서 게임 링크를 직접 열고 ⋮ 메뉴 → 앱 설치 또는 홈 화면에 추가를 선택하세요. PC Chrome/Edge는 주소창의 설치 아이콘을 사용할 수 있습니다. 앱 내부 브라우저라면 먼저 외부 브라우저로 열어 주세요.')};
+button('install').onclick=async()=>{if(mode==='playing'||mode==='clearing')pause();if(standalone()){inform('설치형으로 실행 중','현재 주소창 없는 앱 모드입니다. 홈 화면의 ZOMBIE BALLS 아이콘으로 다시 실행할 수 있습니다. 시스템 바가 보이면 옵션의 전체화면 버튼을 한 번 눌러 주세요. 자동 전환은 최초 1회만 요청합니다.');return}if(installPrompt){const prompt=installPrompt;installPrompt=null;try{await prompt.prompt();const choice=await prompt.userChoice;if(choice.outcome==='accepted')button('install').textContent='✓ 설치됨'}catch{inform('앱 설치 안내','브라우저 메뉴에서 앱 설치 또는 홈 화면에 추가를 선택해 주세요.')}return}const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;inform('홈 화면에 설치',ios?'Safari에서 게임 링크를 열고 공유 버튼 → 홈 화면에 추가 → 추가를 누르세요. 생성된 아이콘으로 실행하면 주소창 없이 플레이합니다.':'Android Chrome에서 게임 링크를 직접 열고 ⋮ 메뉴 → 앱 설치 또는 홈 화면에 추가를 선택하세요. PC Chrome/Edge는 주소창의 설치 아이콘을 사용할 수 있습니다. 앱 내부 브라우저라면 먼저 외부 브라우저로 열어 주세요.')};
 let resumeAfterOptions=false;
 button('options-toggle').onclick=()=>{
  if(options.open)return;
