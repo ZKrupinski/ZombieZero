@@ -68,12 +68,12 @@ function cleanBossHDFrame(atlas,frame){
   return canvas;
  }catch{return null;} // Strict fallback to untouched approved HD image.
 }
-function loadLiving(key){
- const image=new Image(),entry=images[key]={image,ready:false,failed:false,hd:null};
+function loadLiving(key,attempt=1){
+ const image=new Image(),entry=images[key]={image,ready:false,failed:false,hd:null,attempt,retryAt:Date.now()+900};
  image.decoding='async';
  image.onload=()=>{entry.ready=image.naturalWidth===1024&&image.naturalHeight===512;entry.failed=!entry.ready};
  image.onerror=()=>{entry.failed=true};
- image.src=root+key+'.png';
+ image.src=root+key+'.png'+(attempt>1?'?v=470-retry-'+attempt:'');
  // Dedicated high-density source frames. The original 128px animation
  // remains available until the 2048×1024 HD boss atlas finishes loading.
  if(highResBosses.has(key)){
@@ -90,7 +90,7 @@ function loadLiving(key){
    }
   };
   hiImage.onerror=()=>{hd.failed=true};
-  hiImage.src=root+key+'_hd.png';
+  hiImage.src=root+key+'_hd.png'+(attempt>1?'?v=470-retry-'+attempt:'');
  }
 }
 const keyFor=z=>z.boss?bosses[z.bossForm??0]:normal[z.form??0];
@@ -160,7 +160,41 @@ function drawFrame(ctx,img,z,frame,opacity=1){
  }else ctx.drawImage(img,...rect,x,y,rect[2]*scale,rect[3]*scale);
  ctx.restore();
 }
-function draw(ctx,z,seconds){const img=activeImage(z);if(!img)return false;drawFrame(ctx,img,z,getFrame(z,seconds));return true}
+// The build embeds small, original-art standby frames. They decode only for
+// a requested boss. If the full sheet fails, the exact same boss remains visible.
+const standby=new Map();
+function prefetchBossStandby(form){
+ if(standby.has(form))return standby.get(form);
+ const spec=window.ZZBossStandbyArt?.[form];
+ if(!spec)return null;
+ const image=new Image(),entry={...spec,image,ready:false};
+ standby.set(form,entry);
+ image.onload=()=>{entry.ready=image.naturalWidth>0&&image.naturalHeight>0};
+ image.src=spec.src;
+ return entry;
+}
+function drawBossStandby(ctx,z){
+ if(!z.boss)return false;
+ const entry=prefetchBossStandby(z.bossForm??0);
+ if(!entry?.ready)return false;
+ const h=entry.height,w=h*entry.image.naturalWidth/entry.image.naturalHeight;
+ ctx.save();
+ if(z.flash>0)ctx.filter='brightness(2.1) saturate(1.3)';
+ ctx.drawImage(entry.image,z.x+z.w/2-w/2,z.y+z.h+2-h,w,h);
+ ctx.restore();return true;
+}
+function draw(ctx,z,seconds){
+ if(z.boss&&(z.bossForm??0)>=2)return drawBossStandby(ctx,z);
+ if(z.boss){
+  const key=keyFor(z),entry=images[key];
+  if(!entry)request([key]);
+  else if(entry.failed&&entry.hd?.failed&&entry.attempt<3&&Date.now()>=entry.retryAt)
+   loadLiving(key,entry.attempt+1);
+ }
+ const img=activeImage(z);
+ if(!img)return z.boss?drawBossStandby(ctx,z):false;
+ drawFrame(ctx,img,z,getFrame(z,seconds));return true;
+}
 // v96 P1: ORIGINAL-ART-only eight-step death atlas for red/yellow brain cubes.
 // Do NOT palette-shift the green mascot: those source characters have exposed
 // top brains, integrated red/yellow shells and NO black hair or top cap.
@@ -402,7 +436,7 @@ function trim(){
   p1DeathAtlases.delete(key+':normal');p1DeathAtlases.delete(key+':critical');
  }
 }
-function prefetch(keys){for(const key of keys)stageKeys.add(key);request(keys)}
+function prefetch(keys){for(const key of keys){stageKeys.add(key);const form=bosses.indexOf(key);if(form>=0)prefetchBossStandby(form)}request(keys)}
 function retain(keys){stageKeys=new Set(keys);request(stageKeys);trim()}
 function preview(keys){previewKeys=new Set(keys);request(previewKeys);trim()}
 function loading(keys){
@@ -413,5 +447,5 @@ function loading(keys){
  }
  return false;
 }
-window.ZZObjectSprite={request,prefetch,retain,preview,loading,images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath,p3AnatomicalDeaths,drawP3AnatomicalDeath};
+window.ZZObjectSprite={request,prefetch,retain,preview,loading,prefetchBossStandby,drawBossStandby,images,names,normal,bosses,frames,keyFor,available,draw,drawDeath,sourceRect,drawFrame,getFrame,walkTiming,activeImage,imageGeometry,frameImage,p1DeathAtlases,buildP1BrainDeathAtlas,p1FinishedDeaths,drawP1FinishedDeath,p2FinishedDeaths,drawP2FinishedDeath,p3AnatomicalDeaths,drawP3AnatomicalDeath};
 })();

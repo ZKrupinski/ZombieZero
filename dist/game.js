@@ -1229,6 +1229,7 @@ function prepareStageArt(number,gameMode=runMode){
  preparedStage={number,gameMode,keys,boss,elites};
  sprites?.prefetch?.(keys);
  for(const kind of new Set(elites))window.ZZEliteSprites?.request?.(kind);
+ if(boss>=0)sprites?.prefetchBossStandby?.(boss);
  if(boss>=2)window.ZZLargeBossSprites?.requestByForm(boss);
  return preparedStage;
 }

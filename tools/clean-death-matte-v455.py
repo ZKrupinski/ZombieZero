@@ -334,6 +334,29 @@ def verify():
     assert out.getpixel((6,6))[3]==0
     assert out.getpixel((13,13))==jug.getpixel((13,13))
 
+def embed_boss_standby():
+    # Original front-walk frames only. No substitute character or generated art.
+    # Embed into the already-loaded JS shell, not a second network dependency.
+    import base64, io
+    root=Path("dist/assets/ip/v2")
+    specs=[
+        ("big_zombie_hd.png",(11,34,246,235),104*201/207),
+        ("trash_can_hd.png",(19,43,243,236),98*193/230),
+        ("bosses/water_jug-v146.png",(0,256,256,512),110),
+        ("bosses/large_trash-v146.png",(0,256,256,512),154),
+    ]
+    data=[]
+    for name,box,height in specs:
+        with Image.open(root/name) as src:
+            cell=src.convert("RGBA").crop(box)
+        assert cell.getchannel("A").getbbox(),name
+        cell.thumbnail((160,160),Image.Resampling.LANCZOS)
+        buf=io.BytesIO();cell.save(buf,"PNG",optimize=True)
+        data.append({"height":height,"src":"data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode("ascii")})
+    loader=root/"object-zombies.js"
+    loader.write_text("window.ZZBossStandbyArt="+json.dumps(data,separators=(",",":"))+";\n"+loader.read_text())
+    print("V470: four original-art standby boss frames embedded",flush=True)
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--preview",type=Path)
@@ -374,6 +397,7 @@ def main():
             preview.append((name,im,out,fw,fh,count))
     clean_green_fallbacks()
     bump_green_cache()
+    embed_boss_standby()
     if args.preview:
         tw,th=96,110
         sheet=Image.new("RGB",(tw*8, len(preview)*(th*2+28)),"#21354a")

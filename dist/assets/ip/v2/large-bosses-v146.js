@@ -61,7 +61,7 @@ function requestByForm(form){
   if(entry.attempts<3&&typeof setTimeout==='function')
    setTimeout(()=>{if(cache[form-2]!==entry)return;entry.failed=false;requestByForm(form)},750*entry.attempts);
  };
- img.src=DIR+entry.file;
+ img.src=DIR+entry.file+(entry.attempts>1?'?v=470-retry-'+entry.attempts:'');
 }
 function readyByForm(form){return !!cache[form-2]?.ready}
 function available(z){return !!z?.boss&&readyByForm(z.bossForm)}
@@ -74,8 +74,13 @@ function drawFrame(ctx,img,row,col,z,height){
  ctx.restore();
 }
 function draw(ctx,z,seconds){
- if(!available(z))return false;
+ if(!z?.boss||!cache[z.bossForm-2])return false;
  const entry=cache[z.bossForm-2];
+ if(!available(z)){
+  requestByForm(z.bossForm);
+  if(entry.rightReady){drawFrame(ctx,entry.rightImage,0,0,z,entry.height);return true}
+  return window.ZZObjectSprite?.drawBossStandby?.(ctx,z)===true;
+ }
  const recoil=z.hitHold>0||(z.recoil||0)>.02;
  const dir=z.moveDir<-.3?'left':z.moveDir>.3?'right':'down';
  const fps=recoil?14:6.6;

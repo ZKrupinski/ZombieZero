@@ -102,3 +102,23 @@ const gallery=read(base+'cast-demo.js').toString();
 assert(gallery.includes('pack.activeImage(actor)'),'gallery displays actual HD boss');
 assert(gallery.includes('pack.sourceRect(actor,frame,img)'),'gallery samples HD pixel coordinates');
 console.log('PASS: two genuine higher-res 2048x1024 boss sprites, actual 256px cropped frames, walking/hit/death, fallback and review gallery');
+
+// V470: simulate both main atlases failing, while the original-art standby is available.
+{
+ const calls=[];
+ class FailedImage{
+  set src(value){this._src=value;if(value.startsWith('data:image/')){this.naturalWidth=120;this.naturalHeight=100;this.onload?.()}else{this.naturalWidth=0;this.naturalHeight=0;this.onerror?.()}}
+  get src(){return this._src}
+ }
+ const env={window:{ZZBossStandbyArt:Array.from({length:4},(_,i)=>({height:100+i,src:'data:image/png;base64,test'+i}))},Image:FailedImage};
+ vm.createContext(env);for(const code of src)vm.runInContext(code,env);
+ const pack=env.window.ZZObjectSprite,ctx={save(){},restore(){},drawImage(...args){calls.push(args)}};
+ for(let form=0;form<4;form++){
+  const z={boss:true,bossForm:form,x:100,y:80,w:66,h:88,flash:0};
+  pack.prefetchBossStandby(form);
+  assert(pack.draw(ctx,z,0),'same boss remains visible when original atlas is unavailable');
+  assert.equal(calls.at(-1)[0].src,'data:image/png;base64,test'+form);
+  assert.equal(calls.at(-1)[2]+calls.at(-1)[4],170,'standby uses the live foot pivot');
+ }
+}
+console.log('PASS v470: original species-specific standby renders when both main atlases fail.');
