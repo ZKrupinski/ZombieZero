@@ -25,7 +25,7 @@ const tintEnv={document,mode:'menu',balls:[],fxEnabled:true,selectedHero:0,
  g:{globalAlpha:1,save(){},restore(){},drawImage(){}},captureBloom:fn=>fn(),has:k=>tintEnv.skills.includes(k),skills:[]};
 let tintCanvases=0;
 tintEnv.document={createElement(){tintCanvases++;return {getContext:()=>({
- drawImage(){},createRadialGradient(){return {addColorStop(){}}},fillRect(){}
+ drawImage(){},createRadialGradient(){return {addColorStop(){}}},beginPath(){},arc(){},fill(){},fillRect(){}
 })}}};
 vm.createContext(tintEnv);
 vm.runInContext(section('const SKILL_TRAIL_RAMPS=','const BURN_GROUND_COLOR=')+

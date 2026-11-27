@@ -4808,10 +4808,14 @@ function skillTintFrame(img,sx,sy,sw,sh,ramp){
   // Use the bright mid-ramp as well as the saturated head color; a dark
   // blue/red head is a light source here, never a replacement for base RGB.
   const mid=ramp.stops[1];
-  const grad=ctx.createRadialGradient(w*.5,h*.48,0,w*.5,h*.48,Math.min(w,h)*.48);
+  // v450: radial gradients extend their final stop outside the radius.
+  // A nonzero final alpha plus fillRect exposed rotating square atlas padding.
+  // Bake a feathered circular support AND the original sprite alpha once.
+  const cx=w*.5,cy=h*.5,rr=Math.min(w,h)*.48;
+  const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,rr);
   if(!grad||typeof grad.addColorStop!=='function')return false;
-  grad.addColorStop(0,mid+'78');grad.addColorStop(.48,tint+'68');grad.addColorStop(.78,mid+'48');grad.addColorStop(1,rim+'25');
-  ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+  grad.addColorStop(0,mid+'78');grad.addColorStop(.48,tint+'68');grad.addColorStop(.78,mid+'48');grad.addColorStop(.88,rim+'25');grad.addColorStop(1,rim+'00');
+  ctx.fillStyle=grad;ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.fill();
   ctx.globalCompositeOperation='destination-in';ctx.drawImage(img,sx,sy,sw,sh,0,0,w,h);
   ctx.globalCompositeOperation='source-over';
   frames.set(key,canvas);
