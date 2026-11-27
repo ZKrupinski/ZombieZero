@@ -93,10 +93,10 @@ assert(fs.readFileSync('dist/index.html','utf8').includes('꽁꽁 포획기</spa
 f.reset();f.begin([],1);place('lure',5,10,4);f.deploy([]);
 const duck=f.getStructure(5,10),origin={x:duck.x+22,y:duck.y+44*18/64};
 const front=actor(origin.x+14,origin.y-55),side=actor(origin.x-50,origin.y-59);
-const behind=actor(origin.x,origin.y+33),outside=actor(origin.x-80,origin.y-43),far=actor(origin.x-8,origin.y-150),contacts=[];
+const behind=actor(origin.x,origin.y+33),outside=actor(origin.x-80,origin.y-43),farDuckTarget=actor(origin.x-8,origin.y-150),contacts=[];
 duck.cooldown=0;
 for(let i=0;i<90;i++){
- f.tickDevices(.01,[front,side,behind,outside,far],i*.01,{push(z,dx,dy){contacts.push(z);assert(dy<0&&Math.abs(dx)<=-dy+1e-9);return true}});
+ f.tickDevices(.01,[front,side,behind,outside,farDuckTarget],i*.01,{push(z,dx,dy){contacts.push(z);assert(dy<0&&Math.abs(dx)<=-dy+1e-9);return true}});
  if(duck.run){assert.equal(duck.run.dx,0);assert.equal(duck.run.dy,-1)}
 }
 assert.deepEqual(contacts,[front,side],'both inside fan, neither side/back nor distant target, no repeated hit');
