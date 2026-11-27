@@ -19,7 +19,57 @@ TARGETS={**{name:"green" for name in GREEN},
          "water_bottle-death":"bottle",
          "trash_bag-death":"dark_bag"}
 
+def clean_white_bag(im):
+    """V467: preserve the complete original white fabric and all connected art.
+
+    Only tiny, detached, faint neutral islands surrounded by true exterior
+    transparency may be cleared. Never flood into opaque cloth or enclosed gaps.
+    """
+    w,h=im.size
+    pixels=list(im.getdata())
+    n=w*h
+    def neighbors(i):
+        x,y=i%w,i//w
+        for yy in range(max(0,y-1),min(h,y+2)):
+            for xx in range(max(0,x-1),min(w,x+2)):
+                j=yy*w+xx
+                if j!=i: yield j
+    # Find true outside air, not the holes inside a silhouette.
+    outside=bytearray(n)
+    q=deque()
+    for i,p in enumerate(pixels):
+        if p[3]==0 and (i%w in (0,w-1) or i//w in (0,h-1)):
+            outside[i]=1;q.append(i)
+    while q:
+        i=q.popleft()
+        for j in neighbors(i):
+            if pixels[j][3]==0 and not outside[j]:
+                outside[j]=1;q.append(j)
+    # Consider connected nonzero-alpha components, not RGB components.
+    # An attached fringe is retained rather than risk eroding the white art.
+    visited=bytearray(n)
+    remove=bytearray(n)
+    for i,p in enumerate(pixels):
+        if p[3]==0 or visited[i]: continue
+        visited[i]=1;q=deque([i]);comp=[];touches_outside=False
+        while q:
+            j=q.popleft();comp.append(j)
+            for k in neighbors(j):
+                if outside[k]: touches_outside=True
+                if pixels[k][3]>0 and not visited[k]:
+                    visited[k]=1;q.append(k)
+        if not touches_outside or len(comp)>8: continue
+        if all(0<pixels[j][3]<130 and min(pixels[j][:3])>=170
+               and max(pixels[j][:3])-min(pixels[j][:3])<=18 for j in comp):
+            for j in comp: remove[j]=1
+    out=Image.new("RGBA",im.size)
+    out.putdata([(p[0],p[1],p[2],0) if remove[i] else p
+                 for i,p in enumerate(pixels)])
+    return out,sum(remove)
+
 def clean_frame(im, mode, frame):
+    if mode=="white_bag":
+        return clean_white_bag(im)
     w,h=im.size
     pixels=list(im.getdata())
     n=w*h
@@ -260,16 +310,23 @@ def verify():
     assert out.getpixel((33,33))[3]==0 and out.getpixel((45,33))[3]==0
     assert out.getpixel((19,19))==img.getpixel((19,19))
     assert out.getpixel((7,28))==img.getpixel((7,28))
-    # White 50L fabric is not a neutral checker tile, and its white eye
-    # is enclosed by the colored body. Both must be preserved.
+    # White bag regression: opaque gray fabric at the perimeter, white
+    # folds, connected antialiasing and genuine fragments must survive.
     bag=Image.new("RGBA",(48,48),(0,0,0,0));d=ImageDraw.Draw(bag)
     d.rectangle((5,5,42,42),fill=(190,190,190,255))
     d.rectangle((10,10,37,37),fill=(211,216,233,255))
     d.rectangle((16,16,23,23),fill=(255,255,255,255))
-    out,_=clean_frame(bag,"white_bag",0)
-    assert out.getpixel((6,6))[3]==0
-    assert out.getpixel((10,10))==bag.getpixel((10,10))
-    assert out.getpixel((19,19))==bag.getpixel((19,19))
+    d.rectangle((25,25,29,29),fill=(0,0,0,0))
+    d.point((27,27),fill=(220,220,220,80))
+    d.point((4,10),fill=(200,200,200,80))
+    d.point((2,2),fill=(210,210,210,80))
+    d.point((45,45),fill=(230,230,230,255))
+    out,changed=clean_frame(bag,"white_bag",0)
+    assert changed==1 and out.getpixel((2,2))[3]==0
+    for xy in ((6,6),(10,10),(19,19),(27,27),(4,10),(45,45)):
+        assert out.getpixel(xy)==bag.getpixel(xy)
+    assert all(p==q or (p[:3]==q[:3] and 0<p[3]<130 and q[3]==0)
+               for p,q in zip(bag.getdata(),out.getdata()))
     jug=Image.new("RGBA",(48,48),(0,0,0,0));d=ImageDraw.Draw(jug)
     d.rectangle((4,4,43,43),fill=(200,216,228,255))
     d.rectangle((12,12,35,35),fill=(61,155,221,255))
@@ -304,6 +361,11 @@ def main():
             # The repair is alpha-only; no new pixels, poses, or RGB changes.
             assert all(p==q or (p[:3]==q[:3] and q[3]==0)
                        for p,q in zip(cell.getdata(),fixed.getdata()))
+            if mode=="white_bag":
+                # The deployed strip is regenerated from the committed,
+                # unmodified original on every build, including both death uses.
+                assert all(p==q for p,q in zip(cell.getdata(),fixed.getdata()) if p[3]>=130)
+                print(f"V467 white bag frame {f}: preserved all solid fabric; removed {changed} isolated faint pixels",flush=True)
             out.paste(fixed,(f*fw,0));counts.append(changed)
         if sum(counts):
             out.save(path,"WEBP",lossless=True,method=4,exact=True)

@@ -42,7 +42,7 @@
    entry.strip={image,side,left,top,width,height};
    entry.ready=true;
   };
-  image.src=root+key+'.webp?v=455';
+  image.src=root+key+'.webp?v=455'+(key==='volume_bag-death'?'-v467-white-fabric':'');
  }
  function draw(ctx,strip,frame,x,y,side){
   const scale=side/strip.side;
