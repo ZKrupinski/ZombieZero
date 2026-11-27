@@ -56,6 +56,7 @@ s.window.matchMedia=q=>({matches:q==='(display-mode: standalone)'});
 await el('start').handlers.click();await el('endless').handlers.click();await el('fullscreen').onclick();
 assert.equal(calls,2,'installed app never requests native fullscreen');
 s.window.matchMedia=q=>({matches:q==='(display-mode: fullscreen)'});
+listeners.pageshow(); // Apply installed display mode on launch.
 await el('start').handlers.click();await el('endless').handlers.click();await el('fullscreen').onclick();
 assert.equal(calls,2,'immersive PWA launches without native fullscreen requests');
 assert.equal(el('overlay-fullscreen').hidden,true,'immersive PWA hides manual entry shortcut');
