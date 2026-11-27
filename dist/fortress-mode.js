@@ -750,8 +750,9 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
  }else if(kind==='saw'){
   if(layer!=='attack')part(g,6,2,20,60,43);
   if(layer!=='base'){
-   linkage(g,11,32,38,x,y-16,7);
-   g.save();g.translate(32+x,22+y);g.rotate(time*17+.3);
+   const lift=offset?.lift||0,spin=offset?.spin??.3;
+   linkage(g,11,32,38,x,y-16-lift,7);
+   g.save();g.translate(32+x,22+y-lift);g.rotate(spin);
    part(g,7,-22,-22,44,44);g.restore();
   }
  }else if(kind==='ice'){
@@ -940,13 +941,14 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
   offset={...pose,combat:!building,airborne:!!run&&progress>=.18&&progress<.74,
    x:0,y:-travel,spring:run?duckSpringLength(progress):12-pose.bob};
  }
+ if(w.kind==='saw')offset={x:0,y:0,lift:building?0:10,spin:building?.3:(w.sawSpin??.3)};
  if(run&&w.kind==='saw'){
   const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
   const z=run.targets[index],reach=Math.sin(Math.PI*(step-index));
   const target=deviceTarget(z,x,y);
   const dx=target.x-x,dy=target.y-y;
   const scale=armReach(w,dx,dy)/Math.max(1,Math.hypot(dx,dy))*64/size;
-  offset={x:dx*scale*reach,y:(dy*scale+10)*reach};
+  offset={...offset,x:dx*scale*reach,y:(dy*scale+10)*reach};
  }
  // Same impact envelope as barricades, applied only to the bitmap.
  const bite=building?0:Math.min(1,Math.max(0,(w.biteShake||0)/.18));
@@ -962,7 +964,7 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  if(run&&offset&&layer!=='base'&&(w.kind==='lure'||w.kind==='saw')&&
     Math.hypot(offset.x||0,offset.y||0)>12){
   g.save();g.globalAlpha=.32;g.globalCompositeOperation='lighter';
-  paintMachine(g,w.kind,Math.max(0,time-.12),pulse,{...offset,x:offset.x*.79,y:offset.y*.79,jitterX:0,jitterY:0,ghost:w.kind==='lure'},'attack');
+  paintMachine(g,w.kind,Math.max(0,time-.12),pulse,{...offset,x:offset.x*.79,y:offset.y*.79,jitterX:0,jitterY:0,ghost:w.kind==='lure',spin:w.kind==='saw'?offset.spin-2.04:offset.spin},'attack');
   g.restore();
  }
  if(bite>0||punch>0)g.filter='brightness('+String((1+Math.max(1.7*bite,(w.kind==='lure'&&offset?.angry?.25:1.1)*punch)).toFixed(2))+') saturate(.95)';
@@ -1382,6 +1384,8 @@ function draw(g,building=false,glow=null,splitAttacks=false){
 function tick(dt){tickStructureDebris(dt);for(const w of walls.values()){
  w.hit=Math.max(0,(w.hit||0)-dt);w.fxImpact=Math.max(0,(w.fxImpact||0)-dt);
  if(w.kind==='lure'&&!w.run)w.duckIdleTime=((w.duckIdleTime||0)+dt)%120;
+ // Keep one continuous rotor phase: no angle snap on attack or return.
+ if(w.kind==='saw')w.sawSpin=((w.sawSpin??.3)+dt*(w.run?51:2.2))%(Math.PI*2);
  w.biteShake=Math.max(0,(w.biteShake||0)-dt);
  if(w.moleHit>0)w.moleHit=Math.max(0,w.moleHit-dt);
 }}

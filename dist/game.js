@@ -2673,7 +2673,11 @@ function ensureBallCruiseSpeed(b){
  }
  return speed;
 }
-function resetBalls(){if(typeof heroStrikeVisual!=='undefined')heroStrikeVisual=null;killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
+function resetBalls(){
+ // A new held ball begins with clean live sprites. Keep damage, freeze,
+ // stagger and knockback timers unchanged; only clear cosmetic flashes.
+ for(const z of foes){z.flash=0;z.bankFlashUntil=0;z.fortressBossFlashUntil=0;delete z.fortressContactCel}
+ if(typeof heroStrikeVisual!=='undefined')heroStrikeVisual=null;killCombo=0;killTimer=0;comboPop=0;comboDisplayTime=0;balls=[newBall()];combo=0;hud()}
 function clearSkills(){active={};items=[];rockets=[];bazookaBlasts=[];bazookaTimer=0;fireWaves.length=0;skillUI()}
 let menuRunChipsAtStart=0;
 let waitingForStart=false;
@@ -3477,7 +3481,7 @@ if(balls[0]?.held){
  balls[0].x=car+o.x;balls[0].y=PY+o.y;
  return;
 }
-for(const z of [...foes]){z.flash=Math.max(0,z.flash-dt);if(z.burn>0){
+for(const z of [...foes]){if(z.burn>0){
  z.burn=Math.max(0,z.burn-dt);z.burnTick+=dt;z.spreadTick+=dt;z.burnVisualDelay=Math.max(0,(z.burnVisualDelay||0)-dt);
  if(z.spreadTick>=.95&&!z.spreadDone){
   z.spreadDone=true;
@@ -3836,6 +3840,9 @@ function updateEnemyVisuals(dt){
  for(const ghost of dodgeGhosts)ghost.t+=dt;
  compactVisualQueue(dodgeGhosts,ghost=>ghost.t<ghost.life);
  advanceVisualQueue(hitFlashes,dt);advanceVisualQueue(barrelBlasts,dt);advanceVisualQueue(bazookaBlasts,dt);for(const z of foes){
+ // V478: sprite flash is visual time, not enemy marching time. Held serves
+ // and trash-stopped enemies must not freeze a brightened bitmap.
+ z.flash=Math.max(0,(z.flash||0)-dt);
  if(z.duckContact&&clock>=z.duckContact.at){const q=z.duckContact;delete z.duckContact;if(!(z.fortressFrozenUntil>clock))fortressContact(z,'lure',q.x,q.y,DUCK_CHAIN_FREEZE)}
  if(z.trashStopUntil>clock){z.hitHold=Math.max(0,(z.hitHold||0)-dt);continue}
  if(Number.isFinite(z.arrivalTime)){

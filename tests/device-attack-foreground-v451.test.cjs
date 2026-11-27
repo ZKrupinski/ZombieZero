@@ -72,3 +72,22 @@ assert.equal(approved[24]+(approved[25]<<8)+(approved[26]<<16)+1,1152);
 assert.equal(approved[27]+(approved[28]<<8)+(approved[29]<<16)+1,384);
 assert(src.includes('duck-approved-v475.webp'));
 console.log('PASS v475: original approved directional cels, fixed base, vertical jump and spring compression/landing.');
+
+// V478: saw rotates around a raised centre; placement stays compact.
+const bladeCenters=[],bladeAngles=[],bladeLinks=[];
+g.translate=(x,y)=>bladeCenters.push([x,y]);g.rotate=a=>bladeAngles.push(a);
+env.linkage=(g,...args)=>bladeLinks.push(args);
+vm.runInContext("paintMachine(g,'saw',0,0,{x:0,y:0,lift:10,spin:1.2},'attack')",env);
+assert.deepEqual(bladeCenters.at(-1),[32,12]);assert.equal(bladeAngles.at(-1),1.2);
+assert.deepEqual(bladeLinks.at(-1),[11,32,38,0,-26,7]);
+vm.runInContext("paintMachine(g,'saw',0,0,null,'attack')",env);
+assert.deepEqual(bladeCenters.at(-1),[32,22]);assert.equal(bladeAngles.at(-1),.3);
+const tickSrc=section('function tick(dt)','if(confirmButton)');
+const rotor={kind:'saw'};
+const tickRotor=new Function('walls','tickStructureDebris',tickSrc+';return tick') (new Map([[0,rotor]]),()=>{});
+tickRotor(.1);assert(Math.abs(rotor.sawSpin-.52)<1e-9);
+rotor.run={};const beforeAttack=rotor.sawSpin;tickRotor(.02);
+assert(Math.abs(rotor.sawSpin-(beforeAttack+1.02))<1e-9);
+rotor.run=null;const afterAttack=rotor.sawSpin;tickRotor(.1);
+assert(Math.abs(rotor.sawSpin-(afterAttack+.22))<1e-9);
+console.log('PASS v478: raised saw centre, continuous idle/attack phase, unchanged compact build pose.');

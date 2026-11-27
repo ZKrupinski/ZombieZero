@@ -71,6 +71,15 @@ damage(splash,.8,false,{x:1,y:-.2,push:.55,bankSplash:true});
 check(Math.abs(splash.hp-19.2)<.001&&hitFlashes.length===0,'bank splash preserves damage without debris');
 check(splash.bankFlashUntil>clock&&!(splash.hitShakeUntil>clock),'bank splash uses brief subdued flash');
 console.log('PASS v396: comic contacts, bidirectional mole launches, quiet bank splash.');
+// V478: real visual update also runs when a new ball is held.
+const flashBoss={...enemy(200,180),boss:true,flash:.22,fortressBossFlashUntil:clock+.19,bankFlashUntil:clock+.1,fortressContactCel:1};
+foes=[flashBoss];resetBalls();
+check(balls[0].held&&flashBoss.flash===0&&flashBoss.fortressBossFlashUntil===0&&flashBoss.bankFlashUntil===0&&!('fortressContactCel' in flashBoss),'serve reset clears lingering cosmetic flash');
+flashBoss.flash=.22;flashBoss.trashStopUntil=clock+1;
+updateEnemyVisuals(.10);
+check(Math.abs(flashBoss.flash-.12)<.00001,'visual flash decays even when held or trash-stopped');
+updateEnemyVisuals(.15);check(flashBoss.flash===0&&flashBoss.hp===20,'flash expires without changing health');
+console.log('PASS v478: held serve and stopped boss flash cleanup.');
 start('endless');check(fortress.getWallCount()>=4&&fortress.getWallCount()<=6&&hasEndlessStructures(),'wave 1 introduces a straight wall line');
 mode='endlessShift';endlessShiftSpawned=true;wave=59;refillEndlessWave();
 check(wave===60&&fortress.getWallCount()>=11&&fortress.getWallCount()<=15&&hasEndlessStructures(),'wave 10 includes all five introduced types');
