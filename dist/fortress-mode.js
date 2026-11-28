@@ -935,7 +935,7 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
  let offset=run&&w.kind==='ice'?{deployed:true}:null;
  if(!building&&w.kind==='bollard'&&w.moleHit>0)offset={moleImpact:moleImpactPose(w)};
  if(w.kind==='lure'){
-  const travel=run?duckTravel(progress)*64/size:0;
+  const travel=run?duckVisualTravel(progress)*64/size:0;
   const pose=duckPose(w,run,progress,building);
   // Vertical screen motion only; target direction selects face, not movement.
   offset={...pose,combat:!building,airborne:!!run&&progress>=.18&&progress<.74,
@@ -1131,6 +1131,8 @@ function duckTravel(p){
  const t=Math.max(0,Math.min(1,(p-.74)/.26));
  return -4*Math.sin(t*Math.PI*3)*Math.exp(-t*4)*(1-t);
 }
+// V479: shorten only the visible airborne leap; fan reach, spring and landing stay unchanged.
+function duckVisualTravel(p){const d=duckTravel(p);return d>0?d*.5:d}
 function duckSpringLength(p){
  if(p<.18)return 12-8*Math.sin(Math.PI*p/.18);
  if(p<.38)return 12+34*Math.sin(Math.PI*(p-.18)/.20);

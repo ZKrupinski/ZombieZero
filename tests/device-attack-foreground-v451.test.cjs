@@ -43,7 +43,7 @@ for(const [dx,d] of [[-.7071,0],[-.35,1],[0,2],[.35,3],[.7071,4]]){
  assert.equal(a.direction,d);assert(a.angry&&b.angry&&a.jitterX===-b.jitterX);
 }
 assert(!pose({},{dx:0,time:.8},.95).angry);
-const motion=new Function('BUILD_TYPES',section('function duckTravel(','function strikeDuck(')+';return {duckTravel,duckSpringLength}')({lure:{range:100}});
+const motion=new Function('BUILD_TYPES',section('function duckTravel(','function strikeDuck(')+';return {duckTravel,duckSpringLength,duckVisualTravel}')({lure:{range:100}});
 assert(Math.abs(motion.duckTravel(0))<1e-8);assert(motion.duckTravel(.09)<0);
 assert.equal(motion.duckTravel(.43),100);assert(Math.abs(motion.duckTravel(.74))<1e-8);assert(Math.abs(motion.duckTravel(1))<1e-8);
 assert(motion.duckSpringLength(.09)<12&&motion.duckSpringLength(.28)>40);
@@ -91,3 +91,13 @@ assert(Math.abs(rotor.sawSpin-(beforeAttack+1.02))<1e-9);
 rotor.run=null;const afterAttack=rotor.sawSpin;tickRotor(.1);
 assert(Math.abs(rotor.sawSpin-(afterAttack+.22))<1e-9);
 console.log('PASS v478: raised saw centre, continuous idle/attack phase, unchanged compact build pose.');
+
+// V479: half of the old airborne travel, without changing the hit fan or spring.
+assert.equal(motion.duckVisualTravel(.43),50);
+for(let i=0;i<=100;i++){
+ const p=i/100,d=motion.duckTravel(p);
+ assert(Math.abs(motion.duckVisualTravel(p)-(d>0?d*.5:d))<1e-9);
+}
+assert(src.includes('duckVisualTravel(progress)*64/size'));
+assert(src.includes('reach=duckTravel(Math.min(.43,progress))+12'));
+console.log('PASS v479: half-height duck leap, original hit fan, compression and rebound.');
