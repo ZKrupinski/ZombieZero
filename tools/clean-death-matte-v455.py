@@ -528,6 +528,7 @@ def main():
     # V484: final release-edge pass after the previous alpha-only cleanup.
     import runpy
     runpy.run_path('tools/defringe-green-death-v484.py',run_name='__main__')
+    runpy.run_path('tools/despeck-green-death-v485.py',run_name='__main__')
     # The QA preview must show the actual final packaged pixels.
     if args.preview:
         preview=[(name,before,Image.open(ROOT/(name+'.webp')).convert('RGBA') if name in GREEN else after,fw,fh,count)
