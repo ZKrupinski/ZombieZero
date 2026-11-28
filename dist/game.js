@@ -2873,7 +2873,7 @@ function updateEmergencySupport(dt){
   let citizen=citizens.find(p=>p.alive);
   if(!citizen){
    citizen=citizens[0];
-   if(citizen){citizen.alive=true;citizen.dying=0;citizen.absent=0;citizen.returning=1.1;citizen.shooting=0;citizen.guardSpent=false;citizen.guardUntil=0}
+   if(citizen&&assignReturningCitizenIdentity(citizen)){citizen.alive=true;citizen.dying=0;citizen.absent=0;citizen.returning=1.1;citizen.shooting=0;citizen.guardSpent=false;citizen.guardUntil=0}
   }
   if(!citizen)return;
   endlessEmergencyUsed=true;supportDangerTime=0;
@@ -5194,7 +5194,7 @@ function recordKill(){
  if([5,10,20,30,50].includes(killCombo))citizenReaction('combo');
  if(killCombo%(growth('rescue')>=3?4:5)!==0)return;
  const p=citizens.filter(p=>!p.alive&&p.absent>=8-growth('rescue')*.5).sort((a,b)=>b.absent-a.absent)[0];
- if(!p)return;
+ if(!p||!assignReturningCitizenIdentity(p))return;
  p.alive=true;p.dying=0;p.absent=0;p.returning=1.1;p.guardSpent=false;p.guardUntil=0;cheerTime=1.8;
  citizenCue(p,true);effect(p.x,p.y-12,'#91f4d0',65);burst(p.x,p.y-10,'#91f4d0',24);sfx('return');feedback('rescue');toast('시민 +1 복귀! · '+killCombo+' COMBO');
 }
@@ -5241,8 +5241,20 @@ function drawKillCombo(){
 }
 // Keep all 18 original supporters and sprites, but bring their save hitboxes
 // inside the same side walls where the ball now legitimately travels.
-const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,phase:i*.9,alive:true,dying:0,supportTime:0}));
-function resetCitizens(){for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0;p.guardSpent=false;p.guardUntil=0}bubbles=[];bubbleTimer=.25;lastCitizenLine=''}
+const citizens=Array.from({length:18},(_,i)=>({x:48+i*(354/17),y:682+VIEW_DELTA+(i%2)*5,skin:['#ffd6a4','#c48b68','#f3bb92','#92624f'][i%4],shirt:['#e69a72','#78b5cc','#b692d6','#e7cd72','#a5d398','#e58da7'][i%6],hair:['#49332f','#d89343','#d8d8cc','#333d50','#875645'][i%5],style:i%8,identity:i,phase:i*.9,alive:true,dying:0,supportTime:0}));
+function shuffleCitizenIdentities(crowd,random=Math.random){
+ const ids=Array.from({length:18},(_,i)=>i);
+ for(let i=ids.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}
+ for(let i=0;i<crowd.length;i++)crowd[i].identity=ids[i];
+}
+function assignReturningCitizenIdentity(p,crowd=citizens,random=Math.random){
+ const used=new Set(crowd.filter(q=>q!==p&&(q.alive||q.dying>0)).map(q=>q.identity));
+ const free=Array.from({length:18},(_,i)=>i).filter(i=>!used.has(i));
+ if(!free.length)return false;
+ const fresh=free.filter(i=>i!==p.identity),pool=fresh.length?fresh:free;
+ p.identity=pool[Math.floor(random()*pool.length)];return true;
+}
+function resetCitizens(){shuffleCitizenIdentities(citizens);for(const p of citizens){p.alive=true;p.dying=0;p.absent=0;p.returning=0;p.shooting=0;p.supportTime=0;p.guardSpent=false;p.guardUntil=0}bubbles=[];bubbleTimer=.25;lastCitizenLine=''}
 // One additional absorbed civilian hit; LV1..5 = 20/40/60/80/100%
 // chance to block the first hit. Protection expires on the next real impact.
 function tryCitizenGuard(p){
@@ -6061,6 +6073,13 @@ function updateCrowd(dt){updateBubbles(dt);for(const p of citizens){if(p.dying>0
 // atlases share a fixed 128×128 cell grid: cheer vs counterattack/sacrifice.
 // Keep the old procedural artwork only as a non-blocking loading fallback.
 function citizenSpriteFrame(p,cheering){
+ const next=window.ZZCitizenCast18;
+ if(next?.ready&&next.sheets[p.identity]){
+  const row=!p.alive&&p.dying>0?2:((p.shooting||0)>0||(p.supportTime||0)>0)?1:0;
+  const progress=row===2?1-p.dying/.8:row===1?((p.shooting||0)>0?1-p.shooting/1.15:1-p.supportTime/.62):0;
+  const frame=row===0?Math.floor((clock*5.6+p.phase)%8):Math.max(0,Math.min(7,Math.floor(progress*8)));
+  return {atlas:next.sheets[p.identity],frame,row,cell:next.cell,individual:true};
+ }
  const cast=window.ZZCitizenCast;
  if(!cast?.ready)return null;
  const wounded=!p.alive&&p.dying>0;
@@ -6078,6 +6097,7 @@ function drawCitizenBitmap(p,x,y,cheering){
  if(!frame||!frame.atlas)return false;
  // Restore v41's approved, expressive citizen size. Mild overlap is
  // intentional in the packed audience; keep foot anchor and all hitboxes.
+ if(frame.individual){const tile=frame.cell,size=46;g.drawImage(frame.atlas,frame.frame*tile,frame.row*tile,tile,tile,x-size/2,y-size+21,size,size);return true;}
  const tile=128,width=35,height=46;
  g.drawImage(frame.atlas,frame.identity*tile,frame.frame*tile,tile,tile,
              x-width/2,y-height+21,width,height);
@@ -6089,7 +6109,7 @@ function drawCitizenBitmap(p,x,y,cheering){
 // clear of civilian heads. The same Y is used for the ball rebound and
 // its hit sparkle; the bounce rule and skill duration do not change.
 const SHIELD_LINE_Y=H-58;
-function drawCrowd(){rect(20,H-51,410,4,'#7189a2');rect(20,H-47,410,3,'#182d40');for(const p of citizens){if(!p.alive&&p.dying<=0)continue;g.save();drawHardGroundShadow(p.x,p.y+21,25,6,true,.28);drawTrashContact(p);if(p.returning>0){const t=1-p.returning/1.1;g.globalAlpha=Math.min(1,t*5);if(fxEnabled){g.strokeStyle='#91f4d0';g.lineWidth=3;g.beginPath();g.ellipse(p.x,p.y+12,12+t*24,5+t*8,0,0,Math.PI*2);g.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+t*4;rect(p.x+Math.cos(a)*25,p.y-15+Math.sin(a)*23,4,4,'#ffed9b')}}g.translate(0,-Math.sin(t*Math.PI)*22)}if(!p.alive){const t=1-p.dying/.8;g.globalAlpha=Math.min(1,p.dying/.35);g.translate(p.x,p.y);g.rotate(Math.sin(t*13)*.22);g.scale(1+t*.15,1-t*.15);g.translate(-p.x,-p.y-30*Math.sin(t*Math.PI/2))}let cheer=mode==='clearing'||cheerTime>0||Math.sin(clock*1.5+p.phase)>.82,bob=cheer?Math.abs(Math.sin(clock*7+p.phase))*3:0,x=p.x,y=p.y-bob;if(drawCitizenBitmap(p,x,y,cheer)){g.restore();continue}rect(x-9,y+4,18,17,p.shirt);rect(x-8,y-10,16,16,p.skin);rect(x-9,y-13,18,5,p.hair);if(p.style===0){rect(x-11,y-15,22,4,p.shirt);rect(x-7,y-20,15,6,p.shirt)}if(p.style===1){rect(x-10,y-8,4,17,p.hair);rect(x+7,y-8,4,17,p.hair)}if(p.style===2){rect(x-8,y-7,16,2,'#263441');rect(x-7,y-5,5,4,'#d3ece1');rect(x+3,y-5,5,4,'#d3ece1')}else{rect(x-5,y-5,2,3,'#394149');rect(x+3,y-5,2,3,'#394149')}rect(x-3,y+1,6,2,'#984f4d');if(p.style===3){rect(x-6,y+12,13,3,'#f0e9c9');rect(x-2,y+4,4,14,'#f0e9c9')}if(p.style===4)rect(x-7,y,14,4,'#d3d4c0');if(cheer){rect(x-13,y-4,5,14,p.skin);rect(x+10,y-8,5,17,p.skin);rect(x-14,y-7,6,5,p.skin);rect(x+9,y-11,6,5,p.skin)}else{rect(x-12,y+7,4,12,p.skin);rect(x+9,y+7,4,12,p.skin)}g.restore()}}
+function drawCrowd(){rect(20,H-51,410,4,'#7189a2');rect(20,H-47,410,3,'#182d40');for(const p of citizens){if(!p.alive&&p.dying<=0)continue;g.save();drawHardGroundShadow(p.x,p.y+21,25,6,true,.28);drawTrashContact(p);if(p.returning>0){const t=1-p.returning/1.1;g.globalAlpha=Math.min(1,t*5);if(fxEnabled){g.strokeStyle='#91f4d0';g.lineWidth=3;g.beginPath();g.ellipse(p.x,p.y+12,12+t*24,5+t*8,0,0,Math.PI*2);g.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+t*4;rect(p.x+Math.cos(a)*25,p.y-15+Math.sin(a)*23,4,4,'#ffed9b')}}g.translate(0,-Math.sin(t*Math.PI)*22)}if(!p.alive&&!window.ZZCitizenCast18?.ready){const t=1-p.dying/.8;g.globalAlpha=Math.min(1,p.dying/.35);g.translate(p.x,p.y);g.rotate(Math.sin(t*13)*.22);g.scale(1+t*.15,1-t*.15);g.translate(-p.x,-p.y-30*Math.sin(t*Math.PI/2))}let cheer=mode==='clearing'||cheerTime>0||Math.sin(clock*1.5+p.phase)>.82,bob=cheer?Math.abs(Math.sin(clock*7+p.phase))*3:0,x=p.x,y=p.y-bob;if(drawCitizenBitmap(p,x,y,cheer)){g.restore();continue}rect(x-9,y+4,18,17,p.shirt);rect(x-8,y-10,16,16,p.skin);rect(x-9,y-13,18,5,p.hair);if(p.style===0){rect(x-11,y-15,22,4,p.shirt);rect(x-7,y-20,15,6,p.shirt)}if(p.style===1){rect(x-10,y-8,4,17,p.hair);rect(x+7,y-8,4,17,p.hair)}if(p.style===2){rect(x-8,y-7,16,2,'#263441');rect(x-7,y-5,5,4,'#d3ece1');rect(x+3,y-5,5,4,'#d3ece1')}else{rect(x-5,y-5,2,3,'#394149');rect(x+3,y-5,2,3,'#394149')}rect(x-3,y+1,6,2,'#984f4d');if(p.style===3){rect(x-6,y+12,13,3,'#f0e9c9');rect(x-2,y+4,4,14,'#f0e9c9')}if(p.style===4)rect(x-7,y,14,4,'#d3d4c0');if(cheer){rect(x-13,y-4,5,14,p.skin);rect(x+10,y-8,5,17,p.skin);rect(x-14,y-7,6,5,p.skin);rect(x+9,y-11,6,5,p.skin)}else{rect(x-12,y+7,4,12,p.skin);rect(x+9,y+7,4,12,p.skin)}g.restore()}}
 // Citizen support uses its own projectiles; tennis ball physics stays unchanged.
 // V151: each support rocket rolls one actual radius at launch.
 // 48..88px replaces the former fixed 120px blast. The same value drives
