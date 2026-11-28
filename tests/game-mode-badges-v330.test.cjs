@@ -41,9 +41,9 @@ assert(html.indexOf('fortress-mode.css')<html.indexOf('mode-icons-v330.css'),
 assert(game.includes("const mini=$('mini-horde')")&&game.includes("start('mini')"));
 assert(game.includes("const barricade=$('fortress-horde')")&&game.includes("start('fortress')"));
 assert(game.includes("start('endless')"),'endless gameplay route remains intact');
-assert.equal(sw.split("'./assets/ui/mode-icons-v330.avif'").length-1,2,
- 'PWA precaches approved art in its two shell resource lists');
-assert.equal(sw.split("'./mode-icons-v330.css'").length-1,2);
-assert.equal(sw.split("'./selection-layout-v332.css'").length-1,2);
+assert(sw.includes("'./assets/ui/mode-icons-v330.avif'"),'approved mode artwork remains in resource inventory');
+assert(sw.includes("cache:'no-store'")&&!sw.includes('cache.match('),'fresh launch fetches mode artwork without old cached copies');
+assert(sw.includes("'./mode-icons-v330.css'"));
+assert(sw.includes("'./selection-layout-v332.css'"));
 assert(sw.includes('v330-approved-mode-icons'),'service worker cache invalidated');
 console.log('PASS v330/v332: approved mode art, native in-flow 9:16 menu, accessible routing and PWA caches.');

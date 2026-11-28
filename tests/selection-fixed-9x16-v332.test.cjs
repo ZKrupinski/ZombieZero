@@ -72,8 +72,8 @@ for(const [width,height] of [[450,710],[360,640],[400,711],[450,800],[320,568]])
 assert(html.includes('selection-layout-v332.css?v=334-compact-six-button-feedback'),
  'new layout must load after existing badge art styles');
 assert(html.indexOf('mode-icons-v330.css')<html.indexOf('selection-layout-v332.css'));
-assert.equal(sw.split("'./selection-layout-v332.css'").length-1,2,
- 'PWA precaches new layout in both resource lists');
+assert(sw.includes("'./selection-layout-v332.css'"),'new layout remains in resource inventory');
+assert(sw.includes("cache:'no-store'")&&!sw.includes('cache.match('),'layout always fetched fresh');
 assert(sw.includes('v334-compact-six-button-feedback'),'PWA cache invalidated');
 assert(css.includes('transform:translateY(calc(-6px * var(--ui-scale,1)))!important'),
  'character selector moved slightly up, while retaining grid layout');

@@ -9,7 +9,7 @@ const sw=fs.readFileSync('dist/sw.js','utf8');
 assert.match(game,/const BOSS_FORMS=\['빅 좀비','쓰레기통 좀비','대형 생수통 좀비','큰 쓰레기 좀비'\]/);
 assert.ok(html.includes('large-bosses-v146.js'));
 assert.ok(sw.includes('./assets/ip/v2/large-bosses-v146.js'));
-assert.ok(sw.includes('const boss='));
+assert.ok(sw.includes("cache:'no-store'")&&sw.includes('u.pathname.startsWith(scope.pathname)'),'all in-scope lazy boss requests bypass HTTP cache');
 assert.ok(!sw.includes("'./assets/ip/v2/bosses/water_jug-v146.png'"),'large images must be fetched lazily');
 assert.ok(!game.includes('function enemyHead('),'legacy procedural zombie artist removed');
 assert.ok(!game.includes('function drawCriticalGreenDeath('),'legacy procedural death fallback removed');
