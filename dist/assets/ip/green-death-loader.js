@@ -1,9 +1,8 @@
 // ZOMBIE ZERO · 8-frame v95 front-facing remastered normal / critical death.
-// 768x128 RGBA PNG strips (8 x 96px), original fallback 480x96 kept.
+// Current HD explosion strips and same-art v95 PNG fallback only.
 // Visual only: does not touch collision, scoring, wave progression or loot.
 (function(){
  'use strict';
- const image=new Image(); image.decoding='async';
  // V121: Repair neutral-white, semi-transparent pixels only on the outer
  // boundary of CRITICAL death frames. Interior white eyes/brain highlights,
  // color grading and alpha of other materials stay untouched.
@@ -60,15 +59,14 @@
    }catch(_){return bitmap}
  }
  const pack={
-   image,ready:false,cell:48,variants:[image],
-   // v95 remastered 8-frame 96x128 colorizable portraits, two separate
-   // transparent PNGs. Retain the old atlas as an offline / load-error fallback.
+   get ready(){return pack.remaster.normal.ready&&pack.remaster.critical.ready},
+   // Only the approved explosion animation, HD or same-art v95 PNG.
    remaster:{
      normal:{image:new Image(),ready:false,variants:[],count:8},
      critical:{image:new Image(),ready:false,variants:[],count:8}
    },
-   normal:{row:0,count:8,frameMs:65,duration:.520},
-   critical:{row:1,count:10,frameMs:58,duration:.580},
+   normal:{count:8,frameMs:65,duration:.520},
+   critical:{count:8,frameMs:72.5,duration:.580},
    draw(ctx,z,isCritical,t,scale=1){
      const clip=isCritical?pack.critical:pack.normal;
      const palette=window.ZZGreenPalette;
@@ -97,26 +95,17 @@
        if(art.hd)ctx.drawImage(bitmap,f*240,0,240,320,x,y,width,height);
        else ctx.drawImage(bitmap,f*96,0,96,128,x,y,width,height);
        const hair=art.hairSheets[z.hairColor];
-       if(hair?.complete&&hair.naturalWidth===1920)
+       if(art.hd&&hair?.complete&&hair.naturalWidth===1920)
          ctx.drawImage(hair,f*240,0,240,320,x,y,width,height);
-       else if(hair?.complete&&hair.naturalWidth===768)
+       else if(!art.hd&&hair?.complete&&hair.naturalWidth===768)
          ctx.drawImage(hair,f*96,0,96,128,x,y,width,height);
        ctx.restore();
        return true;
      }
-     if(!pack.ready)return false;
-     // Legacy 8+10-frame art remains available while v95 PNGs load or fail.
-     const f=Math.min(clip.count-1,Math.max(0,Math.floor(t*1000/clip.frameMs)));
-     const x=z.x+z.w/2-32*scale,y=z.y+z.h-60*scale;
-     const bitmap=pack.variants[selected]||image;
-     ctx.drawImage(bitmap,f*48,clip.row*48,48,48,x,y,64*scale,64*scale);
-     return true;
+     return false;
    }
  };
  window.ZZGreenDeath=pack;
- image.onload=()=>{pack.ready=image.naturalWidth===480&&image.naturalHeight===96;if(pack.ready)pack.variants=window.ZZGreenPalette?.variants(image)||[image]};
- image.onerror=()=>{pack.ready=false};
- image.src='assets/ip/green-death.png';
  for(const [kind,part] of Object.entries(pack.remaster)){
    part.hairSheets={};
    for(const color of ['chestnut','blond','red']){
@@ -146,7 +135,6 @@
        part.expressions={};
        // Run once after palette baking, never during sprite animation.
        if(kind==='critical')part.variants=part.variants.map(cleanCriticalFringeBitmap);
-       pack.ready=true;
      }
    };
    part.image.onerror=()=>{part.ready=false};

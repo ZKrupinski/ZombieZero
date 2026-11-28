@@ -48,7 +48,7 @@ class Canvas{
 }
 class ImageMock{
  constructor(){this.naturalWidth=1024;this.naturalHeight=512;this.decoding='async'}
- set src(v){this._src=v;if(v.includes('green-death')){this.naturalWidth=480;this.naturalHeight=96}
+ set src(v){this._src=v;if(v.includes('green-death')){this.naturalWidth=768;this.naturalHeight=128}
   this.onload?.()}
  get src(){return this._src}
 }
@@ -61,18 +61,19 @@ vm.runInContext(deathSrc,vmEnv);
 const walk=vmEnv.window.ZZGreenWalk,death=vmEnv.window.ZZGreenDeath;
 assert(walk.ready&&death.ready,'both source atlas images load');
 assert.equal(walk.variants.length,5,'live walk/hurt palette atlases precomposed');
-assert.equal(death.variants.length,5,'live death and critical palette atlases precomposed');
+assert.equal(death.remaster.normal.variants.length,5,'normal palette atlas precomposed');
+assert.equal(death.remaster.critical.variants.length,5,'critical palette atlas precomposed');
 assert(walk.variants.slice(1).every(x=>x instanceof Canvas),'walk variants are cached offscreen bitmaps');
-assert(death.variants.slice(1).every(x=>x instanceof Canvas),'death variants are cached offscreen bitmaps');
+assert(death.remaster.normal.variants.slice(1).every(x=>x instanceof Canvas),'death variants are cached offscreen bitmaps');
 const actor={seed:2.871,form:0,x:100,y:140,w:33,h:44,moveDir:0,flash:0,recoil:0};
 const actual=p.paletteFor(actor),calls=[];
 const ctx={filter:'none',save(){},restore(){},drawImage(img,...args){calls.push({img,args})}};
 assert(walk.draw(ctx,actor,1.2),'walk is rendered');
 assert.strictEqual(calls.pop().img,walk.variants[actual],'walk uses that actor own body color');
 assert(death.draw(ctx,actor,false,.05),'normal death is rendered');
-assert.strictEqual(calls.pop().img,death.variants[actual],'normal death matches living color');
+assert.strictEqual(calls.pop().img,death.remaster.normal.variants[actual],'normal death matches living color');
 assert(death.draw(ctx,actor,true,.18),'critical death is rendered');
-assert.strictEqual(calls.pop().img,death.variants[actual],'critical death matches living color');
+assert.strictEqual(calls.pop().img,death.remaster.critical.variants[actual],'critical death matches living color');
 actor.moveDir=1;walk.draw(ctx,actor,1.2);
 assert.strictEqual(calls.pop().img,walk.variants[actual],'diagonal shares same color');
 assert(html.indexOf('green-palette.js')<html.indexOf('green-death-loader.js'),'shared colorizer loads before green death');

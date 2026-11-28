@@ -116,8 +116,7 @@ def main():
             repair(ROOT/'deaths-v307'/f'green-{kind}{hair}.webp',240,320,8)
             ext='webp' if hair else 'png'
             repair(ROOT/f'green-death-{kind}-v95{hair}.{ext}',96,128,8)
-    repair(ROOT/'green-death.png',48,48,10,2)
-    loader=ROOT/'green-death-loader.js';s=loader.read_text();s=s.replace('-v484','-v484-v485').replace('green-death.png?v=484','green-death.png?v=485');loader.write_text(s)
+    loader=ROOT/'green-death-loader.js';s=loader.read_text();s=s.replace('-v484','-v484-v485');loader.write_text(s)
     for path,pattern in ((Path('dist/index.html'),r'(green-death-loader\.js\?v=[^\"]+)'),(Path('dist/sw.js'),r"(const CACHE='[^']+)")):
         s=path.read_text();s,n=re.subn(pattern,r'\1-v485-despeck',s,count=1);assert n==1;path.write_text(s)
 

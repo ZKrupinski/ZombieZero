@@ -135,7 +135,6 @@ def bump():
     s=s.replace('v=360-v455-v458','v=360-v455-v458-v484')
     s=s.replace('?v=112-sharp-alpha-v458','?v=112-sharp-alpha-v458-v484')
     s=s.replace('.webp?v=458','.webp?v=458-v484')
-    s=s.replace("image.src='assets/ip/green-death.png';","image.src='assets/ip/green-death.png?v=484';")
     path.write_text(s)
     path=Path('dist/index.html');s=path.read_text()
     s,n=re.subn(r'(green-death-loader\.js\?v=[^"]+)',r'\1-v484-defringe',s,count=1)
@@ -156,7 +155,6 @@ def main():
         b=repair(ROOT/('green-death-'+kind+'-v95.png'),96,128,8)
         for hair in ('chestnut','blond','red'):
             repair(ROOT/('green-death-'+kind+'-v95-'+hair+'.webp'),96,128,8,base=b)
-    repair(ROOT/'green-death.png',48,48,10,2)
     bump()
     print('V484 green death defringe: all active HD and fallback sheets checked',flush=True)
 

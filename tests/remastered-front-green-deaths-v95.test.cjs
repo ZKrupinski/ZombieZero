@@ -12,7 +12,7 @@ for(const kind of ['normal','critical']){
  assert(buf.includes(Buffer.from('tRNS'))||buf.includes(Buffer.from('RGBA')),
    'transparent palette data '+kind);
 }
-assert(source.includes("image.src='assets/ip/green-death.png'"),'fallback kept');
+assert(!source.includes('green-death.png'),'retired B fallback removed');
 assert(source.includes("part.image.src='assets/ip/green-death-'+kind+'-v95.png'"),'both image paths');
 assert(source.includes("window.ZZGreenWalk.draw(ctx,z,0)"),'live-to-death silhouette crossfade');
 assert(source.includes('palette?.paletteFor(z)??0'),'both use identical palette selection');
