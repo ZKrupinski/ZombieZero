@@ -525,6 +525,13 @@ def main():
             preview.append((name,im,out,fw,fh,count))
     clean_green_fallbacks()
     bump_green_cache()
+    # V484: final release-edge pass after the previous alpha-only cleanup.
+    import runpy
+    runpy.run_path('tools/defringe-green-death-v484.py',run_name='__main__')
+    # The QA preview must show the actual final packaged pixels.
+    if args.preview:
+        preview=[(name,before,Image.open(ROOT/(name+'.webp')).convert('RGBA') if name in GREEN else after,fw,fh,count)
+                 for name,before,after,fw,fh,count in preview]
     embed_boss_standby()
     # V475 uses the committed, approved directional sprite atlas directly.
     with Image.open(Path('dist/assets/ip/v2/barricades/duck-approved-v475.webp')) as duck:
