@@ -12,18 +12,20 @@ for(const [kind,base,attack] of [['lure',[5],[10,4]],['saw',[6],[11,7]]]){
   assert.deepEqual(calls,expected);
  }
  assert.equal(env.frontAttack({kind,run:{}}),true);
- assert.equal(env.frontAttack({kind,run:null}),false);
+ assert.equal(env.frontAttack({kind,run:null}),true);
 }
-for(const kind of ['ice','bollard','wall'])assert.equal(env.frontAttack({kind,run:{}}),false);
+assert.equal(env.frontAttack({kind:'ice',run:{}}),true);
+assert.equal(env.frontAttack({kind:'ice',run:null}),true);
+for(const kind of ['bollard','wall'])assert.equal(env.frontAttack({kind,run:{}}),false);
 env.parts={};env.walls=new Map([['duck',{kind:'lure',run:{}}],['idle',{kind:'saw'}],['saw',{kind:'saw',run:{}}],['ice',{kind:'ice',run:{}}]]);
-const painted=[];env.drawDevice=(g,w,building,glow,gauge,layer)=>painted.push([w.kind,building,gauge,layer]);env.drawAttackForeground(g);
-assert.deepEqual(painted,[['lure',false,false,'attack'],['saw',false,false,'attack']]);
+const painted=[];env.drawDevice=(g,w,building,glow,gauge,layer)=>painted.push([w.kind,building,gauge,layer]);env.drawIceArms=(g,w,layer)=>painted.push([w.kind,layer]);env.drawAttackForeground(g);
+assert.deepEqual(painted,[['lure',false,false,'attack'],['saw',false,false,'attack'],['saw',false,false,'attack'],['ice',false,false,'attack'],['ice','claw']]);
 const draw=game.slice(game.indexOf('function draw(){recordSlowEchoHistory()'));
 assert(draw.indexOf('fortress?.draw(g,')<draw.indexOf('drawStruckZombie(z)'));
 assert(draw.indexOf('drawStruckZombie(z)')<draw.indexOf('fortress?.drawAttackForeground?.(g)'));
 assert(draw.indexOf('fortress?.drawAttackForeground?.(g)')<draw.indexOf('drawImpactFlashes()'));
 assert(src.includes("!building&&splitAttacks&&frontAttack(w)?'base':'all'"));
-console.log('PASS v451: attack-only moving parts above enemies, intact idle/building/base and impact layers.');
+console.log('PASS v482: idle and active upper parts above enemies, intact building/base and impact layers.');
 
 // V475: exact approved bitmap layers; every direction has its rage counterpart.
 const duckDraws=[];env.part=(g,...args)=>duckDraws.push(args);
@@ -101,3 +103,15 @@ for(let i=0;i<=100;i++){
 assert(src.includes('duckVisualTravel(progress)*64/size'));
 assert(src.includes('reach=duckTravel(Math.min(.43,progress))+12'));
 console.log('PASS v479: half-height duck leap, original hit fan, compression and rebound.');
+
+// V482: saw top matches the raised duck, attack extension and construction unchanged.
+assert(src.includes("lift:building?0:30"));
+assert(src.includes("lift:30-20*reach"));
+for(const [reach,want] of [[0,30],[.5,20],[1,10]])assert.equal(30-20*reach,want);
+assert(src.includes("splitAttacks?'cable':'all'"));
+assert(src.includes("drawIceArms(g,w,'claw')"));
+const iceParts=[];env.part=(g,n)=>iceParts.push(n);
+for(const [layer,expected] of [['base',[8]],['attack',[9,9]],['all',[9,9,8]]]){
+ iceParts.length=0;env.layer=layer;vm.runInContext("paintMachine(g,'ice',0,0,null,layer)",env);assert.deepEqual(iceParts,expected);
+}
+console.log('PASS v482: separate cryo claws, raised idle blade, unchanged attack reach and build pose.');

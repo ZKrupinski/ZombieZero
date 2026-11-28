@@ -757,11 +757,11 @@ function paintMachine(g,kind,time,pulse,offset=null,layer='all'){
   }
  }else if(kind==='ice'){
   const spread=Math.sin(Math.PI*pulse)*5;
-  if(!offset?.deployed)for(const side of [-1,1]){
+  if(layer!=='base'&&!offset?.deployed)for(const side of [-1,1]){
    g.save();g.translate(32+side*(18+spread),17);g.rotate(side<0?-2.1:-1.04);
    part(g,9,-10,-15,21,20);g.restore();
   }
-  part(g,8,3,9,58,54);
+  if(layer!=='attack')part(g,8,3,9,58,54);
  }
 }
 // V477: surface of the circular cap, in the 64px machine coordinates.
@@ -872,7 +872,7 @@ function armReach(w,dx,dy){
  return Math.min(length,face+spec(w).range);
 }
 const ICE_LATCH=.32,ICE_FREEZE=.62;
-function drawIceArms(g,w){
+function drawIceArms(g,w,layer='all'){
  const run=w.run,progress=run.time/spec(w).duration;
  const ease=t=>1-(1-Math.max(0,Math.min(1,t)))**2;
  const cx=w.x+structureSize(w)/2,cy=w.y+structureSize(w)/2,visualScale=structureSize(w)/ENDLESS_TILE;
@@ -890,7 +890,8 @@ function drawIceArms(g,w){
   if(length<8)continue;
   g.save();g.translate(cx,cy);g.rotate(angle);
   // A compact dark cable with a narrow cold highlight; no oversized arrows.
-  linkage(g,11,0,0,length,0,5.2*visualScale);
+  if(layer!=='claw'){
+   linkage(g,11,0,0,length,0,5.2*visualScale);
   g.globalCompositeOperation='lighter';g.globalAlpha=.9;g.strokeStyle='#86e8ff';g.lineWidth=1.8;
   g.beginPath();g.moveTo(5,-.7);g.lineTo(length,-.7);g.stroke();
   if(grip&&!retract&&grip.moved>0.4){
@@ -900,11 +901,15 @@ function drawIceArms(g,w){
    for(let pos=length-shift;pos>12;pos-=16){g.moveTo(pos-3,-1);g.lineTo(pos+1,-1)}
    g.stroke();
   }
+  }
+  if(layer!=='cable'){
   g.globalCompositeOperation='source-over';g.globalAlpha=1;
   const claw=progress<ICE_LATCH?1.18:grip&&!retract?1.35:1;
   part(g,9,length-7*visualScale*claw,-6*visualScale*claw,14*visualScale*claw,12*visualScale*claw);
   g.globalCompositeOperation='lighter';g.globalAlpha=.28;
-  part(g,9,length-7*visualScale*claw,-6*visualScale*claw,14*visualScale*claw,12*visualScale*claw);g.restore();
+  part(g,9,length-7*visualScale*claw,-6*visualScale*claw,14*visualScale*claw,12*visualScale*claw);
+  }
+  g.restore();
  }
 }
 // V469: presentation envelope only; never feeds movement or collision.
@@ -941,14 +946,15 @@ function drawDevice(g,w,building=false,glow=null,drawGauge=true,layer='all'){
   offset={...pose,combat:!building,airborne:!!run&&progress>=.18&&progress<.74,
    x:0,y:-travel,spring:run?duckSpringLength(progress):12-pose.bob};
  }
- if(w.kind==='saw')offset={x:0,y:0,lift:building?0:10,spin:building?.3:(w.sawSpin??.3)};
+ if(w.kind==='saw')offset={x:0,y:0,lift:building?0:30,spin:building?.3:(w.sawSpin??.3)};
  if(run&&w.kind==='saw'){
   const step=progress*run.targets.length,index=Math.min(run.targets.length-1,Math.floor(step));
   const z=run.targets[index],reach=Math.sin(Math.PI*(step-index));
   const target=deviceTarget(z,x,y);
   const dx=target.x-x,dy=target.y-y;
   const scale=armReach(w,dx,dy)/Math.max(1,Math.hypot(dx,dy))*64/size;
-  offset={...offset,x:dx*scale*reach,y:(dy*scale+10)*reach};
+  // Match the raised idle height at rest, preserving the original fully extended attack position.
+  offset={...offset,x:dx*scale*reach,y:(dy*scale+10)*reach,lift:30-20*reach};
  }
  // Same impact envelope as barricades, applied only to the bitmap.
  const bite=building?0:Math.min(1,Math.max(0,(w.biteShake||0)/.18));
@@ -1331,17 +1337,20 @@ function tickDevices(dt,enemies,now,ops){
 for(const {kind,el} of buildButtons)el?.addEventListener?.('click',()=>selectBuild(kind));
 makeDeviceIcons();
 
-// v451: only the animated duck/blade and its extending linkage cross above enemies.
-function frontAttack(w){return !!w.run&&(w.kind==='lure'||w.kind==='saw')}
+// v482: upper moving parts remain above enemies even while idle.
+function frontAttack(w){return w.kind==='lure'||w.kind==='saw'||w.kind==='ice'}
 function drawAttackForeground(g){
  if(!parts)return;
- for(const w of walls.values())if(frontAttack(w))drawDevice(g,w,false,null,false,'attack');
+ for(const w of walls.values())if(frontAttack(w)){
+  drawDevice(g,w,false,null,false,'attack');
+  if(w.kind==='ice'&&w.run)drawIceArms(g,w,'claw');
+ }
 }
 function draw(g,building=false,glow=null,splitAttacks=false){
  const bitmap=bitmapTiles();
  const tile=bitmap||tiles();if(!tile)return;
  const frame=bitmap?BARRICADE_FRAME:MINI_TILE;
- if(!building&&parts)for(const w of walls.values())if(w.kind==='ice'&&w.run)drawIceArms(g,w);
+ if(!building&&parts)for(const w of walls.values())if(w.kind==='ice'&&w.run)drawIceArms(g,w,splitAttacks?'cable':'all');
  for(const w of walls.values()){
   if(w.kind&&w.kind!=='wall'){drawDevice(g,w,building,glow,false,!building&&splitAttacks&&frontAttack(w)?'base':'all');continue}
   // The five authored PNG states are switched by actual remaining HP.
