@@ -2687,13 +2687,14 @@ function start(selectedMode='campaign'){
  preparedStage=null;
  const plan=prepareStageArt(first,selectedMode),bg=stageArtForWave(first);
  window.ZZStageArt?.load?.(bg);
- if(window.ZZObjectSprite?.loading&&(preparedArtLoading(plan)||window.ZZStageArt?.loading?.[bg])){
+ const citizenArtLoading=()=>window.ZZCitizenCast18?.loading===true;
+ if(citizenArtLoading()||(window.ZZObjectSprite?.loading&&(preparedArtLoading(plan)||window.ZZStageArt?.loading?.[bg]))){
   waitingForStart=true;unlockAudio();
   const button=$(selectedMode==='endless'?'endless':selectedMode==='mini'?'mini-horde':selectedMode==='fortress'?'fortress-horde':'start');
   const original=button?.innerHTML;if(button)button.textContent='스테이지 준비 중…';
   const deadline=Date.now()+8000;
   function wait(){
-   if(Date.now()<deadline&&(preparedArtLoading(plan)||window.ZZStageArt?.loading?.[bg])){requestAnimationFrame(wait);return}
+   if(Date.now()<deadline&&(citizenArtLoading()||preparedArtLoading(plan)||window.ZZStageArt?.loading?.[bg])){requestAnimationFrame(wait);return}
    waitingForStart=false;if(button)button.innerHTML=original;startPrepared(selectedMode);
   }
   requestAnimationFrame(wait);return;
@@ -2873,7 +2874,8 @@ function updateEmergencySupport(dt){
   let citizen=citizens.find(p=>p.alive);
   if(!citizen){
    citizen=citizens[0];
-   if(citizen&&assignReturningCitizenIdentity(citizen)){citizen.alive=true;citizen.dying=0;citizen.absent=0;citizen.returning=1.1;citizen.shooting=0;citizen.guardSpent=false;citizen.guardUntil=0}
+   if(citizen&&!assignReturningCitizenIdentity(citizen))return;
+   if(citizen){citizen.alive=true;citizen.dying=0;citizen.absent=0;citizen.returning=1.1;citizen.shooting=0;citizen.guardSpent=false;citizen.guardUntil=0}
   }
   if(!citizen)return;
   endlessEmergencyUsed=true;supportDangerTime=0;
@@ -6097,7 +6099,7 @@ function drawCitizenBitmap(p,x,y,cheering){
  if(!frame||!frame.atlas)return false;
  // Restore v41's approved, expressive citizen size. Mild overlap is
  // intentional in the packed audience; keep foot anchor and all hitboxes.
- if(frame.individual){const tile=frame.cell,size=46;g.drawImage(frame.atlas,frame.frame*tile,frame.row*tile,tile,tile,x-size/2,y-size+21,size,size);return true;}
+ if(frame.individual){const tile=frame.cell,size=52;g.drawImage(frame.atlas,frame.frame*tile,frame.row*tile,tile,tile,x-size/2,y-size+24,size,size);return true;}
  const tile=128,width=35,height=46;
  g.drawImage(frame.atlas,frame.identity*tile,frame.frame*tile,tile,tile,
              x-width/2,y-height+21,width,height);

@@ -24,28 +24,27 @@
  load('attack','citizen-sacrifice-v41.png');
 })();
 
-/* v480 integration candidate: approved individual 8x3 sheets, 256px source cells.
- * Only switch when all 18 load successfully; keep v41 art otherwise.
- * Source PNGs must be supplied separately, numbered 01 through 18.
- */
+/* v480: 18 approved distinct citizens, 8 frames × 3 rows.
+   128px square cells. Bounded parallel loading; original v41 fallback on failure. */
 (function(){
  'use strict';
- if(typeof window==='undefined'||typeof Image==='undefined'||typeof document==='undefined')return;
- const cast={ready:false,cell:128,sheets:new Array(18),count:18};
+ if(typeof window==='undefined'||typeof Image==='undefined')return;
+ const cast={ready:false,loading:true,cell:128,sheets:new Array(18),count:18};
  window.ZZCitizenCast18=cast;
- let index=0;
+ let index=0,loaded=0;
  function loadNext(){
-  if(index===18){cast.ready=true;return;}
+  if(!cast.loading||index>=18)return;
   const i=index++,img=new Image();img.decoding='async';
   img.onload=()=>{
-   if(img.naturalWidth!==2048||img.naturalHeight!==768){cast.sheets=[];return;}
-   const sheet=document.createElement('canvas');sheet.width=1024;sheet.height=384;
-   const ctx=sheet.getContext('2d');if(!ctx){cast.sheets=[];return;}
-   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(img,0,0,1024,384);
-   cast.sheets[i]=sheet;loadNext();
+   if(!cast.loading)return;
+   if(img.naturalWidth!==1024||img.naturalHeight!==384){fail();return;}
+   cast.sheets[i]=img;
+   if(++loaded===18){cast.ready=true;cast.loading=false;return;}
+   loadNext();
   };
-  img.onerror=()=>{cast.sheets=[];};
-  img.src='assets/ip/citizens-v480/citizen-'+String(i+1).padStart(2,'0')+'.png';
+  function fail(){cast.loading=false;cast.ready=false;cast.sheets=[];}
+  img.onerror=fail;
+  img.src='assets/ip/citizens-v480/citizen-'+String(i+1).padStart(2,'0')+'.webp';
  }
- loadNext();
+ for(let i=0;i<3;i++)loadNext();
 })();
