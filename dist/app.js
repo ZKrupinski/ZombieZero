@@ -153,7 +153,8 @@ function updateLabels(){
   add(window.ZZHeroCarAttack?.image);
   for(const img of window.ZZHeroBallsV58?.images||[])add(img);
   add(window.ZZCitizenCast?.cheer);add(window.ZZCitizenCast?.attack);
-  add(window.ZZGreenWalk?.image);add(window.ZZGreenDeath?.image);
+  add(window.ZZGreenWalk?.image);
+  for(const part of Object.values(window.ZZGreenDeath?.remaster||{}))add(part.image);
   add(window.ZZItemIcons?.image);
   for(const entry of Object.values(window.ZZObjectSprite?.images||{}))add(entry.image);
   // Other stage backgrounds continue to load in their normal stage pipeline.
@@ -234,6 +235,7 @@ function updateLabels(){
    if(bootStatus)bootStatus.hidden=false;
    if(bootMeter)bootMeter.hidden=false;
    try{
+    if(window.ZZFreshBoot)await window.ZZFreshBoot;
     await preloadInitialScene();
     // Commit the scene swap only when the first play-ready frame is complete.
     boot.hidden=true;
@@ -316,6 +318,6 @@ if(selectionLogo&&typeof ResizeObserver!=='undefined'){
  if(cards)placementSizer.observe(cards);
 }
 window.addEventListener('resize',fit);window.visualViewport?.addEventListener('resize',fit);document.addEventListener('fullscreenchange',()=>{fit();updateLabels()});window.addEventListener('pageshow',()=>{fit();updateLabels()});
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});}
+if('serviceWorker' in navigator){if(!window.ZZFreshBoot)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});}
 fit();updateLabels();requestAnimationFrame(fit);
 })();

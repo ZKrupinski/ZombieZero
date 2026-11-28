@@ -1,0 +1,20 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const code=fs.readFileSync('dist/sw.js','utf8'),html=fs.readFileSync('dist/index.html','utf8'),app=fs.readFileSync('dist/app.js','utf8');
+assert(html.includes('zz-fresh-launch-v487'));assert(app.includes('await window.ZZFreshBoot'));
+const handlers={},deleted=[],requests=[];
+const self={registration:{scope:'https://example.org/ZombieZero/'},addEventListener:(n,f)=>handlers[n]=f,skipWaiting:async()=>{},clients:{claim:async()=>{}}};
+const caches={keys:async()=>['zombie-zero-shell-old','zombie-zero-shell-other','unrelated-app'],delete:async k=>deleted.push(k)};
+vm.runInNewContext(code,{self,caches,URL,fetch:async(r,o)=>{requests.push(o.cache);return 'fresh'}});
+(async()=>{
+ let work;handlers.activate({waitUntil:p=>work=p});await work;
+ assert.deepEqual(deleted,['zombie-zero-shell-old','zombie-zero-shell-other']);
+ deleted.length=0;
+ handlers.fetch({request:{url:'https://example.org/ZombieZero/?v=487',method:'GET',mode:'navigate'},respondWith:p=>work=p});
+ assert.equal(await work,'fresh');assert.equal(deleted.length,2);
+ handlers.fetch({request:{url:'https://example.org/ZombieZero/assets/ip/deaths-v307/green-normal.webp',method:'GET'},respondWith:p=>work=p});
+ await work;assert.deepEqual(requests,['no-store','no-store']);
+ let touched=false;handlers.fetch({request:{url:'https://example.org/other/game.js',method:'GET'},respondWith:()=>touched=true});
+ assert(!touched);assert(!code.includes('cache.match('));
+ console.log('PASS: launch clears only game caches, every scoped request bypasses HTTP cache, no stale fallback.');
+})().catch(e=>{console.error(e);process.exitCode=1});
